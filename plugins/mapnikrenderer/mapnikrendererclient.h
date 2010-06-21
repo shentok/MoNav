@@ -47,7 +47,7 @@ public:
 	virtual bool SetPoints( std::vector< UnsignedCoordinate >* points );
 	virtual bool SetEdges( std::vector< std::vector< UnsignedCoordinate > >* edges );
 	virtual bool SetPosition( UnsignedCoordinate coordinate, double heading ) ;
-	virtual bool Paint( QPixmap* picture, ProjectedCoordinate center, int zoomLevel, double rotation, double virtualZoom );
+	virtual bool Paint( QPainter* painter, ProjectedCoordinate center, int zoomLevel, double rotation, double virtualZoom );
 
 protected:
 

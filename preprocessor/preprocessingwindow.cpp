@@ -60,7 +60,7 @@ void PreprocessingWindow::loadPlugins()
 		return;
 	foreach ( QString fileName, pluginDir.entryList( QDir::Files ) ) {
 		QPluginLoader* loader = new QPluginLoader( pluginDir.absoluteFilePath( fileName ) );
-		//loader->setLoadHints( QLibrary::ExportExternalSymbolsHint | QLibrary::ResolveAllSymbolsHint );
+		loader->setLoadHints( QLibrary::ExportExternalSymbolsHint | QLibrary::ResolveAllSymbolsHint );
 		if ( !loader->load() )
 			qDebug( "%s", loader->errorString().toAscii().constData() );
 

@@ -3,7 +3,7 @@
 
 #include "utils/coordinates.h"
 #include <QtPlugin>
-#include <QPixmap>
+#include <QPainter>
 
 class IRenderer
 {
@@ -21,7 +21,7 @@ public:
 	virtual bool SetPoints( std::vector< UnsignedCoordinate >* points ) = 0;
 	virtual bool SetEdges( std::vector< std::vector< UnsignedCoordinate > >* edges ) = 0;
 	virtual bool SetPosition( UnsignedCoordinate coordinate, double heading )  = 0;
-	virtual bool Paint( QPixmap* picture, ProjectedCoordinate center, int zoomLevel, double rotation = 0, double virtualZoom = 0 ) = 0;
+	virtual bool Paint( QPainter* painter, ProjectedCoordinate center, int zoomLevel, double rotation = 0, double virtualZoom = 0 ) = 0;
 	virtual ~IRenderer() {};
 };
 

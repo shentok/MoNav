@@ -148,13 +148,13 @@ bool MapnikRenderer::SetPosition( UnsignedCoordinate coordinate, double heading 
 	return false;
 }
 
-bool MapnikRenderer::Paint( QPixmap* picture, ProjectedCoordinate center, int zoomLevel, double rotation, double virtualZoom )
+bool MapnikRenderer::Paint( QPainter* painter, ProjectedCoordinate center, int zoomLevel, double rotation, double virtualZoom )
 {
 	if ( !loaded )
 		return false;
 
-	int sizeX = picture->width();
-	int sizeY = picture->height();
+	int sizeX = painter->device()->width();
+	int sizeY = painter->device()->height();
 
 	if ( sizeX <= 1 && sizeY <= 1 )
 		return true;
@@ -170,8 +170,6 @@ bool MapnikRenderer::Paint( QPixmap* picture, ProjectedCoordinate center, int zo
 	const int yWidth = boxes[zoomLevel].maxY - boxes[zoomLevel].minY;
 	const double left = center.x * ( 1u << zoomLevel ) - ( ( double ) centerX ) / tileSize;
 	const double top = center.y * ( 1u << zoomLevel ) - ( ( double ) centerY ) / tileSize;
-
-	QPainter painter( picture );
 
 	if ( !drawFast )
 	{
@@ -247,9 +245,9 @@ bool MapnikRenderer::Paint( QPixmap* picture, ProjectedCoordinate center, int zo
 
 			if( drawFast ) {
 				if ( tile != NULL )
-					painter.drawPixmap( xPos, yPos, *tile );
+					painter->drawPixmap( xPos, yPos, *tile );
 				else
-					painter.fillRect( xPos, yPos, tileSize, tileSize, QColor( 241, 238 , 232, 255 ) );
+					painter->fillRect( xPos, yPos, tileSize, tileSize, QColor( 241, 238 , 232, 255 ) );
 			}
 			else {
 				//TODO
