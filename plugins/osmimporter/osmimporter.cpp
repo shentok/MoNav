@@ -1051,4 +1051,4 @@ bool OSMImporter::GetBoundingBox( BoundingBox* box )
 	return true;
 }
 
-Q_EXPORT_PLUGIN2( OSMImporter, OSMImporter )
+Q_EXPORT_PLUGIN2( osmimporter, OSMImporter )

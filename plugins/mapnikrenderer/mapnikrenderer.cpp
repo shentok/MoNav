@@ -360,4 +360,4 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 	return !aborted;
 }
 
-Q_EXPORT_PLUGIN2( MapnikRenderer, MapnikRenderer )
+Q_EXPORT_PLUGIN2( mapnikrenderer, MapnikRenderer )

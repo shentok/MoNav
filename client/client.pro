@@ -13,7 +13,8 @@ HEADERS += mainwindow.h \
     paintwidget.h \
     utils/coordinates.h \
     utils/config.h \
-    interfaces/irenderer.h
+    interfaces/irenderer.h \
+    interfaces/iaddresslookup.h
 FORMS += mainwindow.ui \
     mapview.ui \
     paintwidget.ui

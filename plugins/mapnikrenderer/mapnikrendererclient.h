@@ -26,15 +26,15 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QCache>
 #include "interfaces/irenderer.h"
 
-class MapnikRenderer : public QObject, IRenderer
+class MapnikRendererClient : public QObject, IRenderer
 {
 	Q_OBJECT
 	Q_INTERFACES( IRenderer )
 
 public:
 
-    MapnikRenderer();
-	~MapnikRenderer();
+	 MapnikRendererClient();
+	~MapnikRendererClient();
 	virtual QString GetName();
 	virtual void SetInputDirectory( const QString& dir );
 	virtual void ShowSettings();

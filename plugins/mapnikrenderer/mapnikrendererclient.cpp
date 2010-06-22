@@ -21,39 +21,39 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QPainter>
 #include "mapnikrendererclient.h"
 
-MapnikRenderer::MapnikRenderer()
+MapnikRendererClient::MapnikRendererClient()
 {
 	maxZoom = -1;
 	tileSize = 1;
 }
 
-MapnikRenderer::~MapnikRenderer()
+MapnikRendererClient::~MapnikRendererClient()
 {
 
 }
 
-void MapnikRenderer::unload()
+void MapnikRendererClient::unload()
 {
 	boxes.clear();
 	cache.clear();
 }
 
-QString MapnikRenderer::GetName()
+QString MapnikRendererClient::GetName()
 {
 	return "Mapnik Renderer";
 }
 
-void MapnikRenderer::SetInputDirectory( const QString& dir )
+void MapnikRendererClient::SetInputDirectory( const QString& dir )
 {
 	directory = dir;
 }
 
-void MapnikRenderer::ShowSettings()
+void MapnikRendererClient::ShowSettings()
 {
 
 }
 
-bool MapnikRenderer::LoadData()
+bool MapnikRendererClient::LoadData()
 {
 	if ( loaded )
 		unload();
@@ -84,14 +84,14 @@ bool MapnikRenderer::LoadData()
 	return true;
 }
 
-int MapnikRenderer::GetMaxZoom()
+int MapnikRendererClient::GetMaxZoom()
 {
 	if ( !loaded )
 		return -1;
 	return maxZoom;
 }
 
-ProjectedCoordinate MapnikRenderer::Move( ProjectedCoordinate center, int shiftX, int shiftY, int zoom )
+ProjectedCoordinate MapnikRendererClient::Move( ProjectedCoordinate center, int shiftX, int shiftY, int zoom )
 {
 	if ( !loaded )
 		return center;
@@ -100,7 +100,7 @@ ProjectedCoordinate MapnikRenderer::Move( ProjectedCoordinate center, int shiftX
 	return center;
 }
 
-ProjectedCoordinate MapnikRenderer::PointToCoordinate( ProjectedCoordinate center, int shiftX, int shiftY, int zoom )
+ProjectedCoordinate MapnikRendererClient::PointToCoordinate( ProjectedCoordinate center, int shiftX, int shiftY, int zoom )
 {
 	if ( !loaded )
 		return center;
@@ -109,7 +109,7 @@ ProjectedCoordinate MapnikRenderer::PointToCoordinate( ProjectedCoordinate cente
 	return center;
 }
 
-ProjectedCoordinate MapnikRenderer::ZoomInOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom )
+ProjectedCoordinate MapnikRendererClient::ZoomInOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom )
 {
 	if ( !loaded )
 		return center;
@@ -118,7 +118,7 @@ ProjectedCoordinate MapnikRenderer::ZoomInOn( ProjectedCoordinate center, Projec
 	return center;
 }
 
-ProjectedCoordinate MapnikRenderer::ZoomOutOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom )
+ProjectedCoordinate MapnikRendererClient::ZoomOutOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom )
 {
 	if ( !loaded )
 		return center;
@@ -127,28 +127,28 @@ ProjectedCoordinate MapnikRenderer::ZoomOutOn( ProjectedCoordinate center, Proje
 	return center;
 }
 
-bool MapnikRenderer::SetPoints( std::vector< UnsignedCoordinate >* points )
+bool MapnikRendererClient::SetPoints( std::vector< UnsignedCoordinate >* points )
 {
 	if ( !loaded )
 		return false;
 	return false;
 }
 
-bool MapnikRenderer::SetEdges( std::vector< std::vector< UnsignedCoordinate > >* edges )
+bool MapnikRendererClient::SetEdges( std::vector< std::vector< UnsignedCoordinate > >* edges )
 {
 	if ( !loaded )
 		return false;
 	return false;
 }
 
-bool MapnikRenderer::SetPosition( UnsignedCoordinate coordinate, double heading )
+bool MapnikRendererClient::SetPosition( UnsignedCoordinate coordinate, double heading )
 {
 	if ( !loaded )
 		return false;
 	return false;
 }
 
-bool MapnikRenderer::Paint( QPainter* painter, ProjectedCoordinate center, int zoomLevel, double rotation, double virtualZoom )
+bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center, int zoomLevel, double rotation, double virtualZoom )
 {
 	if ( !loaded )
 		return false;
@@ -259,4 +259,4 @@ bool MapnikRenderer::Paint( QPainter* painter, ProjectedCoordinate center, int z
 }
 
 
-Q_EXPORT_PLUGIN2( MapnikRenderer, MapnikRenderer )
+Q_EXPORT_PLUGIN2( mapnikrendererclient, MapnikRendererClient )

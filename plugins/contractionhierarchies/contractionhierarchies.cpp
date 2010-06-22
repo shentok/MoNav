@@ -113,4 +113,4 @@ bool ContractionHierarchies::Preprocess( IImporter* importer )
 	return false;
 }
 
-Q_EXPORT_PLUGIN2( ContractionHierarchies, ContractionHierarchies )
+Q_EXPORT_PLUGIN2( contractionhierarchies, ContractionHierarchies )
