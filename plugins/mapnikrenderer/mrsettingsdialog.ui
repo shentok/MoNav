@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>470</width>
-    <height>553</height>
+    <width>480</width>
+    <height>656</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -269,6 +269,13 @@
        </property>
        <property name="checked">
         <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="pngcrush">
+       <property name="text">
+        <string>Use PNGcrush</string>
        </property>
       </widget>
      </item>

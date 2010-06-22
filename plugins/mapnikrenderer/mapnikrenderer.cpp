@@ -30,8 +30,10 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QFile>
 #include <QDataStream>
 #include <QProgressDialog>
+#include <QTemporaryFile>
+#include <QProcess>
 
-#include <QLibrary>
+//#include <QLibrary>
 
 MapnikRenderer::MapnikRenderer()
 {
@@ -85,14 +87,14 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 
 		qDebug( "Initialize Database Link" );
 
-		QDir pluginDir( settings.plugins );
+		/*QDir pluginDir( settings.plugins );
 		foreach ( QString fileName, pluginDir.entryList( QDir::Files ) ) {
 			QLibrary* loader = new QLibrary( pluginDir.absoluteFilePath( fileName ) );
 			loader->load();
 			qDebug( "%s is libary: %i", pluginDir.absoluteFilePath( fileName ).toAscii().constData(), loader->isLoaded() );
 			if ( !loader->isLoaded() )
 				qDebug( "Reason: %s", loader->errorString().toAscii().constData() );
-		}
+		}*/
 
 		mapnik::datasource_cache::instance()->register_datasources( settings.plugins.toAscii().constData() );
 
@@ -165,6 +167,7 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 			int tilesRendered = 0;
 			int tilesSkipped = 0;
 			int metaTilesRendered = 0;
+			long long pngcrushSaved = 0;
 
 			int minX = box.min.GetTileX( zoom );
 			int maxX = box.max.GetTileX( zoom ) + 1;
@@ -279,6 +282,29 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 #pragma omp critical
 							tilesSkipped++;
 						}
+						if ( settings.pngcrush )
+						{
+							QTemporaryFile tempOut;
+							tempOut.open();
+							tempOut.write( result.data(), result.size() );
+							tempOut.close();
+
+							QTemporaryFile tempIn;
+							tempIn.open();
+
+							QProcess pngcrush;
+							pngcrush.start( "pngcrush", QStringList() << tempOut.fileName() << tempIn.fileName() );
+							if ( pngcrush.waitForStarted() && pngcrush.waitForFinished() )
+							{
+								QByteArray buffer = tempIn.readAll();
+								if ( buffer.size() != 0 && buffer.size() < ( int ) result.size() )
+								{
+#pragma omp critical
+									pngcrushSaved += result.size() - buffer.size();
+									result.assign( buffer.constData(), buffer.size() );
+								}
+							}
+						}
 #pragma omp critical
 						{
 							tilesFile.write( result.data(), result.size() );
@@ -306,6 +332,8 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 				}
 			}
 			qDebug( "Zoom %d: Removed %d of %d tiles", zoom, tilesSkipped, tilesRendered );
+			if ( settings.pngcrush )
+				qDebug( "PNGcrush saved %lld KB -> %lld KB [%lld %%]", pngcrushSaved / 1024, position / 1024, 100 * pngcrushSaved / position );
 			QFile indexFile( filename + QString( "_%1_index" ).arg( zoom ) );
 			indexFile.open( QIODevice::WriteOnly );
 			for ( int i = 0; i < ( int ) index.size(); i++ )

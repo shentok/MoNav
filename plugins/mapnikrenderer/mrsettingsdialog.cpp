@@ -42,6 +42,7 @@ MRSettingsDialog::MRSettingsDialog(QWidget *parent) :
 	ui->tileMargin->setValue( settings.value( "tileMargin", 1 ).toInt() );
 	ui->colorReduction->setChecked( settings.value( "colorReduction", true ).toBool() );
 	ui->removeTiles->setChecked( settings.value( "removeTiles", false ).toBool() );
+	ui->pngcrush->setChecked( settings.value( "pngcrush", false ).toBool() );
 }
 
 MRSettingsDialog::~MRSettingsDialog()
@@ -59,6 +60,7 @@ MRSettingsDialog::~MRSettingsDialog()
 	settings.setValue( "tileMargin", ui->tileMargin->value() );
 	settings.setValue( "colorReduction", ui->colorReduction->isChecked() );
 	settings.setValue( "removeTiles", ui->removeTiles->isChecked() );
+	settings.setValue( "pngcrush", ui->pngcrush->isChecked() );
 
     delete ui;
 }
@@ -118,5 +120,6 @@ bool MRSettingsDialog::getSettings( Settings* settings ) {
 	settings->tileMargin = ui->tileMargin->value();
 	settings->reduceColors = ui->colorReduction->isChecked();
 	settings->deleteTiles = ui->removeTiles->isChecked();
+	settings->pngcrush = ui->pngcrush->isChecked();
 	return true;
 }

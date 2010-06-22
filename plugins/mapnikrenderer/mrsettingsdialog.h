@@ -44,6 +44,7 @@ public:
 		int tileMargin;
 		bool reduceColors;
 		bool deleteTiles;
+		bool pngcrush;
 	};
 
 	bool getSettings( Settings* settings );
