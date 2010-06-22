@@ -886,6 +886,11 @@ bool OSMImporter::GetAddressData( std::vector< Place >* dataPlaces, std::vector<
 		return false;
 	}
 
+	mappedEdgesFile.open( QIODevice::ReadOnly );
+	nodeCoordinatesFile.open( QIODevice::ReadOnly );
+	placesFile.open( QIODevice::ReadOnly );
+	locationFile.open( QIODevice::ReadOnly );
+
 	QDataStream mappedEdgesData( &mappedEdgesFile );
 	QDataStream nodeCoordinatesData( &nodeCoordinatesFile );
 	QDataStream placesData( &placesFile );
@@ -1013,10 +1018,10 @@ bool OSMImporter::GetAddressData( std::vector< Place >* dataPlaces, std::vector<
 	}
 	wayBuffer.clear();
 
-	qDebug( "Number Of Ways: %lld", numberOfWays );
-	qDebug( "Number Of Address Entries: %lld", numberOfAddressPlaces );
-	qDebug( "Average Address Entries per _Way: %lf", ( double ) numberOfAddressPlaces / numberOfWays );
-	qDebug( "Number Of _Way Nodes: %d", ( int ) dataWayBuffer->size() );
+	qDebug( "Number of ways: %lld", numberOfWays );
+	qDebug( "Number of address entries: %lld", numberOfAddressPlaces );
+	qDebug( "Average address entries per way: %lf", ( double ) numberOfAddressPlaces / numberOfWays );
+	qDebug( "Number of way nodes: %d", ( int ) dataWayBuffer->size() );
 	return true;
 }
 

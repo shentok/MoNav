@@ -112,17 +112,17 @@ struct Label {
 };
 
 struct Node {
-	QVector< Data > dataList;
-	QVector< Label > labelList;
+	std::vector< Data > dataList;
+	std::vector< Label > labelList;
 
 	size_t GetSize() const {
 		size_t result = 0;
 		result += sizeof( unsigned short );
 		result += sizeof( unsigned char );
-		foreach ( const Label& label, labelList )
-			result += label.GetSize();
-		foreach ( const Data& data, dataList )
-			result += data.GetSize();
+		for ( int i = 0; i < ( int ) labelList.size(); i++ )
+			result += labelList[i].GetSize();
+		for ( int i = 0; i < ( int ) dataList.size(); i++ )
+			result += dataList[i].GetSize();
 		return result;
 	}
 
@@ -133,13 +133,13 @@ struct Node {
 		buffer += sizeof( unsigned short );
 		*( ( unsigned char* ) buffer ) = dataList.size();
 		buffer += sizeof( unsigned char );
-		foreach ( const Label& label, labelList ) {
-			label.Write( buffer );
-			buffer += label.GetSize();
+		for ( int i = 0; i < ( int ) labelList.size(); i++ ) {
+			labelList[i].Write( buffer );
+			buffer += labelList[i].GetSize();
 		}
-		foreach ( const Data& data, dataList ) {
-			data.Write( buffer );
-			buffer += data.GetSize();
+		for ( int i = 0; i < ( int ) dataList.size(); i++ ) {
+			dataList[i].Write( buffer );
+			buffer += dataList[i].GetSize();
 		}
 	}
 

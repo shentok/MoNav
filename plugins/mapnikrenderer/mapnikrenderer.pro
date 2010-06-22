@@ -1,8 +1,8 @@
 TEMPLATE = lib
 CONFIG += plugin
 
-#CONFIG += link_pkgconfig
-#PKGCONFIG += freetype2
+CONFIG += link_pkgconfig
+PKGCONFIG += freetype2
 HEADERS += mapnikrenderer.h \
 	 mrsettingsdialog.h \
     interfaces/ipreprocessor.h \

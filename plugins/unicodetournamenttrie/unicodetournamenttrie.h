@@ -21,6 +21,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define UNICODETOURNAMENTTRIE_H
 
 #include "interfaces/ipreprocessor.h"
+#include "trie.h"
+#include <QFile>
+#include <vector>
 
 class UnicodeTournamentTrie : public QObject, public IPreprocessor {
 	Q_OBJECT
@@ -38,6 +41,9 @@ public:
 	virtual bool Preprocess( IImporter* importer );
 
 protected:
+
+	void insert( std::vector< utt::Node >* trie, unsigned importance, const QString& name, utt::Data data );
+	void writeTrie( std::vector< utt::Node >* trie, QFile& file );
 
 	struct PlaceImportance {
 		QString name;
