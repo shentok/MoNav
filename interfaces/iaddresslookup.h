@@ -26,7 +26,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 class IAddressLookup
 {
 public:
-	IAddressLookup();
 	virtual ~IAddressLookup() {}
 
 	virtual QString GetName() = 0;

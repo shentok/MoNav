@@ -6,7 +6,8 @@ TEMPLATE = app
 SOURCES += main.cpp \
     mainwindow.cpp \
     mapview.cpp \
-    paintwidget.cpp
+    paintwidget.cpp \
+    addressdialog.cpp
 HEADERS += mainwindow.h \
     interfaces/IRenderer.h \
     mapview.h \
@@ -14,10 +15,12 @@ HEADERS += mainwindow.h \
     utils/coordinates.h \
     utils/config.h \
     interfaces/irenderer.h \
-    interfaces/iaddresslookup.h
+    interfaces/iaddresslookup.h \
+    addressdialog.h
 FORMS += mainwindow.ui \
     mapview.ui \
-    paintwidget.ui
+    paintwidget.ui \
+    addressdialog.ui
 DESTDIR = ../bin
 TARGET = MoNavC
 QMAKE_CXXFLAGS_RELEASE -= -O2

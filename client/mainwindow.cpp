@@ -28,15 +28,18 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
 	renderer = NULL;
+	addressLookup = NULL;
 
-    ui->setupUi(this);
+	ui->setupUi(this);
 	ui->targetSourceWidget->hide();
 	ui->settingsWidget->hide();
 	layout()->setSizeConstraint( QLayout::SetFixedSize );
 	mapView = new MapView( this );
+	addressDialog = new AddressDialog( this );
 
 	QSettings settings( "MoNavClient" );
 	dataDirectory = settings.value( "dataDirectory" ).toString();
+	mode = Source;
 
 	connectSlots();
 
@@ -88,7 +91,14 @@ bool MainWindow::loadPlugins()
 			{
 				plugins.append( loader );
 				renderer = interface;
-				mapView->setRender( renderer );
+			}
+		}
+		else if ( IAddressLookup *interface = qobject_cast< IAddressLookup* >( loader->instance() ) )
+		{
+			if ( interface->GetName() == "Unicode Tournament Trie" )
+			{
+				plugins.append( loader );
+				addressLookup = interface;
 			}
 		}
 	}
@@ -98,6 +108,11 @@ bool MainWindow::loadPlugins()
 		renderer->SetInputDirectory( dataDirectory );
 		if ( !renderer->LoadData() )
 			return false;
+		mapView->setRender( renderer );
+		addressLookup->SetInputDirectory( dataDirectory );
+		if ( !addressLookup->LoadData() )
+			return false;
+		addressDialog->setAddressLookup( addressLookup );
 	}
 	catch ( ... )
 	{
@@ -108,6 +123,8 @@ bool MainWindow::loadPlugins()
 
 void MainWindow::unloadPlugins()
 {
+	mapView->setRender( NULL );
+	addressDialog->setAddressLookup( NULL );
 	foreach( QPluginLoader* pluginLoader, plugins )
 	{
 		pluginLoader->unload();
@@ -135,12 +152,12 @@ void MainWindow::browseMap()
 
 void MainWindow::sourceMode()
 {
-
+	mode = Source;
 }
 
 void MainWindow::targetMode()
 {
-
+	mode = Target;
 }
 
 void MainWindow::about()
@@ -150,7 +167,7 @@ void MainWindow::about()
 
 void MainWindow::routeView()
 {
-
+	mapView->exec();
 }
 
 
@@ -166,7 +183,8 @@ void MainWindow::targetCityCenter()
 
 void MainWindow::targetAddress()
 {
-
+	addressDialog->resetCity();
+	addressDialog->exec();
 }
 
 void MainWindow::targetMap()
@@ -187,7 +205,8 @@ void MainWindow::settingsSystem()
 
 void MainWindow::settingsRenderer()
 {
-
+	if ( renderer != NULL )
+		renderer->ShowSettings();
 }
 
 void MainWindow::settingsGPSLookup()
@@ -197,7 +216,8 @@ void MainWindow::settingsGPSLookup()
 
 void MainWindow::settingsAddressLookup()
 {
-
+	if ( addressLookup != NULL )
+		addressLookup->ShowSettings();
 }
 
 void MainWindow::settingsGPS()

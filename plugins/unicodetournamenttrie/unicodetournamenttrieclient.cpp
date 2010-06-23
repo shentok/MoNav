@@ -1,0 +1,232 @@
+/*
+Copyright 2010  Christian Vetter veaac.fdirct@gmail.com
+
+This file is part of MoNav.
+
+MoNav is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MoNav is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY
+{
+
+}
+ without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include "unicodetournamenttrieclient.h"
+#include <QDir>
+#include <QMap>
+#include <algorithm>
+
+UnicodeTournamentTrieClient::UnicodeTournamentTrieClient()
+{
+	trieFile = NULL;
+	subTrieFile = NULL;
+	dataFile = NULL;
+	trieData = NULL;
+	subTrieData = NULL;
+}
+
+UnicodeTournamentTrieClient::~UnicodeTournamentTrieClient()
+{
+
+}
+
+void UnicodeTournamentTrieClient::unload()
+{
+	if ( trieFile != NULL )
+		delete trieFile;
+	trieFile = NULL;
+	if ( subTrieFile != NULL )
+		delete subTrieFile;
+	subTrieFile = NULL;
+	if ( dataFile != NULL )
+		delete dataFile;
+	dataFile = NULL;
+}
+
+QString UnicodeTournamentTrieClient::GetName()
+{
+	return "Unicode Tournament Trie";
+}
+
+void UnicodeTournamentTrieClient::SetInputDirectory( const QString& dir )
+{
+	directory = dir;
+}
+
+void UnicodeTournamentTrieClient::ShowSettings()
+{
+
+}
+
+bool UnicodeTournamentTrieClient::LoadData()
+{
+	unload();
+	QDir dir( directory );
+	QString filename = dir.filePath( "Unicode Tournament Trie" );
+	trieFile = new QFile( filename + "_main" );
+	subTrieFile = new QFile( filename + "_sub" );
+	dataFile = new QFile( filename + "_ways" );
+
+	if ( !trieFile->exists() ) {
+		qCritical( "Ansi Trie File Missing: %s", trieFile->fileName().toAscii().constData() );
+		return false;
+	}
+	if ( !subTrieFile->exists() ) {
+		qCritical( "Ansi Trie File Missing: %s", subTrieFile->fileName().toAscii().constData() );
+		return false;
+	}
+	if ( !dataFile->exists() ) {
+		qCritical( "Ansi Trie File Missing: %s", dataFile->fileName().toAscii().constData() );
+		return false;
+	}
+
+	trieFile->open( QIODevice::ReadOnly );
+	subTrieFile->open( QIODevice::ReadOnly );
+	dataFile->open( QIODevice::ReadOnly );
+
+	trieData = ( char* ) trieFile->map( 0, trieFile->size() );
+	subTrieData = ( char* ) subTrieFile->map( 0, trieFile->size() );
+
+	if ( trieData == NULL )
+	{
+		qDebug( "Failed to Memory Map trie data" );
+		return false;
+	}
+	if ( subTrieData == NULL )
+	{
+		qDebug( "Failed to Memory Map sub trie data" );
+		return false;
+	}
+
+	return true;
+}
+
+bool UnicodeTournamentTrieClient::find( const char* trie, unsigned* resultNode, QString* missingPrefix, QString prefix )
+{
+	unsigned node = 0;
+	for ( int i = 0; i < ( int ) prefix.length(); ) {
+		utt::Node element;
+		element.Read( trie + node );
+		bool found = false;
+		for ( int c = 0; c < ( int ) element.labelList.size(); c++ ) {
+			const utt::Label& label = element.labelList[c];
+			bool equal = true;
+			for ( int subIndex = 0; subIndex < ( int ) label.string.length(); ++subIndex ) {
+				if ( i + subIndex >= ( int ) prefix.length() ) {
+					*missingPrefix = label.string.mid( subIndex );
+					break;
+				}
+				if ( label.string[subIndex] != prefix[i + subIndex] ) {
+					equal = false;
+					break;
+				}
+			}
+			if ( !equal )
+				continue;
+
+			i += label.string.length();
+			node = label.index;
+			found = true;
+			break;
+
+		}
+		if ( !found )
+			return false;
+	}
+
+	*resultNode = node;
+	return true;
+}
+
+int UnicodeTournamentTrieClient::getSuggestion( const char* trie, QStringList* resultNames, unsigned node, int count, const QString prefix )
+{
+	QMap< unsigned, Suggestion > candidates;
+	Suggestion entry;
+	entry.index = node;
+	entry.prefix = prefix;
+	candidates[std::numeric_limits< unsigned >::max()] = entry;
+
+	while( count > 0 && candidates.size() > 0 ) {
+		const Suggestion next = ( candidates.constEnd() - 1 ).value();
+		const unsigned importance = ( candidates.constEnd() - 1 ).key();
+		candidates.remove( importance );
+		utt::Node element;
+		element.Read( trie + next.index );
+		bool isThis = true;
+		for ( std::vector< utt::Label >::const_iterator c = element.labelList.begin(), e = element.labelList.end(); c != e; ++c ) {
+			assert( c->importance <= importance );
+			if ( c->importance == importance )
+				isThis = false;
+		}
+		if ( isThis && element.dataList.size() > 0 ) {
+			QString suggestion = next.prefix.toUpper();
+			for ( int i = 1; i < ( int ) suggestion.length(); ++i ) {
+				if ( suggestion[i - 1] != ' ' && suggestion[i - 1] != '-' )
+					suggestion[i] = next.prefix[i];
+			}
+			resultNames->push_back( suggestion );
+			count--;
+		}
+		for ( std::vector< utt::Label >::const_iterator c = element.labelList.begin(), e = element.labelList.end(); c != e; ++c ) {
+			Suggestion nextEntry;
+			nextEntry.prefix = next.prefix + c->string;
+			nextEntry.index = c->index;
+			candidates[c->importance] = nextEntry;
+			if ( ( int ) candidates.size() > count ) {
+				candidates.erase( candidates.begin() );
+			}
+		}
+	}
+
+	return count;
+}
+
+bool UnicodeTournamentTrieClient::GetPlaceSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions )
+{
+	unsigned node = 0;
+	QString prefix;
+	QString name = input.toLower();
+
+	if ( !find( trieData, &node, &prefix, name ) )
+		return false;
+
+	if ( prefix.length() == 0 ) {
+		utt::Node element;
+		element.Read( trieData + node );
+		for ( std::vector< utt::Label >::const_iterator c = element.labelList.begin(), e = element.labelList.end(); c != e; ++c )
+			inputSuggestions->push_back( input + c->string );
+	}
+	else {
+		inputSuggestions->push_back( input + prefix );
+	}
+	getSuggestion( trieData, suggestions, node, amount, name + prefix );
+	std::sort( inputSuggestions->begin(), inputSuggestions->end() );
+	return true;
+}
+
+bool UnicodeTournamentTrieClient::GetStreetSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions )
+{
+	return false;
+}
+
+bool UnicodeTournamentTrieClient::GetPlaceData( int suggestionID, QVector< int >* placeIDs, QVector< UnsignedCoordinate >* placeCoordinates )
+{
+	return false;
+}
+
+bool UnicodeTournamentTrieClient::GetStreetData( int suggestionID, QVector< int >* segmentLength, QVector< UnsignedCoordinate >* coordinates )
+{
+	return false;
+}
+
+Q_EXPORT_PLUGIN2(unicodetournamenttrieclient, UnicodeTournamentTrieClient)

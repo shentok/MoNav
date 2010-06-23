@@ -229,11 +229,18 @@ void UnicodeTournamentTrie::insert( std::vector< utt::Node >* trie, unsigned imp
 					label.index = trie->size();
 					node = label.index;
 
+					if ( label.importance < importance )
+						label.importance = importance;
+
 					trie->push_back( utt::Node() ); //invalidates label reference!!!
 					trie->back().labelList.push_back( newEdge );
 				}
 				else
+				{
 					node = label.index;
+					if ( label.importance < importance )
+						label.importance = importance;
+				}
 
 				position += diffPos;
 				found = true;

@@ -23,7 +23,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QMainWindow>
 #include <QPluginLoader>
 #include "interfaces/irenderer.h"
+#include "interfaces/iaddresslookup.h"
 #include "mapview.h"
+#include "addressdialog.h"
 
 namespace Ui {
     class MainWindow;
@@ -64,8 +66,14 @@ protected:
 	QString dataDirectory;
 	QList< QPluginLoader* > plugins;
 	IRenderer* renderer;
+	IAddressLookup* addressLookup;
 
 	MapView* mapView;
+	AddressDialog* addressDialog;
+
+	enum {
+		Source = 0, Target = 1
+	} mode;
 
 private:
     Ui::MainWindow *ui;
