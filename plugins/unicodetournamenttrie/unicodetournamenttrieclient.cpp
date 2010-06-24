@@ -33,6 +33,7 @@ UnicodeTournamentTrieClient::UnicodeTournamentTrieClient()
 	dataFile = NULL;
 	trieData = NULL;
 	subTrieData = NULL;
+	placeID = -1;
 }
 
 UnicodeTournamentTrieClient::~UnicodeTournamentTrieClient()
@@ -95,7 +96,7 @@ bool UnicodeTournamentTrieClient::LoadData()
 	dataFile->open( QIODevice::ReadOnly );
 
 	trieData = ( char* ) trieFile->map( 0, trieFile->size() );
-	subTrieData = ( char* ) subTrieFile->map( 0, trieFile->size() );
+	subTrieData = ( char* ) subTrieFile->map( 0, subTrieFile->size() );
 
 	if ( trieData == NULL )
 	{
@@ -226,6 +227,8 @@ bool UnicodeTournamentTrieClient::SelectPlace( int id )
 
 bool UnicodeTournamentTrieClient::GetStreetSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions )
 {
+	if ( placeID < 0 )
+		return false;
 	unsigned node = placeID;
 	QString prefix;
 	QString name = input.toLower();
@@ -270,6 +273,8 @@ bool UnicodeTournamentTrieClient::GetPlaceData( QString input, QVector< int >* p
 
 bool UnicodeTournamentTrieClient::GetStreetData( QString input, QVector< int >* segmentLength, QVector< UnsignedCoordinate >* coordinates )
 {
+	if ( placeID < 0 )
+		return false;
 	unsigned node = placeID;
 	QString prefix;
 	QString name = input.toLower();

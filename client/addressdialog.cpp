@@ -41,6 +41,11 @@ void AddressDialog::setAddressLookup( IAddressLookup* al )
 	resetCity();
 }
 
+void AddressDialog::setPlaceID( int p )
+{
+	placeID = p;
+}
+
 void AddressDialog::connectSlots()
 {
 	connect( ui->cityEdit, SIGNAL(textChanged(QString)), this, SLOT(cityTextChanged(QString)) );
@@ -64,11 +69,16 @@ void AddressDialog::suggestionClicked( QListWidgetItem * item )
 {
 	QString text = item->text();
 	if ( mode == City ) {
-		ui->cityEdit->setText( text );
-		ui->cityEdit->setDisabled( true );
-		ui->streetEdit->setEnabled( true );
-		ui->resetStreet->setEnabled( true );
-		mode = Street;
+		if ( addressLookup->GetPlaceData( text, &placeIDs, &placeCoordinates ) )
+		{
+			ui->cityEdit->setText( text );
+			ui->cityEdit->setDisabled( true );
+			ui->streetEdit->setEnabled( true );
+			ui->resetStreet->setEnabled( true );
+			mode = Street;
+			placeID = placeIDs[0];
+			streetTextChanged( ui->streetEdit->text() );
+		}
 	}
 	else {
 		ui->streetEdit->setText( text );
@@ -87,10 +97,31 @@ void AddressDialog::cityTextChanged( QString text )
 	QStringList characters;
 	if ( !addressLookup->GetPlaceSuggestions( text, 16, &suggestions, &characters ) )
 		return;
-	foreach( QString label, suggestions )
-		ui->suggestionList->addItem( label );
+	bool parity = false;
+	foreach( QString label, suggestions ) {
+		QListWidgetItem* item = new QListWidgetItem( label );
+		QFont font = item->font();
+		font.setPointSize( font.pointSize() * 1.5 );
+		item->setFont( font );
+		if ( ( parity = !parity ) )
+			item->setBackgroundColor( QColor::fromHsv( 50, 10, 255 ) );
+		else
+			item->setBackgroundColor( QColor::fromHsv( 50, 25, 255 ) );
+		ui->suggestionList->addItem( item );
+	}
+	parity = false;
 	foreach( QString label, characters )
-		ui->characterList->addItem( label );
+	{
+		QListWidgetItem* item = new QListWidgetItem( label );
+		QFont font = item->font();
+		font.setPointSize( font.pointSize() * 1.5 );
+		item->setFont( font );
+		if ( ( parity = !parity ) )
+			item->setBackgroundColor( QColor::fromHsv( 100, 10, 255 ) );
+		else
+			item->setBackgroundColor( QColor::fromHsv( 100, 25, 255 ) );
+		ui->characterList->addItem( item );
+	}
 }
 
 void AddressDialog::streetTextChanged( QString text)
@@ -105,10 +136,31 @@ void AddressDialog::streetTextChanged( QString text)
 	QStringList characters;
 	if ( !addressLookup->GetStreetSuggestions( text, 16, &suggestions, &characters ) )
 		return;
-	foreach( QString label, suggestions )
-		ui->suggestionList->addItem( label );
+	bool parity = false;
+	foreach( QString label, suggestions ) {
+		QListWidgetItem* item = new QListWidgetItem( label );
+		QFont font = item->font();
+		font.setPointSize( font.pointSize() * 1.5 );
+		item->setFont( font );
+		if ( ( parity = !parity ) )
+			item->setBackgroundColor( QColor::fromHsv( 50, 10, 255 ) );
+		else
+			item->setBackgroundColor( QColor::fromHsv( 50, 25, 255 ) );
+		ui->suggestionList->addItem( item );
+	}
+	parity = false;
 	foreach( QString label, characters )
-		ui->characterList->addItem( label );
+	{
+		QListWidgetItem* item = new QListWidgetItem( label );
+		QFont font = item->font();
+		font.setPointSize( font.pointSize() * 1.5 );
+		item->setFont( font );
+		if ( ( parity = !parity ) )
+			item->setBackgroundColor( QColor::fromHsv( 100, 10, 255 ) );
+		else
+			item->setBackgroundColor( QColor::fromHsv( 100, 25, 255 ) );
+		ui->characterList->addItem( item );
+	}
 }
 
 void AddressDialog::resetCity()

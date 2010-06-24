@@ -48,6 +48,11 @@ public:
 	 void streetTextChanged( QString text );
 	 void resetCity();
 	 void resetStreet();
+	 void setPlaceID( int placeID );
+
+signals:
+
+	 void multiplePlaces( QVector< int >* placeIDs, QVector< UnsignedCoordinate > placeCoordinates );
 
 protected:
 	 void connectSlots();
@@ -57,6 +62,8 @@ protected:
 	 } mode;
 	 bool chosen;
 	 int placeID;
+	 QVector< int > placeIDs;
+	 QVector< UnsignedCoordinate > placeCoordinates;
 
 private:
     Ui::AddressDialog *ui;
