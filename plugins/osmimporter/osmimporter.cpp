@@ -309,7 +309,7 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 		if ( placesData.status() == QDataStream::ReadPastEnd )
 			break;
 
-		place.type = type;
+		place.type = ( Place::Type ) type;
 		places.push_back( place );
 	}
 
@@ -375,30 +375,22 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 			}
 		} else {
 			switch ( place->type ) {
-				case 1: {
-					//Suburb
-						continue;
-					}
-				case 2: {
-					//Hamlet
-						kdTree->NearNeighbors( &result, point, 300 );
-						break;
-					}
-				case 3: {
-					//Village
-						kdTree->NearNeighbors( &result, point, 1000 );
-						break;
-					}
-				case 4: {
-					//Town
-						kdTree->NearNeighbors( &result, point, 5000 );
-						break;
-					}
-				case 5: {
-					//City
-						kdTree->NearNeighbors( &result, point, 10000 );
-						break;
-					}
+			case Place::None:
+				continue;
+			case Place::Suburb:
+				continue;
+			case Place::Hamlet:
+				kdTree->NearNeighbors( &result, point, 300 );
+				break;
+			case Place::Village:
+				kdTree->NearNeighbors( &result, point, 1000 );
+				break;
+			case Place::Town:
+				kdTree->NearNeighbors( &result, point, 5000 );
+				break;
+			case Place::City:
+				kdTree->NearNeighbors( &result, point, 10000 );
+				break;
 			}
 
 			for ( std::vector< InputPoint >::const_iterator i = result.begin(), e = result.end(); i != e; ++i ) {
@@ -934,28 +926,7 @@ bool OSMImporter::GetAddressData( std::vector< Place >* dataPlaces, std::vector<
 		place.name = name;
 		place.population = population;
 		place.coordinate = UnsignedCoordinate( gps );
-		switch ( type ) {
-			case 1: {
-					place.type = Place::Suburb;
-					break;
-				}
-			case 2: {
-					place.type = Place::Hamlet;
-					break;
-				}
-			case 3: {
-					place.type = Place::Village;
-					break;
-				}
-			case 4: {
-					place.type = Place::Town;
-					break;
-				}
-			case 5: {
-					place.type = Place::City;
-					break;
-				}
-		}
+		place.type = ( Place::Type ) type;
 		dataPlaces->push_back( place );
 	}
 

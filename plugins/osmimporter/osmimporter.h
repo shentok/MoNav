@@ -106,7 +106,7 @@ protected:
 
 	struct _Place {
 		QString name;
-		unsigned type;
+		Place::Type type;
 		GPSCoordinate coordinate;
 	};
 

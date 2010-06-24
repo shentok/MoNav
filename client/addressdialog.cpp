@@ -78,7 +78,7 @@ void AddressDialog::suggestionClicked( QListWidgetItem * item )
 			ui->streetEdit->setEnabled( true );
 			ui->resetStreet->setEnabled( true );
 			mode = Street;
-			placeID = placeIDs[0];
+			placeID = placeIDs.front();
 			addressLookup->SelectPlace( placeID );
 			streetTextChanged( ui->streetEdit->text() );
 		}
