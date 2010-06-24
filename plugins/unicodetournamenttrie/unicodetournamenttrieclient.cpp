@@ -218,19 +218,82 @@ bool UnicodeTournamentTrieClient::GetPlaceSuggestions( const QString& input, int
 	return true;
 }
 
+bool UnicodeTournamentTrieClient::SelectPlace( int id )
+{
+	placeID = id;
+	return true;
+}
+
 bool UnicodeTournamentTrieClient::GetStreetSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions )
 {
-	return false;
+	unsigned node = placeID;
+	QString prefix;
+	QString name = input.toLower();
+
+	if ( !find( subTrieData, &node, &prefix, name ) )
+		return false;
+
+	if ( prefix.length() == 0 ) {
+		utt::Node element;
+		element.Read( trieData + node );
+		for ( std::vector< utt::Label >::const_iterator c = element.labelList.begin(), e = element.labelList.end(); c != e; ++c )
+			inputSuggestions->push_back( input + c->string );
+	}
+	else {
+		inputSuggestions->push_back( input + prefix );
+	}
+	getSuggestion( subTrieData, suggestions, node, amount, name + prefix );
+	std::sort( inputSuggestions->begin(), inputSuggestions->end() );
+	return true;
 }
 
-bool UnicodeTournamentTrieClient::GetPlaceData( int suggestionID, QVector< int >* placeIDs, QVector< UnsignedCoordinate >* placeCoordinates )
+bool UnicodeTournamentTrieClient::GetPlaceData( QString input, QVector< int >* placeIDs, QVector< UnsignedCoordinate >* placeCoordinates )
 {
-	return false;
+	unsigned node;
+	QString prefix;
+	QString name = input.toLower();
+	if ( !find( trieData, &node, &prefix, name ) )
+		return false;
+
+	utt::Node element;
+	element.Read( trieData + node );
+
+	for ( std::vector< utt::Data >::const_iterator i = element.dataList.begin(), e = element.dataList.end(); i != e; ++i ) {
+		utt::CityData data;
+		data.Read( subTrieData + i->start );
+		placeCoordinates->push_back( data.coordinate );
+		placeIDs->push_back( i->start + data.GetSize() );
+	}
+
+	return placeIDs->size() != 0;
 }
 
-bool UnicodeTournamentTrieClient::GetStreetData( int suggestionID, QVector< int >* segmentLength, QVector< UnsignedCoordinate >* coordinates )
+bool UnicodeTournamentTrieClient::GetStreetData( QString input, QVector< int >* segmentLength, QVector< UnsignedCoordinate >* coordinates )
 {
-	return false;
+	unsigned node = placeID;
+	QString prefix;
+	QString name = input.toLower();
+	if ( !find( trieData, &node, &prefix, name ) )
+		return false;
+
+	utt::Node element;
+	element.Read( subTrieData + node );
+
+	for ( std::vector< utt::Data >::const_iterator i = element.dataList.begin(), e = element.dataList.end(); i != e; ++i ) {
+		unsigned* buffer = new unsigned[( i->end - i->start ) * 2];
+		dataFile->seek( i->start * sizeof( unsigned ) * 2 );
+		dataFile->read( ( char* ) buffer, ( i->end - i->start ) * 2 * sizeof( unsigned ) );
+		for ( unsigned start = 0, end = i->end - i->start; start < end; ++start ) {
+			UnsignedCoordinate temp;
+			temp.x = buffer[start * 2];
+			temp.y = buffer[start * 2 + 1];
+			coordinates->push_back( temp );
+		}
+		delete[] buffer;
+		segmentLength->push_back( i->end - i->start );
+	}
+
+	return segmentLength->size() != 0;
 }
 
 Q_EXPORT_PLUGIN2(unicodetournamenttrieclient, UnicodeTournamentTrieClient)

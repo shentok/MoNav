@@ -41,8 +41,9 @@ public:
 	 virtual bool LoadData();
 	 virtual bool GetPlaceSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions );
 	 virtual bool GetStreetSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions );
-	 virtual bool GetPlaceData( int suggestionID, QVector< int >* placeIDs, QVector< UnsignedCoordinate >* placeCoordinates );
-	 virtual bool GetStreetData( int suggestionID, QVector< int >* segmentLength, QVector< UnsignedCoordinate >* coordinates );
+	 virtual bool SelectPlace( int placeID );
+	 virtual bool GetPlaceData( QString input, QVector< int >* placeIDs, QVector< UnsignedCoordinate >* placeCoordinates );
+	 virtual bool GetStreetData( QString input, QVector< int >* segmentLength, QVector< UnsignedCoordinate >* coordinates );
 
 signals:
 
@@ -70,6 +71,8 @@ protected:
 	QFile* dataFile;
 	const char* trieData;
 	const char* subTrieData;
+
+	int placeID;
 
 };
 

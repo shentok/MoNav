@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "utils/coordinates.h"
 #include <QtPlugin>
+#include <QVector>
 
 class IAddressLookup
 {
@@ -34,8 +35,9 @@ public:
 	virtual bool LoadData() = 0;
 	virtual bool GetPlaceSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions ) = 0;
 	virtual bool GetStreetSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions ) = 0;
-	virtual bool GetPlaceData( int suggestionID, QVector< int >* placeIDs, QVector< UnsignedCoordinate >* placeCoordinates ) = 0;
-	virtual bool GetStreetData( int suggestionID, QVector< int >* segmentLength, QVector< UnsignedCoordinate >* coordinates ) = 0;
+	virtual bool GetPlaceData( QString input, QVector< int >* placeIDs, QVector< UnsignedCoordinate >* placeCoordinates ) = 0;
+	virtual bool SelectPlace( int placeID ) = 0;
+	virtual bool GetStreetData( QString input, QVector< int >* segmentLength, QVector< UnsignedCoordinate >* coordinates ) = 0;
 };
 
 Q_DECLARE_INTERFACE( IAddressLookup, "monav.IAddressLookup/1.1" )
