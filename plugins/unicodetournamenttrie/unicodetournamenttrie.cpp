@@ -21,6 +21,10 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 #include <QDir>
 #include <QHash>
+#include <limits>
+#ifndef NDEBUG
+	#include <QTextStream>
+#endif
 
 UnicodeTournamentTrie::UnicodeTournamentTrie()
 {
@@ -113,8 +117,8 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer )
 	}
 	std::sort( importanceOrder.begin(), importanceOrder.end() );
 	QHash< QString, unsigned > importance;
-	for ( int i = 0; i < ( int ) inputPlaces.size(); i++ ) {
-		importance[inputPlaces[i].name] = i;
+	for ( int i = 0; i < ( int ) importanceOrder.size(); i++ ) {
+		importance[importanceOrder[i].name] = i;
 	}
 	std::vector< PlaceImportance >().swap( importanceOrder );
 
@@ -133,7 +137,7 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer )
 			char* buffer = new char[cityData.GetSize()];
 			cityData.Write( buffer );
 			subTrieFile.write( buffer, cityData.GetSize() );
-			delete buffer;
+			delete[] buffer;
 
 			QHash< QString, double > wayLength;
 			for ( std::vector< IImporter::Address >::const_iterator nextAddress = address; nextAddress != inputAddress.end() && nextAddress->nearPlace == i - inputPlaces.begin(); ++nextAddress ) {
@@ -176,7 +180,7 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer )
 			inputWayBuffer.push_back( i->coordinate );
 			inputWayBuffer.push_back( i->coordinate );
 			cityCenterData.end = inputWayBuffer.size();
-			insert( &subTrie, 0, tr( "City Center" ), cityCenterData );
+			insert( &subTrie, std::numeric_limits< unsigned >::max(), tr( "City Center" ), cityCenterData );
 
 			writeTrie( &subTrie, subTrieFile );
 
@@ -254,6 +258,8 @@ void UnicodeTournamentTrie::insert( std::vector< utt::Node >* trie, unsigned imp
 			label.index = trie->size();
 			label.importance = importance;
 			(*trie)[node].labelList.push_back( label );
+
+			node = trie->size();
 			trie->push_back( utt::Node() );
 			break;
 		}
@@ -290,7 +296,26 @@ void UnicodeTournamentTrie::writeTrie( std::vector< utt::Node >* trie, QFile& fi
 	}
 	file.write( buffer, position );
 
-	delete buffer;
+	delete[] buffer;
+}
+
+void UnicodeTournamentTrie::writeDebugTrie( const std::vector< utt::Node >& trie, QFile& file )
+{
+#ifndef NDEBUG
+	QTextStream text( &file );
+	text << "tree" << endl;
+	for ( int i = 0; i < ( int ) trie.size(); i++ )
+	{
+		if ( trie[i].dataList.size() > 0 )
+			text << "node\t" << i << "\tdata" << endl;
+		else
+			text << "node\t" << i << "\tnodata" << endl;
+		for ( int c = 0; c < ( int ) trie[i].labelList.size(); c++ )
+		{
+			text << "edge\t" << i << " -> " << trie[i].labelList[c].index << "\t" << trie[i].labelList[c].string << "\t" << trie[i].labelList[c].importance <<endl;
+		}
+	}
+#endif
 }
 
 Q_EXPORT_PLUGIN2(unicodetournamenttrie, UnicodeTournamentTrie)

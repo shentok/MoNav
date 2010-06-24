@@ -52,7 +52,7 @@ void MapView::changeEvent(QEvent *e)
     }
 }
 
-void MapView::showEvent( QShowEvent * event )
+void MapView::showEvent( QShowEvent * /*event*/ )
 {
 	if ( renderer != NULL )
 	{

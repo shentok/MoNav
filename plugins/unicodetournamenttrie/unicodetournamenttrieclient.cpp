@@ -150,29 +150,32 @@ bool UnicodeTournamentTrieClient::find( const char* trie, unsigned* resultNode, 
 
 int UnicodeTournamentTrieClient::getSuggestion( const char* trie, QStringList* resultNames, unsigned node, int count, const QString prefix )
 {
-	QMap< unsigned, Suggestion > candidates;
-	Suggestion entry;
-	entry.index = node;
-	entry.prefix = prefix;
-	candidates[std::numeric_limits< unsigned >::max()] = entry;
+	std::vector< Suggestion > candidates( 1 );
+	candidates[0].index = node;
+	candidates[0].prefix = prefix;
+	candidates[0].importance = std::numeric_limits< unsigned >::max();
 
 	while( count > 0 && candidates.size() > 0 ) {
-		const Suggestion next = ( candidates.constEnd() - 1 ).value();
-		const unsigned importance = ( candidates.constEnd() - 1 ).key();
-		candidates.remove( importance );
+		const Suggestion next = candidates[0];
+		candidates[0] = candidates.back();
+		candidates.pop_back();
+
 		utt::Node element;
 		element.Read( trie + next.index );
 		bool isThis = true;
 		for ( std::vector< utt::Label >::const_iterator c = element.labelList.begin(), e = element.labelList.end(); c != e; ++c ) {
-			assert( c->importance <= importance );
-			if ( c->importance == importance )
+			assert( c->importance <= next.importance );
+			if ( c->importance == next.importance )
 				isThis = false;
 		}
 		if ( isThis && element.dataList.size() > 0 ) {
-			QString suggestion = next.prefix.toUpper();
-			for ( int i = 1; i < ( int ) suggestion.length(); ++i ) {
-				if ( suggestion[i - 1] != ' ' && suggestion[i - 1] != '-' )
-					suggestion[i] = next.prefix[i];
+			assert( next.prefix.length() > 0 );
+			QString suggestion = next.prefix[0].toUpper();
+			for ( int i = 1; i < ( int ) next.prefix.length(); ++i ) {
+				if ( suggestion[i - 1] == ' ' || suggestion[i - 1] == '-' )
+					suggestion += next.prefix[i].toUpper();
+				else
+					suggestion += next.prefix[i];
 			}
 			resultNames->push_back( suggestion );
 			count--;
@@ -181,11 +184,12 @@ int UnicodeTournamentTrieClient::getSuggestion( const char* trie, QStringList* r
 			Suggestion nextEntry;
 			nextEntry.prefix = next.prefix + c->string;
 			nextEntry.index = c->index;
-			candidates[c->importance] = nextEntry;
-			if ( ( int ) candidates.size() > count ) {
-				candidates.erase( candidates.begin() );
-			}
+			nextEntry.importance = c->importance;
+			candidates.push_back( nextEntry );
 		}
+		std::sort( candidates.begin(), candidates.end() );
+		if ( ( int ) candidates.size() > count )
+			candidates.resize( count );
 	}
 
 	return count;

@@ -51,8 +51,13 @@ public slots:
 protected:
 
 	 struct Suggestion {
+		unsigned importance;
 		unsigned index;
 		QString prefix;
+
+		bool operator<( const Suggestion& right ) const {
+			return importance > right.importance;
+		}
 	};
 
 	void unload();

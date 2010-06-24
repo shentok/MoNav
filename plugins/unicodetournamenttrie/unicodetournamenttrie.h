@@ -44,6 +44,7 @@ protected:
 
 	void insert( std::vector< utt::Node >* trie, unsigned importance, const QString& name, utt::Data data );
 	void writeTrie( std::vector< utt::Node >* trie, QFile& file );
+	void writeDebugTrie( const std::vector< utt::Node >& trie, QFile& file );
 
 	struct PlaceImportance {
 		QString name;
@@ -54,7 +55,7 @@ protected:
 				return population < right.population;
 			if ( type != right.type )
 				return type < right.type;
-			return name > right.name;
+			return name < right.name;
 		}
 	};
 
