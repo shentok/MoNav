@@ -69,6 +69,8 @@ void AddressDialog::suggestionClicked( QListWidgetItem * item )
 {
 	QString text = item->text();
 	if ( mode == City ) {
+		placeIDs.clear();
+		placeCoordinates.clear();
 		if ( addressLookup->GetPlaceData( text, &placeIDs, &placeCoordinates ) )
 		{
 			ui->cityEdit->setText( text );
@@ -77,6 +79,7 @@ void AddressDialog::suggestionClicked( QListWidgetItem * item )
 			ui->resetStreet->setEnabled( true );
 			mode = Street;
 			placeID = placeIDs[0];
+			addressLookup->SelectPlace( placeID );
 			streetTextChanged( ui->streetEdit->text() );
 		}
 	}

@@ -114,7 +114,7 @@ bool UnicodeTournamentTrieClient::LoadData()
 
 bool UnicodeTournamentTrieClient::find( const char* trie, unsigned* resultNode, QString* missingPrefix, QString prefix )
 {
-	unsigned node = 0;
+	unsigned node = *resultNode;
 	for ( int i = 0; i < ( int ) prefix.length(); ) {
 		utt::Node element;
 		element.Read( trie + node );
@@ -229,23 +229,23 @@ bool UnicodeTournamentTrieClient::GetStreetSuggestions( const QString& input, in
 {
 	if ( placeID < 0 )
 		return false;
-	unsigned node = placeID;
+	unsigned node = 0;
 	QString prefix;
 	QString name = input.toLower();
 
-	if ( !find( subTrieData, &node, &prefix, name ) )
+	if ( !find( subTrieData + placeID, &node, &prefix, name ) )
 		return false;
 
 	if ( prefix.length() == 0 ) {
 		utt::Node element;
-		element.Read( trieData + node );
+		element.Read( subTrieData + placeID + node );
 		for ( std::vector< utt::Label >::const_iterator c = element.labelList.begin(), e = element.labelList.end(); c != e; ++c )
 			inputSuggestions->push_back( input + c->string );
 	}
 	else {
 		inputSuggestions->push_back( input + prefix );
 	}
-	getSuggestion( subTrieData, suggestions, node, amount, name + prefix );
+	getSuggestion( subTrieData + placeID, suggestions, node, amount, name + prefix );
 	std::sort( inputSuggestions->begin(), inputSuggestions->end() );
 	return true;
 }
@@ -275,14 +275,14 @@ bool UnicodeTournamentTrieClient::GetStreetData( QString input, QVector< int >* 
 {
 	if ( placeID < 0 )
 		return false;
-	unsigned node = placeID;
+	unsigned node = 0;
 	QString prefix;
 	QString name = input.toLower();
-	if ( !find( trieData, &node, &prefix, name ) )
+	if ( !find( subTrieData + placeID, &node, &prefix, name ) )
 		return false;
 
 	utt::Node element;
-	element.Read( subTrieData + node );
+	element.Read( subTrieData + placeID + node );
 
 	for ( std::vector< utt::Data >::const_iterator i = element.dataList.begin(), e = element.dataList.end(); i != e; ++i ) {
 		unsigned* buffer = new unsigned[( i->end - i->start ) * 2];
