@@ -754,11 +754,11 @@ bool OSMImporter::GetIDMap( std::vector< NodeID >* idMap )
 	QFile idMapFile( filename + "_id_map" );
 
 	if ( !idMapFile.exists() ) {
-		qCritical( "File Not Found: _node_coordinates" );
+		qCritical( "File Not Found: node_coordinates" );
 		return false;
 	}
 
-	idMapFile.open( QIODevice::WriteOnly );
+	idMapFile.open( QIODevice::ReadOnly );
 	QDataStream idMapData( &idMapFile );
 	quint32 numNodes;
 

@@ -91,10 +91,13 @@ bool GPSGrid::Preprocess( IImporter* importer )
 
 	std::vector< IImporter::RoutingNode > inputNodes;
 	std::vector< IImporter::RoutingEdge > inputEdges;
+	std::vector< unsigned > idmap;
 
 	if ( !importer->GetRoutingNodes( &inputNodes ) )
 		return false;
 	if ( !importer->GetRoutingEdges( &inputEdges ) )
+		return false;
+	if ( !importer->GetIDMap( &idmap ) )
 		return false;
 
 	for ( std::vector< IImporter::RoutingNode >::const_iterator i = inputNodes.begin(); i != inputNodes.end(); ++i ) {
@@ -121,8 +124,8 @@ bool GPSGrid::Preprocess( IImporter* importer )
 		if ( i->source == i->target )
 			continue;
 		gg::Cell::Edge edgeData;
-		edgeData.source = i->source;
-		edgeData.target = i->target;
+		edgeData.source = idmap[i->source];
+		edgeData.target = idmap[i->target];
 		edgeData.bidirectional = i->bidirectional;
 		edgeData.sourceCoord = inputNodes[i->source].coordinate;
 		edgeData.targetCoord = inputNodes[i->target].coordinate;

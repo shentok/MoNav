@@ -16,7 +16,8 @@ HEADERS += mainwindow.h \
     utils/config.h \
     interfaces/irenderer.h \
     interfaces/iaddresslookup.h \
-    addressdialog.h
+    addressdialog.h \
+    interfaces/igpslookup.h
 FORMS += mainwindow.ui \
     mapview.ui \
     paintwidget.ui \
