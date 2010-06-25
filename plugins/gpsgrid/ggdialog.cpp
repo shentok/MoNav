@@ -17,27 +17,32 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef IPREPROCESSING_H
-#define IPREPROCESSING_H
+#include <QSettings>
+#include "ggdialog.h"
+#include "ui_ggdialog.h"
 
-#include "iimporter.h"
-#include <QImage>
-
-class IPreprocessor
+GGDialog::GGDialog(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::GGDialog)
 {
-public:
-	enum Type {
-		Renderer, Router, GPSLookup, AddressLookup
-	};
+    ui->setupUi(this);
+	 QSettings settings( "MoNav" );
+	 settings.beginGroup( "GPSGrid" );
+	 ui->cells->setValue( settings.value( "cells", 1048576 ).toInt() );
+}
 
-	virtual QString GetName() = 0;
-	virtual Type GetType() = 0;
-	virtual void SetOutputDirectory( const QString& dir ) = 0;
-	virtual void ShowSettings() = 0;
-	virtual bool Preprocess( IImporter* importer ) = 0;
-	virtual ~IPreprocessor() {}
-};
+GGDialog::~GGDialog()
+{
+	QSettings settings( "MoNav" );
+	settings.beginGroup( "GPSGrid" );
+	settings.setValue( "cells", ui->cells->value() );
+	delete ui;
+}
 
-Q_DECLARE_INTERFACE( IPreprocessor, "monav.IPreprocessor/1.0" )
-
-#endif // IPREPROCESSING_H
+bool GGDialog::getSettings( Settings* settings )
+{
+	if ( settings == NULL )
+		return false;
+	settings->cells = ui->cells->value();
+	return true;
+}

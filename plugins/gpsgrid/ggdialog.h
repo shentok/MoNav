@@ -17,27 +17,32 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef IPREPROCESSING_H
-#define IPREPROCESSING_H
+#ifndef GGDIALOG_H
+#define GGDIALOG_H
 
-#include "iimporter.h"
-#include <QImage>
+#include <QDialog>
 
-class IPreprocessor
+namespace Ui {
+    class GGDialog;
+}
+
+class GGDialog : public QDialog
 {
-public:
-	enum Type {
-		Renderer, Router, GPSLookup, AddressLookup
-	};
+    Q_OBJECT
 
-	virtual QString GetName() = 0;
-	virtual Type GetType() = 0;
-	virtual void SetOutputDirectory( const QString& dir ) = 0;
-	virtual void ShowSettings() = 0;
-	virtual bool Preprocess( IImporter* importer ) = 0;
-	virtual ~IPreprocessor() {}
+public:
+    explicit GGDialog(QWidget *parent = 0);
+    ~GGDialog();
+
+	 struct Settings
+	 {
+		 unsigned cells;
+	 };
+
+	 bool getSettings( Settings* settings );
+
+private:
+    Ui::GGDialog *ui;
 };
 
-Q_DECLARE_INTERFACE( IPreprocessor, "monav.IPreprocessor/1.0" )
-
-#endif // IPREPROCESSING_H
+#endif // GGDIALOG_H
