@@ -44,8 +44,8 @@ public:
 	virtual ProjectedCoordinate PointToCoordinate( ProjectedCoordinate center, int shiftX, int shiftY, int zoom );
 	virtual ProjectedCoordinate ZoomInOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom );
 	virtual ProjectedCoordinate ZoomOutOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom );
-	virtual bool SetPoints( std::vector< UnsignedCoordinate >* points );
-	virtual bool SetEdges( std::vector< std::vector< UnsignedCoordinate > >* edges );
+	virtual bool SetPoints( QVector< UnsignedCoordinate > points );
+	virtual bool SetEdges( QVector< int > segmentLengths, QVector< UnsignedCoordinate > edges );
 	virtual bool SetPosition( UnsignedCoordinate coordinate, double heading ) ;
 	virtual bool Paint( QPainter* painter, ProjectedCoordinate center, int zoomLevel, double rotation, double virtualZoom );
 
@@ -65,8 +65,9 @@ protected:
 	bool loaded;
 	int tileSize;
 	int maxZoom;
-	std::vector< UnsignedCoordinate >* _points;
-	std::vector< std::vector< UnsignedCoordinate > >* _edges;
+	QVector< UnsignedCoordinate > points;
+	QVector< int > segmentLengths;
+	QVector< UnsignedCoordinate > edges;
 	std::vector< Box > boxes;
 	QCache< long long, QPixmap > cache;
 };

@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QDialog>
 #include "interfaces/irenderer.h"
+#include "interfaces/igpslookup.h"
 
 namespace Ui {
     class MapView;
@@ -34,16 +35,23 @@ public:
     ~MapView();
 
 	void setRender( IRenderer* r );
+	void setGPSLookup( IGPSLookup* g );
+
+public slots:
+	void mouseClicked( ProjectedCoordinate clickPos );
+
+signals:
+	void coordinateChosen( ProjectedCoordinate coordinate );
 
 protected:
 	void changeEvent( QEvent *e );
 	void showEvent( QShowEvent * event );
-
 	void connectSlots();
 
 private:
     Ui::MapView *ui;
 	IRenderer* renderer;
+	IGPSLookup* gpsLookup;
 	int maxZoom;
 };
 

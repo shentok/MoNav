@@ -24,6 +24,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QPluginLoader>
 #include "interfaces/irenderer.h"
 #include "interfaces/iaddresslookup.h"
+#include "interfaces/igpslookup.h"
 #include "mapview.h"
 #include "addressdialog.h"
 
@@ -67,6 +68,7 @@ protected:
 	QList< QPluginLoader* > plugins;
 	IRenderer* renderer;
 	IAddressLookup* addressLookup;
+	IGPSLookup* gpsLookup;
 
 	MapView* mapView;
 	AddressDialog* addressDialog;

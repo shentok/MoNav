@@ -44,12 +44,14 @@ signals:
 
 	void zoomChanged( int z );
 	void centerChanged( ProjectedCoordinate c );
+	void mouseClicked( ProjectedCoordinate clickPos );
 
 protected:
 	void changeEvent(QEvent *e);
 	void paintEvent( QPaintEvent* );
 	void mouseMoveEvent( QMouseEvent * event );
 	void mousePressEvent( QMouseEvent * event );
+	void mouseReleaseEvent( QMouseEvent* event );
 	void wheelEvent( QWheelEvent * event );
 
 	IRenderer* renderer;
@@ -58,6 +60,9 @@ protected:
 	int maxZoom;
 	int lastMouseX;
 	int lastMouseY;
+	int startMouseX;
+	int startMouseY;
+	bool drag;
 	int wheelDelta;
 
 private:

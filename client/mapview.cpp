@@ -26,6 +26,7 @@ MapView::MapView(QWidget *parent) :
 {
     ui->setupUi(this);
 	renderer = NULL;
+	gpsLookup = NULL;
 	connectSlots();
 }
 
@@ -38,6 +39,7 @@ void MapView::connectSlots()
 {
 	connect( ui->zoomBar, SIGNAL(valueChanged(int)), ui->paintArea, SLOT(setZoom(int)) );
 	connect( ui->paintArea, SIGNAL(zoomChanged(int)), ui->zoomBar, SLOT(setValue(int)) );
+	connect( ui->paintArea, SIGNAL(mouseClicked(ProjectedCoordinate)), this, SLOT(mouseClicked(ProjectedCoordinate)) );
 }
 
 void MapView::changeEvent(QEvent *e)
@@ -67,4 +69,23 @@ void MapView::setRender( IRenderer* r )
 {
 	renderer = r;
 	ui->paintArea->setRenderer( r );
+}
+
+void MapView::setGPSLookup( IGPSLookup*g )
+{
+	gpsLookup = g;
+}
+
+void MapView::mouseClicked( ProjectedCoordinate clickPos )
+{
+	if ( gpsLookup == NULL )
+		return;
+	QVector< IGPSLookup::Result > result;
+	gpsLookup->GetNearEdges( &result, UnsignedCoordinate( clickPos ), 100 );
+	if ( result.size() == 0 )
+		return;
+	QVector< UnsignedCoordinate > points;
+	points.push_back( result.first().nearestPoint );
+	renderer->SetPoints( points );
+	ui->paintArea->update();
 }

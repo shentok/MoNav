@@ -83,20 +83,36 @@ void PaintWidget::setMaxZoom( int z )
 
 void PaintWidget::mousePressEvent( QMouseEvent* event )
 {
-	if ( ( event->buttons() & Qt::LeftButton ) == 0 )
+	if ( event->button() != Qt::LeftButton )
 		return;
-	lastMouseX = event->x();
-	lastMouseY = event->y();
+	startMouseX = lastMouseX = event->x();
+	startMouseY = lastMouseY = event->y();
+	drag = false;
 }
 
 void PaintWidget::mouseMoveEvent( QMouseEvent* event )
 {
 	if ( ( event->buttons() & Qt::LeftButton ) == 0 )
 		return;
+	if ( abs( event->x() - startMouseX ) + abs( event->y() - startMouseY ) > 7 )
+		drag = true;
+	if ( !drag )
+		return;
 	center = renderer->Move( center, event->x() - lastMouseX, event->y() - lastMouseY, zoom );
 	lastMouseX = event->x();
 	lastMouseY = event->y();
 	update();
+}
+
+void PaintWidget::mouseReleaseEvent( QMouseEvent* event )
+{
+	if ( drag )
+		return;
+	if ( event->button() != Qt::LeftButton )
+		return;
+	if ( renderer == NULL )
+		return;
+	emit mouseClicked( renderer->PointToCoordinate( center, event->x() - width() / 2, event->y() - height() / 2, zoom ) );
 }
 
 void PaintWidget::wheelEvent( QWheelEvent * event )

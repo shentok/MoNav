@@ -18,11 +18,11 @@ public:
 	virtual ProjectedCoordinate PointToCoordinate( ProjectedCoordinate center, int shiftX, int shiftY, int zoom ) = 0;
 	virtual ProjectedCoordinate ZoomInOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom ) = 0;
 	virtual ProjectedCoordinate ZoomOutOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom ) = 0;
-	virtual bool SetPoints( std::vector< UnsignedCoordinate >* points ) = 0;
-	virtual bool SetEdges( std::vector< std::vector< UnsignedCoordinate > >* edges ) = 0;
+	virtual bool SetPoints( QVector< UnsignedCoordinate > points ) = 0;
+	virtual bool SetEdges( QVector< int > segmentLengths, QVector< UnsignedCoordinate > edges ) = 0;
 	virtual bool SetPosition( UnsignedCoordinate coordinate, double heading )  = 0;
 	virtual bool Paint( QPainter* painter, ProjectedCoordinate center, int zoomLevel, double rotation = 0, double virtualZoom = 0 ) = 0;
-	virtual ~IRenderer() {};
+	virtual ~IRenderer() {}
 };
 
 Q_DECLARE_INTERFACE( IRenderer, "monav.IRenderer/1.1" )

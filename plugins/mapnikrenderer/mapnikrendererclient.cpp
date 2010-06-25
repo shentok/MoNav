@@ -19,6 +19,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QDir>
 #include <QPainter>
+#include <algorithm>
 #include "mapnikrendererclient.h"
 
 MapnikRendererClient::MapnikRendererClient()
@@ -109,7 +110,7 @@ ProjectedCoordinate MapnikRendererClient::PointToCoordinate( ProjectedCoordinate
 	return center;
 }
 
-ProjectedCoordinate MapnikRendererClient::ZoomInOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom )
+ProjectedCoordinate MapnikRendererClient::ZoomInOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int /*zoom*/ )
 {
 	if ( !loaded )
 		return center;
@@ -118,7 +119,7 @@ ProjectedCoordinate MapnikRendererClient::ZoomInOn( ProjectedCoordinate center, 
 	return center;
 }
 
-ProjectedCoordinate MapnikRendererClient::ZoomOutOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom )
+ProjectedCoordinate MapnikRendererClient::ZoomOutOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int /*zoom*/ )
 {
 	if ( !loaded )
 		return center;
@@ -127,18 +128,21 @@ ProjectedCoordinate MapnikRendererClient::ZoomOutOn( ProjectedCoordinate center,
 	return center;
 }
 
-bool MapnikRendererClient::SetPoints( std::vector< UnsignedCoordinate >* points )
+bool MapnikRendererClient::SetPoints( QVector< UnsignedCoordinate > p )
 {
 	if ( !loaded )
 		return false;
-	return false;
+	points = p;
+	return true;
 }
 
-bool MapnikRendererClient::SetEdges( std::vector< std::vector< UnsignedCoordinate > >* edges )
+bool MapnikRendererClient::SetEdges( QVector< int > s, QVector< UnsignedCoordinate > e )
 {
 	if ( !loaded )
 		return false;
-	return false;
+	segmentLengths = s;
+	edges = e;
+	return true;
 }
 
 bool MapnikRendererClient::SetPosition( UnsignedCoordinate coordinate, double heading )
@@ -161,7 +165,17 @@ bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center,
 
 	bool drawFast = true;
 	if ( fabs( rotation ) > 0.01 || virtualZoom > 0 )
+	{
 		drawFast = false;
+		painter->translate( centerX, centerY );
+		painter->rotate( rotation );
+		painter->translate( -centerX, -centerY );
+		if ( rotation != 90 && rotation != 180 && rotation != 270 ) {
+			painter->setRenderHint( QPainter::SmoothPixmapTransform );
+			painter->setRenderHint( QPainter::Antialiasing );
+			painter->setRenderHint( QPainter::HighQualityAntialiasing );
+		}
+	}
 
 	const int centerX = sizeX / 2;
 	const int centerY = sizeY / 2;
@@ -243,16 +257,32 @@ bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center,
 				}
 			}
 
-			if( drawFast ) {
-				if ( tile != NULL )
-					painter->drawPixmap( xPos, yPos, *tile );
-				else
-					painter->fillRect( xPos, yPos, tileSize, tileSize, QColor( 241, 238 , 232, 255 ) );
-			}
-			else {
-				//TODO
-			}
+			if ( tile != NULL )
+				painter->drawPixmap( xPos, yPos, *tile );
+			else
+				painter->fillRect( xPos, yPos, tileSize, tileSize, QColor( 241, 238 , 232, 255 ) );
 		}
+	}
+
+	if ( points.size() > 0 ) {
+		QPen oldPen = painter->pen();
+		painter->setRenderHint( QPainter::Antialiasing );
+		painter->setPen( QPen( QColor( 0, 0, 255 ), 6, Qt::SolidLine, Qt::RoundCap ) );
+		for ( int i = 0; i < points.size(); i++ ) {
+			ProjectedCoordinate pos = points[i].ToProjectedCoordinate();
+			pos.x = ( pos.x - center.x ) * ( 1 << zoomLevel ) * tileSize + centerX;
+			pos.y = ( pos.y - center.y ) * ( 1 << zoomLevel ) * tileSize + centerY;
+			painter->drawEllipse( pos.x - 8, pos.y - 8, 16, 16);
+		}
+		painter->setPen( QPen( QColor( 255, 0, 0 ), 4, Qt::SolidLine, Qt::RoundCap ) );
+		for ( int i = 0; i < points.size(); i++ ) {
+			ProjectedCoordinate pos = points[i].ToProjectedCoordinate();
+			pos.x = ( pos.x - center.x ) * ( 1 << zoomLevel ) * tileSize + centerX;
+			pos.y = ( pos.y - center.y ) * ( 1 << zoomLevel ) * tileSize + centerY;
+			painter->drawEllipse( pos.x - 8, pos.y - 8, 16, 16);
+		}
+		painter->setPen( oldPen );
+		painter->setRenderHint( QPainter::Antialiasing, false );
 	}
 
 	return true;

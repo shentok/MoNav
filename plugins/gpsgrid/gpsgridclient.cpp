@@ -25,6 +25,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 GPSGridClient::GPSGridClient()
 {
+	indexFile = NULL;
+	gridFile = NULL;
 }
 
 GPSGridClient::~GPSGridClient()

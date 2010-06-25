@@ -29,6 +29,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 	renderer = NULL;
 	addressLookup = NULL;
+	gpsLookup = NULL;
 
 	ui->setupUi(this);
 	ui->targetSourceWidget->hide();
@@ -101,18 +102,38 @@ bool MainWindow::loadPlugins()
 				addressLookup = interface;
 			}
 		}
+		else if ( IGPSLookup *interface = qobject_cast< IGPSLookup* >( loader->instance() ) )
+		{
+			if ( interface->GetName() == "GPS Grid" )
+			{
+				plugins.append( loader );
+				gpsLookup = interface;
+			}
+		}
 	}
 
 	try
 	{
+		if ( renderer == NULL )
+			return false;
 		renderer->SetInputDirectory( dataDirectory );
 		if ( !renderer->LoadData() )
 			return false;
 		mapView->setRender( renderer );
+
+		if ( addressLookup == false )
+			return false;
 		addressLookup->SetInputDirectory( dataDirectory );
 		if ( !addressLookup->LoadData() )
 			return false;
 		addressDialog->setAddressLookup( addressLookup );
+
+		if ( gpsLookup == false )
+			return false;
+		gpsLookup->SetInputDirectory( dataDirectory );
+		if ( !gpsLookup->LoadData() )
+			return false;
+		mapView->setGPSLookup( gpsLookup );
 	}
 	catch ( ... )
 	{
@@ -124,7 +145,11 @@ bool MainWindow::loadPlugins()
 void MainWindow::unloadPlugins()
 {
 	mapView->setRender( NULL );
+	mapView->setGPSLookup( NULL );
 	addressDialog->setAddressLookup( NULL );
+	renderer = NULL;
+	addressLookup = NULL;
+	gpsLookup = NULL;
 	foreach( QPluginLoader* pluginLoader, plugins )
 	{
 		pluginLoader->unload();
