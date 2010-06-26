@@ -162,53 +162,38 @@ bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center,
 
 	if ( sizeX <= 1 && sizeY <= 1 )
 		return true;
+	if ( fmod( rotation / 90, 1 ) < 0.01 )
+		rotation = 90 * floor( rotation / 90 );
+	else if ( fmod( rotation / 90, 1 ) > 0.99 )
+		rotation = 90 * ceil( rotation / 90 );
 
-	bool drawFast = true;
-	if ( fabs( rotation ) > 0.01 || virtualZoom > 0 )
-	{
-		drawFast = false;
-		painter->translate( centerX, centerY );
-		painter->rotate( rotation );
-		painter->translate( -centerX, -centerY );
-		if ( rotation != 90 && rotation != 180 && rotation != 270 ) {
-			painter->setRenderHint( QPainter::SmoothPixmapTransform );
-			painter->setRenderHint( QPainter::Antialiasing );
-			painter->setRenderHint( QPainter::HighQualityAntialiasing );
-		}
+	double zoomFactor = ( double ) ( 1 << zoomLevel ) * tileSize;
+	painter->translate( sizeX / 2, sizeY / 2 );
+	if ( virtualZoom > 0 )
+		painter->scale( virtualZoom, virtualZoom );
+	painter->rotate( rotation );
+	painter->translate( -center.x * zoomFactor, -center.y * zoomFactor );
+	if ( fabs( rotation ) > 1 || virtualZoom > 0 ) {
+		painter->setRenderHint( QPainter::SmoothPixmapTransform );
+		painter->setRenderHint( QPainter::Antialiasing );
+		painter->setRenderHint( QPainter::HighQualityAntialiasing );
 	}
 
-	const int centerX = sizeX / 2;
-	const int centerY = sizeY / 2;
+	QTransform transform = painter->worldTransform();
+	QTransform inverseTransform = transform.inverted();
 
 	const int xWidth = boxes[zoomLevel].maxX - boxes[zoomLevel].minX;
 	const int yWidth = boxes[zoomLevel].maxY - boxes[zoomLevel].minY;
-	const double left = center.x * ( 1u << zoomLevel ) - ( ( double ) centerX ) / tileSize;
-	const double top = center.y * ( 1u << zoomLevel ) - ( ( double ) centerY ) / tileSize;
 
-	if ( !drawFast )
-	{
-		/*TODO*/
-	}
+	QPointF corner1 = inverseTransform.map( QPointF( 0, 0 ) );
+	QPointF corner2 = inverseTransform.map( QPointF( 0, sizeY ) );
+	QPointF corner3 = inverseTransform.map( QPointF( sizeX, 0 ) );
+	QPointF corner4 = inverseTransform.map( QPointF( sizeX, sizeY ) );
 
-	double minXBias = 0;
-	double minYBias = 0;
-	double maxXBias = ( double ) sizeX / tileSize;
-	double maxYBias = ( double ) sizeY / tileSize;
-
-	if ( !drawFast )
-	{
-
-	}
-
-	const int minX = floor( left + minXBias ) - boxes[zoomLevel].minX;
-	const int minY = floor( top + minYBias ) - boxes[zoomLevel].minY;
-	const int maxX = ceil( maxXBias + left ) - boxes[zoomLevel].minX;
-	const int maxY = ceil( maxYBias + top ) - boxes[zoomLevel].minY;
-
-	const int leftX = left - boxes[zoomLevel].minX;
-	const int topY = top - boxes[zoomLevel].minY;
-	const int leftSubX = ( left - boxes[zoomLevel].minX - leftX ) * tileSize;
-	const int leftSubY = ( top - boxes[zoomLevel].minY - topY ) * tileSize;
+	int minX = floor( std::min( corner1.x(), std::min( corner2.x(), std::min( corner3.x(), corner4.x() ) ) ) / tileSize );
+	int maxX = ceil( std::max( corner1.x(), std::max( corner2.x(), std::max( corner3.x(), corner4.x() ) ) ) / tileSize );
+	int minY = floor( std::min( corner1.y(), std::min( corner2.y(), std::min( corner3.y(), corner4.y() ) ) ) / tileSize );
+	int maxY = ceil( std::max( corner1.y(), std::max( corner2.y(), std::max( corner3.y(), corner4.y() ) ) ) / tileSize );
 
 	QDir dir( directory );
 	QString filename = dir.filePath( "Mapnik Renderer" );
@@ -219,16 +204,12 @@ bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center,
 
 	for ( int x = minX; x < maxX; ++x ) {
 		for ( int y = minY; y < maxY; ++y ) {
-			const int xPos = ( x - leftX ) * tileSize - leftSubX;
-			const int yPos = ( y - topY ) * tileSize - leftSubY;
-			const int indexPosition = y * xWidth + x;
-
-			if ( !drawFast ) {
-				//TODO
-			}
+			const int xID = x - boxes[zoomLevel].minX;
+			const int yID = y - boxes[zoomLevel].minY;
+			const long long indexPosition = yID * xWidth + xID;
 
 			QPixmap* tile = NULL;
-			if ( y >= 0 && y < yWidth && x >= 0 && x < xWidth ) {
+			if ( xID >= 0 && xID < xWidth && yID >= 0 && yID < yWidth ) {
 				long long id = ( indexPosition << 8 ) + zoomLevel;
 				if ( !cache.contains( id ) )
 				{
@@ -258,9 +239,9 @@ bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center,
 			}
 
 			if ( tile != NULL )
-				painter->drawPixmap( xPos, yPos, *tile );
+				painter->drawPixmap( x * tileSize, y * tileSize, *tile );
 			else
-				painter->fillRect( xPos, yPos, tileSize, tileSize, QColor( 241, 238 , 232, 255 ) );
+				painter->fillRect( x * tileSize, y * tileSize, tileSize, tileSize, QColor( 241, 238 , 232, 255 ) );
 		}
 	}
 
@@ -270,16 +251,12 @@ bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center,
 		painter->setPen( QPen( QColor( 0, 0, 255 ), 6, Qt::SolidLine, Qt::RoundCap ) );
 		for ( int i = 0; i < points.size(); i++ ) {
 			ProjectedCoordinate pos = points[i].ToProjectedCoordinate();
-			pos.x = ( pos.x - center.x ) * ( 1 << zoomLevel ) * tileSize + centerX;
-			pos.y = ( pos.y - center.y ) * ( 1 << zoomLevel ) * tileSize + centerY;
-			painter->drawEllipse( pos.x - 8, pos.y - 8, 16, 16);
+			painter->drawEllipse( pos.x * zoomFactor - 8, pos.y * zoomFactor - 8, 16, 16);
 		}
 		painter->setPen( QPen( QColor( 255, 0, 0 ), 4, Qt::SolidLine, Qt::RoundCap ) );
 		for ( int i = 0; i < points.size(); i++ ) {
 			ProjectedCoordinate pos = points[i].ToProjectedCoordinate();
-			pos.x = ( pos.x - center.x ) * ( 1 << zoomLevel ) * tileSize + centerX;
-			pos.y = ( pos.y - center.y ) * ( 1 << zoomLevel ) * tileSize + centerY;
-			painter->drawEllipse( pos.x - 8, pos.y - 8, 16, 16);
+			painter->drawEllipse( pos.x * zoomFactor - 8, pos.y * zoomFactor - 8, 16, 16);
 		}
 		painter->setPen( oldPen );
 		painter->setRenderHint( QPainter::Antialiasing, false );
