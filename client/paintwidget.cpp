@@ -146,12 +146,6 @@ void PaintWidget::paintEvent( QPaintEvent* )
 	if ( renderer == NULL )
 		return;
 
-	/*QPixmap picture( width(), height() );
-	QPainter painter( &picture );
-	renderer->Paint( &painter, center, zoom, 0, 0 );
-	painter.end();
-	QPainter flip( this );
-	flip.drawPixmap( 0, 0, picture );*/
 	QPainter painter( this );
 	renderer->Paint( &painter, center, zoom, 0, 0 );
 }

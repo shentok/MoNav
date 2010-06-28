@@ -24,6 +24,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QListWidget>
 #include <vector>
 #include "interfaces/iaddresslookup.h"
+#include "interfaces/irenderer.h"
 
 namespace Ui {
     class AddressDialog;
@@ -39,6 +40,7 @@ public:
 
 	 bool wasSuccessfull( std::vector< int >* segmentLengths, std::vector< UnsignedCoordinate >* coordinates );
 	 void setAddressLookup( IAddressLookup* al );
+	 void setRenderer( IRenderer* r );
 
  public slots:
 
@@ -48,22 +50,16 @@ public:
 	 void streetTextChanged( QString text );
 	 void resetCity();
 	 void resetStreet();
-	 void setPlaceID( int placeID );
-
-signals:
-
-	 void multiplePlaces( QVector< int >* placeIDs, QVector< UnsignedCoordinate > placeCoordinates );
 
 protected:
 	 void connectSlots();
 	 IAddressLookup* addressLookup;
+	  IRenderer* renderer;
 	 enum {
 		 City = 0, Street = 1
 	 } mode;
 	 bool chosen;
 	 int placeID;
-	 QVector< int > placeIDs;
-	 QVector< UnsignedCoordinate > placeCoordinates;
 
 private:
     Ui::AddressDialog *ui;

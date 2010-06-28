@@ -37,8 +37,12 @@ public:
 	void setRender( IRenderer* r );
 	void setGPSLookup( IGPSLookup* g );
 
+	static int selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* renderer, QWidget* p = NULL );
+
 public slots:
 	void mouseClicked( ProjectedCoordinate clickPos );
+	void nextPlace();
+	void previousPlace();
 
 signals:
 	void coordinateChosen( ProjectedCoordinate coordinate );
@@ -47,12 +51,15 @@ protected:
 	void changeEvent( QEvent *e );
 	void showEvent( QShowEvent * event );
 	void connectSlots();
+	void setPlaces( QVector< UnsignedCoordinate > p );
 
 private:
     Ui::MapView *ui;
 	IRenderer* renderer;
 	IGPSLookup* gpsLookup;
 	int maxZoom;
+	QVector< UnsignedCoordinate > places;
+	int place;
 };
 
 #endif // MAPVIEW_H

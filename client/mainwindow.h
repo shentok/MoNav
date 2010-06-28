@@ -42,11 +42,9 @@ public slots:
 	void browseMap();
 	void sourceMode();
 	void targetMode();
-	void about();
 	void routeView();
 
 	void targetBookmarks();
-	void targetCityCenter();
 	void targetAddress();
 	void targetMap();
 	void targetGPS();

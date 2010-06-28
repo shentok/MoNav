@@ -60,10 +60,8 @@ void MainWindow::connectSlots()
 	connect( ui->sourceMenuButton, SIGNAL(clicked()), this, SLOT(sourceMode()) );
 	connect( ui->routeButton, SIGNAL(clicked()), this, SLOT(routeView()) );
 	connect( ui->browseButton, SIGNAL(clicked()), this, SLOT(browseMap()) );
-	connect( ui->aboutButton, SIGNAL(clicked()), this, SLOT(about()) );
 
 	connect( ui->mapButton, SIGNAL(clicked()), this, SLOT(targetMap()) );
-	connect( ui->cityCenterButton, SIGNAL(clicked()), this, SLOT(targetCityCenter()) );
 	connect( ui->bookmarksButton, SIGNAL(clicked()), this, SLOT(targetBookmarks()) );
 	connect( ui->gpsButton, SIGNAL(clicked()), this, SLOT(targetGPS()) );
 	connect( ui->addressButton, SIGNAL(clicked()), this, SLOT(targetAddress()) );
@@ -120,6 +118,7 @@ bool MainWindow::loadPlugins()
 		if ( !renderer->LoadData() )
 			return false;
 		mapView->setRender( renderer );
+		addressDialog->setRenderer( renderer );
 
 		if ( addressLookup == false )
 			return false;
@@ -147,6 +146,7 @@ void MainWindow::unloadPlugins()
 	mapView->setRender( NULL );
 	mapView->setGPSLookup( NULL );
 	addressDialog->setAddressLookup( NULL );
+	addressDialog->setRenderer( NULL );
 	renderer = NULL;
 	addressLookup = NULL;
 	gpsLookup = NULL;
@@ -185,11 +185,6 @@ void MainWindow::targetMode()
 	mode = Target;
 }
 
-void MainWindow::about()
-{
-
-}
-
 void MainWindow::routeView()
 {
 	mapView->exec();
@@ -197,11 +192,6 @@ void MainWindow::routeView()
 
 
 void MainWindow::targetBookmarks()
-{
-
-}
-
-void MainWindow::targetCityCenter()
 {
 
 }

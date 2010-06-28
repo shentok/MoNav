@@ -19,6 +19,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "addressdialog.h"
 #include "ui_addressdialog.h"
+#include "mapview.h"
 
 AddressDialog::AddressDialog(QWidget *parent) :
     QDialog(parent),
@@ -26,6 +27,7 @@ AddressDialog::AddressDialog(QWidget *parent) :
 {
     ui->setupUi(this);
 	 addressLookup = NULL;
+	 renderer = NULL;
 	 resetCity();
 	 connectSlots();
 }
@@ -41,9 +43,9 @@ void AddressDialog::setAddressLookup( IAddressLookup* al )
 	resetCity();
 }
 
-void AddressDialog::setPlaceID( int p )
+void AddressDialog::setRenderer( IRenderer* r )
 {
-	placeID = p;
+	renderer = r;
 }
 
 void AddressDialog::connectSlots()
@@ -69,16 +71,24 @@ void AddressDialog::suggestionClicked( QListWidgetItem * item )
 {
 	QString text = item->text();
 	if ( mode == City ) {
-		placeIDs.clear();
-		placeCoordinates.clear();
+		QVector< int > placeIDs;
+		QVector< UnsignedCoordinate > placeCoordinates;
 		if ( addressLookup->GetPlaceData( text, &placeIDs, &placeCoordinates ) )
 		{
+			placeID = placeIDs.front();
+			if ( placeIDs.size() > 1 )
+			{
+				int id = MapView::selectPlaces( placeCoordinates, renderer, this );
+				if ( id >= 0 && id < placeIDs.size() )
+					placeID = placeIDs[id];
+				else
+					return;
+			}
 			ui->cityEdit->setText( text );
 			ui->cityEdit->setDisabled( true );
 			ui->streetEdit->setEnabled( true );
 			ui->resetStreet->setEnabled( true );
 			mode = Street;
-			placeID = placeIDs.front();
 			addressLookup->SelectPlace( placeID );
 			streetTextChanged( ui->streetEdit->text() );
 		}

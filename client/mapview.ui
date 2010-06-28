@@ -38,7 +38,7 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
-         <widget class="QToolButton" name="toolButton">
+         <widget class="QToolButton" name="previousButton">
           <property name="text">
            <string>...</string>
           </property>
@@ -70,7 +70,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QToolButton" name="toolButton_2">
+         <widget class="QToolButton" name="nextButton">
           <property name="text">
            <string>...</string>
           </property>
@@ -194,7 +194,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QToolButton" name="bookmarkButton">
+         <widget class="QToolButton" name="infoButton">
           <property name="text">
            <string>Bookmark</string>
           </property>
