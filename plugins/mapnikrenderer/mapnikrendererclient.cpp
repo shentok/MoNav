@@ -20,12 +20,15 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QDir>
 #include <QPainter>
 #include <algorithm>
+#include <cmath>
 #include "mapnikrendererclient.h"
+#include "utils/utils.h"
 
 MapnikRendererClient::MapnikRendererClient()
 {
 	maxZoom = -1;
 	tileSize = 1;
+	setupPolygons();
 }
 
 MapnikRendererClient::~MapnikRendererClient()
@@ -37,6 +40,16 @@ void MapnikRendererClient::unload()
 {
 	boxes.clear();
 	cache.clear();
+}
+
+void MapnikRendererClient::setupPolygons()
+{
+	double leftPointer  = 135.0 / 180.0 * M_PI;
+	double rightPointer = -135.0 / 180.0 * M_PI;
+	arrow << QPointF( cos( leftPointer ), sin( leftPointer ) );
+	arrow << QPointF( 1, 0 );
+	arrow << QPointF( cos( rightPointer ), sin( rightPointer ) );
+	arrow << QPointF( -3.0 / 8, 0 );
 }
 
 QString MapnikRendererClient::GetName()
@@ -247,17 +260,40 @@ bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center,
 
 	if ( points.size() > 0 ) {
 		QPen oldPen = painter->pen();
+		QBrush oldBrush = painter->brush();
 		painter->setRenderHint( QPainter::Antialiasing );
-		painter->setPen( QPen( QColor( 0, 0, 255 ), 6, Qt::SolidLine, Qt::RoundCap ) );
+
 		for ( int i = 0; i < points.size(); i++ ) {
+			painter->setPen( QPen( QColor( 0, 0, 128 ), 5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
 			ProjectedCoordinate pos = points[i].ToProjectedCoordinate();
-			painter->drawEllipse( pos.x * zoomFactor - 8, pos.y * zoomFactor - 8, 16, 16);
+			QPointF mapped = transform.map( QPointF( pos.x * zoomFactor, pos.y * zoomFactor ) );
+			if ( mapped.x() < 3 || mapped.y() < 3 || mapped.x() >= sizeX - 3 || mapped.y() >= sizeY - 3 ) {
+				//clip an imaginary line from the screen center to pos at the screen boundaries
+				ProjectedCoordinate start( mapped.x(), mapped.y() );
+				ProjectedCoordinate end( sizeX / 2, sizeY / 2 );
+				clipEdge( &start, &end, ProjectedCoordinate( 10, 10 ), ProjectedCoordinate( sizeX - 10, sizeY - 10) );
+
+				QPointF position = inverseTransform.map( QPointF( start.x, start.y ) );
+				QMatrix arrowMatrix;
+				arrowMatrix.translate( position.x(), position.y() );
+				arrowMatrix.rotate( atan2( mapped.y() - sizeY / 2, mapped.x() - sizeX / 2 ) * 360 / 2 / M_PI );
+				arrowMatrix.scale( 8, 8 );
+
+				painter->setBrush( QColor( 0, 0, 128 ) );
+				painter->drawPolygon( arrowMatrix.map( arrow ) );
+				painter->setBrush( QColor( 255, 0, 0 ) );
+				painter->setPen( QPen( QColor( 255, 0, 0 ), 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
+				painter->drawPolygon( arrowMatrix.map( arrow ) );
+			}
+			else {
+				painter->setBrush( oldBrush );
+				painter->drawEllipse( pos.x * zoomFactor - 8, pos.y * zoomFactor - 8, 16, 16);
+				painter->setPen( QPen( QColor( 255, 0, 0 ), 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
+				painter->drawEllipse( pos.x * zoomFactor - 8, pos.y * zoomFactor - 8, 16, 16);
+			}
 		}
-		painter->setPen( QPen( QColor( 255, 0, 0 ), 4, Qt::SolidLine, Qt::RoundCap ) );
-		for ( int i = 0; i < points.size(); i++ ) {
-			ProjectedCoordinate pos = points[i].ToProjectedCoordinate();
-			painter->drawEllipse( pos.x * zoomFactor - 8, pos.y * zoomFactor - 8, 16, 16);
-		}
+
+		painter->setBrush( oldBrush );
 		painter->setPen( oldPen );
 		painter->setRenderHint( QPainter::Antialiasing, false );
 	}

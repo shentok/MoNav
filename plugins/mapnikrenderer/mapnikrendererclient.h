@@ -52,6 +52,7 @@ public:
 protected:
 
 	void unload();
+	void setupPolygons();
 
 	struct Box
 	{
@@ -70,6 +71,7 @@ protected:
 	QVector< UnsignedCoordinate > edges;
 	std::vector< Box > boxes;
 	QCache< long long, QPixmap > cache;
+	QPolygonF arrow;
 };
 
 #endif // MAPNIKRENDERER_H

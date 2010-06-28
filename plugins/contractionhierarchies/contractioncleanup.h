@@ -151,14 +151,8 @@ class ContractionCleanup {
 		void GetData( std::vector< Edge >& edges, std::vector< NodeID >& map ) {
 			std::sort( _remap.begin(), _remap.end(), _Node::CompareByID );
 
-			//wxFFileOutputStream out( wxT( "/mnt/Data/game.hcn" ) );
-			//unsigned temp = _remap.size();
-			//out.Write( &temp, sizeof( temp ) );
-			for ( NodeID node = 0; node < _numNodes; ++node ) {
+			for ( NodeID node = 0; node < _numNodes; ++node )
 				map.push_back( _remap[node].mappedID );
-				//unsigned int temp( _remap[node].depth );
-				//out.Write( &temp, sizeof( temp ) );
-			}
 
 			for ( int edge = 0, endEdges = ( int ) _graph.size(); edge != endEdges; ++edge ) {
 				Edge newEdge;
@@ -263,12 +257,11 @@ class ContractionCleanup {
 					if ( result < _graph[i].data.distance ) {
 						numUseless++;
 						_graph[i].data.forward = false;
-						Contractor::Witness temp;
-						temp.source = _graph[i].source;
-						temp.target = _graph[i].target;
-						temp.middle = _graph[i].data.middle;
-						_witnessList.push_back( temp );
-						numUseless++;
+						//Contractor::Witness temp;
+						//temp.source = _graph[i].source;
+						//temp.target = _graph[i].target;
+						//temp.middle = _graph[i].data.middle;
+						//_witnessList.push_back( temp );
 					}
 				}
 				if ( _graph[i].data.backward ) {
@@ -277,12 +270,11 @@ class ContractionCleanup {
 					if ( result < _graph[i].data.distance ) {
 						numUseless++;
 						_graph[i].data.backward = false;
-						Contractor::Witness temp;
-						temp.source = _graph[i].target;
-						temp.target = _graph[i].source;
-						temp.middle = _graph[i].data.middle;
-						_witnessList.push_back( temp );
-						numUseless++;
+						//Contractor::Witness temp;
+						//temp.source = _graph[i].target;
+						//temp.target = _graph[i].source;
+						//temp.middle = _graph[i].data.middle;
+						//_witnessList.push_back( temp );
 					}
 				}
 			}
@@ -307,7 +299,7 @@ class ContractionCleanup {
 				_remap[node].id = node;
 			}
 
-			qDebug( "Compute _Node Depth" );
+			qDebug( "Compute Node Depth" );
 			{
 				std::queue< NodeID > q;
 				std::vector< unsigned > inDegree( _numNodes, 0 );

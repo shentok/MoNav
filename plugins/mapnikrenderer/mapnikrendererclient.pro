@@ -9,5 +9,6 @@ QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 HEADERS += mapnikrendererclient.h \
     interfaces/irenderer.h \
     utils/coordinates.h \
-    utils/config.h
+    utils/config.h \
+    utils/utils.h
 SOURCES += mapnikrendererclient.cpp
