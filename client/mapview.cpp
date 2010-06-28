@@ -35,7 +35,7 @@ MapView::MapView(QWidget *parent) :
 
 MapView::~MapView()
 {
-    delete ui;
+	delete ui;
 }
 
 void MapView::connectSlots()
@@ -123,9 +123,12 @@ int MapView::selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* rend
 	window->setPlaces( places );
 
 	window->exec();
+	if ( window->result() != Accepted )
+		return -1;
 
 	int id = window->place;
 	delete window;
+	renderer->SetPoints( QVector< UnsignedCoordinate >() );
 	return id;
 }
 

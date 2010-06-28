@@ -25,44 +25,47 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include "interfaces/iaddresslookup.h"
 #include "interfaces/irenderer.h"
+#include "interfaces/igpslookup.h"
 
 namespace Ui {
-    class AddressDialog;
+	class AddressDialog;
 }
 
 class AddressDialog : public QDialog
 {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    explicit AddressDialog(QWidget *parent = 0);
-    ~AddressDialog();
+	explicit AddressDialog(QWidget *parent = 0);
+	~AddressDialog();
 
-	 bool wasSuccessfull( std::vector< int >* segmentLengths, std::vector< UnsignedCoordinate >* coordinates );
-	 void setAddressLookup( IAddressLookup* al );
-	 void setRenderer( IRenderer* r );
+	bool wasSuccessfull( std::vector< int >* segmentLengths, std::vector< UnsignedCoordinate >* coordinates );
+	void setAddressLookup( IAddressLookup* al );
+	void setRenderer( IRenderer* r );
+	void setGPSLookup( IGPSLookup* g );
 
- public slots:
+public slots:
 
-	 void characterClicked( QListWidgetItem * item );
-	 void suggestionClicked( QListWidgetItem * item );
-	 void cityTextChanged( QString text );
-	 void streetTextChanged( QString text );
-	 void resetCity();
-	 void resetStreet();
+	void characterClicked( QListWidgetItem * item );
+	void suggestionClicked( QListWidgetItem * item );
+	void cityTextChanged( QString text );
+	void streetTextChanged( QString text );
+	void resetCity();
+	void resetStreet();
 
 protected:
-	 void connectSlots();
-	 IAddressLookup* addressLookup;
-	  IRenderer* renderer;
-	 enum {
-		 City = 0, Street = 1
-	 } mode;
-	 bool chosen;
-	 int placeID;
+	void connectSlots();
+	IAddressLookup* addressLookup;
+	IRenderer* renderer;
+	IGPSLookup* gpsLookup;
+	enum {
+		City = 0, Street = 1
+	} mode;
+	bool chosen;
+	int placeID;
 
 private:
-    Ui::AddressDialog *ui;
+	Ui::AddressDialog *ui;
 };
 
 #endif // ADDRESSDIALOG_H

@@ -43,11 +43,14 @@ public slots:
 	void sourceMode();
 	void targetMode();
 	void routeView();
+	void settingsMenu();
 
 	void targetBookmarks();
 	void targetAddress();
 	void targetMap();
 	void targetGPS();
+
+	void back();
 
 	void settingsSystem();
 	void settingsRenderer();
@@ -55,6 +58,8 @@ public slots:
 	void settingsAddressLookup();
 	void settingsGPS();
 	void settingsDataDirectory();
+
+	void menuClicked( QListWidgetItem* item );
 
 protected:
     void changeEvent(QEvent *e);

@@ -34,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->setupUi(this);
 	ui->targetSourceWidget->hide();
 	ui->settingsWidget->hide();
-	layout()->setSizeConstraint( QLayout::SetFixedSize );
+	//layout()->setSizeConstraint( QLayout::SetFixedSize );
 	mapView = new MapView( this );
 	addressDialog = new AddressDialog( this );
 
@@ -56,21 +56,11 @@ MainWindow::~MainWindow()
 
 void MainWindow::connectSlots()
 {
-	connect( ui->targetMenuButton, SIGNAL(clicked()), this, SLOT(targetMode()) );
-	connect( ui->sourceMenuButton, SIGNAL(clicked()), this, SLOT(sourceMode()) );
-	connect( ui->routeButton, SIGNAL(clicked()), this, SLOT(routeView()) );
-	connect( ui->browseButton, SIGNAL(clicked()), this, SLOT(browseMap()) );
+	connect( ui->backButton, SIGNAL(clicked()), this, SLOT(back()) );
 
-	connect( ui->mapButton, SIGNAL(clicked()), this, SLOT(targetMap()) );
-	connect( ui->bookmarksButton, SIGNAL(clicked()), this, SLOT(targetBookmarks()) );
-	connect( ui->gpsButton, SIGNAL(clicked()), this, SLOT(targetGPS()) );
-	connect( ui->addressButton, SIGNAL(clicked()), this, SLOT(targetAddress()) );
-
-	connect( ui->systemSettingsButton, SIGNAL(clicked()), this, SLOT(settingsSystem()) );
-	connect( ui->rendererSettingsButton, SIGNAL(clicked()), this, SLOT(settingsRenderer()) );
-	connect( ui->gpsLookupSettingsButton, SIGNAL(clicked()), this, SLOT(settingsGPSLookup()) );
-	connect( ui->addressLookupSettingsButton, SIGNAL(clicked()), this, SLOT(settingsAddressLookup()) );
-	connect( ui->dataDirectoryButton, SIGNAL(clicked()), this, SLOT(settingsDataDirectory()) );
+	connect( ui->mainMenuList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(menuClicked(QListWidgetItem*)) );
+	connect( ui->targetMenuList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(menuClicked(QListWidgetItem*)) );
+	connect( ui->settingsMenuList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(menuClicked(QListWidgetItem*)) );
 }
 
 bool MainWindow::loadPlugins()
@@ -133,6 +123,7 @@ bool MainWindow::loadPlugins()
 		if ( !gpsLookup->LoadData() )
 			return false;
 		mapView->setGPSLookup( gpsLookup );
+		addressDialog->setGPSLookup( gpsLookup );
 	}
 	catch ( ... )
 	{
@@ -147,6 +138,7 @@ void MainWindow::unloadPlugins()
 	mapView->setGPSLookup( NULL );
 	addressDialog->setAddressLookup( NULL );
 	addressDialog->setRenderer( NULL );
+	addressDialog->setGPSLookup( NULL );
 	renderer = NULL;
 	addressLookup = NULL;
 	gpsLookup = NULL;
@@ -170,6 +162,48 @@ void MainWindow::changeEvent(QEvent *e)
     }
 }
 
+void MainWindow::menuClicked( QListWidgetItem* item )
+{
+	QString label = item->text();
+	if ( label == tr( "Source" ) )
+		sourceMode();
+	else if ( label == tr( "Target" ) )
+		targetMode();
+	else if ( label == tr( "Route" ) )
+		routeView();
+	else if ( label == tr( "Map" ) )
+		browseMap();
+	else if ( label == tr( "Settings" ) )
+		settingsMenu();
+	else if ( label == tr( "Address" ) )
+		targetAddress();
+	else if ( label == tr( "Via Map" ) )
+		targetMap();
+	else if ( label == tr( "Bookmarks" ) )
+		targetBookmarks();
+	else if ( label == tr( "GPS" ) )
+		targetGPS();
+	else if ( label == tr( "System Settings" ) )
+		settingsSystem();
+	else if ( label == tr( "Map Renderer Settings" ) )
+		settingsRenderer();
+	else if ( label == tr( "GPS Lookup Settings" ) )
+		settingsGPSLookup();
+	else if ( label == tr( "Address Lookup Settings" ) )
+		settingsAddressLookup();
+	else if ( label == tr( "GPS Settings" ) )
+		settingsGPS();
+	else if ( label == tr( "Data Directory Settings" ) )
+		settingsDataDirectory();
+}
+
+void MainWindow::back()
+{
+	ui->targetSourceWidget->hide();
+	ui->settingsWidget->hide();
+	ui->mainMenuWidget->show();
+}
+
 void MainWindow::browseMap()
 {
 	mapView->exec();
@@ -178,11 +212,17 @@ void MainWindow::browseMap()
 void MainWindow::sourceMode()
 {
 	mode = Source;
+	ui->mainMenuWidget->hide();
+	ui->targetSourceWidget->show();
+	ui->targetSourceMenuLabel->setText( tr( "Source Menu" ) );
 }
 
 void MainWindow::targetMode()
 {
 	mode = Target;
+	ui->mainMenuWidget->hide();
+	ui->targetSourceWidget->show();
+	ui->targetSourceMenuLabel->setText( tr( "Target Menu" ) );
 }
 
 void MainWindow::routeView()
@@ -190,6 +230,11 @@ void MainWindow::routeView()
 	mapView->exec();
 }
 
+void MainWindow::settingsMenu()
+{
+	ui->settingsWidget->show();
+	ui->mainMenuWidget->hide();
+}
 
 void MainWindow::targetBookmarks()
 {

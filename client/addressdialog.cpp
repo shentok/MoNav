@@ -28,6 +28,7 @@ AddressDialog::AddressDialog(QWidget *parent) :
     ui->setupUi(this);
 	 addressLookup = NULL;
 	 renderer = NULL;
+	 gpsLookup = NULL;
 	 resetCity();
 	 connectSlots();
 }
@@ -46,6 +47,11 @@ void AddressDialog::setAddressLookup( IAddressLookup* al )
 void AddressDialog::setRenderer( IRenderer* r )
 {
 	renderer = r;
+}
+
+void AddressDialog::setGPSLookup( IGPSLookup* g )
+{
+	gpsLookup = g;
 }
 
 void AddressDialog::connectSlots()
