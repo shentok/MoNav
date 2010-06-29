@@ -258,6 +258,25 @@ bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center,
 		}
 	}
 
+	if ( segmentLengths.size() > 0 && edges.size() > 0 ) {
+		QPen oldPen = painter->pen();
+		painter->setRenderHint( QPainter::Antialiasing );
+		painter->setPen( QPen( QColor( 0, 0, 128, 128 ), 8, Qt::SolidLine, Qt::FlatCap ) );
+
+		int position = 0;
+		for ( int i = 0; i < segmentLengths.size(); i++ ) {
+			QPolygonF polygon;
+			for ( ; position < segmentLengths[i]; position++ ) {
+				ProjectedCoordinate pos = edges[position].ToProjectedCoordinate();
+				polygon << QPointF( pos.x * zoomFactor, pos.y * zoomFactor );
+			}
+			painter->drawPolyline( polygon );
+		}
+
+		painter->setPen( oldPen );
+		painter->setRenderHint( QPainter::Antialiasing, false );
+	}
+
 	if ( points.size() > 0 ) {
 		QPen oldPen = painter->pen();
 		QBrush oldBrush = painter->brush();

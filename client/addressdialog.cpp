@@ -22,20 +22,20 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "mapview.h"
 
 AddressDialog::AddressDialog(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::AddressDialog)
+		QDialog(parent),
+		ui(new Ui::AddressDialog)
 {
-    ui->setupUi(this);
-	 addressLookup = NULL;
-	 renderer = NULL;
-	 gpsLookup = NULL;
-	 resetCity();
-	 connectSlots();
+	ui->setupUi(this);
+	addressLookup = NULL;
+	renderer = NULL;
+	gpsLookup = NULL;
+	resetCity();
+	connectSlots();
 }
 
 AddressDialog::~AddressDialog()
 {
-    delete ui;
+	delete ui;
 }
 
 void AddressDialog::setAddressLookup( IAddressLookup* al )
@@ -79,27 +79,35 @@ void AddressDialog::suggestionClicked( QListWidgetItem * item )
 	if ( mode == City ) {
 		QVector< int > placeIDs;
 		QVector< UnsignedCoordinate > placeCoordinates;
-		if ( addressLookup->GetPlaceData( text, &placeIDs, &placeCoordinates ) )
+		if ( !addressLookup->GetPlaceData( text, &placeIDs, &placeCoordinates ) )
+			return;
+
+		placeID = placeIDs.front();
+		if ( placeIDs.size() > 1 )
 		{
-			placeID = placeIDs.front();
-			if ( placeIDs.size() > 1 )
-			{
-				int id = MapView::selectPlaces( placeCoordinates, renderer, this );
-				if ( id >= 0 && id < placeIDs.size() )
-					placeID = placeIDs[id];
-				else
-					return;
-			}
-			ui->cityEdit->setText( text );
-			ui->cityEdit->setDisabled( true );
-			ui->streetEdit->setEnabled( true );
-			ui->resetStreet->setEnabled( true );
-			mode = Street;
-			addressLookup->SelectPlace( placeID );
-			streetTextChanged( ui->streetEdit->text() );
+			int id = MapView::selectPlaces( placeCoordinates, renderer, this );
+			if ( id >= 0 && id < placeIDs.size() )
+				placeID = placeIDs[id];
+			else
+				return;
 		}
+		ui->cityEdit->setText( text );
+		ui->cityEdit->setDisabled( true );
+		ui->streetEdit->setEnabled( true );
+		ui->resetStreet->setEnabled( true );
+		mode = Street;
+		addressLookup->SelectPlace( placeID );
+		streetTextChanged( ui->streetEdit->text() );
 	}
 	else {
+		QVector< int > segmentLength;
+		QVector< UnsignedCoordinate > coordinates;
+		if ( !addressLookup->GetStreetData( text, &segmentLength, &coordinates ) )
+			return;
+		if ( coordinates.size() == 0 )
+			return;
+		if( !MapView::selectStreet( &result, segmentLength, coordinates, renderer, gpsLookup, this ) )
+			return;
 		ui->streetEdit->setText( text );
 		chosen = true;
 		close();
@@ -202,9 +210,10 @@ void AddressDialog::resetStreet()
 	chosen = false;
 }
 
-bool AddressDialog::wasSuccessfull( std::vector< int >* segmentLengths, std::vector< UnsignedCoordinate >* coordinates )
+bool AddressDialog::wasSuccessfull( UnsignedCoordinate* r )
 {
 	if ( chosen ) {
+		*r = result;
 		return true;
 	}
 	return false;

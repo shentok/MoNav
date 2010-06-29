@@ -295,7 +295,7 @@ bool UnicodeTournamentTrieClient::GetStreetData( QString input, QVector< int >* 
 			coordinates->push_back( temp );
 		}
 		delete[] buffer;
-		segmentLength->push_back( i->end - i->start );
+		segmentLength->push_back( coordinates->size() );
 	}
 
 	return segmentLength->size() != 0;

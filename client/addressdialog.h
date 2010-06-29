@@ -39,7 +39,7 @@ public:
 	explicit AddressDialog(QWidget *parent = 0);
 	~AddressDialog();
 
-	bool wasSuccessfull( std::vector< int >* segmentLengths, std::vector< UnsignedCoordinate >* coordinates );
+	bool wasSuccessfull( UnsignedCoordinate* r );
 	void setAddressLookup( IAddressLookup* al );
 	void setRenderer( IRenderer* r );
 	void setGPSLookup( IGPSLookup* g );
@@ -62,6 +62,7 @@ protected:
 		City = 0, Street = 1
 	} mode;
 	bool chosen;
+	UnsignedCoordinate result;
 	int placeID;
 
 private:

@@ -90,7 +90,8 @@ void MapView::mouseClicked( ProjectedCoordinate clickPos )
 	if ( result.size() == 0 )
 		return;
 	QVector< UnsignedCoordinate > points;
-	points.push_back( result.first().nearestPoint );
+	selected = result.first().nearestPoint;
+	points.push_back( selected );
 	renderer->SetPoints( points );
 	ui->paintArea->update();
 }
@@ -141,8 +142,49 @@ void MapView::setPlaces( QVector< UnsignedCoordinate > p )
 	ui->headerWidget->show();
 
 	ui->paintArea->setCenter( places.first().ToProjectedCoordinate() );
-
 	renderer->SetPoints( p );
+
+	ui->paintArea->update();
+}
+
+bool MapView::selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, IRenderer* renderer, IGPSLookup* gpsLookup, QWidget* p )
+{
+	if ( result == NULL )
+		return false;
+	if ( segmentLength.size() == 0 )
+		return false;
+	if ( coordinates.size() == 0 )
+		return false;
+	if ( renderer == 0 )
+		return false;
+	if ( gpsLookup == 0 )
+		return false;
+
+	MapView* window = new MapView( p );
+	window->setRender( renderer );
+	window->setGPSLookup( gpsLookup );
+	window->setEdges( segmentLength, coordinates );
+
+	window->exec();
+	if ( window->result() != Accepted )
+		return false;
+
+	*result = window->selected;
+	delete window;
+	renderer->SetPoints( QVector< UnsignedCoordinate >() );
+	renderer->SetEdges( QVector< int >(), QVector< UnsignedCoordinate >() );
+	return true;
+}
+
+void MapView::setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinate > coordinates )
+{
+	ui->headerLabel->setText( tr( "Choose Coordinate" ) );
+	ui->headerWidget->show();
+	ui->nextButton->hide();
+	ui->previousButton->hide();
+
+	ui->paintArea->setCenter( coordinates.first().ToProjectedCoordinate() );
+	renderer->SetEdges( segmentLength, coordinates );
 
 	ui->paintArea->update();
 }

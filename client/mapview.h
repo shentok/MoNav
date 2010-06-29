@@ -38,6 +38,7 @@ public:
 	void setGPSLookup( IGPSLookup* g );
 
 	static int selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* renderer, QWidget* p = NULL );
+	static bool selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, IRenderer* renderer, IGPSLookup* gpsLookup, QWidget* p = NULL );
 
 public slots:
 	void mouseClicked( ProjectedCoordinate clickPos );
@@ -52,6 +53,7 @@ protected:
 	void showEvent( QShowEvent * event );
 	void connectSlots();
 	void setPlaces( QVector< UnsignedCoordinate > p );
+	void setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinate > coordinates );
 
 private:
     Ui::MapView *ui;
@@ -60,6 +62,7 @@ private:
 	int maxZoom;
 	QVector< UnsignedCoordinate > places;
 	int place;
+	UnsignedCoordinate selected;
 };
 
 #endif // MAPVIEW_H
