@@ -25,7 +25,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "interfaces/irenderer.h"
 #include "interfaces/iaddresslookup.h"
 #include "interfaces/igpslookup.h"
-#include "mapview.h"
 #include "addressdialog.h"
 
 namespace Ui {
@@ -61,8 +60,10 @@ public slots:
 
 	void menuClicked( QListWidgetItem* item );
 
+	void setSource( UnsignedCoordinate source, double heading );
+	void setTarget( UnsignedCoordinate target, double heading );
+
 protected:
-    void changeEvent(QEvent *e);
 	void connectSlots();
 	bool loadPlugins();
 	void unloadPlugins();
@@ -73,7 +74,9 @@ protected:
 	IAddressLookup* addressLookup;
 	IGPSLookup* gpsLookup;
 
-	MapView* mapView;
+	UnsignedCoordinate source;
+	UnsignedCoordinate target;
+
 	AddressDialog* addressDialog;
 
 	enum {

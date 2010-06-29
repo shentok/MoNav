@@ -47,18 +47,6 @@ void MapView::connectSlots()
 	connect( ui->nextButton, SIGNAL(clicked()), this, SLOT(nextPlace()) );
 }
 
-void MapView::changeEvent(QEvent *e)
-{
-    QDialog::changeEvent(e);
-    switch (e->type()) {
-    case QEvent::LanguageChange:
-        ui->retranslateUi(this);
-        break;
-    default:
-        break;
-    }
-}
-
 void MapView::showEvent( QShowEvent * /*event*/ )
 {
 	if ( renderer != NULL )
@@ -79,6 +67,17 @@ void MapView::setRender( IRenderer* r )
 void MapView::setGPSLookup( IGPSLookup*g )
 {
 	gpsLookup = g;
+}
+
+void MapView::setCenter( ProjectedCoordinate center )
+{
+	ui->paintArea->setCenter( center );
+}
+
+void MapView::setSource( UnsignedCoordinate s, double heading )
+{
+	source = s;
+	renderer->SetPosition( source, heading );
 }
 
 void MapView::mouseClicked( ProjectedCoordinate clickPos )

@@ -47,7 +47,6 @@ signals:
 	void mouseClicked( ProjectedCoordinate clickPos );
 
 protected:
-	void changeEvent(QEvent *e);
 	void paintEvent( QPaintEvent* );
 	void mouseMoveEvent( QMouseEvent * event );
 	void mousePressEvent( QMouseEvent * event );

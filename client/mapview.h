@@ -42,6 +42,8 @@ public:
 
 public slots:
 	void mouseClicked( ProjectedCoordinate clickPos );
+	void setCenter( ProjectedCoordinate center );
+	void setSource( UnsignedCoordinate source, double heading );
 	void nextPlace();
 	void previousPlace();
 
@@ -49,7 +51,6 @@ signals:
 	void coordinateChosen( ProjectedCoordinate coordinate );
 
 protected:
-	void changeEvent( QEvent *e );
 	void showEvent( QShowEvent * event );
 	void connectSlots();
 	void setPlaces( QVector< UnsignedCoordinate > p );
@@ -63,6 +64,7 @@ private:
 	QVector< UnsignedCoordinate > places;
 	int place;
 	UnsignedCoordinate selected;
+	UnsignedCoordinate source;
 };
 
 #endif // MAPVIEW_H

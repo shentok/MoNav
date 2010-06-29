@@ -106,10 +106,11 @@ void AddressDialog::suggestionClicked( QListWidgetItem * item )
 			return;
 		if ( coordinates.size() == 0 )
 			return;
+		UnsignedCoordinate result;
 		if( !MapView::selectStreet( &result, segmentLength, coordinates, renderer, gpsLookup, this ) )
 			return;
+		emit coordinateChosen( result, 0 );
 		ui->streetEdit->setText( text );
-		chosen = true;
 		close();
 	}
 }
@@ -199,7 +200,6 @@ void AddressDialog::resetCity()
 	ui->streetEdit->setText( "" );
 	ui->cityEdit->setText( "" );
 	mode = City;
-	chosen = false;
 	cityTextChanged( "" );
 }
 
@@ -207,15 +207,5 @@ void AddressDialog::resetStreet()
 {
 	ui->streetEdit->setText( "" );
 	streetTextChanged( "" );
-	chosen = false;
-}
-
-bool AddressDialog::wasSuccessfull( UnsignedCoordinate* r )
-{
-	if ( chosen ) {
-		*r = result;
-		return true;
-	}
-	return false;
 }
 

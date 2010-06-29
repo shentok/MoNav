@@ -41,18 +41,6 @@ PaintWidget::~PaintWidget()
     delete ui;
 }
 
-void PaintWidget::changeEvent(QEvent *e)
-{
-    QWidget::changeEvent(e);
-    switch (e->type()) {
-    case QEvent::LanguageChange:
-        ui->retranslateUi(this);
-        break;
-    default:
-        break;
-    }
-}
-
 void PaintWidget::setRenderer( IRenderer* r )
 {
 	renderer = r;

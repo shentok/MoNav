@@ -39,10 +39,12 @@ public:
 	explicit AddressDialog(QWidget *parent = 0);
 	~AddressDialog();
 
-	bool wasSuccessfull( UnsignedCoordinate* r );
 	void setAddressLookup( IAddressLookup* al );
 	void setRenderer( IRenderer* r );
 	void setGPSLookup( IGPSLookup* g );
+
+signals:
+	void coordinateChosen( UnsignedCoordinate result, double heading );
 
 public slots:
 
@@ -61,8 +63,6 @@ protected:
 	enum {
 		City = 0, Street = 1
 	} mode;
-	bool chosen;
-	UnsignedCoordinate result;
 	int placeID;
 
 private:

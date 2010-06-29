@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QDir>
 #include <QSettings>
 #include <QFileDialog>
+#include "mapview.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -34,13 +35,14 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->setupUi(this);
 	ui->targetSourceWidget->hide();
 	ui->settingsWidget->hide();
-	//layout()->setSizeConstraint( QLayout::SetFixedSize );
-	mapView = new MapView( this );
 	addressDialog = new AddressDialog( this );
 
 	QSettings settings( "MoNavClient" );
 	dataDirectory = settings.value( "dataDirectory" ).toString();
 	mode = Source;
+
+	source.x = 1 << 30;
+	source.y = 1 << 30;
 
 	connectSlots();
 
@@ -107,7 +109,6 @@ bool MainWindow::loadPlugins()
 		renderer->SetInputDirectory( dataDirectory );
 		if ( !renderer->LoadData() )
 			return false;
-		mapView->setRender( renderer );
 		addressDialog->setRenderer( renderer );
 
 		if ( addressLookup == false )
@@ -122,7 +123,6 @@ bool MainWindow::loadPlugins()
 		gpsLookup->SetInputDirectory( dataDirectory );
 		if ( !gpsLookup->LoadData() )
 			return false;
-		mapView->setGPSLookup( gpsLookup );
 		addressDialog->setGPSLookup( gpsLookup );
 	}
 	catch ( ... )
@@ -134,8 +134,6 @@ bool MainWindow::loadPlugins()
 
 void MainWindow::unloadPlugins()
 {
-	mapView->setRender( NULL );
-	mapView->setGPSLookup( NULL );
 	addressDialog->setAddressLookup( NULL );
 	addressDialog->setRenderer( NULL );
 	addressDialog->setGPSLookup( NULL );
@@ -150,16 +148,14 @@ void MainWindow::unloadPlugins()
 	plugins.clear();
 }
 
-void MainWindow::changeEvent(QEvent *e)
+void MainWindow::setSource( UnsignedCoordinate s, double heading )
 {
-    QMainWindow::changeEvent(e);
-    switch (e->type()) {
-    case QEvent::LanguageChange:
-        ui->retranslateUi(this);
-        break;
-    default:
-        break;
-    }
+	source = s;
+}
+
+void MainWindow::setTarget( UnsignedCoordinate t, double heading )
+{
+	target = t;
 }
 
 void MainWindow::menuClicked( QListWidgetItem* item )
@@ -206,7 +202,13 @@ void MainWindow::back()
 
 void MainWindow::browseMap()
 {
-	mapView->exec();
+	MapView* window = new MapView( this );
+	window->setRender( renderer );
+	window->setGPSLookup( gpsLookup );
+	window->setCenter( source.ToProjectedCoordinate() );
+	window->setSource( source, 0 );
+	window->exec();
+	delete window;
 }
 
 void MainWindow::sourceMode()
@@ -227,7 +229,11 @@ void MainWindow::targetMode()
 
 void MainWindow::routeView()
 {
-	mapView->exec();
+	MapView* window = new MapView( this );
+	window->setRender( renderer );
+	window->setGPSLookup( gpsLookup );
+	window->exec();
+	delete window;
 }
 
 void MainWindow::settingsMenu()
@@ -244,7 +250,12 @@ void MainWindow::targetBookmarks()
 void MainWindow::targetAddress()
 {
 	addressDialog->resetCity();
+	if ( mode == Source )
+		connect( addressDialog, SIGNAL(coordinateChosen(UnsignedCoordinate, double)), this, SLOT(setSource(UnsignedCoordinate, double)));
+	else if ( mode == Target )
+		connect( addressDialog, SIGNAL(coordinateChosen(UnsignedCoordinate, double)), this, SLOT(setTarget(UnsignedCoordinate, double)));
 	addressDialog->exec();
+	disconnect( addressDialog, SIGNAL(coordinateChosen(UnsignedCoordinate, double)) );
 }
 
 void MainWindow::targetMap()
