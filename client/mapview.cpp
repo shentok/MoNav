@@ -77,7 +77,7 @@ void MapView::setCenter( ProjectedCoordinate center )
 void MapView::setSource( UnsignedCoordinate s, double heading )
 {
 	source = s;
-	renderer->SetPosition( source, heading );
+	ui->paintArea->setPosition( source, heading );
 }
 
 void MapView::mouseClicked( ProjectedCoordinate clickPos )
@@ -91,7 +91,7 @@ void MapView::mouseClicked( ProjectedCoordinate clickPos )
 	QVector< UnsignedCoordinate > points;
 	selected = result.first().nearestPoint;
 	points.push_back( selected );
-	renderer->SetPoints( points );
+	ui->paintArea->setPOIs( points );
 	ui->paintArea->update();
 }
 
@@ -128,7 +128,6 @@ int MapView::selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* rend
 
 	int id = window->place;
 	delete window;
-	renderer->SetPoints( QVector< UnsignedCoordinate >() );
 	return id;
 }
 
@@ -141,7 +140,7 @@ void MapView::setPlaces( QVector< UnsignedCoordinate > p )
 	ui->headerWidget->show();
 
 	ui->paintArea->setCenter( places.first().ToProjectedCoordinate() );
-	renderer->SetPoints( p );
+	ui->paintArea->setPOIs( p );
 
 	ui->paintArea->update();
 }
@@ -170,8 +169,6 @@ bool MapView::selectStreet( UnsignedCoordinate* result, QVector< int >segmentLen
 
 	*result = window->selected;
 	delete window;
-	renderer->SetPoints( QVector< UnsignedCoordinate >() );
-	renderer->SetEdges( QVector< int >(), QVector< UnsignedCoordinate >() );
 	return true;
 }
 
@@ -183,7 +180,7 @@ void MapView::setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinat
 	ui->previousButton->hide();
 
 	ui->paintArea->setCenter( coordinates.first().ToProjectedCoordinate() );
-	renderer->SetEdges( segmentLength, coordinates );
+	ui->paintArea->setEdges( segmentLength, coordinates );
 
 	ui->paintArea->update();
 }

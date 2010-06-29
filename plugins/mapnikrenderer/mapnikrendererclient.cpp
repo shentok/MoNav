@@ -141,33 +141,11 @@ ProjectedCoordinate MapnikRendererClient::ZoomOutOn( ProjectedCoordinate center,
 	return center;
 }
 
-bool MapnikRendererClient::SetPoints( QVector< UnsignedCoordinate > p )
+bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 {
 	if ( !loaded )
 		return false;
-	points = p;
-	return true;
-}
-
-bool MapnikRendererClient::SetEdges( QVector< int > s, QVector< UnsignedCoordinate > e )
-{
-	if ( !loaded )
-		return false;
-	segmentLengths = s;
-	edges = e;
-	return true;
-}
-
-bool MapnikRendererClient::SetPosition( UnsignedCoordinate coordinate, double heading )
-{
-	if ( !loaded )
-		return false;
-	return false;
-}
-
-bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center, int zoomLevel, double rotation, double virtualZoom )
-{
-	if ( !loaded )
+	if ( request.zoom < 0 || request.zoom > maxZoom )
 		return false;
 
 	int sizeX = painter->device()->width();
@@ -175,18 +153,19 @@ bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center,
 
 	if ( sizeX <= 1 && sizeY <= 1 )
 		return true;
+	double rotation = request.rotation;
 	if ( fmod( rotation / 90, 1 ) < 0.01 )
 		rotation = 90 * floor( rotation / 90 );
 	else if ( fmod( rotation / 90, 1 ) > 0.99 )
 		rotation = 90 * ceil( rotation / 90 );
 
-	double zoomFactor = ( double ) ( 1 << zoomLevel ) * tileSize;
+	double zoomFactor = ( double ) ( 1 << request.zoom ) * tileSize;
 	painter->translate( sizeX / 2, sizeY / 2 );
-	if ( virtualZoom > 0 )
-		painter->scale( virtualZoom, virtualZoom );
+	if ( request.virtualZoom > 0 )
+		painter->scale( request.virtualZoom, request.virtualZoom );
 	painter->rotate( rotation );
-	painter->translate( -center.x * zoomFactor, -center.y * zoomFactor );
-	if ( fabs( rotation ) > 1 || virtualZoom > 0 ) {
+	painter->translate( -request.center.x * zoomFactor, -request.center.y * zoomFactor );
+	if ( fabs( rotation ) > 1 || request.virtualZoom > 0 ) {
 		painter->setRenderHint( QPainter::SmoothPixmapTransform );
 		painter->setRenderHint( QPainter::Antialiasing );
 		painter->setRenderHint( QPainter::HighQualityAntialiasing );
@@ -195,37 +174,33 @@ bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center,
 	QTransform transform = painter->worldTransform();
 	QTransform inverseTransform = transform.inverted();
 
-	const int xWidth = boxes[zoomLevel].maxX - boxes[zoomLevel].minX;
-	const int yWidth = boxes[zoomLevel].maxY - boxes[zoomLevel].minY;
+	const int xWidth = boxes[request.zoom].maxX - boxes[request.zoom].minX;
+	const int yWidth = boxes[request.zoom].maxY - boxes[request.zoom].minY;
 
-	QPointF corner1 = inverseTransform.map( QPointF( 0, 0 ) );
-	QPointF corner2 = inverseTransform.map( QPointF( 0, sizeY ) );
-	QPointF corner3 = inverseTransform.map( QPointF( sizeX, 0 ) );
-	QPointF corner4 = inverseTransform.map( QPointF( sizeX, sizeY ) );
+	QRectF boundingBox = inverseTransform.mapRect( QRectF(0, 0, sizeX, sizeY ) );
 
-	int minX = floor( std::min( corner1.x(), std::min( corner2.x(), std::min( corner3.x(), corner4.x() ) ) ) / tileSize );
-	int maxX = ceil( std::max( corner1.x(), std::max( corner2.x(), std::max( corner3.x(), corner4.x() ) ) ) / tileSize );
-	int minY = floor( std::min( corner1.y(), std::min( corner2.y(), std::min( corner3.y(), corner4.y() ) ) ) / tileSize );
-	int maxY = ceil( std::max( corner1.y(), std::max( corner2.y(), std::max( corner3.y(), corner4.y() ) ) ) / tileSize );
+	int minX = floor( boundingBox.x() / tileSize );
+	int maxX = ceil( boundingBox.right() / tileSize );
+	int minY = floor( boundingBox.y() / tileSize );
+	int maxY = ceil( boundingBox.bottom() / tileSize );
 
 	QDir dir( directory );
 	QString filename = dir.filePath( "Mapnik Renderer" );
-	QFile indexFile( filename + QString( "_%1_index" ).arg( zoomLevel ) );
+	QFile indexFile( filename + QString( "_%1_index" ).arg( request.zoom ) );
 	indexFile.open( QIODevice::ReadOnly );
-	QFile imageFile( filename + QString( "_%1_tiles" ).arg( zoomLevel ) );
+	QFile imageFile( filename + QString( "_%1_tiles" ).arg( request.zoom ) );
 	imageFile.open( QIODevice::ReadOnly );
 
 	for ( int x = minX; x < maxX; ++x ) {
 		for ( int y = minY; y < maxY; ++y ) {
-			const int xID = x - boxes[zoomLevel].minX;
-			const int yID = y - boxes[zoomLevel].minY;
+			const int xID = x - boxes[request.zoom].minX;
+			const int yID = y - boxes[request.zoom].minY;
 			const long long indexPosition = yID * xWidth + xID;
 
 			QPixmap* tile = NULL;
 			if ( xID >= 0 && xID < xWidth && yID >= 0 && yID < yWidth ) {
-				long long id = ( indexPosition << 8 ) + zoomLevel;
-				if ( !cache.contains( id ) )
-				{
+				long long id = ( indexPosition << 8 ) + request.zoom;
+				if ( !cache.contains( id ) ) {
 					indexFile.seek( indexPosition * 2 * sizeof( qint64 ) );
 					qint64 start, end;
 					indexFile.read( ( char* ) &start, sizeof( start ) );
@@ -245,8 +220,7 @@ bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center,
 						cache.insert( id, tile, 1 );
 					}
 				}
-				else
-				{
+				else {
 					tile = cache.object( id );
 				}
 			}
@@ -258,16 +232,16 @@ bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center,
 		}
 	}
 
-	if ( segmentLengths.size() > 0 && edges.size() > 0 ) {
+	if ( request.edgeSegments.size() > 0 && request.edges.size() > 0 ) {
 		QPen oldPen = painter->pen();
 		painter->setRenderHint( QPainter::Antialiasing );
 		painter->setPen( QPen( QColor( 0, 0, 128, 128 ), 8, Qt::SolidLine, Qt::FlatCap ) );
 
 		int position = 0;
-		for ( int i = 0; i < segmentLengths.size(); i++ ) {
+		for ( int i = 0; i < request.edgeSegments.size(); i++ ) {
 			QPolygonF polygon;
-			for ( ; position < segmentLengths[i]; position++ ) {
-				ProjectedCoordinate pos = edges[position].ToProjectedCoordinate();
+			for ( ; position < request.edgeSegments[i]; position++ ) {
+				ProjectedCoordinate pos = request.edges[position].ToProjectedCoordinate();
 				polygon << QPointF( pos.x * zoomFactor, pos.y * zoomFactor );
 			}
 			painter->drawPolyline( polygon );
@@ -277,14 +251,14 @@ bool MapnikRendererClient::Paint( QPainter* painter, ProjectedCoordinate center,
 		painter->setRenderHint( QPainter::Antialiasing, false );
 	}
 
-	if ( points.size() > 0 ) {
+	if ( request.POIs.size() > 0 ) {
 		QPen oldPen = painter->pen();
 		QBrush oldBrush = painter->brush();
 		painter->setRenderHint( QPainter::Antialiasing );
 
-		for ( int i = 0; i < points.size(); i++ ) {
+		for ( int i = 0; i < request.POIs.size(); i++ ) {
 			painter->setPen( QPen( QColor( 0, 0, 128 ), 5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
-			ProjectedCoordinate pos = points[i].ToProjectedCoordinate();
+			ProjectedCoordinate pos = request.POIs[i].ToProjectedCoordinate();
 			QPointF mapped = transform.map( QPointF( pos.x * zoomFactor, pos.y * zoomFactor ) );
 			if ( mapped.x() < 3 || mapped.y() < 3 || mapped.x() >= sizeX - 3 || mapped.y() >= sizeY - 3 ) {
 				//clip an imaginary line from the screen center to pos at the screen boundaries

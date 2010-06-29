@@ -9,6 +9,26 @@ class IRenderer
 {
 public:
 
+	struct PaintRequest {
+		ProjectedCoordinate center;
+		int zoom;
+		int virtualZoom;
+		double rotation;
+		UnsignedCoordinate position;
+		double heading;
+		QVector< UnsignedCoordinate > POIs;
+		QVector< int > edgeSegments;
+		QVector< UnsignedCoordinate > edges;
+		QVector< UnsignedCoordinate > route;
+
+		PaintRequest() {
+			zoom = 0;
+			virtualZoom = 0;
+			rotation = 0;
+			heading = 0;
+		}
+	};
+
 	virtual QString GetName() = 0;
 	virtual void SetInputDirectory( const QString& dir ) = 0;
 	virtual void ShowSettings() = 0;
@@ -18,10 +38,7 @@ public:
 	virtual ProjectedCoordinate PointToCoordinate( ProjectedCoordinate center, int shiftX, int shiftY, int zoom ) = 0;
 	virtual ProjectedCoordinate ZoomInOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom ) = 0;
 	virtual ProjectedCoordinate ZoomOutOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom ) = 0;
-	virtual bool SetPoints( QVector< UnsignedCoordinate > points ) = 0;
-	virtual bool SetEdges( QVector< int > segmentLengths, QVector< UnsignedCoordinate > edges ) = 0;
-	virtual bool SetPosition( UnsignedCoordinate coordinate, double heading )  = 0;
-	virtual bool Paint( QPainter* painter, ProjectedCoordinate center, int zoomLevel, double rotation = 0, double virtualZoom = 0 ) = 0;
+	virtual bool Paint( QPainter* painter, const PaintRequest& request ) = 0;
 	virtual ~IRenderer() {}
 };
 

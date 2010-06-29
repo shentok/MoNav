@@ -38,7 +38,11 @@ public slots:
 	void setZoom( int z );
 	void setMaxZoom( int z );
 	void setRenderer( IRenderer* r );
-	void setCenter( const ProjectedCoordinate& c );
+	void setCenter( const ProjectedCoordinate c );
+	void setPosition( const UnsignedCoordinate p, double heading );
+	void setPOIs( QVector< UnsignedCoordinate > p );
+	void setRoute( QVector< UnsignedCoordinate > r );
+	void setEdges( QVector< int > edgeSegments, QVector< UnsignedCoordinate > edges );
 
 signals:
 
@@ -54,8 +58,8 @@ protected:
 	void wheelEvent( QWheelEvent * event );
 
 	IRenderer* renderer;
-	ProjectedCoordinate center;
-	int zoom;
+	IRenderer::PaintRequest request;
+
 	int maxZoom;
 	int lastMouseX;
 	int lastMouseY;
