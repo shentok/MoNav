@@ -21,8 +21,10 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define MAPVIEW_H
 
 #include <QDialog>
+#include <QMenu>
 #include "interfaces/irenderer.h"
 #include "interfaces/igpslookup.h"
+#include "interfaces/iaddresslookup.h"
 
 namespace Ui {
     class MapView;
@@ -34,8 +36,15 @@ public:
     MapView(QWidget *parent = 0);
     ~MapView();
 
+	 enum Mode {
+		 Source, Target, POI, None
+	 };
+
 	void setRender( IRenderer* r );
 	void setGPSLookup( IGPSLookup* g );
+	void setAddressLookup( IAddressLookup* al );
+	void setContextMenuEnabled( bool e );
+	void setMode( Mode m );
 
 	static int selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* renderer, QWidget* p = NULL );
 	static bool selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, IRenderer* renderer, IGPSLookup* gpsLookup, QWidget* p = NULL );
@@ -44,27 +53,54 @@ public slots:
 	void mouseClicked( ProjectedCoordinate clickPos );
 	void setCenter( ProjectedCoordinate center );
 	void setSource( UnsignedCoordinate source, double heading );
+	void setTarget( UnsignedCoordinate target );
 	void nextPlace();
 	void previousPlace();
+	void showContextMenu( QPoint globalPos );
+	void gotoSource();
+	void gotoGPS();
+	void gotoTarget();
+	void gotoAddress();
 
 signals:
-	void coordinateChosen( ProjectedCoordinate coordinate );
+	void coordinateChosen( UnsignedCoordinate coordinate );
+	void sourceChanged( UnsignedCoordinate pos, double heading );
+	void targetChanged( UnsignedCoordinate pos );
 
 protected:
 	void showEvent( QShowEvent * event );
 	void connectSlots();
+	void setupMenu();
 	void setPlaces( QVector< UnsignedCoordinate > p );
 	void setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinate > coordinates );
 
 private:
-    Ui::MapView *ui;
+
+	Ui::MapView *ui;
+
 	IRenderer* renderer;
 	IGPSLookup* gpsLookup;
+	IAddressLookup* addressLookup;
+
 	int maxZoom;
 	QVector< UnsignedCoordinate > places;
 	int place;
 	UnsignedCoordinate selected;
+	UnsignedCoordinate target;
 	UnsignedCoordinate source;
+	double heading;
+
+	bool contextMenuEnabled;
+	Mode mode;
+	QMenu* contextMenu;
+	QActionGroup* modeGroup;
+	QAction*  gotoSourceAction;
+	QAction*  gotoTargetAction;
+	QAction*  gotoGPSAction;
+	QAction*  gotoAddressAction;
+	QAction*  modeSourceAction;
+	QAction*  modeTargetAction;
+	QAction*  modePOIAction;
 };
 
 #endif // MAPVIEW_H

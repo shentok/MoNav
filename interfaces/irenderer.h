@@ -16,6 +16,7 @@ public:
 		double rotation;
 		UnsignedCoordinate position;
 		double heading;
+		UnsignedCoordinate target;
 		QVector< UnsignedCoordinate > POIs;
 		QVector< int > edgeSegments;
 		QVector< UnsignedCoordinate > edges;

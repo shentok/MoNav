@@ -29,6 +29,7 @@ AddressDialog::AddressDialog(QWidget *parent) :
 	addressLookup = NULL;
 	renderer = NULL;
 	gpsLookup = NULL;
+	skipStreetPosition = false;
 	resetCity();
 	connectSlots();
 }
@@ -106,6 +107,11 @@ void AddressDialog::suggestionClicked( QListWidgetItem * item )
 			return;
 		if ( coordinates.size() == 0 )
 			return;
+		if ( skipStreetPosition ) {
+			result = coordinates.first();
+			accept();
+			return;
+		}
 		if( !MapView::selectStreet( &result, segmentLength, coordinates, renderer, gpsLookup, this ) )
 			return;
 		ui->streetEdit->setText( text );
@@ -222,8 +228,7 @@ bool AddressDialog::getAddress( UnsignedCoordinate* result, IAddressLookup* addr
 	window->setAddressLookup( addressLookup );
 	window->setRenderer( renderer );
 	window->setGPSLookup( gpsLookup );
-	window->ui->streetEdit->setDisabled( cityOnly );
-	window->ui->resetStreet->setDisabled( cityOnly );
+	window->skipStreetPosition = cityOnly;
 
 	int value = window->exec();
 	if ( value == Accepted )

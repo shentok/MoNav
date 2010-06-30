@@ -61,7 +61,7 @@ public slots:
 	void menuClicked( QListWidgetItem* item );
 
 	void setSource( UnsignedCoordinate source, double heading );
-	void setTarget( UnsignedCoordinate target, double heading );
+	void setTarget( UnsignedCoordinate target );
 
 protected:
 	void connectSlots();
@@ -75,6 +75,7 @@ protected:
 	IGPSLookup* gpsLookup;
 
 	UnsignedCoordinate source;
+	double heading;
 	UnsignedCoordinate target;
 
 	enum {

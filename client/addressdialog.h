@@ -63,6 +63,7 @@ protected:
 	} mode;
 	int placeID;
 	UnsignedCoordinate result;
+	bool skipStreetPosition;
 
 private:
 	Ui::AddressDialog *ui;

@@ -70,6 +70,13 @@ void PaintWidget::setPosition( const UnsignedCoordinate p, double heading )
 		update();
 }
 
+void PaintWidget::setTarget( const UnsignedCoordinate t )
+{
+	request.target = t;
+	if ( isVisible() )
+		update();
+}
+
 void PaintWidget::setPOIs( QVector< UnsignedCoordinate > p )
 {
 	request.POIs = p;
@@ -159,4 +166,9 @@ void PaintWidget::paintEvent( QPaintEvent* )
 
 	QPainter painter( this );
 	renderer->Paint( &painter, request );
+}
+
+void PaintWidget::contextMenuEvent(QContextMenuEvent *event )
+{
+	emit contextMenu( event->globalPos() );
 }

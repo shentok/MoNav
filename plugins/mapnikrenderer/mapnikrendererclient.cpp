@@ -232,9 +232,10 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 		}
 	}
 
+	painter->setRenderHint( QPainter::Antialiasing );
+
 	if ( request.edgeSegments.size() > 0 && request.edges.size() > 0 ) {
-		QPen oldPen = painter->pen();
-		painter->setRenderHint( QPainter::Antialiasing );
+		painter->setBrush( Qt::NoBrush );
 		painter->setPen( QPen( QColor( 0, 0, 128, 128 ), 8, Qt::SolidLine, Qt::FlatCap ) );
 
 		int position = 0;
@@ -246,75 +247,65 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 			}
 			painter->drawPolyline( polygon );
 		}
-
-		painter->setPen( oldPen );
-		painter->setRenderHint( QPainter::Antialiasing, false );
 	}
 
 	if ( request.POIs.size() > 0 ) {
-		QPen oldPen = painter->pen();
-		QBrush oldBrush = painter->brush();
-		painter->setRenderHint( QPainter::Antialiasing );
-
 		for ( int i = 0; i < request.POIs.size(); i++ ) {
-			painter->setPen( QPen( QColor( 0, 0, 128 ), 5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
 			ProjectedCoordinate pos = request.POIs[i].ToProjectedCoordinate();
-			QPointF mapped = transform.map( QPointF( pos.x * zoomFactor, pos.y * zoomFactor ) );
-			if ( mapped.x() < 3 || mapped.y() < 3 || mapped.x() >= sizeX - 3 || mapped.y() >= sizeY - 3 ) {
-				//clip an imaginary line from the screen center to pos at the screen boundaries
-				ProjectedCoordinate start( mapped.x(), mapped.y() );
-				ProjectedCoordinate end( sizeX / 2, sizeY / 2 );
-				clipEdge( &start, &end, ProjectedCoordinate( 10, 10 ), ProjectedCoordinate( sizeX - 10, sizeY - 10) );
-
-				QPointF position = inverseTransform.map( QPointF( start.x, start.y ) );
-				QMatrix arrowMatrix;
-				arrowMatrix.translate( position.x(), position.y() );
-				arrowMatrix.rotate( atan2( mapped.y() - sizeY / 2, mapped.x() - sizeX / 2 ) * 360 / 2 / M_PI );
-				arrowMatrix.scale( 8, 8 );
-
-				painter->setBrush( QColor( 0, 0, 128 ) );
-				painter->drawPolygon( arrowMatrix.map( arrow ) );
-				painter->setBrush( QColor( 255, 0, 0 ) );
-				painter->setPen( QPen( QColor( 255, 0, 0 ), 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
-				painter->drawPolygon( arrowMatrix.map( arrow ) );
-			}
-			else {
-				painter->setBrush( oldBrush );
-				painter->drawEllipse( pos.x * zoomFactor - 8, pos.y * zoomFactor - 8, 16, 16);
-				painter->setPen( QPen( QColor( 255, 0, 0 ), 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
-				painter->drawEllipse( pos.x * zoomFactor - 8, pos.y * zoomFactor - 8, 16, 16);
-			}
+			drawIndicator( painter, transform, inverseTransform, pos.x * zoomFactor, pos.y * zoomFactor, sizeX, sizeY, QColor( 196, 0, 0 ), QColor( 0, 0, 196 ) );
 		}
-
-		painter->setBrush( oldBrush );
-		painter->setPen( oldPen );
-		painter->setRenderHint( QPainter::Antialiasing, false );
 	}
 
+	if ( request.target.x != 0 || request.target.y != 0 )
 	{
-		QPen oldPen = painter->pen();
-		QBrush oldBrush = painter->brush();
-		painter->setRenderHint( QPainter::Antialiasing );
+		ProjectedCoordinate pos = request.target.ToProjectedCoordinate();
+		drawIndicator( painter, transform, inverseTransform, pos.x * zoomFactor, pos.y * zoomFactor, sizeX, sizeY, QColor( 0, 0, 128 ), QColor( 255, 0, 0 ) );
+	}
 
+	if ( request.position.x != 0 || request.position.y != 0 )
+	{
 		ProjectedCoordinate pos = request.position.ToProjectedCoordinate();
-		QMatrix arrowMatrix;
-		arrowMatrix.translate( pos.x * zoomFactor, pos.y * zoomFactor );
-		arrowMatrix.rotate( request.heading * 360 / 2 / M_PI - 90 );
-		arrowMatrix.scale( 8, 8 );
-
-		painter->setPen( QPen( QColor( 0, 128, 0 ), 5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
-		painter->setBrush( QColor( 0, 128, 0 ) );
-		painter->drawPolygon( arrowMatrix.map( arrow ) );
-		painter->setBrush( QColor( 255, 255, 0 ) );
-		painter->setPen( QPen( QColor( 255, 255, 0 ), 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
-		painter->drawPolygon( arrowMatrix.map( arrow ) );
-
-		painter->setBrush( oldBrush );
-		painter->setPen( oldPen );
-		painter->setRenderHint( QPainter::Antialiasing, false );
+		drawIndicator( painter, transform, inverseTransform, pos.x * zoomFactor, pos.y * zoomFactor, sizeX, sizeY, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
+		drawArrow( painter, pos.x * zoomFactor, pos.y * zoomFactor, request.heading * 360 / 2 / M_PI - 90, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
 	}
 
 	return true;
+}
+
+void MapnikRendererClient::drawArrow( QPainter* painter, int x, int y, double rotation, QColor outer, QColor inner )
+{
+	QMatrix arrowMatrix;
+	arrowMatrix.translate( x, y );
+	arrowMatrix.rotate( rotation );
+	arrowMatrix.scale( 8, 8 );
+
+	painter->setPen( QPen( outer, 5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
+	painter->setBrush( outer );
+	painter->drawPolygon( arrowMatrix.map( arrow ) );
+	painter->setPen( QPen( inner, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
+	painter->setBrush( inner );
+	painter->drawPolygon( arrowMatrix.map( arrow ) );
+}
+
+void MapnikRendererClient::drawIndicator( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, QColor outer, QColor inner )
+{
+	QPointF mapped = transform.map( QPointF( x, y ) );
+	if ( mapped.x() < 3 || mapped.y() < 3 || mapped.x() >= sizeX - 3 || mapped.y() >= sizeY - 3 ) {
+		//clip an imaginary line from the screen center to pos at the screen boundaries
+		ProjectedCoordinate start( mapped.x(), mapped.y() );
+		ProjectedCoordinate end( sizeX / 2, sizeY / 2 );
+		clipEdge( &start, &end, ProjectedCoordinate( 10, 10 ), ProjectedCoordinate( sizeX - 10, sizeY - 10) );
+		QPointF position = inverseTransform.map( QPointF( start.x, start.y ) );
+		double heading = atan2( mapped.y() - sizeY / 2, mapped.x() - sizeX / 2 ) * 360 / 2 / M_PI;
+		drawArrow( painter, position.x(), position.y(), heading, outer, inner );
+	}
+	else {
+		painter->setBrush( Qt::NoBrush );
+		painter->setPen( QPen( outer, 5 ) );
+		painter->drawEllipse( x - 8, y - 8, 16, 16);
+		painter->setPen( QPen( inner, 2 ) );
+		painter->drawEllipse( x - 8, y - 8, 16, 16);
+	}
 }
 
 

@@ -40,6 +40,7 @@ public slots:
 	void setRenderer( IRenderer* r );
 	void setCenter( const ProjectedCoordinate c );
 	void setPosition( const UnsignedCoordinate p, double heading );
+	void setTarget( const UnsignedCoordinate t );
 	void setPOIs( QVector< UnsignedCoordinate > p );
 	void setRoute( QVector< UnsignedCoordinate > r );
 	void setEdges( QVector< int > edgeSegments, QVector< UnsignedCoordinate > edges );
@@ -49,6 +50,7 @@ signals:
 	void zoomChanged( int z );
 	void centerChanged( ProjectedCoordinate c );
 	void mouseClicked( ProjectedCoordinate clickPos );
+	void contextMenu( QPoint globalPos );
 
 protected:
 	void paintEvent( QPaintEvent* );
@@ -56,6 +58,7 @@ protected:
 	void mousePressEvent( QMouseEvent * event );
 	void mouseReleaseEvent( QMouseEvent* event );
 	void wheelEvent( QWheelEvent * event );
+	void contextMenuEvent( QContextMenuEvent *event) ;
 
 	IRenderer* renderer;
 	IRenderer::PaintRequest request;

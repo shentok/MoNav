@@ -32,6 +32,8 @@ MainWindow::MainWindow(QWidget *parent) :
 	addressLookup = NULL;
 	gpsLookup = NULL;
 
+	heading = 0;
+
 	ui->setupUi(this);
 	ui->targetSourceWidget->hide();
 	ui->settingsWidget->hide();
@@ -39,9 +41,6 @@ MainWindow::MainWindow(QWidget *parent) :
 	QSettings settings( "MoNavClient" );
 	dataDirectory = settings.value( "dataDirectory" ).toString();
 	mode = Source;
-
-	source.x = 1 << 30;
-	source.y = 1 << 30;
 
 	connectSlots();
 
@@ -141,12 +140,13 @@ void MainWindow::unloadPlugins()
 	plugins.clear();
 }
 
-void MainWindow::setSource( UnsignedCoordinate s, double heading )
+void MainWindow::setSource( UnsignedCoordinate s, double h )
 {
 	source = s;
+	heading = h;
 }
 
-void MainWindow::setTarget( UnsignedCoordinate t, double heading )
+void MainWindow::setTarget( UnsignedCoordinate t )
 {
 	target = t;
 }
@@ -198,8 +198,13 @@ void MainWindow::browseMap()
 	MapView* window = new MapView( this );
 	window->setRender( renderer );
 	window->setGPSLookup( gpsLookup );
+	window->setAddressLookup( addressLookup );
 	window->setCenter( source.ToProjectedCoordinate() );
-	window->setSource( source, 0 );
+	window->setSource( source, heading );
+	window->setTarget( target );
+	window->setContextMenuEnabled( true );
+	connect( window, SIGNAL(sourceChanged(UnsignedCoordinate,double)), this, SLOT(setSource(UnsignedCoordinate,double)) );
+	connect( window, SIGNAL(targetChanged(UnsignedCoordinate)), this, SLOT(setTarget(UnsignedCoordinate)) );
 	window->exec();
 	delete window;
 }
@@ -249,7 +254,7 @@ void MainWindow::targetAddress()
 	if ( mode == Source )
 		setSource( result, 0 );
 	else if ( mode == Target )
-		setTarget( result, 0 );
+		setTarget( result );
 }
 
 void MainWindow::targetMap()

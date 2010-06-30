@@ -50,6 +50,8 @@ protected:
 
 	void unload();
 	void setupPolygons();
+	void drawArrow( QPainter* painter, int x, int y, double rotation, QColor outer, QColor inner );
+	void drawIndicator( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, QColor outer, QColor inner );
 
 	struct Box
 	{
