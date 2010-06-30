@@ -42,9 +42,7 @@ public:
 	void setAddressLookup( IAddressLookup* al );
 	void setRenderer( IRenderer* r );
 	void setGPSLookup( IGPSLookup* g );
-
-signals:
-	void coordinateChosen( UnsignedCoordinate result, double heading );
+	static bool getAddress( UnsignedCoordinate* result, IAddressLookup* addressLookup, IRenderer* renderer, IGPSLookup* gpsLookup, QWidget* p, bool cityOnly = false );
 
 public slots:
 
@@ -64,6 +62,7 @@ protected:
 		City = 0, Street = 1
 	} mode;
 	int placeID;
+	UnsignedCoordinate result;
 
 private:
 	Ui::AddressDialog *ui;

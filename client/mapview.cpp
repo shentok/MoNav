@@ -122,12 +122,12 @@ int MapView::selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* rend
 	window->setRender( renderer );
 	window->setPlaces( places );
 
-	window->exec();
-	if ( window->result() != Accepted )
-		return -1;
-
-	int id = window->place;
+	int value = window->exec();
+	int id = -1;
+	if ( value == Accepted )
+		id = window->place;
 	delete window;
+
 	return id;
 }
 
@@ -163,13 +163,13 @@ bool MapView::selectStreet( UnsignedCoordinate* result, QVector< int >segmentLen
 	window->setGPSLookup( gpsLookup );
 	window->setEdges( segmentLength, coordinates );
 
-	window->exec();
-	if ( window->result() != Accepted )
-		return false;
+	int value = window->exec();
 
-	*result = window->selected;
+	if ( value == Accepted )
+		*result = window->selected;
 	delete window;
-	return true;
+
+	return value == Accepted;
 }
 
 void MapView::setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinate > coordinates )

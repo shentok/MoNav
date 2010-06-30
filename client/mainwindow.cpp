@@ -35,7 +35,6 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->setupUi(this);
 	ui->targetSourceWidget->hide();
 	ui->settingsWidget->hide();
-	addressDialog = new AddressDialog( this );
 
 	QSettings settings( "MoNavClient" );
 	dataDirectory = settings.value( "dataDirectory" ).toString();
@@ -109,21 +108,18 @@ bool MainWindow::loadPlugins()
 		renderer->SetInputDirectory( dataDirectory );
 		if ( !renderer->LoadData() )
 			return false;
-		addressDialog->setRenderer( renderer );
 
 		if ( addressLookup == false )
 			return false;
 		addressLookup->SetInputDirectory( dataDirectory );
 		if ( !addressLookup->LoadData() )
 			return false;
-		addressDialog->setAddressLookup( addressLookup );
 
 		if ( gpsLookup == false )
 			return false;
 		gpsLookup->SetInputDirectory( dataDirectory );
 		if ( !gpsLookup->LoadData() )
 			return false;
-		addressDialog->setGPSLookup( gpsLookup );
 	}
 	catch ( ... )
 	{
@@ -134,9 +130,6 @@ bool MainWindow::loadPlugins()
 
 void MainWindow::unloadPlugins()
 {
-	addressDialog->setAddressLookup( NULL );
-	addressDialog->setRenderer( NULL );
-	addressDialog->setGPSLookup( NULL );
 	renderer = NULL;
 	addressLookup = NULL;
 	gpsLookup = NULL;
@@ -249,13 +242,14 @@ void MainWindow::targetBookmarks()
 
 void MainWindow::targetAddress()
 {
-	addressDialog->resetCity();
+	UnsignedCoordinate result;
+	if ( !AddressDialog::getAddress( &result, addressLookup, renderer, gpsLookup, this ) )
+		return;
+
 	if ( mode == Source )
-		connect( addressDialog, SIGNAL(coordinateChosen(UnsignedCoordinate, double)), this, SLOT(setSource(UnsignedCoordinate, double)));
+		setSource( result, 0 );
 	else if ( mode == Target )
-		connect( addressDialog, SIGNAL(coordinateChosen(UnsignedCoordinate, double)), this, SLOT(setTarget(UnsignedCoordinate, double)));
-	addressDialog->exec();
-	disconnect( addressDialog, SIGNAL(coordinateChosen(UnsignedCoordinate, double)) );
+		setTarget( result, 0 );
 }
 
 void MainWindow::targetMap()

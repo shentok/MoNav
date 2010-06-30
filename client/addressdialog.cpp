@@ -106,12 +106,10 @@ void AddressDialog::suggestionClicked( QListWidgetItem * item )
 			return;
 		if ( coordinates.size() == 0 )
 			return;
-		UnsignedCoordinate result;
 		if( !MapView::selectStreet( &result, segmentLength, coordinates, renderer, gpsLookup, this ) )
 			return;
-		emit coordinateChosen( result, 0 );
 		ui->streetEdit->setText( text );
-		close();
+		accept();
 	}
 }
 
@@ -207,5 +205,31 @@ void AddressDialog::resetStreet()
 {
 	ui->streetEdit->setText( "" );
 	streetTextChanged( "" );
+}
+
+bool AddressDialog::getAddress( UnsignedCoordinate* result, IAddressLookup* addressLookup, IRenderer* renderer, IGPSLookup* gpsLookup, QWidget* p, bool cityOnly )
+{
+	if ( result == NULL )
+		return false;
+	if ( addressLookup == NULL )
+		return false;
+	if ( gpsLookup == NULL )
+		return false;
+	if ( renderer == NULL )
+		return false;
+
+	AddressDialog* window = new AddressDialog( p );
+	window->setAddressLookup( addressLookup );
+	window->setRenderer( renderer );
+	window->setGPSLookup( gpsLookup );
+	window->ui->streetEdit->setDisabled( cityOnly );
+	window->ui->resetStreet->setDisabled( cityOnly );
+
+	int value = window->exec();
+	if ( value == Accepted )
+		*result = window->result;
+
+	delete window;
+	return value == Accepted;
 }
 

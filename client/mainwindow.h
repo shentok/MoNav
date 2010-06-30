@@ -77,8 +77,6 @@ protected:
 	UnsignedCoordinate source;
 	UnsignedCoordinate target;
 
-	AddressDialog* addressDialog;
-
 	enum {
 		Source = 0, Target = 1
 	} mode;

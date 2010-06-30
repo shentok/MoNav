@@ -291,6 +291,29 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 		painter->setRenderHint( QPainter::Antialiasing, false );
 	}
 
+	{
+		QPen oldPen = painter->pen();
+		QBrush oldBrush = painter->brush();
+		painter->setRenderHint( QPainter::Antialiasing );
+
+		ProjectedCoordinate pos = request.position.ToProjectedCoordinate();
+		QMatrix arrowMatrix;
+		arrowMatrix.translate( pos.x * zoomFactor, pos.y * zoomFactor );
+		arrowMatrix.rotate( request.heading * 360 / 2 / M_PI - 90 );
+		arrowMatrix.scale( 8, 8 );
+
+		painter->setPen( QPen( QColor( 0, 128, 0 ), 5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
+		painter->setBrush( QColor( 0, 128, 0 ) );
+		painter->drawPolygon( arrowMatrix.map( arrow ) );
+		painter->setBrush( QColor( 255, 255, 0 ) );
+		painter->setPen( QPen( QColor( 255, 255, 0 ), 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
+		painter->drawPolygon( arrowMatrix.map( arrow ) );
+
+		painter->setBrush( oldBrush );
+		painter->setPen( oldPen );
+		painter->setRenderHint( QPainter::Antialiasing, false );
+	}
+
 	return true;
 }
 
