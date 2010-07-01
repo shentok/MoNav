@@ -165,7 +165,7 @@ void MainWindow::setSource( UnsignedCoordinate s, double h )
 	source = s;
 	heading = h;
 	QVector< IGPSLookup::Result > result;
-	if ( !gpsLookup->GetNearEdges( &result, source, 100, 20, heading ) )
+	if ( !gpsLookup->GetNearEdges( &result, source, 100, heading == 0 ? 0 : 10, heading ) )
 		return;
 	sourcePos = result.first();
 	sourceSet = true;

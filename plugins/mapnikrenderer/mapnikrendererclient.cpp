@@ -248,18 +248,35 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 		}
 	}
 
+	painter->setRenderHint( QPainter::Antialiasing, false );
 	if ( request.route.size() > 0 ) {
 		painter->setPen( QPen( QColor( 0, 0, 128, 128 ), 8, Qt::SolidLine, Qt::FlatCap ) );
 
-		QPolygonF polygon;
-		QVector< QPointF > p;
-		int step = 1;
-		for ( int i = 1; i < request.route.size(); i+= step ) {
+		QVector< QPointF > polygon;
+		QVector< bool > isInside;
+
+		ProjectedCoordinate lastCoord;
+		for ( int i = 0; i < request.route.size(); i++ ) {
 			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
-			polygon << QPointF( pos.x * zoomFactor, pos.y * zoomFactor );
+			if ( ( fabs( pos.x - lastCoord.x ) + fabs( pos.y - lastCoord.y ) ) * zoomFactor < 5 ) {
+				isInside.push_back( false );
+				continue;
+			}
+			QPointF point( pos.x * zoomFactor, pos.y * zoomFactor );
+			lastCoord = pos;
+			isInside.push_back( boundingBox.contains( point ) );
 		}
-		painter->drawPolyline( polygon );
+
+		for ( int i = 0; i < request.route.size(); i++ ) {
+			if ( !isInside[i] && !( i != 0 && isInside[i - 1] ) && !( i != request.route.size() - 1 && isInside[i + 1] ) )
+				continue;
+			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
+			QPointF point( pos.x * zoomFactor, pos.y * zoomFactor );
+			polygon.push_back( point );
+		}
+		painter->drawPolyline( polygon.data(), polygon.size() );
 	}
+	painter->setRenderHint( QPainter::Antialiasing );
 
 	if ( request.POIs.size() > 0 ) {
 		for ( int i = 0; i < request.POIs.size(); i++ ) {
