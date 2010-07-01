@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MoNav MapView</string>
+   <string>MapView</string>
   </property>
   <layout class="QGridLayout" name="gridLayout" rowstretch="0,1,0" columnstretch="1,0,0">
    <property name="margin">

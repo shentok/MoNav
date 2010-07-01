@@ -7,7 +7,8 @@ SOURCES += main.cpp \
     mainwindow.cpp \
     mapview.cpp \
     paintwidget.cpp \
-    addressdialog.cpp
+    addressdialog.cpp \
+    bookmarksdialog.cpp
 HEADERS += mainwindow.h \
     interfaces/IRenderer.h \
     mapview.h \
@@ -18,11 +19,13 @@ HEADERS += mainwindow.h \
     interfaces/iaddresslookup.h \
     addressdialog.h \
     interfaces/igpslookup.h \
-    interfaces/irouter.h
+    interfaces/irouter.h \
+    bookmarksdialog.h
 FORMS += mainwindow.ui \
     mapview.ui \
     paintwidget.ui \
-    addressdialog.ui
+    addressdialog.ui \
+    bookmarksdialog.ui
 DESTDIR = ../bin
 TARGET = MoNavC
 QMAKE_CXXFLAGS_RELEASE -= -O2

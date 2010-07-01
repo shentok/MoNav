@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>BookmarksDialog</class>
+ <widget class="QDialog" name="BookmarksDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>253</width>
+    <height>361</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Bookmarks</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QListWidget" name="bookmarkList">
+     <property name="editTriggers">
+      <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
+     </property>
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="sortingEnabled">
+      <bool>true</bool>
+     </property>
+     <item>
+      <property name="text">
+       <string>New Item</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>New Item</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>New Item</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="chooseButton">
+     <property name="text">
+      <string>Choose Bookmark</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="boomarkButton">
+     <property name="text">
+      <string>Bookmark Current Target</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="deleteButton">
+     <property name="text">
+      <string>Delete Bookmark</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
