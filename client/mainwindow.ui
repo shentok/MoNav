@@ -86,15 +86,6 @@
            </item>
            <item>
             <property name="text">
-             <string>Via Map</string>
-            </property>
-            <property name="icon">
-             <iconset resource="images.qrc">
-              <normaloff>:/images/images/choosetarget.bmp</normaloff>:/images/images/choosetarget.bmp</iconset>
-            </property>
-           </item>
-           <item>
-            <property name="text">
              <string>Bookmarks</string>
             </property>
             <property name="icon">

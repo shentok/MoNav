@@ -211,8 +211,6 @@ void MainWindow::menuClicked( QListWidgetItem* item )
 		settingsMenu();
 	else if ( label == tr( "Address" ) )
 		targetAddress();
-	else if ( label == tr( "Via Map" ) )
-		targetMap();
 	else if ( label == tr( "Bookmarks" ) )
 		targetBookmarks();
 	else if ( label == tr( "GPS" ) )
@@ -303,11 +301,6 @@ void MainWindow::targetAddress()
 		setTarget( result );
 }
 
-void MainWindow::targetMap()
-{
-
-}
-
 void MainWindow::targetGPS()
 {
 
@@ -327,7 +320,8 @@ void MainWindow::settingsRenderer()
 
 void MainWindow::settingsGPSLookup()
 {
-
+	if( gpsLookup != NULL )
+		gpsLookup->ShowSettings();
 }
 
 void MainWindow::settingsAddressLookup()

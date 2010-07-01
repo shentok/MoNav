@@ -47,7 +47,6 @@ public slots:
 
 	void targetBookmarks();
 	void targetAddress();
-	void targetMap();
 	void targetGPS();
 
 	void back();
