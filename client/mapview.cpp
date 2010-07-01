@@ -108,8 +108,10 @@ void MapView::setAddressLookup( IAddressLookup* al )
 
 void MapView::setSource( UnsignedCoordinate s, double h )
 {
-	if ( source.x != s.x || source.y != s.y|| h != heading )
-		emit sourceChanged( s, heading );
+	if ( source.x == s.x && source.y == s.y && h == heading )
+		return;
+
+	emit sourceChanged( s, heading );
 	source = s;
 	heading = h;
 	ui->paintArea->setPosition( source, heading );
@@ -117,8 +119,10 @@ void MapView::setSource( UnsignedCoordinate s, double h )
 
 void MapView::setTarget( UnsignedCoordinate t )
 {
-	if ( target.x != t.x || target.y != t.y )
-		emit targetChanged( t );
+	if ( target.x == t.x && target.y == t.y )
+		return;
+
+	emit targetChanged( t );
 	target = t;
 	ui->paintArea->setTarget( target );
 }
@@ -131,6 +135,11 @@ void MapView::setContextMenuEnabled( bool e )
 void MapView::setMode( Mode m )
 {
 	mode = m;
+}
+
+void MapView::setRoute( QVector< UnsignedCoordinate > path )
+{
+	ui->paintArea->setRoute( path );
 }
 
 void MapView::mouseClicked( ProjectedCoordinate clickPos )

@@ -10,7 +10,7 @@ CONFIG += plugin
 
 DESTDIR = ../../bin/plugins_client
 
-HEADERS += interfaces/iimporter.h \
+HEADERS += \
     utils/coordinates.h \
     utils/config.h \
     cell.h \

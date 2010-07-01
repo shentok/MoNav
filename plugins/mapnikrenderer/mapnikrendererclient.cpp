@@ -235,7 +235,6 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 	painter->setRenderHint( QPainter::Antialiasing );
 
 	if ( request.edgeSegments.size() > 0 && request.edges.size() > 0 ) {
-		painter->setBrush( Qt::NoBrush );
 		painter->setPen( QPen( QColor( 0, 0, 128, 128 ), 8, Qt::SolidLine, Qt::FlatCap ) );
 
 		int position = 0;
@@ -247,6 +246,19 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 			}
 			painter->drawPolyline( polygon );
 		}
+	}
+
+	if ( request.route.size() > 0 ) {
+		painter->setPen( QPen( QColor( 0, 0, 128, 128 ), 8, Qt::SolidLine, Qt::FlatCap ) );
+
+		QPolygonF polygon;
+		QVector< QPointF > p;
+		int step = 1;
+		for ( int i = 1; i < request.route.size(); i+= step ) {
+			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
+			polygon << QPointF( pos.x * zoomFactor, pos.y * zoomFactor );
+		}
+		painter->drawPolyline( polygon );
 	}
 
 	if ( request.POIs.size() > 0 ) {

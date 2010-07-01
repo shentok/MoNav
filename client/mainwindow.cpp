@@ -31,8 +31,12 @@ MainWindow::MainWindow(QWidget *parent) :
 	renderer = NULL;
 	addressLookup = NULL;
 	gpsLookup = NULL;
+	router = NULL;
 
 	heading = 0;
+
+	sourceSet = false;
+	targetSet = false;
 
 	ui->setupUi(this);
 	ui->targetSourceWidget->hide();
@@ -98,6 +102,14 @@ bool MainWindow::loadPlugins()
 				gpsLookup = interface;
 			}
 		}
+		else if ( IRouter *interface = qobject_cast< IRouter* >( loader->instance() ) )
+		{
+			if ( interface->GetName() == "Contraction Hierarchies" )
+			{
+				plugins.append( loader );
+				router = interface;
+			}
+		}
 	}
 
 	try
@@ -108,16 +120,22 @@ bool MainWindow::loadPlugins()
 		if ( !renderer->LoadData() )
 			return false;
 
-		if ( addressLookup == false )
+		if ( addressLookup == NULL )
 			return false;
 		addressLookup->SetInputDirectory( dataDirectory );
 		if ( !addressLookup->LoadData() )
 			return false;
 
-		if ( gpsLookup == false )
+		if ( gpsLookup == NULL )
 			return false;
 		gpsLookup->SetInputDirectory( dataDirectory );
 		if ( !gpsLookup->LoadData() )
+			return false;
+
+		if ( router == NULL )
+			return false;
+		router->SetInputDirectory( dataDirectory );
+		if ( !router->LoadData() )
 			return false;
 	}
 	catch ( ... )
@@ -142,13 +160,40 @@ void MainWindow::unloadPlugins()
 
 void MainWindow::setSource( UnsignedCoordinate s, double h )
 {
+	if ( source.x == s.x && source.y == s.y && heading == h )
+		return;
 	source = s;
 	heading = h;
+	QVector< IGPSLookup::Result > result;
+	if ( !gpsLookup->GetNearEdges( &result, source, 100, 20, heading ) )
+		return;
+	sourcePos = result.first();
+	sourceSet = true;
+	computeRoute();
 }
 
 void MainWindow::setTarget( UnsignedCoordinate t )
 {
+	if ( target.x == t.x && target.y == t.y )
+		return;
 	target = t;
+	QVector< IGPSLookup::Result > result;
+	if ( !gpsLookup->GetNearEdges( &result, target, 100 ) )
+		return;
+	targetPos = result.first();
+	targetSet = true;
+	computeRoute();
+}
+
+void MainWindow::computeRoute()
+{
+	if ( !sourceSet || !targetSet )
+		return;
+	double distance;
+	path.clear();
+	if ( !router->GetRoute( &distance, &path, sourcePos, targetPos ) )
+		path.clear();
+	emit routeChanged( path );
 }
 
 void MainWindow::menuClicked( QListWidgetItem* item )
@@ -205,6 +250,7 @@ void MainWindow::browseMap()
 	window->setContextMenuEnabled( true );
 	connect( window, SIGNAL(sourceChanged(UnsignedCoordinate,double)), this, SLOT(setSource(UnsignedCoordinate,double)) );
 	connect( window, SIGNAL(targetChanged(UnsignedCoordinate)), this, SLOT(setTarget(UnsignedCoordinate)) );
+	connect( this, SIGNAL(routeChanged(QVector<UnsignedCoordinate>)), window, SLOT(setRoute(QVector<UnsignedCoordinate>)) );
 	window->exec();
 	delete window;
 }

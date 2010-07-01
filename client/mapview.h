@@ -25,6 +25,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "interfaces/irenderer.h"
 #include "interfaces/igpslookup.h"
 #include "interfaces/iaddresslookup.h"
+#include "interfaces/irouter.h"
 
 namespace Ui {
     class MapView;
@@ -61,6 +62,7 @@ public slots:
 	void gotoGPS();
 	void gotoTarget();
 	void gotoAddress();
+	void setRoute( QVector< UnsignedCoordinate > path );
 
 signals:
 	void coordinateChosen( UnsignedCoordinate coordinate );

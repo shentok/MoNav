@@ -548,7 +548,7 @@ OSMImporter::_Way OSMImporter::_ReadXMLWay( xmlTextReaderPtr& inputReader ) {
 							way.direction = _Way::opposite;
 					} else if ( xmlStrEqual( k, ( const xmlChar* ) "junction" ) == 1 ) {
 						if ( xmlStrEqual( value, ( const xmlChar* ) "roundabout" ) == 1 ) {
-							if ( way.direction != _Way::notSure ) {
+							if ( way.direction == _Way::notSure ) {
 								way.direction = _Way::oneway;
 							}
 							if ( way.maximumSpeed == -1 )
@@ -557,11 +557,11 @@ OSMImporter::_Way OSMImporter::_ReadXMLWay( xmlTextReaderPtr& inputReader ) {
 						}
 					} else if ( xmlStrEqual( k, ( const xmlChar* ) "highway" ) == 1 ) {
 						if ( xmlStrEqual( value, ( const xmlChar* ) "motorway" ) == 1 ) {
-							if ( way.direction != _Way::notSure ) {
+							if ( way.direction == _Way::notSure ) {
 								way.direction = _Way::oneway;
 							}
 						} else if ( xmlStrEqual( value, ( const xmlChar* ) "motorway_link" ) == 1 ) {
-							if ( way.direction != _Way::notSure ) {
+							if ( way.direction == _Way::notSure ) {
 								way.direction = _Way::oneway;
 							}
 						}

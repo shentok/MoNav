@@ -51,7 +51,7 @@ template< typename NodeID, typename Key >
 class MapStorage {
 	public:
 
-		MapStorage( size_t size = 0 ) {}
+		MapStorage( size_t ) {}
 
 		Key &operator[]( NodeID node ) {
 			return nodes[node];

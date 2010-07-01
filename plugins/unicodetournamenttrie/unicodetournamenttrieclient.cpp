@@ -24,6 +24,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "unicodetournamenttrieclient.h"
 #include <QDir>
 #include <QMap>
+#include <QtDebug>
 #include <algorithm>
 
 UnicodeTournamentTrieClient::UnicodeTournamentTrieClient()
@@ -252,7 +253,7 @@ bool UnicodeTournamentTrieClient::GetStreetSuggestions( const QString& input, in
 
 bool UnicodeTournamentTrieClient::GetPlaceData( QString input, QVector< int >* placeIDs, QVector< UnsignedCoordinate >* placeCoordinates )
 {
-	unsigned node;
+	unsigned node = 0;
 	QString prefix;
 	QString name = input.toLower();
 	if ( !find( trieData, &node, &prefix, name ) )

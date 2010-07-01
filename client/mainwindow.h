@@ -25,6 +25,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "interfaces/irenderer.h"
 #include "interfaces/iaddresslookup.h"
 #include "interfaces/igpslookup.h"
+#include "interfaces/irouter.h"
 #include "addressdialog.h"
 
 namespace Ui {
@@ -63,6 +64,11 @@ public slots:
 	void setSource( UnsignedCoordinate source, double heading );
 	void setTarget( UnsignedCoordinate target );
 
+	void computeRoute();
+
+signals:
+	void routeChanged( QVector< UnsignedCoordinate > path );
+
 protected:
 	void connectSlots();
 	bool loadPlugins();
@@ -73,10 +79,16 @@ protected:
 	IRenderer* renderer;
 	IAddressLookup* addressLookup;
 	IGPSLookup* gpsLookup;
+	IRouter* router;
 
 	UnsignedCoordinate source;
 	double heading;
 	UnsignedCoordinate target;
+	QVector< UnsignedCoordinate > path;
+	IGPSLookup::Result sourcePos;
+	bool sourceSet;
+	IGPSLookup::Result targetPos;
+	bool targetSet;
 
 	enum {
 		Source = 0, Target = 1

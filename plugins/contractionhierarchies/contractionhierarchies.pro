@@ -8,8 +8,7 @@ QMAKE_CXXFLAGS_RELEASE += -O3 \
     -fopenmp
 QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function \
     -fopenmp
-LIBS += -fopenmp \
-    -lmapnik
+LIBS += -fopenmp
 HEADERS += contractionhierarchies.h \
 	 dynamicgraph.h \
 	 contractioncleanup.h \
