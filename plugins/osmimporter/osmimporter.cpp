@@ -38,13 +38,13 @@ bool OSMImporter::Preprocess()
 {
 	if ( settingsDialog == NULL )
 		settingsDialog = new OISettingsDialog();
+	if ( !settingsDialog->getSettings( &settings ) )
+		return false;
 
 	std::vector< NodeID > usedNodes;
 	std::vector< NodeID > outlineNodes;
 	std::vector< NodeID > signalNodes;
 	QDir directory( outputDirectory );
-	QString inputFilename = settingsDialog->getInput();
-	settingsDialog->getSpeedProfile( &speedProfile );
 	QString filename = directory.filePath( "OSM Importer" );
 
 	stats.numberOfNodes = 0;
@@ -58,7 +58,7 @@ bool OSMImporter::Preprocess()
 	stats.numberOfCityEdges = 0;
 
 	qDebug( "Starting Import Pass 1" );
-	if ( !_ReadXML( inputFilename, filename, usedNodes, outlineNodes, signalNodes ) )
+	if ( !_ReadXML( settings.input, filename, usedNodes, outlineNodes, signalNodes ) )
 		return false;
 
 	std::sort( usedNodes.begin(), usedNodes.end() );
@@ -150,6 +150,9 @@ bool OSMImporter::_ReadXML( const QString& inputFilename, const QString& filenam
 						edgesData << QString::fromUtf8( ( const char* ) way.name );
 					else
 						edgesData << QString( "" );
+
+					if ( settings.ignoreOneway )
+						way.direction = _Way::bidirectional;
 
 					edgesData << qint32( way.type );
 					edgesData << way.maximumSpeed;
@@ -454,7 +457,7 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 			continue;
 		}
 		if ( type < 0 )
-			type = speedProfile.names.size();
+			type = settings.speedProfile.names.size();
 
 		for ( int i = 1; i < ( int ) numberOfPathNodes; ++i ) {
 			GPSCoordinate fromCoordinate = nodeCoordinates[way[i - 1]];
@@ -462,21 +465,21 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 			double distance = fromCoordinate.Distance( toCoordinate );
 			double tempSpeed = speed;
 			if ( tempSpeed < 0 ) {
-				assert( type < ( int ) speedProfile.names.size() );
-				if ( config.enforceCityLimits && ( nodeLocation[way[i - 1]].isInPlace || nodeLocation[way[i]].isInPlace ) ) {
+				assert( type < ( int ) settings.speedProfile.names.size() );
+				if ( settings.defaultCitySpeed && ( nodeLocation[way[i - 1]].isInPlace || nodeLocation[way[i]].isInPlace ) ) {
 					stats.numberOfDefaultCitySpeed++;
-					tempSpeed = speedProfile.speedInCity[type];
+					tempSpeed = settings.speedProfile.speedInCity[type];
 				}
 				else {
-					tempSpeed = speedProfile.speed[type];
+					tempSpeed = settings.speedProfile.speed[type];
 				}
 			}
 
-			if ( type < ( int ) speedProfile.names.size()  ) {
+			if ( type < ( int ) settings.speedProfile.names.size()  ) {
 				if ( nodeLocation[way[i - 1]].isInPlace || nodeLocation[way[i]].isInPlace ) {
 					stats.numberOfCityEdges++;
 				}
-				tempSpeed *= speedProfile.averagePercentage[type] / 100.0;
+				tempSpeed *= settings.speedProfile.averagePercentage[type] / 100.0;
 			}
 			double seconds = distance * 36 / tempSpeed;
 
@@ -492,9 +495,9 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 			std::vector< NodeID >::const_iterator sourceNode = std::lower_bound( signalNodes.begin(), signalNodes.end(), way[i - 1] );
 			std::vector< NodeID >::const_iterator targetNode = std::lower_bound( signalNodes.begin(), signalNodes.end(), way[i] );
 			if ( sourceNode != signalNodes.end() && *sourceNode == way[i - 1] )
-				seconds += config.trafficLightsPenalty / 2.0;
+				seconds += settings.trafficLightPenalty / 2.0;
 			if ( targetNode != signalNodes.end() && *targetNode == way[i] )
-				seconds += config.trafficLightsPenalty / 2.0;
+				seconds += settings.trafficLightPenalty / 2.0;
 
 			mappedEdgesData << seconds;
 		}
@@ -514,6 +517,7 @@ OSMImporter::_Way OSMImporter::_ReadXMLWay( xmlTextReaderPtr& inputReader ) {
 	way.placeName = NULL;
 	way.usefull = false;
 	way.access = true;
+	way.accessPriority = settings.accessList.size();
 
 	if ( xmlTextReaderIsEmptyElement( inputReader ) != 1 ) {
 		const int depth = xmlTextReaderDepth( inputReader );
@@ -565,12 +569,14 @@ OSMImporter::_Way OSMImporter::_ReadXMLWay( xmlTextReaderPtr& inputReader ) {
 								way.direction = _Way::oneway;
 							}
 						}
-						for ( unsigned i = 0; i < speedProfile.names.size(); i++ ) {
+						{
 							QString name = QString::fromUtf8( ( const char* ) value );
-							if ( name == speedProfile.names[i] ) {
-								way.type = i;
-								way.usefull = true;
-								break;
+							for ( int i = 0; i < settings.speedProfile.names.size(); i++ ) {
+								if ( name == settings.speedProfile.names[i] ) {
+									way.type = i;
+									way.usefull = true;
+									break;
+								}
 							}
 						}
 					} else if ( xmlStrEqual( k, ( const xmlChar* ) "name" ) == 1 ) {
@@ -621,12 +627,28 @@ OSMImporter::_Way OSMImporter::_ReadXMLWay( xmlTextReaderPtr& inputReader ) {
 								}
 							}
 						}
-					} else if ( xmlStrEqual( k, ( const xmlChar* ) "access" ) == 1 ) {
-						if ( xmlStrEqual( value, ( const xmlChar* ) "private" ) == 1
-								|| xmlStrEqual( value, ( const xmlChar* ) "no" ) == 1
-								|| xmlStrEqual( value, ( const xmlChar* ) "agricultural" ) == 1
-								|| xmlStrEqual( value, ( const xmlChar* ) "forestry" ) == 1 )
-							way.access = false;
+					} else {
+						QString key = QString::fromUtf8( ( const char* ) k );
+						int index = settings.accessList.indexOf( key );
+						if ( index != -1 && index < way.accessPriority ) {
+							if ( xmlStrEqual( value, ( const xmlChar* ) "private" ) == 1
+									|| xmlStrEqual( value, ( const xmlChar* ) "no" ) == 1
+									|| xmlStrEqual( value, ( const xmlChar* ) "agricultural" ) == 1
+									|| xmlStrEqual( value, ( const xmlChar* ) "forestry" ) == 1
+									|| xmlStrEqual( value, ( const xmlChar* ) "delivery" ) == 1
+									) {
+								way.access = false;
+								way.accessPriority = index;
+							}
+							else if ( xmlStrEqual( value, ( const xmlChar* ) "yes" ) == 1
+									|| xmlStrEqual( value, ( const xmlChar* ) "designated" ) == 1
+									|| xmlStrEqual( value, ( const xmlChar* ) "official" ) == 1
+									|| xmlStrEqual( value, ( const xmlChar* ) "permissive" ) == 1
+									) {
+								way.access = true;
+								way.accessPriority = index;
+							}
+						}
 					}
 
 					if ( k != NULL )

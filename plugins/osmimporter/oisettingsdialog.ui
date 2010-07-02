@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>560</width>
-    <height>507</height>
+    <width>510</width>
+    <height>570</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -135,6 +135,13 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="ignoreOneway">
+     <property name="text">
+      <string>Ignore Oneway Tags</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
       <string>Speed Settings</string>
@@ -223,6 +230,185 @@
           <string>Average Speed %</string>
          </property>
         </column>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_2">
+     <property name="title">
+      <string>Access Settings</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <item>
+       <widget class="QTreeWidget" name="accessTree">
+        <property name="editTriggers">
+         <set>QAbstractItemView::NoEditTriggers</set>
+        </property>
+        <attribute name="headerVisible">
+         <bool>false</bool>
+        </attribute>
+        <column>
+         <property name="text">
+          <string>Transportation Type</string>
+         </property>
+        </column>
+        <item>
+         <property name="text">
+          <string>access</string>
+         </property>
+         <item>
+          <property name="text">
+           <string>foot</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>ski</string>
+          </property>
+          <item>
+           <property name="text">
+            <string>ski:nordic</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>ski:alpine</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>ski:telemark</string>
+           </property>
+          </item>
+         </item>
+         <item>
+          <property name="text">
+           <string>inline_skates</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>ice_skates</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>climbing</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>hiking</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>horse</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>vehicle</string>
+          </property>
+          <item>
+           <property name="text">
+            <string>bicycle</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>carriage</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>wheelchair</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>motor_vehicle</string>
+           </property>
+           <item>
+            <property name="text">
+             <string>motorcylce</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>moped</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>mofa</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>motorcar</string>
+            </property>
+            <item>
+             <property name="text">
+              <string>hov</string>
+             </property>
+            </item>
+           </item>
+           <item>
+            <property name="text">
+             <string>caravan</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>goods</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>psv</string>
+            </property>
+            <item>
+             <property name="text">
+              <string>bus</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>taxi</string>
+             </property>
+            </item>
+           </item>
+           <item>
+            <property name="text">
+             <string>snowmobile</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>agricultural</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>forestry</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>emergency</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>hazmat</string>
+            </property>
+           </item>
+          </item>
+         </item>
+        </item>
        </widget>
       </item>
      </layout>

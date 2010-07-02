@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <QTextStream>
 #include <QSettings>
+#include <QtDebug>
 
 OISettingsDialog::OISettingsDialog(QWidget *parent) :
     QDialog(parent),
@@ -23,6 +24,12 @@ OISettingsDialog::OISettingsDialog(QWidget *parent) :
 	ui->inputEdit->setText( settings.value( "inputFile" ).toString() );
 	ui->trafficLightPenalty->setValue( settings.value( "trafficLightPenalty", 1 ).toInt() );
 	ui->setDefaultCitySpeed->setChecked( settings.value( "defaultCitySpeed", true ).toBool() );
+	ui->ignoreOneway->setChecked( settings.value( "ignoreOneway", false ).toBool() );
+	QString accessType = settings.value( "accessType", "motorcar" ).toString();
+	QList< QTreeWidgetItem* > items = ui->accessTree->findItems( accessType, Qt::MatchFixedString | Qt::MatchRecursive );
+	if ( items.size() > 0 )
+		items.first()->setSelected( true );
+	ui->accessTree->expandAll();
 }
 
 void OISettingsDialog::connectSlots()
@@ -42,7 +49,11 @@ OISettingsDialog::~OISettingsDialog()
 	settings.setValue( "inputFile", ui->inputEdit->text()  );
 	settings.setValue( "trafficLightPenalty", ui->trafficLightPenalty->value() );
 	settings.setValue( "defaultCitySpeed", ui->setDefaultCitySpeed->isChecked() );
-    delete ui;
+	settings.setValue( "ignoreOneway", ui->ignoreOneway->isChecked() );
+	QList< QTreeWidgetItem* > items = ui->accessTree->selectedItems();
+	if ( items.size() == 1 )
+		settings.setValue( "accessType", items.first()->text( 0 ) );
+	delete ui;
 }
 
 void OISettingsDialog::changeEvent(QEvent *e)
@@ -149,44 +160,52 @@ void OISettingsDialog::browse() {
 		ui->inputEdit->setText( file );
 }
 
-QString OISettingsDialog::getInput()
+bool OISettingsDialog::getSettings( Settings* settings )
 {
-	return ui->inputEdit->text();
-}
+	if ( settings == NULL )
+		return false;
+	settings->accessList.clear();
+	settings->defaultCitySpeed = ui->setDefaultCitySpeed->isChecked();
+	settings->trafficLightPenalty = ui->trafficLightPenalty->value();
+	settings->input = ui->inputEdit->text();
+	settings->ignoreOneway = ui->ignoreOneway->isChecked();
 
-int OISettingsDialog::getTrafficLightPenalty()
-{
-	return ui->trafficLightPenalty->value();
-}
-
-bool OISettingsDialog::getDefaultCitySpeed()
-{
-	return ui->setDefaultCitySpeed->isChecked();
-}
-
-bool OISettingsDialog::getSpeedProfile( SpeedProfile* data )
-{
 	int rowCount = ui->speedTable->rowCount();
 	int colCount = ui->speedTable->columnCount();
 
 	if ( colCount != 4 )
 		return false;
 
-	data->names.resize( rowCount );
-	data->speed.resize( rowCount );
-	data->speedInCity.resize( rowCount );
-	data->averagePercentage.resize( rowCount );
+	settings->speedProfile.names.clear();
+	settings->speedProfile.speed.clear();
+	settings->speedProfile.speedInCity.clear();
+	settings->speedProfile.averagePercentage.clear();
 
 	for ( int row = 0; row < rowCount; ++row ) {
 		for ( int i = 0; i < colCount; i++ )
 		{
-			if ( ui->speedTable->item( row, i ) == NULL )
+			if ( ui->speedTable->item( row, i ) == NULL ) {
+				qCritical() << tr( "Missing entry in speed profile table" );
 				return false;
+			}
 		}
-		data->names[row] = ui->speedTable->item( row, 0 )->text();
-		data->speed[row] = ui->speedTable->item( row, 1 )->text().toInt();
-		data->speedInCity[row] = ui->speedTable->item( row, 2 )->text().toInt();
-		data->averagePercentage[row] = ui->speedTable->item( row, 3 )->text().toInt();
+		settings->speedProfile.names.push_back( ui->speedTable->item( row, 0 )->text() );
+		settings->speedProfile.speed.push_back( ui->speedTable->item( row, 1 )->text().toInt() );
+		settings->speedProfile.speedInCity.push_back( ui->speedTable->item( row, 2 )->text().toInt() );
+		settings->speedProfile.averagePercentage.push_back( ui->speedTable->item( row, 3 )->text().toInt() );
 	}
+
+	QList< QTreeWidgetItem* > items = ui->accessTree->selectedItems();
+	if ( items.size() != 1 ) {
+		qCritical() << tr( "No Access Type selected" );
+		return false;
+	}
+	QTreeWidgetItem* item = items.first();
+	do {
+		qDebug() << settings->accessList.size() << ": " << item->text( 0 );
+		settings->accessList.push_back( item->text( 0 ) );
+		item = item->parent();
+	} while ( item != NULL );
+
 	return true;
 }

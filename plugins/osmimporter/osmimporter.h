@@ -52,7 +52,7 @@ protected:
 	QString outputDirectory;
 	OISettingsDialog* settingsDialog;
 
-	OISettingsDialog::SpeedProfile speedProfile;
+	OISettingsDialog::Settings settings;
 
 	struct {
 		NodeID numberOfNodes;
@@ -66,11 +66,6 @@ protected:
 		NodeID numberOfCityEdges;
 	} stats;
 
-	struct {
-		int trafficLightsPenalty;
-		bool enforceCityLimits;
-	} config;
-
 	struct _Way {
 		std::vector< NodeID > path;
 		enum {
@@ -79,6 +74,7 @@ protected:
 		double maximumSpeed;
 		bool usefull;
 		bool access;
+		int accessPriority;
 		xmlChar* name;
 		xmlChar* placeName;
 		enum {

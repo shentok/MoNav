@@ -33,18 +33,21 @@ public:
 	 OISettingsDialog(QWidget *parent = 0);
 	 ~OISettingsDialog();
 
-	QString getInput();
-	int getTrafficLightPenalty();
-	bool getDefaultCitySpeed();
-
-	struct SpeedProfile {
-		std::vector< QString > names;
-		std::vector< double > speed;
-		std::vector< double > speedInCity;
-		std::vector< double > averagePercentage;
+	struct Settings {
+		struct SpeedProfile {
+			QStringList names;
+			QVector< double > speed;
+			QVector< double > speedInCity;
+			QVector< double > averagePercentage;
+		} speedProfile;
+		QStringList accessList;
+		QString input;
+		bool defaultCitySpeed;
+		bool ignoreOneway;
+		int trafficLightPenalty;
 	};
 
-	bool getSpeedProfile( SpeedProfile* data );
+	bool getSettings( Settings* settings );
 
 public slots:
 	void setDefaultSpeed();
