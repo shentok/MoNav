@@ -21,6 +21,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "ui_preprocessingwindow.h"
 #include <QFileDialog>
 #include <QSettings>
+#include <QDebug>
+#include <QDir>
 
 PreprocessingWindow::PreprocessingWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -51,6 +53,8 @@ void PreprocessingWindow::connectSlots()
 	connect( ui->gpsLookupPreprocessButton, SIGNAL(clicked()), this, SLOT(gpsLookupPreprocessing()) );
 	connect( ui->addressLookupSettingsButton, SIGNAL(clicked()), this, SLOT(addressLookupSettings()) );
 	connect( ui->addressLookupPreprocessButton, SIGNAL(clicked()), this, SLOT(addressLookupPreprocessing()) );
+	connect( ui->allPreprocessButton, SIGNAL(clicked()), this, SLOT(preprocessAll()) );
+	connect( ui->writeConfigButton, SIGNAL(clicked()), this, SLOT(writeConfig()) );
 }
 
 void PreprocessingWindow::loadPlugins()
@@ -60,7 +64,7 @@ void PreprocessingWindow::loadPlugins()
 		return;
 	foreach ( QString fileName, pluginDir.entryList( QDir::Files ) ) {
 		QPluginLoader* loader = new QPluginLoader( pluginDir.absoluteFilePath( fileName ) );
-		loader->setLoadHints( QLibrary::ExportExternalSymbolsHint/* | QLibrary::ResolveAllSymbolsHint*/ );
+		loader->setLoadHints( QLibrary::ExportExternalSymbolsHint );
 		if ( !loader->load() )
 			qDebug( "%s", loader->errorString().toAscii().constData() );
 
@@ -240,4 +244,28 @@ void PreprocessingWindow::addressLookupPreprocessing()
 	int index = ui->addressLookupComboBox->currentIndex();
 	addressLookupPlugins[index]->SetOutputDirectory( ui->outputEdit->text() );
 	addressLookupPlugins[index]->Preprocess( importerPlugins[importerIndex] );
+}
+
+void PreprocessingWindow::preprocessAll()
+{
+	qDebug() << "Importer";
+	importerPreprocessing();
+	qDebug() << "Router";
+	routerPreprocessing();
+	qDebug() << "Renderer";
+	rendererPreprocessing();
+	qDebug() << "GPS Lookup";
+	gpsLookupPreprocessing();
+	qDebug() << "Address Lookup";
+	addressLookupPreprocessing();
+}
+
+void PreprocessingWindow::writeConfig()
+{
+	QDir dir( ui->outputEdit->text() );
+	QSettings pluginSettings( dir.filePath( "plugins.ini" ), QSettings::IniFormat );
+	pluginSettings.setValue( "router", ui->routerComboBox->currentText() );
+	pluginSettings.setValue( "renderer", ui->rendererComboBox->currentText() );
+	pluginSettings.setValue( "gpsLookup", ui->gpsLookupComboBox->currentText() );
+	pluginSettings.setValue( "addressLookup", ui->addressLookupComboBox->currentText() );
 }

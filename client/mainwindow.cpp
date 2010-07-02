@@ -73,6 +73,13 @@ bool MainWindow::loadPlugins()
 	if ( !pluginDir.cd( "plugins_client" ) )
 		return false;
 
+	QDir dir( dataDirectory );
+	QSettings pluginSettings( dir.filePath( "plugins.ini" ), QSettings::IniFormat );
+	QString rendererName = pluginSettings.value( "renderer" ).toString();
+	QString routerName = pluginSettings.value( "router" ).toString();
+	QString gpsLookupName = pluginSettings.value( "gpsLookup" ).toString();
+	QString addressLookupName = pluginSettings.value( "addressLookup" ).toString();
+
 	foreach ( QString fileName, pluginDir.entryList( QDir::Files ) ) {
 		QPluginLoader* loader = new QPluginLoader( pluginDir.absoluteFilePath( fileName ) );
 		if ( !loader->load() )
@@ -80,7 +87,7 @@ bool MainWindow::loadPlugins()
 
 		if ( IRenderer *interface = qobject_cast< IRenderer* >( loader->instance() ) )
 		{
-			if ( interface->GetName() == "Mapnik Renderer" )
+			if ( interface->GetName() == rendererName )
 			{
 				plugins.append( loader );
 				renderer = interface;
@@ -88,7 +95,7 @@ bool MainWindow::loadPlugins()
 		}
 		else if ( IAddressLookup *interface = qobject_cast< IAddressLookup* >( loader->instance() ) )
 		{
-			if ( interface->GetName() == "Unicode Tournament Trie" )
+			if ( interface->GetName() == addressLookupName )
 			{
 				plugins.append( loader );
 				addressLookup = interface;
@@ -96,7 +103,7 @@ bool MainWindow::loadPlugins()
 		}
 		else if ( IGPSLookup *interface = qobject_cast< IGPSLookup* >( loader->instance() ) )
 		{
-			if ( interface->GetName() == "GPS Grid" )
+			if ( interface->GetName() == gpsLookupName )
 			{
 				plugins.append( loader );
 				gpsLookup = interface;
@@ -104,7 +111,7 @@ bool MainWindow::loadPlugins()
 		}
 		else if ( IRouter *interface = qobject_cast< IRouter* >( loader->instance() ) )
 		{
-			if ( interface->GetName() == "Contraction Hierarchies" )
+			if ( interface->GetName() == routerName )
 			{
 				plugins.append( loader );
 				router = interface;

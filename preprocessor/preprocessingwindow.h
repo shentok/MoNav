@@ -49,6 +49,8 @@ public slots:
 	void gpsLookupPreprocessing();
 	void addressLookupSettings();
 	void addressLookupPreprocessing();
+	void preprocessAll();
+	void writeConfig();
 
 protected:
 	void changeEvent(QEvent *e);
