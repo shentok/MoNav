@@ -17,48 +17,25 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MAPNIKRENDERER_H
-#define MAPNIKRENDERER_H
+#ifndef OSMRENDERER_H
+#define OSMRENDERER_H
 
 #include <QObject>
 #include "interfaces/ipreprocessor.h"
-#include "mrsettingsdialog.h"
 
-class MapnikRenderer : public QObject, public IPreprocessor
+class OSMRenderer : public QObject, public IPreprocessor
 {
 	Q_OBJECT
 	Q_INTERFACES( IPreprocessor )
 
 public:
-    MapnikRenderer();
+	OSMRenderer();
 	virtual QString GetName();
 	virtual Type GetType();
 	virtual void SetOutputDirectory( const QString& dir );
 	virtual void ShowSettings();
 	virtual bool Preprocess( IImporter* importer );
-	virtual ~MapnikRenderer();
-
-signals:
-	void changed();
-
-protected:
-	struct MapnikConfig {
-		int tileSize;
-		int maxZoom;
-	};
-	struct MapnikMetaTile {
-		int x;
-		int y;
-		int metaTileSizeX;
-		int metaTileSizeY;
-	};
-	struct MapnikIndexElement {
-		qint64 start;
-		qint64 end;
-	};
-
-	MRSettingsDialog* settingsDialog;
-	QString outputDirectory;
+	virtual ~OSMRenderer();
 };
 
-#endif // MAPNIKRENDERER_H
+#endif // OSMRENDERER_H

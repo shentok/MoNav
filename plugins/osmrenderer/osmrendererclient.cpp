@@ -21,28 +21,33 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QPainter>
 #include <algorithm>
 #include <cmath>
-#include "mapnikrendererclient.h"
+#include <QNetworkReply>
+#include <QDebug>
+
+#include "osmrendererclient.h"
 #include "utils/utils.h"
 
-MapnikRendererClient::MapnikRendererClient()
+OSMRendererClient::OSMRendererClient()
 {
-	maxZoom = -1;
-	tileSize = 1;
+	loaded = false;
+	network = NULL;
+	tileSize = 256;
 	setupPolygons();
 }
 
-MapnikRendererClient::~MapnikRendererClient()
+OSMRendererClient::~OSMRendererClient()
 {
 
 }
 
-void MapnikRendererClient::unload()
+void OSMRendererClient::unload()
 {
-	boxes.clear();
-	cache.clear();
+	if ( network != NULL )
+		delete network;
+	network = NULL;
 }
 
-void MapnikRendererClient::setupPolygons()
+void OSMRendererClient::setupPolygons()
 {
 	double leftPointer  = 135.0 / 180.0 * M_PI;
 	double rightPointer = -135.0 / 180.0 * M_PI;
@@ -52,60 +57,36 @@ void MapnikRendererClient::setupPolygons()
 	arrow << QPointF( -3.0 / 8, 0 );
 }
 
-QString MapnikRendererClient::GetName()
+QString OSMRendererClient::GetName()
 {
-	return "Mapnik Renderer";
+	return "OSM Renderer";
 }
 
-void MapnikRendererClient::SetInputDirectory( const QString& dir )
+void OSMRendererClient::SetInputDirectory( const QString& )
 {
-	directory = dir;
 }
 
-void MapnikRendererClient::ShowSettings()
+void OSMRendererClient::ShowSettings()
 {
 
 }
 
-bool MapnikRendererClient::LoadData()
+bool OSMRendererClient::LoadData()
 {
 	if ( loaded )
 		unload();
-
-	QDir dir( directory );
-	QString filename = dir.filePath( "Mapnik Renderer" );
-	QFile configFile( filename );
-	configFile.open( QIODevice::ReadOnly );
-	QDataStream configData( &configFile );
-	quint32 zoom, size;
-	configData >> size >> zoom;
-	maxZoom = zoom;
-	tileSize = size;
-	for ( int i = 0; i <= maxZoom; i++ )
-	{
-		quint32 minX, maxX, minY, maxY;
-		configData >> minX >> maxX >> minY >> maxY;
-		if ( configData.status() == QDataStream::ReadPastEnd )
-			return false;
-		Box box;
-		box.minX = minX;
-		box.maxX = maxX;
-		box.minY = minY;
-		box.maxY = maxY;
-		boxes.push_back( box );
-	}
+	network = new QNetworkAccessManager( this );
+	connect( network, SIGNAL(finished(QNetworkReply*)), this, SLOT(finished(QNetworkReply*)) );
 	loaded = true;
 	return true;
 }
 
-int MapnikRendererClient::GetMaxZoom()
+int OSMRendererClient::GetMaxZoom()
 {
-	if ( !loaded )
-		return -1;
-	return maxZoom;
+	return 18;
 }
 
-ProjectedCoordinate MapnikRendererClient::Move( ProjectedCoordinate center, int shiftX, int shiftY, int zoom )
+ProjectedCoordinate OSMRendererClient::Move( ProjectedCoordinate center, int shiftX, int shiftY, int zoom )
 {
 	if ( !loaded )
 		return center;
@@ -114,7 +95,7 @@ ProjectedCoordinate MapnikRendererClient::Move( ProjectedCoordinate center, int 
 	return center;
 }
 
-ProjectedCoordinate MapnikRendererClient::PointToCoordinate( ProjectedCoordinate center, int shiftX, int shiftY, int zoom )
+ProjectedCoordinate OSMRendererClient::PointToCoordinate( ProjectedCoordinate center, int shiftX, int shiftY, int zoom )
 {
 	if ( !loaded )
 		return center;
@@ -123,7 +104,7 @@ ProjectedCoordinate MapnikRendererClient::PointToCoordinate( ProjectedCoordinate
 	return center;
 }
 
-ProjectedCoordinate MapnikRendererClient::ZoomInOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int /*zoom*/ )
+ProjectedCoordinate OSMRendererClient::ZoomInOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int /*zoom*/ )
 {
 	if ( !loaded )
 		return center;
@@ -132,7 +113,7 @@ ProjectedCoordinate MapnikRendererClient::ZoomInOn( ProjectedCoordinate center, 
 	return center;
 }
 
-ProjectedCoordinate MapnikRendererClient::ZoomOutOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int /*zoom*/ )
+ProjectedCoordinate OSMRendererClient::ZoomOutOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int /*zoom*/ )
 {
 	if ( !loaded )
 		return center;
@@ -141,16 +122,35 @@ ProjectedCoordinate MapnikRendererClient::ZoomOutOn( ProjectedCoordinate center,
 	return center;
 }
 
-void MapnikRendererClient::setSlot( QObject*, const char* )
+void OSMRendererClient::setSlot( QObject* obj, const char* slot )
 {
-
+	connect( this, SIGNAL(changed()), obj, slot );
 }
 
-bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request )
+void OSMRendererClient::finished( QNetworkReply* reply ) {
+	long long id = reply->request().attribute( QNetworkRequest::User ).toLongLong();
+	if ( reply->error() ) {
+		qDebug() << "failed to get: " << reply->url();
+		return;
+	}
+
+	QImage image;
+	if ( !image.load( reply, 0 ) ) {
+		qDebug() << "failed to load image: " << id;
+		return;
+	}
+	qDebug() << "loaded tile: " << id;
+	QPixmap* tile = new QPixmap( QPixmap::fromImage( image ) );
+	cache.insert( id, tile , 1 );
+	reply->deleteLater();
+	emit changed();
+}
+
+bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 {
 	if ( !loaded )
 		return false;
-	if ( request.zoom < 0 || request.zoom > maxZoom )
+	if ( request.zoom < 0 || request.zoom > 18 )
 		return false;
 
 	int sizeX = painter->device()->width();
@@ -179,8 +179,8 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 	QTransform transform = painter->worldTransform();
 	QTransform inverseTransform = transform.inverted();
 
-	const int xWidth = boxes[request.zoom].maxX - boxes[request.zoom].minX;
-	const int yWidth = boxes[request.zoom].maxY - boxes[request.zoom].minY;
+	const int xWidth = 1 << request.zoom;
+	const int yWidth = 1 << request.zoom;
 
 	QRectF boundingBox = inverseTransform.mapRect( QRectF(0, 0, sizeX, sizeY ) );
 
@@ -189,41 +189,27 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 	int minY = floor( boundingBox.y() / tileSize );
 	int maxY = ceil( boundingBox.bottom() / tileSize );
 
-	QDir dir( directory );
-	QString filename = dir.filePath( "Mapnik Renderer" );
-	QFile indexFile( filename + QString( "_%1_index" ).arg( request.zoom ) );
-	indexFile.open( QIODevice::ReadOnly );
-	QFile imageFile( filename + QString( "_%1_tiles" ).arg( request.zoom ) );
-	imageFile.open( QIODevice::ReadOnly );
-
 	for ( int x = minX; x < maxX; ++x ) {
 		for ( int y = minY; y < maxY; ++y ) {
-			const int xID = x - boxes[request.zoom].minX;
-			const int yID = y - boxes[request.zoom].minY;
+			const int xID = x;
+			const int yID = y;
 			const long long indexPosition = yID * xWidth + xID;
 
 			QPixmap* tile = NULL;
 			if ( xID >= 0 && xID < xWidth && yID >= 0 && yID < yWidth ) {
 				long long id = ( indexPosition << 8 ) + request.zoom;
 				if ( !cache.contains( id ) ) {
-					indexFile.seek( indexPosition * 2 * sizeof( qint64 ) );
-					qint64 start, end;
-					indexFile.read( ( char* ) &start, sizeof( start ) );
-					indexFile.read( ( char* ) &end, sizeof( end ) );
-					if ( start != end )
-					{
-						uchar* data = new uchar[end - start];
-						imageFile.seek( start );
-						imageFile.read( ( char * ) data, end - start );
-						tile = new QPixmap();
-						if ( !tile->loadFromData( data, end - start, "PNG" ) )
-						{
-							qDebug( "failed to load picture" );
-							delete tile;
-							tile = NULL;
-						}
-						cache.insert( id, tile, 1 );
-					}
+					tile = new QPixmap( tileSize, tileSize );
+					tile->fill( QColor( 241, 238 , 232, 255 ) );
+					cache.insert( id, tile, 1 );
+					QString path = "http://tile.openstreetmap.org/%1/%2/%3.png";
+					QUrl url = QUrl( path.arg( request.zoom ).arg( xID ).arg( yID ) );
+					QNetworkRequest request;
+					request.setUrl( url );
+					request.setRawHeader( "User-Agent", "MoNav OSM Renderer 1.0" );
+					request.setAttribute( QNetworkRequest::User, QVariant( id ) );
+					qDebug() << "request tile: " << id;
+					network->get( request );
 				}
 				else {
 					tile = cache.object( id );
@@ -306,7 +292,7 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 	return true;
 }
 
-void MapnikRendererClient::drawArrow( QPainter* painter, int x, int y, double rotation, QColor outer, QColor inner )
+void OSMRendererClient::drawArrow( QPainter* painter, int x, int y, double rotation, QColor outer, QColor inner )
 {
 	QMatrix arrowMatrix;
 	arrowMatrix.translate( x, y );
@@ -321,7 +307,7 @@ void MapnikRendererClient::drawArrow( QPainter* painter, int x, int y, double ro
 	painter->drawPolygon( arrowMatrix.map( arrow ) );
 }
 
-void MapnikRendererClient::drawIndicator( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, QColor outer, QColor inner )
+void OSMRendererClient::drawIndicator( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, QColor outer, QColor inner )
 {
 	QPointF mapped = transform.map( QPointF( x, y ) );
 	if ( mapped.x() < 3 || mapped.y() < 3 || mapped.x() >= sizeX - 3 || mapped.y() >= sizeY - 3 ) {
@@ -343,4 +329,4 @@ void MapnikRendererClient::drawIndicator( QPainter* painter, const QTransform& t
 }
 
 
-Q_EXPORT_PLUGIN2( mapnikrendererclient, MapnikRendererClient )
+Q_EXPORT_PLUGIN2( osmrendererclient, OSMRendererClient )

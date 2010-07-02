@@ -232,8 +232,10 @@ void MainWindow::menuClicked( QListWidgetItem* item )
 		settingsAddressLookup();
 	else if ( label == tr( "GPS Settings" ) )
 		settingsGPS();
-	else if ( label == tr( "Data Directory Settings" ) )
+	else if ( label == tr( "Data Directory Settings" ) ) {
+		dataDirectory = "";
 		settingsDataDirectory();
+	}
 }
 
 void MainWindow::back()

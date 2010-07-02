@@ -40,6 +40,7 @@ public:
 	virtual ProjectedCoordinate ZoomInOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom ) = 0;
 	virtual ProjectedCoordinate ZoomOutOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom ) = 0;
 	virtual bool Paint( QPainter* painter, const PaintRequest& request ) = 0;
+	virtual void setSlot( QObject* obj, const char* slot ) = 0;
 	virtual ~IRenderer() {}
 };
 

@@ -41,6 +41,7 @@ PaintWidget::~PaintWidget()
 void PaintWidget::setRenderer( IRenderer* r )
 {
 	renderer = r;
+	renderer->setSlot( this, SLOT(update()) );
 }
 
 void PaintWidget::setCenter( const ProjectedCoordinate c )

@@ -21,20 +21,19 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define MAPNIKRENDERER_H
 
 #include <QObject>
-#include <QDataStream>
-#include <QFile>
 #include <QCache>
+#include <QNetworkAccessManager>
 #include "interfaces/irenderer.h"
 
-class MapnikRendererClient : public QObject, IRenderer
+class OSMRendererClient : public QObject, IRenderer
 {
 	Q_OBJECT
 	Q_INTERFACES( IRenderer )
 
 public:
 
-	 MapnikRendererClient();
-	~MapnikRendererClient();
+	 OSMRendererClient();
+	~OSMRendererClient();
 	virtual QString GetName();
 	virtual void SetInputDirectory( const QString& dir );
 	virtual void ShowSettings();
@@ -47,6 +46,12 @@ public:
 	virtual bool Paint( QPainter* painter, const PaintRequest& request );
 	virtual void setSlot( QObject* obj, const char* slot );
 
+signals:
+	void changed();
+
+public slots:
+	void finished( QNetworkReply* reply );
+
 protected:
 
 	void unload();
@@ -54,20 +59,10 @@ protected:
 	void drawArrow( QPainter* painter, int x, int y, double rotation, QColor outer, QColor inner );
 	void drawIndicator( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, QColor outer, QColor inner );
 
-	struct Box
-	{
-		int minX;
-		int maxX;
-		int minY;
-		int maxY;
-	};
-
-	QString directory;
-	bool loaded;
-	int tileSize;
-	int maxZoom;
-	std::vector< Box > boxes;
 	QCache< long long, QPixmap > cache;
+	QNetworkAccessManager* network;
+	int tileSize;
+	bool loaded;
 	QPolygonF arrow;
 };
 
