@@ -174,8 +174,6 @@ class UnsignedCoordinate {
 		}
 		explicit UnsignedCoordinate( GPSCoordinate gps ) {
 			*this = UnsignedCoordinate( ProjectedCoordinate( gps ) );
-			assert( x < 4000000000 );
-			assert( y < 4000000000 );
 		}
 		
 		GPSCoordinate ToGPSCoordinate() const {

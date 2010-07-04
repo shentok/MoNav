@@ -4,7 +4,6 @@
 #
 #-------------------------------------------------
 
-TARGET = gpsgridclient
 TEMPLATE = lib
 CONFIG += plugin
 
@@ -17,12 +16,13 @@ HEADERS += \
     interfaces/igpslookup.h \
     gpsgridclient.h
 
-QMAKE_CXXFLAGS_RELEASE -= -O2
-QMAKE_CXXFLAGS_RELEASE += -O3 \
-	 -march=native \
-	 -Wno-unused-function
-QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function \
-	 -fopenmp
+unix {
+	QMAKE_CXXFLAGS_RELEASE -= -O2
+	QMAKE_CXXFLAGS_RELEASE += -O3 \
+		 -march=native \
+		 -Wno-unused-function
+	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
+}
 
 SOURCES += \
     gpsgridclient.cpp

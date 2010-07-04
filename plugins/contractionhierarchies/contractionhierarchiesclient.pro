@@ -1,14 +1,13 @@
 TEMPLATE = lib
 CONFIG += plugin
 DESTDIR = ../../bin/plugins_client
-QMAKE_CXXFLAGS_RELEASE -= -O2
-QMAKE_CXXFLAGS_RELEASE += -O3 \
-    -march=native \
-    -Wno-unused-function \
-    -fopenmp
-QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function \
-    -fopenmp
-LIBS += -fopenmp
+unix {
+	QMAKE_CXXFLAGS_RELEASE -= -O2
+	QMAKE_CXXFLAGS_RELEASE += -O3 \
+		 -march=native \
+		 -Wno-unused-function
+	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
+}
 
 HEADERS += \
     utils/utils.h \
@@ -17,7 +16,8 @@ HEADERS += \
     blockcache.h \
     binaryheap.h \
     interfaces/irouter.h \
-    contractionhierarchiesclient.h
+    contractionhierarchiesclient.h \
+    compressedchgraph.h
 
 SOURCES += \
     contractionhierarchiesclient.cpp

@@ -66,7 +66,7 @@ protected:
 	bool loaded;
 	int tileSize;
 	int maxZoom;
-	std::vector< Box > boxes;
+	QVector< Box > boxes;
 	QCache< long long, QPixmap > cache;
 	QPolygonF arrow;
 };
