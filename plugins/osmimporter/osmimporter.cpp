@@ -106,7 +106,7 @@ bool OSMImporter::_ReadXML( const QString& inputFilename, const QString& filenam
 	QDataStream allNodesData( &allNodesFile );
 	QDataStream cityOutlineData( &cityOutlineFile );
 
-	xmlTextReaderPtr inputReader = xmlNewTextReaderFilename( ( const char* ) inputFilename.toLocal8Bit() );
+	xmlTextReaderPtr inputReader = xmlNewTextReaderFilename( inputFilename.toLocal8Bit().constData() );
 	try {
 		while ( xmlTextReaderRead( inputReader ) == 1 ) {
 			const int type = xmlTextReaderNodeType( inputReader );
@@ -557,7 +557,6 @@ OSMImporter::_Way OSMImporter::_ReadXMLWay( xmlTextReaderPtr& inputReader ) {
 							}
 							if ( way.maximumSpeed == -1 )
 								way.maximumSpeed = 10;
-							way.usefull = true;
 						}
 					} else if ( xmlStrEqual( k, ( const xmlChar* ) "highway" ) == 1 ) {
 						if ( xmlStrEqual( value, ( const xmlChar* ) "motorway" ) == 1 ) {

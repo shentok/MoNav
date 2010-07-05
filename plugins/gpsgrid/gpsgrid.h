@@ -23,6 +23,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "interfaces/ipreprocessor.h"
 #include "ggdialog.h"
 #include "cell.h"
+#include "table.h"
 #include <vector>
 
 

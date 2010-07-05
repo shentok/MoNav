@@ -147,15 +147,15 @@ class ContractionCleanup {
 			qDebug( "Postprocessing Time: %lf s", time );
 		}
 
-		template< class Edge >
-		void GetData( std::vector< Edge >& edges, std::vector< NodeID >& map ) {
+		template< class OutputEdge >
+		void GetData( std::vector< OutputEdge >& edges, std::vector< NodeID >& map ) {
 			std::sort( _remap.begin(), _remap.end(), _Node::CompareByID );
 
 			for ( NodeID node = 0; node < _numNodes; ++node )
 				map.push_back( _remap[node].mappedID );
 
 			for ( int edge = 0, endEdges = ( int ) _graph.size(); edge != endEdges; ++edge ) {
-				Edge newEdge;
+				OutputEdge newEdge;
 				newEdge.source = _remap[_graph[edge].source].mappedID;
 				newEdge.target = _remap[_graph[edge].target].mappedID;
 				assert( newEdge.source > newEdge.target );

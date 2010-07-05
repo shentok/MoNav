@@ -19,7 +19,8 @@ HEADERS += gpsgrid.h \
     utils/coordinates.h \
     utils/config.h \
     ggdialog.h \
-    cell.h
+    cell.h \
+    table.h
 
 QMAKE_CXXFLAGS_RELEASE -= -O2
 QMAKE_CXXFLAGS_RELEASE += -O3 \
