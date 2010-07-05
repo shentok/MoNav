@@ -10,7 +10,6 @@ HEADERS += preprocessingwindow.h \
     aboutdialog.h \
     interfaces/IImporter.h \
     utils/utils.h \
-    utils/rng.h \
     utils/coordinates.h \
     utils/config.h \
     interfaces/IPreprocessor.h \

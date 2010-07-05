@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QDir>
 #include <QSettings>
 #include <QFileDialog>
+#include <QtDebug>
 #include "mapview.h"
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -200,6 +201,7 @@ void MainWindow::computeRoute()
 	path.clear();
 	if ( !router->GetRoute( &distance, &path, sourcePos, targetPos ) )
 		path.clear();
+	qDebug() << "Distance: " << distance << "; Path Segments: " << path.size();
 	emit routeChanged( path );
 }
 

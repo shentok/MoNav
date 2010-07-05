@@ -151,7 +151,7 @@ void ContractionHierarchiesClient::computeStep( _Heap* heapForward, _Heap* heapB
 					//iterate over outgoing edges
 					for ( EdgeIterator stallEdge = graph->out_edges( stallNode ); stallEdge.first != stallEdge.second; ++stallEdge.first ) {
 						//is edge outgoing/reached/stalled?
-						if ( edgeAllowed( graph->get_forward( edge.first ), graph->get_backward( edge.first ) ) )
+						if ( !edgeAllowed( graph->get_forward( edge.first ), graph->get_backward( edge.first ) ) )
 							continue;
 						const Node stallTo = graph->get_target( stallEdge.first );
 						if ( !heapForward->WasInserted( stallTo ) )
@@ -182,10 +182,11 @@ void ContractionHierarchiesClient::computeStep( _Heap* heapForward, _Heap* heapB
 				heapForward->Insert( to, toDistance, node );
 
 			//Found a shorter Path -> Update distance
-			else if ( toDistance < heapForward->GetKey( to ) ) {
+			else if ( toDistance <= heapForward->GetKey( to ) ) {
 				heapForward->DecreaseKey( to, toDistance );
 				//new parent + unstall
-				heapForward->GetData( to ) = node;
+				heapForward->GetData( to ).parent = node;
+				heapForward->GetData( to ).stalled = false;
 			}
 		}
 	}

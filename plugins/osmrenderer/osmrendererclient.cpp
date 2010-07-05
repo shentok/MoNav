@@ -182,12 +182,12 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 	const int xWidth = 1 << request.zoom;
 	const int yWidth = 1 << request.zoom;
 
-	QRectF boundingBox = inverseTransform.mapRect( QRectF(0, 0, sizeX, sizeY ) );
+	QRect boundingBox = inverseTransform.mapRect( QRect(0, 0, sizeX, sizeY ) );
 
-	int minX = floor( boundingBox.x() / tileSize );
-	int maxX = ceil( boundingBox.right() / tileSize );
-	int minY = floor( boundingBox.y() / tileSize );
-	int maxY = ceil( boundingBox.bottom() / tileSize );
+	int minX = floor( ( double ) boundingBox.x() / tileSize );
+	int maxX = ceil( ( double ) boundingBox.right() / tileSize );
+	int minY = floor( ( double ) boundingBox.y() / tileSize );
+	int maxY = ceil( ( double ) boundingBox.bottom() / tileSize );
 
 	for ( int x = minX; x < maxX; ++x ) {
 		for ( int y = minY; y < maxY; ++y ) {
@@ -230,10 +230,10 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 
 		int position = 0;
 		for ( int i = 0; i < request.edgeSegments.size(); i++ ) {
-			QPolygonF polygon;
+			QPolygon polygon;
 			for ( ; position < request.edgeSegments[i]; position++ ) {
 				ProjectedCoordinate pos = request.edges[position].ToProjectedCoordinate();
-				polygon << QPointF( pos.x * zoomFactor, pos.y * zoomFactor );
+				polygon << QPoint( pos.x * zoomFactor, pos.y * zoomFactor );
 			}
 			painter->drawPolyline( polygon );
 		}
@@ -243,7 +243,7 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 	if ( request.route.size() > 0 ) {
 		painter->setPen( QPen( QColor( 0, 0, 128, 128 ), 8, Qt::SolidLine, Qt::FlatCap ) );
 
-		QVector< QPointF > polygon;
+		QVector< QPoint > polygon;
 		QVector< bool > isInside;
 
 		ProjectedCoordinate lastCoord;
@@ -253,7 +253,7 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 				isInside.push_back( false );
 				continue;
 			}
-			QPointF point( pos.x * zoomFactor, pos.y * zoomFactor );
+			QPoint point( pos.x * zoomFactor, pos.y * zoomFactor );
 			lastCoord = pos;
 			isInside.push_back( boundingBox.contains( point ) );
 		}
@@ -262,7 +262,7 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 			if ( !isInside[i] && !( i != 0 && isInside[i - 1] ) && !( i != request.route.size() - 1 && isInside[i + 1] ) )
 				continue;
 			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
-			QPointF point( pos.x * zoomFactor, pos.y * zoomFactor );
+			QPoint point( pos.x * zoomFactor, pos.y * zoomFactor );
 			polygon.push_back( point );
 		}
 		painter->drawPolyline( polygon.data(), polygon.size() );
@@ -309,13 +309,13 @@ void OSMRendererClient::drawArrow( QPainter* painter, int x, int y, double rotat
 
 void OSMRendererClient::drawIndicator( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, QColor outer, QColor inner )
 {
-	QPointF mapped = transform.map( QPointF( x, y ) );
+	QPoint mapped = transform.map( QPoint( x, y ) );
 	if ( mapped.x() < 3 || mapped.y() < 3 || mapped.x() >= sizeX - 3 || mapped.y() >= sizeY - 3 ) {
 		//clip an imaginary line from the screen center to pos at the screen boundaries
 		ProjectedCoordinate start( mapped.x(), mapped.y() );
 		ProjectedCoordinate end( sizeX / 2, sizeY / 2 );
 		clipEdge( &start, &end, ProjectedCoordinate( 10, 10 ), ProjectedCoordinate( sizeX - 10, sizeY - 10) );
-		QPointF position = inverseTransform.map( QPointF( start.x, start.y ) );
+		QPoint position = inverseTransform.map( QPoint( start.x, start.y ) );
 		double heading = atan2( mapped.y() - sizeY / 2, mapped.x() - sizeX / 2 ) * 360 / 2 / M_PI;
 		drawArrow( painter, position.x(), position.y(), heading, outer, inner );
 	}
