@@ -182,12 +182,12 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 	const int xWidth = boxes[request.zoom].maxX - boxes[request.zoom].minX;
 	const int yWidth = boxes[request.zoom].maxY - boxes[request.zoom].minY;
 
-	QRectF boundingBox = inverseTransform.mapRect( QRectF(0, 0, sizeX, sizeY ) );
+	QRect boundingBox = inverseTransform.mapRect( QRect(0, 0, sizeX, sizeY ) );
 
-	int minX = floor( boundingBox.x() / tileSize );
-	int maxX = ceil( boundingBox.right() / tileSize );
-	int minY = floor( boundingBox.y() / tileSize );
-	int maxY = ceil( boundingBox.bottom() / tileSize );
+	int minX = floor( ( double ) boundingBox.x() / tileSize );
+	int maxX = ceil( ( double ) boundingBox.right() / tileSize );
+	int minY = floor( ( double ) boundingBox.y() / tileSize );
+	int maxY = ceil( ( double ) boundingBox.bottom() / tileSize );
 
 	QDir dir( directory );
 	QString filename = dir.filePath( "Mapnik Renderer" );
@@ -244,10 +244,10 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 
 		int position = 0;
 		for ( int i = 0; i < request.edgeSegments.size(); i++ ) {
-			QPolygonF polygon;
+			QPolygon polygon;
 			for ( ; position < request.edgeSegments[i]; position++ ) {
 				ProjectedCoordinate pos = request.edges[position].ToProjectedCoordinate();
-				polygon << QPointF( pos.x * zoomFactor, pos.y * zoomFactor );
+				polygon << QPoint( pos.x * zoomFactor, pos.y * zoomFactor );
 			}
 			painter->drawPolyline( polygon );
 		}
@@ -257,27 +257,38 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 	if ( request.route.size() > 0 ) {
 		painter->setPen( QPen( QColor( 0, 0, 128, 128 ), 8, Qt::SolidLine, Qt::FlatCap ) );
 
-		QVector< QPointF > polygon;
 		QVector< bool > isInside;
 
+		for ( int i = 0; i < request.route.size(); i++ ) {
+			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
+			QPoint point( pos.x * zoomFactor, pos.y * zoomFactor );
+			isInside.push_back( boundingBox.contains( point ) );
+		}
+
+		QVector< bool > draw = isInside;
+		for ( int i = 1; i < request.route.size(); i++ ) {
+			if ( isInside[i - 1] )
+				draw[i] = true;
+			if ( isInside[i] )
+				draw[i - 1] = true;
+		}
+
+		QVector< QPoint > polygon;
 		ProjectedCoordinate lastCoord;
 		for ( int i = 0; i < request.route.size(); i++ ) {
+			if ( !draw[i] ) {
+				painter->drawPolyline( polygon.data(), polygon.size() );
+				polygon.clear();
+				continue;
+			}
 			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
 			if ( ( fabs( pos.x - lastCoord.x ) + fabs( pos.y - lastCoord.y ) ) * zoomFactor < 5 ) {
 				isInside.push_back( false );
 				continue;
 			}
-			QPointF point( pos.x * zoomFactor, pos.y * zoomFactor );
-			lastCoord = pos;
-			isInside.push_back( boundingBox.contains( point ) );
-		}
-
-		for ( int i = 0; i < request.route.size(); i++ ) {
-			if ( !isInside[i] && !( i != 0 && isInside[i - 1] ) && !( i != request.route.size() - 1 && isInside[i + 1] ) )
-				continue;
-			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
-			QPointF point( pos.x * zoomFactor, pos.y * zoomFactor );
+			QPoint point( pos.x * zoomFactor, pos.y * zoomFactor );
 			polygon.push_back( point );
+			lastCoord = pos;
 		}
 		painter->drawPolyline( polygon.data(), polygon.size() );
 	}

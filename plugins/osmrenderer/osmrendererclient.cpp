@@ -243,27 +243,38 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 	if ( request.route.size() > 0 ) {
 		painter->setPen( QPen( QColor( 0, 0, 128, 128 ), 8, Qt::SolidLine, Qt::FlatCap ) );
 
-		QVector< QPoint > polygon;
 		QVector< bool > isInside;
 
+		for ( int i = 0; i < request.route.size(); i++ ) {
+			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
+			QPoint point( pos.x * zoomFactor, pos.y * zoomFactor );
+			isInside.push_back( boundingBox.contains( point ) );
+		}
+
+		QVector< bool > draw = isInside;
+		for ( int i = 1; i < request.route.size(); i++ ) {
+			if ( isInside[i - 1] )
+				draw[i] = true;
+			if ( isInside[i] )
+				draw[i - 1] = true;
+		}
+
+		QVector< QPoint > polygon;
 		ProjectedCoordinate lastCoord;
 		for ( int i = 0; i < request.route.size(); i++ ) {
+			if ( !draw[i] ) {
+				painter->drawPolyline( polygon.data(), polygon.size() );
+				polygon.clear();
+				continue;
+			}
 			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
 			if ( ( fabs( pos.x - lastCoord.x ) + fabs( pos.y - lastCoord.y ) ) * zoomFactor < 5 ) {
 				isInside.push_back( false );
 				continue;
 			}
 			QPoint point( pos.x * zoomFactor, pos.y * zoomFactor );
-			lastCoord = pos;
-			isInside.push_back( boundingBox.contains( point ) );
-		}
-
-		for ( int i = 0; i < request.route.size(); i++ ) {
-			if ( !isInside[i] && !( i != 0 && isInside[i - 1] ) && !( i != request.route.size() - 1 && isInside[i + 1] ) )
-				continue;
-			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
-			QPoint point( pos.x * zoomFactor, pos.y * zoomFactor );
 			polygon.push_back( point );
+			lastCoord = pos;
 		}
 		painter->drawPolyline( polygon.data(), polygon.size() );
 	}
