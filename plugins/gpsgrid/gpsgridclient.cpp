@@ -25,7 +25,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 GPSGridClient::GPSGridClient()
 {
-	indexFile = NULL;
+	index = NULL;
 	gridFile = NULL;
 }
 
@@ -36,9 +36,9 @@ GPSGridClient::~GPSGridClient()
 
 void GPSGridClient::unload()
 {
-	if ( indexFile != NULL )
-		delete indexFile;
-	indexFile = NULL;
+	if ( index != NULL )
+		delete index;
+	index = NULL;
 	if ( gridFile != NULL )
 		delete gridFile;
 	gridFile = NULL;
@@ -72,26 +72,7 @@ bool GPSGridClient::LoadData()
 		return false;
 	}
 
-	configFile.read( ( char* ) &cellsX, sizeof( cellsX ) );
-	configFile.read( ( char* ) &cellsY, sizeof( cellsY ) );
-	configFile.read( ( char* ) &minX, sizeof( minX ) );
-	configFile.read( ( char* ) &minY, sizeof( minY ) );
-	configFile.read( ( char* ) &xWidth, sizeof( xWidth ) );
-	configFile.read( ( char* ) &yWidth, sizeof( yWidth ) );
-
-
-	indexFile = new QFile( filename + "_index" );
-	if ( !indexFile->open( QIODevice::ReadOnly ) )
-	{
-		qCritical() << "failed to open file: " << indexFile->fileName();
-		return false;
-	}
-	indexData = ( unsigned* ) indexFile->map( 0, indexFile->size() );
-	if ( indexData == NULL )
-	{
-		qCritical() << "failed to memory map: " << indexFile->fileName();
-		return false;
-	}
+	index = new gg::Index( filename + "_index" );
 
 	gridFile = new QFile( filename + "_grid" );
 	if ( !gridFile->open( QIODevice::ReadOnly ) )
@@ -115,61 +96,51 @@ bool GPSGridClient::GetNearEdges( QVector< Result >* result, const UnsignedCoord
 	gridHeadingPenalty *= gridHeadingPenalty;
 	heading = fmod( heading, 2 * M_PI );
 
-	NodeID yGrid = floor( ( ( double ) coordinate.y - minY ) * cellsY / yWidth );
-	NodeID xGrid = floor( ( ( double ) coordinate.x - minX ) * cellsX / xWidth );
-	if ( coordinate.y < minY )
-		yGrid = 0;
-	else if ( coordinate.y > minY + yWidth )
-		yGrid = cellsY - 1;
-	if ( coordinate.x < minX )
-		xGrid = 0;
-	else if ( coordinate.x > minX + xWidth )
-		xGrid = cellsX - 1;
+	static const int width = 32 * 32 * 32;
 
+	ProjectedCoordinate position = coordinate.ToProjectedCoordinate();
+	NodeID yGrid = floor( position.y * width );
+	NodeID xGrid = floor( position.x * width );
+
+	checkCell( result, gridRadius, xGrid - 1, yGrid - 1, coordinate, heading, gridHeadingPenalty );
+	checkCell( result, gridRadius, xGrid - 1, yGrid, coordinate, heading, gridHeadingPenalty );
+	checkCell( result, gridRadius, xGrid - 1, yGrid + 1, coordinate, heading, gridHeadingPenalty );
+
+	checkCell( result, gridRadius, xGrid, yGrid - 1, coordinate, heading, gridHeadingPenalty );
 	checkCell( result, gridRadius, xGrid, yGrid, coordinate, heading, gridHeadingPenalty );
-	if ( xGrid > 0 ) {
-		checkCell( result, gridRadius, xGrid - 1, yGrid, coordinate, heading, gridHeadingPenalty );
-		if ( yGrid > 0 )
-			checkCell( result, gridRadius, xGrid - 1, yGrid - 1, coordinate, heading, gridHeadingPenalty );
-		if ( yGrid < cellsY - 1 )
-			checkCell( result, gridRadius, xGrid - 1, yGrid + 1, coordinate, heading, gridHeadingPenalty );
-	}
-	if ( xGrid < cellsX - 1 ) {
-		checkCell( result, gridRadius, xGrid + 1, yGrid, coordinate, heading, gridHeadingPenalty );
-		if ( yGrid > 0 )
-			checkCell( result, gridRadius, xGrid + 1, yGrid - 1, coordinate, heading, gridHeadingPenalty );
-		if ( yGrid < cellsY - 1 )
-			checkCell( result, gridRadius, xGrid + 1, yGrid + 1, coordinate, heading, gridHeadingPenalty );
-	}
-	if ( yGrid > 0 )
-		checkCell( result, gridRadius, xGrid, yGrid - 1, coordinate, heading, gridHeadingPenalty );
-	if ( yGrid < cellsY - 1 )
-		checkCell( result, gridRadius, xGrid, yGrid + 1, coordinate, heading, gridHeadingPenalty );
+	checkCell( result, gridRadius, xGrid, yGrid + 1, coordinate, heading, gridHeadingPenalty );
+
+	checkCell( result, gridRadius, xGrid + 1, yGrid - 1, coordinate, heading, gridHeadingPenalty );
+	checkCell( result, gridRadius, xGrid + 1, yGrid, coordinate, heading, gridHeadingPenalty );
+	checkCell( result, gridRadius, xGrid + 1, yGrid + 1, coordinate, heading, gridHeadingPenalty );
 
 	std::sort( result->begin(), result->end() );
 	return result->size() != 0;
 }
 
 bool GPSGridClient::checkCell( QVector< Result >* result, double radius, NodeID gridX, NodeID gridY, const UnsignedCoordinate& coordinate, double heading, double headingPenalty ) {
-	UnsignedCoordinate min;
-	UnsignedCoordinate max;
+	static const int width = 32 * 32 * 32;
+	ProjectedCoordinate minPos( ( double ) gridX / width, ( double ) gridY / width );
+	ProjectedCoordinate maxPos( ( double ) ( gridX + 1 ) / width, ( double ) ( gridY + 1 ) / width );
+	UnsignedCoordinate min( minPos );
+	UnsignedCoordinate max( maxPos );
 	UnsignedCoordinate nearestPoint;
-	min.x = gridX * xWidth / cellsX + minX;
-	min.y = gridY * yWidth / cellsY + minY;
-	max.x = min.x + xWidth / cellsX;
-	max.y = min.y + yWidth / cellsY;
-
+	//qDebug() << "Try Cell (" << gridX << ", " << gridY << ")";
 	if ( distance( min, max, coordinate ) >= radius )
 		return false;
 
-	const unsigned cellNumber = gridY * cellsX + gridX;
-
+	qint64 cellNumber = ( qint64( gridX ) << 32 ) + gridY;
+	//qDebug() << "Cell number: " << cellNumber;
 	if ( !cache.contains( cellNumber ) ) {
-		const size_t size = indexData[cellNumber + 1] - indexData[cellNumber];
-		if ( size == 0 )
+		qint64 position = index->GetIndex( gridX, gridY );
+		//qDebug() << "Load position: " << position;
+		if ( position == -1 )
 			return true;
+		gridFile->seek( position );
+		int size;
+		gridFile->read( (char* ) &size, sizeof( size ) );
 		char* buffer = new char[size];
-		gridFile->seek( indexData[cellNumber] );
+
 		gridFile->read( buffer, size );
 		gg::Cell* cell = new gg::Cell();
 		cell->read( buffer, min, max );

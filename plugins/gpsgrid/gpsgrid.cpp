@@ -65,29 +65,14 @@ bool GPSGrid::Preprocess( IImporter* importer )
 	if ( !settingsDialog->getSettings( &settings ) )
 		return false;
 
-	IImporter::BoundingBox box;
-	if ( !importer->GetBoundingBox( & box ) )
-		return false;
-
-	double proportion = ( double ) ( box.max.x - box.min.x ) / ( box.max.y - box.min.y );
-	double sqrtProportion = sqrt( proportion );
-	double sqrtCells = sqrt( settings.cells );
-	unsigned cellsX = sqrtProportion * sqrtCells;
-	unsigned cellsY = settings.cells / cellsX;
-
 	QDir dir( outputDirectory );
 	QString filename = dir.filePath( "GPSGrid" );
 
-	QFile indexFile( filename + "_index" );
 	QFile gridFile( filename + "_grid" );
 	QFile configFile( filename + "_config" );
 
-	indexFile.open( QIODevice::WriteOnly );
 	gridFile.open( QIODevice::WriteOnly );
 	configFile.open( QIODevice::WriteOnly );
-
-	ProjectedCoordinate minCoord( std::numeric_limits< unsigned >::max(), std::numeric_limits< unsigned >::max() );
-	ProjectedCoordinate maxCoord( 0, 0 );
 
 	std::vector< IImporter::RoutingNode > inputNodes;
 	std::vector< IImporter::RoutingEdge > inputEdges;
@@ -100,22 +85,7 @@ bool GPSGrid::Preprocess( IImporter* importer )
 	if ( !importer->GetIDMap( &idmap ) )
 		return false;
 
-	for ( std::vector< IImporter::RoutingNode >::const_iterator i = inputNodes.begin(); i != inputNodes.end(); ++i ) {
-		const UnsignedCoordinate& coordinate = i->coordinate;
-		if ( coordinate.x < minCoord.x )
-			minCoord.x = coordinate.x;
-		if ( coordinate.y < minCoord.y )
-			minCoord.y = coordinate.y;
-		if ( coordinate.x > maxCoord.x )
-			maxCoord.x = coordinate.x;
-		if ( coordinate.y > maxCoord.y )
-			maxCoord.y = coordinate.y;
-	}
-
-	double yWidth = ( maxCoord.y - minCoord.y ) + 2;
-	double xWidth = ( maxCoord.x - minCoord.x ) + 2;
-	minCoord.y--;
-	minCoord.x--;
+	static const int width = 32 * 32 * 32;
 
 	std::vector< GridImportEdge > grid;
 
@@ -130,10 +100,17 @@ bool GPSGrid::Preprocess( IImporter* importer )
 		edgeData.sourceCoord = inputNodes[i->source].coordinate;
 		edgeData.targetCoord = inputNodes[i->target].coordinate;
 
-		NodeID minYGrid = floor((( double ) edgeData.sourceCoord.y - minCoord.y ) * cellsY / yWidth );
-		NodeID minXGrid = floor((( double ) edgeData.sourceCoord.x - minCoord.x ) * cellsX / xWidth );
-		NodeID maxYGrid = floor((( double ) edgeData.targetCoord.y - minCoord.y ) * cellsY / yWidth );
-		NodeID maxXGrid = floor((( double ) edgeData.targetCoord.x - minCoord.x ) * cellsX / xWidth );
+		ProjectedCoordinate sourceCoordinate = edgeData.sourceCoord.ToProjectedCoordinate();
+		ProjectedCoordinate targetCoordinate = edgeData.targetCoord.ToProjectedCoordinate();
+		sourceCoordinate.x *= width;
+		sourceCoordinate.y *= width;
+		targetCoordinate.x *= width;
+		targetCoordinate.y *= width;
+
+		NodeID minYGrid = floor( sourceCoordinate.y );
+		NodeID minXGrid = floor( sourceCoordinate.x );
+		NodeID maxYGrid = floor( targetCoordinate.y );
+		NodeID maxXGrid = floor( targetCoordinate.x );
 
 		if ( minYGrid > maxYGrid )
 			std::swap( minYGrid, maxYGrid );
@@ -142,20 +119,13 @@ bool GPSGrid::Preprocess( IImporter* importer )
 
 		for ( NodeID yGrid = minYGrid; yGrid <= maxYGrid; ++yGrid ) {
 			for ( NodeID xGrid = minXGrid; xGrid <= maxXGrid; ++xGrid ) {
-				GridImportEdge clippedEdge;
-				clippedEdge.gridNumber = yGrid * cellsX + xGrid;
-				assert( yGrid * cellsX + xGrid < cellsX * cellsY );
-				clippedEdge.edge = edgeData;
-
-				UnsignedCoordinate min;
-				UnsignedCoordinate max;
-				min.x = xGrid * xWidth / cellsX + minCoord.x;
-				min.y = yGrid * yWidth / cellsY + minCoord.y;
-				max.x = ( xGrid + 1 ) * xWidth / cellsX + minCoord.x;
-				max.y = ( yGrid + 1 ) * yWidth / cellsY + minCoord.y;
-
-				if ( !clipEdge( &clippedEdge.edge, min, max ) )
+				if ( !clipEdge( sourceCoordinate, targetCoordinate, ProjectedCoordinate( xGrid, yGrid ), ProjectedCoordinate( xGrid + 1, yGrid + 1 ) ) )
 					continue;
+
+				GridImportEdge clippedEdge;
+				clippedEdge.x = xGrid;
+				clippedEdge.y = yGrid;
+				clippedEdge.edge = edgeData;
 
 				grid.push_back( clippedEdge );
 			}
@@ -167,71 +137,49 @@ bool GPSGrid::Preprocess( IImporter* importer )
 
 	qDebug( "Overhead: %d Duplicated Edges", ( int ) ( grid.size() - inputEdges.size() ) );
 	qDebug( "Overhead: %d Percent Duplicated Edges", ( int ) ( ( grid.size() - inputEdges.size() ) * 100 / inputEdges.size() ) );
-	qDebug( "Overhead: %dMB Index Size", ( int ) ( ( cellsX * cellsY + 1 ) * sizeof( NodeID ) / 1024 / 1024 ) );
 
 	qDebug( "Writing File" );
 
-	configFile.write( ( const char* ) &cellsX, sizeof( cellsX ) );
-	configFile.write( ( const char* ) &cellsY, sizeof( cellsY ) );
-	unsigned temp = minCoord.x;
-	configFile.write( ( const char* ) &temp, sizeof( temp ) );
-	temp = minCoord.y;
-	configFile.write( ( const char* ) &temp, sizeof( temp ) );
-	configFile.write( ( const char* ) &xWidth, sizeof( xWidth ) );
-	configFile.write( ( const char* ) &yWidth, sizeof( yWidth ) );
-
-	std::vector< unsigned > index;
+	std::vector< gg::GridIndex > tempIndex;
 	unsigned position = 0;
-	NodeID emptyGridCells = 0;
-	for ( std::vector< GridImportEdge >::iterator edge = grid.begin(); edge != grid.end(); ++edge ) {
+	for ( std::vector< GridImportEdge >::const_iterator edge = grid.begin(); edge != grid.end(); ++edge ) {
 		gg::Cell cell;
-		NodeID gridNum = edge->gridNumber;
+		gg::GridIndex entry;
+		entry.x = edge->x;
+		entry.y = edge->y;
+		entry.position = position;
+
+		tempIndex.push_back( entry );
 		cell.edges.push_back( edge->edge );
-		while ( edge + 1 != grid.end() && ( edge + 1 )->gridNumber == gridNum ) {
+		while ( edge + 1 != grid.end() && ( edge + 1 )->x == edge->x && ( edge + 1 )->y == edge->y ) {
 			edge++;
 			cell.edges.push_back( edge->edge );
 		}
 
-		UnsignedCoordinate min;
-		UnsignedCoordinate max;
-		min.x = ( gridNum % cellsX ) * xWidth / cellsX + minCoord.x;
-		min.y = ( gridNum / cellsX ) * yWidth / cellsY + minCoord.y;
-		max.x = (( gridNum % cellsX ) + 1 ) * xWidth / cellsX + minCoord.x;
-		max.y = ( gridNum / cellsX + 1 ) * yWidth / cellsY + minCoord.y;
+		ProjectedCoordinate min( ( double ) entry.x / width, ( double ) entry.y / width );
+		ProjectedCoordinate max( ( double ) ( entry.x + 1 ) / width, ( double ) ( entry.y + 1 ) / width );
 
 		char* buffer = new char[cell.edges.size() * sizeof( gg::Cell::Edge ) * 2 + 100];
 		memset( buffer, 0, cell.edges.size() * sizeof( gg::Cell::Edge ) * 2 + 100 );
-		unsigned size = cell.write( buffer, min, max );
-		assert( size < cell.edges.size() * sizeof( gg::Cell::Edge ) * 2 + 100 );
+		int size = cell.write( buffer, UnsignedCoordinate( min ), UnsignedCoordinate( max ) );
+		assert( size < ( int ) ( cell.edges.size() * sizeof( gg::Cell::Edge ) * 2 + 100 ) );
+
 #ifndef NDEBUG
 		gg::Cell unpackCell;
-		unpackCell.read( buffer, min, max );
+		unpackCell.read( buffer, UnsignedCoordinate( min ), UnsignedCoordinate( max ) );
 		assert( unpackCell == cell );
 #endif
+
+		gridFile.write( ( char* ) &size, sizeof( size ) );
 		gridFile.write( buffer, size );
+
 		delete[] buffer;
-		emptyGridCells += gridNum - index.size();
-		while ( index.size() <= gridNum ) {
-			index.push_back( position );
-		}
-		position += size;
-	}
-	temp = 0;
-	gridFile.write( ( const char* ) &temp, sizeof( temp ) );
-	gridFile.write( ( const char* ) &temp, sizeof( temp ) );
-	gridFile.write( ( const char* ) &temp, sizeof( temp ) );
-	gridFile.write( ( const char* ) &temp, sizeof( temp ) );
-	while ( index.size() <= cellsX * cellsY ) {
-		index.push_back( position );
+		position += size + sizeof( size );
 	}
 
-	indexFile.write( ( const char* ) index.data(), index.size() * sizeof( unsigned ) );
-
-	qDebug( "%d Grid Cells Empty", emptyGridCells );
-	qDebug( "%d Percent Grid Cells Empty", emptyGridCells * 100 / ( cellsX * cellsY ) );
+	gg::Index::Create( filename + "_index", tempIndex );
 
 	return true;
-	return false;
 }
 
 bool GPSGrid::clipHelper( double directedProjection, double directedDistance, double* tMinimum, double* tMaximum ) {
@@ -255,15 +203,15 @@ bool GPSGrid::clipHelper( double directedProjection, double directedDistance, do
 	return true;
 }
 
-bool GPSGrid::clipEdge( gg::Cell::Edge* edge, UnsignedCoordinate min, UnsignedCoordinate max ) {
-	const double xDiff = ( double ) edge->targetCoord.x - edge->sourceCoord.x;
-	const double yDiff = ( double ) edge->targetCoord.y - edge->sourceCoord.y;
+bool GPSGrid::clipEdge( ProjectedCoordinate source, ProjectedCoordinate target, ProjectedCoordinate min, ProjectedCoordinate max ) {
+	const double xDiff = target.x - source.x;
+	const double yDiff = target.y - source.y;
 	double tMinimum = 0, tMaximum = 1;
 
-	if ( clipHelper( -xDiff, ( double ) edge->sourceCoord.x - min.x, &tMinimum, &tMaximum ) )
-		if ( clipHelper( xDiff, ( double ) max.x - edge->sourceCoord.x, &tMinimum, &tMaximum ) )
-			if ( clipHelper( -yDiff, ( double ) edge->sourceCoord.y - min.y, &tMinimum, &tMaximum ) )
-				if ( clipHelper( yDiff, ( double ) max.y - edge->sourceCoord.y, &tMinimum, &tMaximum ) )
+	if ( clipHelper( -xDiff, source.x - min.x, &tMinimum, &tMaximum ) )
+		if ( clipHelper( xDiff, max.x - source.x, &tMinimum, &tMaximum ) )
+			if ( clipHelper( -yDiff, source.y - min.y, &tMinimum, &tMaximum ) )
+				if ( clipHelper( yDiff, max.y - source.y, &tMinimum, &tMaximum ) )
 					return true;
 	return false;
 

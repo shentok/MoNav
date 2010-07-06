@@ -45,17 +45,20 @@ protected:
 
 	struct GridImportEdge {
 		gg::Cell::Edge edge;
-		NodeID gridNumber;
+		int x;
+		int y;
 		bool operator<( const GridImportEdge& right ) const {
-			return gridNumber < right.gridNumber;
+			if ( x != right.x )
+				return x < right.x;
+			return y < right.y;
 		}
 		bool operator==( const GridImportEdge& right ) const {
-			return gridNumber == right.gridNumber;
+			return x == right.x && y == right.y && edge == right.edge;
 		}
 	};
 
 	bool clipHelper( double directedProjection, double directedDistance, double* tMinimum, double* tMaximum );
-	bool clipEdge( gg::Cell::Edge* edge, UnsignedCoordinate min, UnsignedCoordinate max );
+	bool clipEdge( ProjectedCoordinate source, ProjectedCoordinate target, ProjectedCoordinate min, ProjectedCoordinate max );
 
 	QString outputDirectory;
 	GGDialog* settingsDialog;

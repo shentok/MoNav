@@ -24,6 +24,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QCache>
 #include <QFile>
 #include <string.h>
+#include <vector>
+#include <QtDebug>
 
 namespace gg {
 
@@ -40,8 +42,23 @@ namespace gg {
 			Read( buffer );
 		}
 
-		T GetIndex( int x, int y ) {
+		T GetIndex( int x, int y ) const
+		{
+			if ( x < 0 || x >= 32 )
+				return -1;
+			if ( y < 0 || y >= 32 )
+				return -1;
 			return index[x + y * size];
+		}
+
+		void SetIndex( int x, int y, T data )
+		{
+			assert( index[x + y *size] == -1 );
+			assert( x >= 0 );
+			assert( x < 32 );
+			assert( y >= 0 );
+			assert( y < 32 );
+			index[x + y * size] = data;
 		}
 
 		static size_t Size()
@@ -49,7 +66,7 @@ namespace gg {
 			return size * size * sizeof( T );
 		}
 
-		void Write( char* buffer )
+		void Write( char* buffer ) const
 		{
 			memcpy( buffer, index, size * size * sizeof( T ) );
 		}
@@ -58,6 +75,22 @@ namespace gg {
 		{
 			memcpy( index, buffer, size * size * sizeof( T ) );
 		}
+
+		void Debug()
+		{
+			for ( int i = 0; i < size; i++ ) {
+				QString row;
+				for ( int j = 0; j < size; j++)
+					row += GetIndex( i, j ) == -1 ? "." : "#";
+				qDebug() << row;
+			}
+		}
+	};
+
+	struct GridIndex {
+		qint64 position;
+		int x;
+		int y;
 	};
 
 	class Index {
@@ -115,6 +148,68 @@ namespace gg {
 			assert( size > 0 );
 			cache2.setMaxCost( size );
 			cache3.setMaxCost( size );
+		}
+
+		static void Create( QString filename, const std::vector< GridIndex >& data )
+		{
+			gg::IndexTable< int, 32 > top;
+			std::vector< gg::IndexTable< int, 32 > > middle;
+			std::vector< gg::IndexTable< qint64, 32 > > bottom;
+
+			for ( std::vector< GridIndex >::const_iterator i = data.begin(), iend = data.end(); i != iend; i++ ) {
+				int topx = i->x / 32 / 32;
+				int topy = i->y / 32 / 32;
+				int middleIndex = top.GetIndex( topx, topy );
+				if ( middleIndex == -1 ) {
+					middleIndex =  middle.size();
+					top.SetIndex( topx, topy, middleIndex );
+					middle.push_back( gg::IndexTable< int, 32 >() );
+				}
+
+				int middlex = ( i->x / 32 ) % 32;
+				int middley = ( i->y / 32 ) % 32;
+				int bottomIndex = middle[middleIndex].GetIndex( middlex, middley );
+				if ( bottomIndex == -1 ) {
+					bottomIndex = bottom.size();
+					middle[middleIndex].SetIndex( middlex, middley, bottomIndex );
+					bottom.push_back( IndexTable< qint64, 32 >() );
+				}
+
+				int bottomx = i->x % 32;
+				int bottomy = i->y % 32;
+				bottom[bottomIndex].SetIndex( bottomx, bottomy, i->position );
+			}
+
+			qDebug() << "top index filled: " << ( double ) middle.size() * 100 / 32 / 32 << "%";
+			qDebug() << "middle tables: " << middle.size();
+			qDebug() << "middle index filled: " << ( double ) bottom.size() * 100 / middle.size() / 32 / 32 << "%";
+			qDebug() << "bottom tables: " << bottom.size();
+			qDebug() << "bottom index filled: " << ( double ) data.size() * 100 / bottom.size() / 32 / 32 << "%";
+			qDebug() << "grid cells: " << data.size();
+
+			QFile file1( filename + "_1" );
+			QFile file2( filename + "_2" );
+			QFile file3( filename + "_3" );
+			file1.open( QIODevice::WriteOnly );
+			file2.open( QIODevice::WriteOnly );
+			file3.open( QIODevice::WriteOnly );
+
+			char* buffer = new char[IndexTable< qint64, 32 >::Size()];
+
+			top.Write( buffer );
+			file1.write( buffer, IndexTable< int, 32 >::Size() );
+
+			for ( int i = 0; i < ( int ) middle.size(); i++ ) {
+				middle[i].Write( buffer );
+				file2.write( buffer, IndexTable< int, 32 >::Size() );
+			}
+
+			for ( int i = 0; i < ( int ) bottom.size(); i++ ) {
+				bottom[i].Write( buffer );
+				file3.write( buffer, IndexTable< qint64, 32 >::Size() );
+			}
+
+			delete[] buffer;
 		}
 
 	private:

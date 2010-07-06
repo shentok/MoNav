@@ -24,6 +24,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QFile>
 #include "interfaces/igpslookup.h"
 #include "cell.h"
+#include "table.h"
 #include <QCache>
 
 class GPSGridClient : public QObject, public IGPSLookup
@@ -52,18 +53,9 @@ protected:
 	bool checkCell( QVector< Result >* result, double radius, NodeID gridX, NodeID gridY, const UnsignedCoordinate& coordinate, double heading, double headingPenalty );
 
 	QString directory;
-	QFile* indexFile;
 	QFile* gridFile;
-	unsigned* indexData;
-
-	QCache< int, gg::Cell > cache;
-
-	unsigned cellsX;
-	unsigned cellsY;
-	unsigned minX;
-	unsigned minY;
-	double xWidth;
-	double yWidth;
+	QCache< qint64, gg::Cell > cache;
+	gg::Index* index;
 };
 
 #endif // GPSGRIDCLIENT_H
