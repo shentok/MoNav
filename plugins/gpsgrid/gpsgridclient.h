@@ -52,6 +52,7 @@ protected:
 	double distance( const UnsignedCoordinate& min, const UnsignedCoordinate& max, const UnsignedCoordinate& coordinate );
 	bool checkCell( QVector< Result >* result, double radius, NodeID gridX, NodeID gridY, const UnsignedCoordinate& coordinate, double heading, double headingPenalty );
 
+	long long cacheSize;
 	QString directory;
 	QFile* gridFile;
 	QCache< qint64, gg::Cell > cache;

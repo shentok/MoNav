@@ -69,6 +69,7 @@ protected:
 	QVector< Box > boxes;
 	QCache< long long, QPixmap > cache;
 	QPolygonF arrow;
+	long long cacheSize;
 };
 
 #endif // MAPNIKRENDERER_H

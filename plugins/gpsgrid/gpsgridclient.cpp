@@ -22,15 +22,24 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QtDebug>
 #include <QHash>
 #include <algorithm>
+#include <QInputDialog>
+#include <QSettings>
 
 GPSGridClient::GPSGridClient()
 {
 	index = NULL;
 	gridFile = NULL;
+	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "GPS Grid" );
+	cacheSize = settings.value( "cacheSize", 1 ).toInt();
+	cache.setMaxCost( 1024 * 3 * cacheSize / 4 );
 }
 
 GPSGridClient::~GPSGridClient()
 {
+	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "GPS Grid" );
+	settings.setValue( "cacheSize", cacheSize );
 	unload();
 }
 
@@ -57,7 +66,14 @@ void GPSGridClient::SetInputDirectory( const QString& dir )
 
 void GPSGridClient::ShowSettings()
 {
-
+	bool ok = false;
+	int result = QInputDialog::getInt( NULL, "Settings", "Enter Cache Size [MB]", cacheSize, 1, 1024, 1, &ok );
+	if ( !ok )
+		return;
+	cacheSize = result;
+	if ( index != NULL )
+		index->SetCacheSize( 1024 * 1024 * cacheSize / 4 );
+	cache.setMaxCost( 1024 * 1024 * 3 * cacheSize / 4 );
 }
 
 bool GPSGridClient::LoadData()
@@ -73,6 +89,7 @@ bool GPSGridClient::LoadData()
 	}
 
 	index = new gg::Index( filename + "_index" );
+	index->SetCacheSize( 1024 * 1024 * cacheSize / 4 );
 
 	gridFile = new QFile( filename + "_grid" );
 	if ( !gridFile->open( QIODevice::ReadOnly ) )
@@ -144,7 +161,7 @@ bool GPSGridClient::checkCell( QVector< Result >* result, double radius, NodeID 
 		gridFile->read( buffer, size );
 		gg::Cell* cell = new gg::Cell();
 		cell->read( buffer, min, max );
-		cache.insert( cellNumber, cell, 1 );
+		cache.insert( cellNumber, cell, cell->edges.size() * sizeof( gg::Cell::Edge ) );
 		delete[] buffer;
 	}
 	gg::Cell* cell = cache.object( cellNumber );

@@ -23,17 +23,25 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <cmath>
 #include "mapnikrendererclient.h"
 #include "utils/utils.h"
+#include <QSettings>
+#include <QInputDialog>
 
 MapnikRendererClient::MapnikRendererClient()
 {
 	maxZoom = -1;
 	tileSize = 1;
 	setupPolygons();
+	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "Mapnik Renderer" );
+	cacheSize = settings.value( "cacheSize", 1 ).toInt();
+	cache.setMaxCost( cacheSize );
 }
 
 MapnikRendererClient::~MapnikRendererClient()
 {
-
+	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "Mapnik Renderer" );
+	settings.setValue( "cacheSize", 1024 * 1024 * cacheSize );
 }
 
 void MapnikRendererClient::unload()
@@ -64,7 +72,12 @@ void MapnikRendererClient::SetInputDirectory( const QString& dir )
 
 void MapnikRendererClient::ShowSettings()
 {
-
+	bool ok = false;
+	int result = QInputDialog::getInt( NULL, "Settings", "Enter Cache Size [MB]", cacheSize, 1, 1024, 1, &ok );
+	if ( !ok )
+		return;
+	cacheSize = result;
+	cache.setMaxCost( 1024 * 1024 * cacheSize );
 }
 
 bool MapnikRendererClient::LoadData()
@@ -222,7 +235,7 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 							delete tile;
 							tile = NULL;
 						}
-						cache.insert( id, tile, 1 );
+						cache.insert( id, tile, tileSize * tileSize * tile->depth() / 8 );
 					}
 				}
 				else {

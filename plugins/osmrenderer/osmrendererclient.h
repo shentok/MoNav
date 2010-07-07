@@ -64,6 +64,7 @@ protected:
 	int tileSize;
 	bool loaded;
 	QPolygonF arrow;
+	long long cacheSize;
 };
 
 #endif // MAPNIKRENDERER_H

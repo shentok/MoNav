@@ -24,6 +24,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QDir>
 #include <QtDebug>
 #include <stack>
+#include <QMessageBox>
 
 ContractionHierarchiesClient::ContractionHierarchiesClient()
 {
@@ -50,6 +51,7 @@ void ContractionHierarchiesClient::SetInputDirectory( const QString& dir )
 
 void ContractionHierarchiesClient::ShowSettings()
 {
+	QMessageBox::information( NULL, "Settings", "No settings available" );
 }
 
 void ContractionHierarchiesClient::unload()
@@ -74,7 +76,7 @@ bool ContractionHierarchiesClient::LoadData()
 		qDebug() << "Failed to locate :" << filename;
 		return false;
 	}
-	graph = new block_graph( filename, false, 1000 );
+	graph = new block_graph( filename, false, 500 );
 	heapForward = new _Heap( graph->number_of_nodes() );
 	heapBackward = new _Heap( graph->number_of_nodes() );
 	return true;

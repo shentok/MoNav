@@ -23,6 +23,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <cmath>
 #include <QNetworkReply>
 #include <QDebug>
+#include <QSettings>
+#include <QInputDialog>
 
 #include "osmrendererclient.h"
 #include "utils/utils.h"
@@ -33,11 +35,17 @@ OSMRendererClient::OSMRendererClient()
 	network = NULL;
 	tileSize = 256;
 	setupPolygons();
+	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "OSM Renderer" );
+	cacheSize = settings.value( "cacheSize", 1 ).toInt();
+	cache.setMaxCost( 1024 * 1024 * cacheSize );
 }
 
 OSMRendererClient::~OSMRendererClient()
 {
-
+	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "OSM Renderer" );
+	settings.setValue( "cacheSize", cacheSize );
 }
 
 void OSMRendererClient::unload()
@@ -68,7 +76,12 @@ void OSMRendererClient::SetInputDirectory( const QString& )
 
 void OSMRendererClient::ShowSettings()
 {
-
+	bool ok = false;
+	int result = QInputDialog::getInt( NULL, "Settings", "Enter Cache Size [MB]", cacheSize, 1, 1024, 1, &ok );
+	if ( !ok )
+		return;
+	cacheSize = result;
+	cache.setMaxCost( 1024 * 1024 * cacheSize );
 }
 
 bool OSMRendererClient::LoadData()
@@ -141,7 +154,7 @@ void OSMRendererClient::finished( QNetworkReply* reply ) {
 	}
 	qDebug() << "loaded tile: " << id;
 	QPixmap* tile = new QPixmap( QPixmap::fromImage( image ) );
-	cache.insert( id, tile , 1 );
+	cache.insert( id, tile , tileSize * tileSize * tile->depth() / 8 );
 	reply->deleteLater();
 	emit changed();
 }
@@ -201,7 +214,7 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 				if ( !cache.contains( id ) ) {
 					tile = new QPixmap( tileSize, tileSize );
 					tile->fill( QColor( 241, 238 , 232, 255 ) );
-					cache.insert( id, tile, 1 );
+					cache.insert( id, tile, tileSize * tileSize * tile->depth() / 8 );
 					QString path = "http://tile.openstreetmap.org/%1/%2/%3.png";
 					QUrl url = QUrl( path.arg( request.zoom ).arg( xID ).arg( yID ) );
 					QNetworkRequest request;

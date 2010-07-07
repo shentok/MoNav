@@ -119,7 +119,7 @@ namespace gg {
 				IndexTable< int, 32 >* newEntry;
 				file2.seek( middle * newEntry->Size() );
 				newEntry = new IndexTable< int, 32 >( file2.read( newEntry->Size() ) );
-				cache2.insert( middle, newEntry );
+				cache2.insert( middle, newEntry, newEntry->Size() );
 			}
 			if ( !cache2.contains( middle ) )
 				return -1;
@@ -134,7 +134,7 @@ namespace gg {
 				IndexTable< qint64, 32 >* newEntry;
 				file3.seek( bottom * newEntry->Size() );
 				newEntry = new IndexTable< qint64, 32 >( file3.read( newEntry->Size() ) );
-				cache3.insert( bottom, newEntry );
+				cache3.insert( bottom, newEntry, newEntry->Size() );
 			}
 			if ( !cache3.contains( bottom ) )
 				return -1;
@@ -143,11 +143,11 @@ namespace gg {
 			return position;
 		}
 
-		void SetCacheSize( int size )
+		void SetCacheSize( long long size )
 		{
 			assert( size > 0 );
-			cache2.setMaxCost( size );
-			cache3.setMaxCost( size );
+			cache2.setMaxCost( 1024 * size / 4 );
+			cache3.setMaxCost( 1024 * 3 * size / 4 );
 		}
 
 		static void Create( QString filename, const std::vector< GridIndex >& data )
