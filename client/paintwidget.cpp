@@ -164,6 +164,8 @@ void PaintWidget::paintEvent( QPaintEvent* )
 {
 	if ( renderer == NULL )
 		return;
+	if ( !isVisible() )
+		return;
 
 	QPainter painter( this );
 	renderer->Paint( &painter, request );

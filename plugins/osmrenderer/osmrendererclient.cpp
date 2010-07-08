@@ -177,12 +177,13 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 	else if ( fmod( rotation / 90, 1 ) > 0.99 )
 		rotation = 90 * ceil( rotation / 90 );
 
-	double zoomFactor = ( double ) ( 1 << request.zoom ) * tileSize;
+	double tileFactor = 1u << request.zoom;
+	double zoomFactor = tileFactor * tileSize;
 	painter->translate( sizeX / 2, sizeY / 2 );
 	if ( request.virtualZoom > 0 )
 		painter->scale( request.virtualZoom, request.virtualZoom );
 	painter->rotate( rotation );
-	painter->translate( -request.center.x * zoomFactor, -request.center.y * zoomFactor );
+	//painter->translate( -request.center.x * zoomFactor, -request.center.y * zoomFactor );
 	if ( fabs( rotation ) > 1 || request.virtualZoom > 0 ) {
 		painter->setRenderHint( QPainter::SmoothPixmapTransform );
 		painter->setRenderHint( QPainter::Antialiasing );
@@ -197,10 +198,10 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 
 	QRect boundingBox = inverseTransform.mapRect( QRect(0, 0, sizeX, sizeY ) );
 
-	int minX = floor( ( double ) boundingBox.x() / tileSize );
-	int maxX = ceil( ( double ) boundingBox.right() / tileSize );
-	int minY = floor( ( double ) boundingBox.y() / tileSize );
-	int maxY = ceil( ( double ) boundingBox.bottom() / tileSize );
+	int minX = floor( ( double ) boundingBox.x() / tileSize + request.center.x * tileFactor );
+	int maxX = ceil( ( double ) boundingBox.right() / tileSize + request.center.x * tileFactor );
+	int minY = floor( ( double ) boundingBox.y() / tileSize + request.center.y * tileFactor );
+	int maxY = ceil( ( double ) boundingBox.bottom() / tileSize + request.center.y * tileFactor );
 
 	for ( int x = minX; x < maxX; ++x ) {
 		for ( int y = minY; y < maxY; ++y ) {
@@ -230,13 +231,13 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 			}
 
 			if ( tile != NULL )
-				painter->drawPixmap( x * tileSize, y * tileSize, *tile );
+				painter->drawPixmap( ( x - request.center.x * tileFactor ) * tileSize, ( y - request.center.y * tileFactor ) * tileSize, *tile );
 			else
-				painter->fillRect( x * tileSize, y * tileSize, tileSize, tileSize, QColor( 241, 238 , 232, 255 ) );
+				painter->fillRect( ( x - request.center.x * tileFactor ) * tileSize, ( y - request.center.y * tileFactor ) * tileSize,  tileSize, tileSize, QColor( 241, 238 , 232, 255 ) );
 		}
 	}
 
-	painter->setRenderHint( QPainter::Antialiasing );
+	//painter->setRenderHint( QPainter::Antialiasing );
 
 	if ( request.edgeSegments.size() > 0 && request.edges.size() > 0 ) {
 		painter->setPen( QPen( QColor( 0, 0, 128, 128 ), 8, Qt::SolidLine, Qt::FlatCap ) );
@@ -246,7 +247,7 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 			QPolygon polygon;
 			for ( ; position < request.edgeSegments[i]; position++ ) {
 				ProjectedCoordinate pos = request.edges[position].ToProjectedCoordinate();
-				polygon << QPoint( pos.x * zoomFactor, pos.y * zoomFactor );
+				polygon << QPoint( ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor );
 			}
 			painter->drawPolyline( polygon );
 		}
@@ -260,7 +261,7 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 
 		for ( int i = 0; i < request.route.size(); i++ ) {
 			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
-			QPoint point( pos.x * zoomFactor, pos.y * zoomFactor );
+			QPoint point( ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor );
 			isInside.push_back( boundingBox.contains( point ) );
 		}
 
@@ -285,32 +286,32 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 				isInside.push_back( false );
 				continue;
 			}
-			QPoint point( pos.x * zoomFactor, pos.y * zoomFactor );
+			QPoint point( ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor );
 			polygon.push_back( point );
 			lastCoord = pos;
 		}
 		painter->drawPolyline( polygon.data(), polygon.size() );
 	}
-	painter->setRenderHint( QPainter::Antialiasing );
+	//painter->setRenderHint( QPainter::Antialiasing );
 
 	if ( request.POIs.size() > 0 ) {
 		for ( int i = 0; i < request.POIs.size(); i++ ) {
 			ProjectedCoordinate pos = request.POIs[i].ToProjectedCoordinate();
-			drawIndicator( painter, transform, inverseTransform, pos.x * zoomFactor, pos.y * zoomFactor, sizeX, sizeY, QColor( 196, 0, 0 ), QColor( 0, 0, 196 ) );
+			drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, QColor( 196, 0, 0 ), QColor( 0, 0, 196 ) );
 		}
 	}
 
 	if ( request.target.x != 0 || request.target.y != 0 )
 	{
 		ProjectedCoordinate pos = request.target.ToProjectedCoordinate();
-		drawIndicator( painter, transform, inverseTransform, pos.x * zoomFactor, pos.y * zoomFactor, sizeX, sizeY, QColor( 0, 0, 128 ), QColor( 255, 0, 0 ) );
+		drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, QColor( 0, 0, 128 ), QColor( 255, 0, 0 ) );
 	}
 
 	if ( request.position.x != 0 || request.position.y != 0 )
 	{
 		ProjectedCoordinate pos = request.position.ToProjectedCoordinate();
-		drawIndicator( painter, transform, inverseTransform, pos.x * zoomFactor, pos.y * zoomFactor, sizeX, sizeY, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
-		drawArrow( painter, pos.x * zoomFactor, pos.y * zoomFactor, request.heading * 360 / 2 / M_PI - 90, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
+		drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
+		drawArrow( painter, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, request.heading * 360 / 2 / M_PI - 90, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
 	}
 
 	return true;

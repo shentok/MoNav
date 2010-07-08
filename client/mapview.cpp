@@ -31,6 +31,7 @@ MapView::MapView(QWidget *parent) :
 	setupMenu();
 	ui->headerWidget->hide();
 	ui->infoWidget->hide();
+	ui->menuButton->hide();
 	renderer = NULL;
 	gpsLookup = NULL;
 	addressLookup = NULL;
@@ -53,6 +54,9 @@ void MapView::connectSlots()
 	connect( ui->previousButton, SIGNAL(clicked()), this, SLOT(previousPlace()) );
 	connect( ui->nextButton, SIGNAL(clicked()), this, SLOT(nextPlace()) );
 	connect( ui->paintArea, SIGNAL(contextMenu(QPoint)), this, SLOT(showContextMenu(QPoint)) );
+	connect( ui->menuButton, SIGNAL(clicked()), this, SLOT(showContextMenu()) );
+	connect( ui->zoomIn, SIGNAL(clicked()), this, SLOT(addZoom()) );
+	connect( ui->zoomOut, SIGNAL(clicked()), this, SLOT(substractZoom()) );
 }
 
 void MapView::setupMenu()
@@ -80,6 +84,7 @@ void MapView::showEvent( QShowEvent * /*event*/ )
 	{
 		maxZoom = renderer->GetMaxZoom();
 		ui->zoomBar->setMaximum( maxZoom );
+		ui->zoomBar->setValue( maxZoom );
 		ui->paintArea->setZoom( maxZoom );
 		ui->paintArea->setMaxZoom( maxZoom );
 	}
@@ -130,6 +135,7 @@ void MapView::setTarget( UnsignedCoordinate t )
 void MapView::setContextMenuEnabled( bool e )
 {
 	contextMenuEnabled = e;
+	ui->menuButton->setVisible( e );
 }
 
 void MapView::setMode( Mode m )
@@ -248,6 +254,11 @@ void MapView::setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinat
 	ui->paintArea->setEdges( segmentLength, coordinates );
 }
 
+void MapView::showContextMenu()
+{
+	showContextMenu( this->mapToGlobal( ui->menuButton->pos() ) );
+}
+
 void MapView::showContextMenu( QPoint globalPos )
 {
 	if ( !contextMenuEnabled )
@@ -298,3 +309,14 @@ void MapView::gotoAddress()
 		return;
 	ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 }
+
+void MapView::addZoom()
+{
+	ui->zoomBar->triggerAction( QAbstractSlider::SliderSingleStepAdd );
+}
+
+void MapView::substractZoom()
+{
+	ui->zoomBar->triggerAction( QAbstractSlider::SliderSingleStepSub );
+}
+

@@ -58,11 +58,14 @@ public slots:
 	void nextPlace();
 	void previousPlace();
 	void showContextMenu( QPoint globalPos );
+	void showContextMenu();
 	void gotoSource();
 	void gotoGPS();
 	void gotoTarget();
 	void gotoAddress();
 	void setRoute( QVector< UnsignedCoordinate > path );
+	void addZoom();
+	void substractZoom();
 
 signals:
 	void coordinateChosen( UnsignedCoordinate coordinate );
