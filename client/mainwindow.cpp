@@ -54,6 +54,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+	unloadPlugins();
 	QSettings settings( "MoNavClient" );
 	settings.setValue( "dataDirectory", dataDirectory );
     delete ui;

@@ -44,16 +44,15 @@ public:
 protected:
 
 	struct GridImportEdge {
-		gg::Cell::Edge edge;
+		NodeID source;
+		NodeID target;
+		bool bidirectional;
 		int x;
 		int y;
 		bool operator<( const GridImportEdge& right ) const {
 			if ( x != right.x )
 				return x < right.x;
 			return y < right.y;
-		}
-		bool operator==( const GridImportEdge& right ) const {
-			return x == right.x && y == right.y && edge == right.edge;
 		}
 	};
 

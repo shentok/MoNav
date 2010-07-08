@@ -32,7 +32,7 @@ GPSGridClient::GPSGridClient()
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "GPS Grid" );
 	cacheSize = settings.value( "cacheSize", 1 ).toInt();
-	cache.setMaxCost( 1024 * 3 * cacheSize / 4 );
+	cache.setMaxCost( 1024 * 1024 * 3 * cacheSize / 4 );
 }
 
 GPSGridClient::~GPSGridClient()
@@ -167,6 +167,8 @@ bool GPSGridClient::checkCell( QVector< Result >* result, double radius, NodeID 
 	gg::Cell* cell = cache.object( cellNumber );
 	if ( cell == NULL )
 		return true;
+
+	//qDebug() << "Checking cell, " << cell->edges.size() << " edges";
 
 	for ( std::vector< gg::Cell::Edge >::const_iterator i = cell->edges.begin(), e = cell->edges.end(); i != e; ++i ) {
 		double percentage = 0;

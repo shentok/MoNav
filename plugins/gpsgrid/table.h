@@ -146,8 +146,8 @@ namespace gg {
 		void SetCacheSize( long long size )
 		{
 			assert( size > 0 );
-			cache2.setMaxCost( 1024 * size / 4 );
-			cache3.setMaxCost( 1024 * 3 * size / 4 );
+			cache2.setMaxCost( size / 4 );
+			cache3.setMaxCost( 3 * size / 4 );
 		}
 
 		static void Create( QString filename, const std::vector< GridIndex >& data )

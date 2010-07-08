@@ -93,15 +93,9 @@ bool GPSGrid::Preprocess( IImporter* importer )
 	for ( std::vector< IImporter::RoutingEdge >::const_iterator i = inputEdges.begin(); i != inputEdges.end(); ++i ) {
 		if ( i->source == i->target )
 			continue;
-		gg::Cell::Edge edgeData;
-		edgeData.source = idmap[i->source];
-		edgeData.target = idmap[i->target];
-		edgeData.bidirectional = i->bidirectional;
-		edgeData.sourceCoord = inputNodes[i->source].coordinate;
-		edgeData.targetCoord = inputNodes[i->target].coordinate;
 
-		ProjectedCoordinate sourceCoordinate = edgeData.sourceCoord.ToProjectedCoordinate();
-		ProjectedCoordinate targetCoordinate = edgeData.targetCoord.ToProjectedCoordinate();
+		ProjectedCoordinate sourceCoordinate = inputNodes[i->source].coordinate.ToProjectedCoordinate();
+		ProjectedCoordinate targetCoordinate = inputNodes[i->target].coordinate.ToProjectedCoordinate();
 		sourceCoordinate.x *= width;
 		sourceCoordinate.y *= width;
 		targetCoordinate.x *= width;
@@ -125,24 +119,27 @@ bool GPSGrid::Preprocess( IImporter* importer )
 				GridImportEdge clippedEdge;
 				clippedEdge.x = xGrid;
 				clippedEdge.y = yGrid;
-				clippedEdge.edge = edgeData;
+				clippedEdge.source = i->source;
+				clippedEdge.target = i->target;
+				clippedEdge.bidirectional = i->bidirectional;
 
 				grid.push_back( clippedEdge );
 			}
 		}
 
 	}
-	qDebug( "Sorting" );
-	std::sort( grid.begin(), grid.end() );
-
 	qDebug( "Overhead: %d Duplicated Edges", ( int ) ( grid.size() - inputEdges.size() ) );
 	qDebug( "Overhead: %d Percent Duplicated Edges", ( int ) ( ( grid.size() - inputEdges.size() ) * 100 / inputEdges.size() ) );
+	std::vector< IImporter::RoutingEdge >().swap( inputEdges );
+
+	qDebug( "Sorting" );
+	std::sort( grid.begin(), grid.end() );
 
 	qDebug( "Writing File" );
 
 	std::vector< gg::GridIndex > tempIndex;
-	unsigned position = 0;
-	for ( std::vector< GridImportEdge >::const_iterator edge = grid.begin(); edge != grid.end(); ++edge ) {
+	qint64 position = 0;
+	for ( std::vector< GridImportEdge >::const_iterator edge = grid.begin(); edge != grid.end(); ) {
 		gg::Cell cell;
 		gg::GridIndex entry;
 		entry.x = edge->x;
@@ -150,11 +147,16 @@ bool GPSGrid::Preprocess( IImporter* importer )
 		entry.position = position;
 
 		tempIndex.push_back( entry );
-		cell.edges.push_back( edge->edge );
-		while ( edge + 1 != grid.end() && ( edge + 1 )->x == edge->x && ( edge + 1 )->y == edge->y ) {
+		do {
+			gg::Cell::Edge newEdge;
+			newEdge.source = idmap[edge->source];
+			newEdge.target = idmap[edge->target];
+			newEdge.bidirectional = edge->bidirectional;
+			newEdge.sourceCoord = inputNodes[edge->source].coordinate;
+			newEdge.targetCoord = inputNodes[edge->target].coordinate;
+			cell.edges.push_back( newEdge );
 			edge++;
-			cell.edges.push_back( edge->edge );
-		}
+		} while ( edge != grid.end() && edge->x == entry.x && edge->y == entry.y );
 
 		ProjectedCoordinate min( ( double ) entry.x / width, ( double ) entry.y / width );
 		ProjectedCoordinate max( ( double ) ( entry.x + 1 ) / width, ( double ) ( entry.y + 1 ) / width );
@@ -177,6 +179,7 @@ bool GPSGrid::Preprocess( IImporter* importer )
 		position += size + sizeof( size );
 	}
 
+	qDebug() << "Creating Index";
 	gg::Index::Create( filename + "_index", tempIndex );
 
 	return true;
