@@ -66,6 +66,7 @@ public slots:
 	void setRoute( QVector< UnsignedCoordinate > path );
 	void addZoom();
 	void substractZoom();
+	void bookmarks();
 
 signals:
 	void coordinateChosen( UnsignedCoordinate coordinate );
@@ -99,13 +100,14 @@ private:
 	Mode mode;
 	QMenu* contextMenu;
 	QActionGroup* modeGroup;
-	QAction*  gotoSourceAction;
-	QAction*  gotoTargetAction;
-	QAction*  gotoGPSAction;
-	QAction*  gotoAddressAction;
-	QAction*  modeSourceAction;
-	QAction*  modeTargetAction;
-	QAction*  modePOIAction;
+	QAction* gotoSourceAction;
+	QAction* gotoTargetAction;
+	QAction* gotoGPSAction;
+	QAction* gotoAddressAction;
+	QAction* bookmarkAction;
+	QAction* modeSourceAction;
+	QAction* modeTargetAction;
+	QAction* modePOIAction;
 };
 
 #endif // MAPVIEW_H

@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QtDebug>
 #include <QInputDialog>
 #include "addressdialog.h"
+#include "bookmarksdialog.h"
 
 MapView::MapView(QWidget *parent) :
 	 QDialog(parent, Qt::Window ),
@@ -66,6 +67,8 @@ void MapView::setupMenu()
 	gotoGPSAction = contextMenu->addAction( tr( "Goto GPS" ), this, SLOT(gotoGPS()) );
 	gotoTargetAction = contextMenu->addAction( tr( "Goto Target" ), this, SLOT(gotoTarget()) );
 	gotoAddressAction = contextMenu->addAction( tr( "Goto Address" ), this, SLOT(gotoAddress()) );
+	contextMenu->addSeparator();
+	bookmarkAction = contextMenu->addAction( tr( "Bookmarks" ), this, SLOT(bookmarks()) );
 	contextMenu->addSeparator();
 	modeGroup = new QActionGroup( this );
 	modeSourceAction = new QAction( tr( "Choose Source" ), modeGroup );
@@ -307,6 +310,15 @@ void MapView::gotoAddress()
 	UnsignedCoordinate result;
 	if ( !AddressDialog::getAddress( &result, addressLookup, renderer, gpsLookup, this, true ) )
 		return;
+	ui->paintArea->setCenter( result.ToProjectedCoordinate() );
+}
+
+void MapView::bookmarks()
+{
+	UnsignedCoordinate result;
+	if ( !BookmarksDialog::showBookmarks( &result, this, source, target ) )
+		return;
+
 	ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 }
 

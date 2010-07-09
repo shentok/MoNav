@@ -24,6 +24,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QFileDialog>
 #include <QtDebug>
 #include "mapview.h"
+#include "bookmarksdialog.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -298,7 +299,14 @@ void MainWindow::settingsMenu()
 
 void MainWindow::targetBookmarks()
 {
+	UnsignedCoordinate result;
+	if ( !BookmarksDialog::showBookmarks( &result, this, source, target ) )
+		return;
 
+	if ( mode == Source )
+		setSource( result, 0 );
+	else if ( mode == Target )
+		setTarget( result );
 }
 
 void MainWindow::targetAddress()

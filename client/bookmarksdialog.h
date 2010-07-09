@@ -20,6 +20,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef BOOKMARKSDIALOG_H
 #define BOOKMARKSDIALOG_H
 
+#include "utils/coordinates.h"
 #include <QDialog>
 
 namespace Ui {
@@ -33,6 +34,24 @@ class BookmarksDialog : public QDialog
 public:
     explicit BookmarksDialog(QWidget *parent = 0);
     ~BookmarksDialog();
+	 UnsignedCoordinate getCoordinate();
+
+	 static bool showBookmarks( UnsignedCoordinate* result, QWidget* p = NULL, UnsignedCoordinate source = UnsignedCoordinate(), UnsignedCoordinate target = UnsignedCoordinate() );
+
+public slots:
+
+	 void deleteBookmark();
+	 void chooseBookmark();
+	 void addTargetBookmark();
+	 void addSourceBookmark();
+
+protected:
+	 void connectSlots();
+	 QStringList names;
+	 QVector< UnsignedCoordinate > coordinates;
+	 int chosen;
+	 UnsignedCoordinate target;
+	 UnsignedCoordinate source;
 
 private:
     Ui::BookmarksDialog *ui;

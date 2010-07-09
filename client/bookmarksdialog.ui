@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>253</width>
-    <height>361</height>
+    <height>392</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,24 +22,6 @@
      <property name="alternatingRowColors">
       <bool>true</bool>
      </property>
-     <property name="sortingEnabled">
-      <bool>true</bool>
-     </property>
-     <item>
-      <property name="text">
-       <string>New Item</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>New Item</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>New Item</string>
-      </property>
-     </item>
     </widget>
    </item>
    <item>
@@ -50,9 +32,16 @@
     </widget>
    </item>
    <item>
-    <widget class="QPushButton" name="boomarkButton">
+    <widget class="QPushButton" name="sourceButton">
      <property name="text">
-      <string>Bookmark Current Target</string>
+      <string>Bookmark Source</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="targetButton">
+     <property name="text">
+      <string>Bookmark Target</string>
      </property>
     </widget>
    </item>
