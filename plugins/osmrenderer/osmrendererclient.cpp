@@ -24,6 +24,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QNetworkReply>
 #include <QDebug>
 #include <QSettings>
+#include <QDesktopServices>
 #include <QInputDialog>
 
 #include "osmrendererclient.h"
@@ -33,6 +34,7 @@ OSMRendererClient::OSMRendererClient()
 {
 	loaded = false;
 	network = NULL;
+	diskCache = NULL;
 	tileSize = 256;
 	setupPolygons();
 	QSettings settings( "MoNavClient" );
@@ -89,6 +91,13 @@ bool OSMRendererClient::LoadData()
 	if ( loaded )
 		unload();
 	network = new QNetworkAccessManager( this );
+	diskCache = new QNetworkDiskCache( this );
+	QDir tempDir( QDesktopServices::storageLocation( QDesktopServices::TempLocation ) );
+	tempDir.mkdir( "OSMRenderer" );
+	tempDir.cd( "OSMRenderer" );
+	qDebug() << "set disk cache to: " << tempDir.path();
+	diskCache->setCacheDirectory( tempDir.path() );
+	network->setCache( diskCache );
 	connect( network, SIGNAL(finished(QNetworkReply*)), this, SLOT(finished(QNetworkReply*)) );
 	loaded = true;
 	return true;
@@ -227,6 +236,7 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 					request.setUrl( url );
 					request.setRawHeader( "User-Agent", "MoNav OSM Renderer 1.0" );
 					request.setAttribute( QNetworkRequest::User, QVariant( id ) );
+					request.setAttribute( QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache );
 					qDebug() << "request tile: " << id;
 					network->get( request );
 				}
@@ -245,57 +255,25 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 	//painter->setRenderHint( QPainter::Antialiasing );
 
 	if ( request.edgeSegments.size() > 0 && request.edges.size() > 0 ) {
-		painter->setPen( QPen( QColor( 0, 0, 128, 128 ), 8, Qt::SolidLine, Qt::FlatCap ) );
-
 		int position = 0;
 		for ( int i = 0; i < request.edgeSegments.size(); i++ ) {
-			QPolygon polygon;
+			QVector< ProjectedCoordinate > line;
 			for ( ; position < request.edgeSegments[i]; position++ ) {
 				ProjectedCoordinate pos = request.edges[position].ToProjectedCoordinate();
-				polygon << QPoint( ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor );
+				line.push_back( ProjectedCoordinate( ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor ) );
 			}
-			painter->drawPolyline( polygon );
+			drawPolyline( painter, boundingBox, line, QColor( 0, 0, 128, 128 ) );
 		}
 	}
 
-	painter->setRenderHint( QPainter::Antialiasing, false );
+	//painter->setRenderHint( QPainter::Antialiasing, false );
 	if ( request.route.size() > 0 ) {
-		painter->setPen( QPen( QColor( 0, 0, 128, 128 ), 8, Qt::SolidLine, Qt::FlatCap ) );
-
-		QVector< bool > isInside;
-
-		for ( int i = 0; i < request.route.size(); i++ ) {
+		QVector< ProjectedCoordinate > line;
+		for ( int i = 0; i < request.route.size(); i++ ){
 			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
-			QPoint point( ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor );
-			isInside.push_back( boundingBox.contains( point ) );
+			line.push_back( ProjectedCoordinate( ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor ) );
 		}
-
-		QVector< bool > draw = isInside;
-		for ( int i = 1; i < request.route.size(); i++ ) {
-			if ( isInside[i - 1] )
-				draw[i] = true;
-			if ( isInside[i] )
-				draw[i - 1] = true;
-		}
-
-		QVector< QPoint > polygon;
-		ProjectedCoordinate lastCoord;
-		for ( int i = 0; i < request.route.size(); i++ ) {
-			if ( !draw[i] ) {
-				painter->drawPolyline( polygon.data(), polygon.size() );
-				polygon.clear();
-				continue;
-			}
-			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
-			if ( ( fabs( pos.x - lastCoord.x ) + fabs( pos.y - lastCoord.y ) ) * zoomFactor < 5 ) {
-				isInside.push_back( false );
-				continue;
-			}
-			QPoint point( ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor );
-			polygon.push_back( point );
-			lastCoord = pos;
-		}
-		painter->drawPolyline( polygon.data(), polygon.size() );
+		drawPolyline( painter, boundingBox, line, QColor( 0, 0, 128, 128 ) );
 	}
 	//painter->setRenderHint( QPainter::Antialiasing );
 
@@ -356,6 +334,46 @@ void OSMRendererClient::drawIndicator( QPainter* painter, const QTransform& tran
 		painter->setPen( QPen( inner, 2 ) );
 		painter->drawEllipse( x - 8, y - 8, 16, 16);
 	}
+}
+
+void OSMRendererClient::drawPolyline( QPainter* painter, const QRect& boundingBox, QVector< ProjectedCoordinate > line, QColor color )
+{
+	painter->setPen( QPen( color, 8, Qt::SolidLine, Qt::FlatCap ) );
+
+	QVector< bool > isInside;
+
+	for ( int i = 0; i < line.size(); i++ ) {
+		ProjectedCoordinate pos = line[i];
+		QPoint point( pos.x, pos.y );
+		isInside.push_back( boundingBox.contains( point ) );
+	}
+
+	QVector< bool > draw = isInside;
+	for ( int i = 1; i < line.size(); i++ ) {
+		if ( isInside[i - 1] )
+			draw[i] = true;
+		if ( isInside[i] )
+			draw[i - 1] = true;
+	}
+
+	QVector< QPoint > polygon;
+	ProjectedCoordinate lastCoord;
+	for ( int i = 0; i < line.size(); i++ ) {
+		if ( !draw[i] ) {
+			painter->drawPolyline( polygon.data(), polygon.size() );
+			polygon.clear();
+			continue;
+		}
+		ProjectedCoordinate pos = line[i];
+		if ( fabs( pos.x - lastCoord.x ) + fabs( pos.y - lastCoord.y ) < 5 ) {
+			isInside.push_back( false );
+			continue;
+		}
+		QPoint point( pos.x, pos.y );
+		polygon.push_back( point );
+		lastCoord = pos;
+	}
+	painter->drawPolyline( polygon.data(), polygon.size() );
 }
 
 

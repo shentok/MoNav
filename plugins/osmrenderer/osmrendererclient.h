@@ -23,7 +23,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QObject>
 #include <QCache>
 #include <QNetworkAccessManager>
+#include <QNetworkDiskCache>
 #include "interfaces/irenderer.h"
+#include "utils/coordinates.h"
 
 class OSMRendererClient : public QObject, IRenderer
 {
@@ -58,9 +60,11 @@ protected:
 	void setupPolygons();
 	void drawArrow( QPainter* painter, int x, int y, double rotation, QColor outer, QColor inner );
 	void drawIndicator( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, QColor outer, QColor inner );
+	void drawPolyline( QPainter* painter, const QRect& boundingBox, QVector< ProjectedCoordinate > line, QColor color );
 
 	QCache< long long, QPixmap > cache;
 	QNetworkAccessManager* network;
+	QNetworkDiskCache* diskCache;
 	int tileSize;
 	bool loaded;
 	QPolygonF arrow;
