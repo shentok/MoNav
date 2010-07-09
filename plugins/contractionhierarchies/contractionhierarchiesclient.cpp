@@ -86,7 +86,9 @@ bool ContractionHierarchiesClient::GetRoute( double* distance, QVector< Unsigned
 {
 	heapForward->Clear();
 	heapBackward->Clear();
-	if ( target.source == source.source && target.target == target.target ) {
+	qDebug() << "source: " << source.source << "->" << source.target << "<-:" << source.bidirectional;
+	qDebug() << "target: " << target.source << "->" << target.target << "<-:" << target.bidirectional;
+	if ( target.source == source.source && target.target == source.target && ( source.bidirectional || source.percentage < target.percentage ) ) {
 		path->push_back( source.nearestPoint );
 		path->push_back( target.nearestPoint );
 		block_graph::vertex_descriptor mappedSource = graph->map_ext_to_int( source.source );

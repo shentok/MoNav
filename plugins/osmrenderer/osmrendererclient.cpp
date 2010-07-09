@@ -39,7 +39,7 @@ OSMRendererClient::OSMRendererClient()
 	setupPolygons();
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "OSM Renderer" );
-	cacheSize = settings.value( "cacheSize", 1 ).toInt();
+	cacheSize = settings.value( "cacheSize", 10 ).toInt();
 	cache.setMaxCost( 1024 * 1024 * cacheSize );
 }
 
@@ -79,7 +79,7 @@ void OSMRendererClient::SetInputDirectory( const QString& )
 void OSMRendererClient::ShowSettings()
 {
 	bool ok = false;
-	int result = QInputDialog::getInt( NULL, "Settings", "Enter Cache Size [MB]", cacheSize, 1, 1024, 1, &ok );
+	int result = QInputDialog::getInt( NULL, "Settings", "Enter Cache Size [MB]", cacheSize, 10, 1024, 1, &ok );
 	if ( !ok )
 		return;
 	cacheSize = result;
@@ -252,7 +252,7 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 		}
 	}
 
-	//painter->setRenderHint( QPainter::Antialiasing );
+	painter->setRenderHint( QPainter::Antialiasing );
 
 	if ( request.edgeSegments.size() > 0 && request.edges.size() > 0 ) {
 		int position = 0;
@@ -266,7 +266,6 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 		}
 	}
 
-	//painter->setRenderHint( QPainter::Antialiasing, false );
 	if ( request.route.size() > 0 ) {
 		QVector< ProjectedCoordinate > line;
 		for ( int i = 0; i < request.route.size(); i++ ){
@@ -275,7 +274,6 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 		}
 		drawPolyline( painter, boundingBox, line, QColor( 0, 0, 128, 128 ) );
 	}
-	//painter->setRenderHint( QPainter::Antialiasing );
 
 	if ( request.POIs.size() > 0 ) {
 		for ( int i = 0; i < request.POIs.size(); i++ ) {
