@@ -215,6 +215,11 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 				if ( !cache.contains( id ) ) {
 					tile = new QPixmap( tileSize, tileSize );
 					tile->fill( QColor( 241, 238 , 232, 255 ) );
+					long long minCacheSize = tileSize * tileSize * tile->depth() / 8 * ( maxX - minX ) * ( maxY - minY );
+					if ( cache.maxCost() < minCacheSize ) {
+						qDebug() << "had to increase cache size due accomodate all tiles for at least one image: " << minCacheSize / 1024 / 1024 << " MB";
+						cache.setMaxCost( minCacheSize );
+					}
 					cache.insert( id, tile, tileSize * tileSize * tile->depth() / 8 );
 					QString path = "http://tile.openstreetmap.org/%1/%2/%3.png";
 					QUrl url = QUrl( path.arg( request.zoom ).arg( xID ).arg( yID ) );
