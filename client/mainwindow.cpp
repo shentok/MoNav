@@ -43,6 +43,11 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->setupUi(this);
 	ui->targetSourceWidget->hide();
 	ui->settingsWidget->hide();
+	this->updateGeometry();
+	ui->mainMenuList->setMinimumSize( ui->mainMenuList->widget()->size() );
+	ui->targetMenuList->setMinimumSize( ui->targetMenuList->widget()->size() );
+	ui->settingsMenuList->setMinimumSize( ui->settingsMenuList->widget()->size() );
+	qDebug() << ui->mainMenuList->widget()->size();
 
 	QSettings settings( "MoNavClient" );
 	dataDirectory = settings.value( "dataDirectory" ).toString();
@@ -64,10 +69,23 @@ MainWindow::~MainWindow()
 void MainWindow::connectSlots()
 {
 	connect( ui->backButton, SIGNAL(clicked()), this, SLOT(back()) );
+	connect( ui->sourceButton, SIGNAL(clicked()), this, SLOT(sourceMode()) );
+	connect( ui->targetButton, SIGNAL(clicked()), this, SLOT(targetMode()) );
+	connect( ui->routeButton, SIGNAL(clicked()), this, SLOT(routeView()) );
+	connect( ui->mapButton, SIGNAL(clicked()), this, SLOT(browseMap()) );
+	connect( ui->settingsButton, SIGNAL(clicked()), this, SLOT(settingsMenu()) );
 
-	connect( ui->mainMenuList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(menuClicked(QListWidgetItem*)) );
-	connect( ui->targetMenuList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(menuClicked(QListWidgetItem*)) );
-	connect( ui->settingsMenuList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(menuClicked(QListWidgetItem*)) );
+	connect( ui->addressButton, SIGNAL(clicked()), this, SLOT(targetAddress()) );
+	connect( ui->bookmarkButton, SIGNAL(clicked()), this, SLOT(targetBookmarks()) );
+	connect( ui->gpsButton, SIGNAL(clicked()), this, SLOT(targetGPS()) );
+
+	connect( ui->settingsAddressLookupButton, SIGNAL(clicked()), this, SLOT(settingsAddressLookup()) );
+	connect( ui->settingsDataButton, SIGNAL(clicked()), this, SLOT(settingsDataDirectory()) );
+	connect( ui->settingsGPSButton, SIGNAL(clicked()), this, SLOT(settingsGPS()) );
+	connect( ui->settingsGPSLookupButton, SIGNAL(clicked()), this, SLOT(settingsGPSLookup()) );
+	connect( ui->settingsMapButton, SIGNAL(clicked()), this, SLOT(settingsRenderer()) );
+	connect( ui->settingsSystemButton, SIGNAL(clicked()), this, SLOT(settingsSystem()) );
+
 }
 
 bool MainWindow::loadPlugins()
@@ -205,41 +223,6 @@ void MainWindow::computeRoute()
 		path.clear();
 	qDebug() << "Distance: " << distance << "; Path Segments: " << path.size();
 	emit routeChanged( path );
-}
-
-void MainWindow::menuClicked( QListWidgetItem* item )
-{
-	QString label = item->text();
-	if ( label == tr( "Source" ) )
-		sourceMode();
-	else if ( label == tr( "Target" ) )
-		targetMode();
-	else if ( label == tr( "Route" ) )
-		routeView();
-	else if ( label == tr( "Map" ) )
-		browseMap();
-	else if ( label == tr( "Settings" ) )
-		settingsMenu();
-	else if ( label == tr( "Address" ) )
-		targetAddress();
-	else if ( label == tr( "Bookmarks" ) )
-		targetBookmarks();
-	else if ( label == tr( "GPS" ) )
-		targetGPS();
-	else if ( label == tr( "System Settings" ) )
-		settingsSystem();
-	else if ( label == tr( "Map Renderer Settings" ) )
-		settingsRenderer();
-	else if ( label == tr( "GPS Lookup Settings" ) )
-		settingsGPSLookup();
-	else if ( label == tr( "Address Lookup Settings" ) )
-		settingsAddressLookup();
-	else if ( label == tr( "GPS Settings" ) )
-		settingsGPS();
-	else if ( label == tr( "Data Directory Settings" ) ) {
-		dataDirectory = "";
-		settingsDataDirectory();
-	}
 }
 
 void MainWindow::back()

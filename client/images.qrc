@@ -8,5 +8,6 @@
         <file>images/settings.bmp</file>
         <file>images/viewmap.bmp</file>
         <file>images/source.bmp</file>
+        <file>images/placeholder.png</file>
     </qresource>
 </RCC>

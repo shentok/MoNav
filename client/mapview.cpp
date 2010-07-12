@@ -83,6 +83,7 @@ void MapView::setupMenu()
 	modeSourceAction = new QAction( tr( "Choose Source" ), modeGroup );
 	modeSourceAction->setCheckable( true );
 	modeTargetAction = new QAction( tr( "Choose Target" ), modeGroup );
+	modeTargetAction->setCheckable( true );
 	contextMenu->addActions( modeGroup->actions() );
 }
 

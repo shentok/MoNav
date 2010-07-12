@@ -58,8 +58,6 @@ public slots:
 	void settingsGPS();
 	void settingsDataDirectory();
 
-	void menuClicked( QListWidgetItem* item );
-
 	void setSource( UnsignedCoordinate source, double heading );
 	void setTarget( UnsignedCoordinate target );
 
