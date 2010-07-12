@@ -118,39 +118,41 @@ int MapnikRendererClient::GetMaxZoom()
 	return maxZoom;
 }
 
-ProjectedCoordinate MapnikRendererClient::Move( ProjectedCoordinate center, int shiftX, int shiftY, int zoom )
+ProjectedCoordinate MapnikRendererClient::Move( int shiftX, int shiftY, const PaintRequest& request )
 {
 	if ( !loaded )
-		return center;
-	center.x -= ( double ) shiftX / tileSize / ( 1u << zoom );
-	center.y -= ( double ) shiftY / tileSize / ( 1u << zoom );
+		return request.center;
+	int zoom = request.zoom + request.virtualZoom - 1;
+	ProjectedCoordinate center = request.center;
+	if ( request.rotation != 0 ) {
+		int newX, newY;
+		QTransform transform;
+		transform.rotate( -request.rotation );
+		transform.map( shiftX, shiftY, &newX, &newY );
+		shiftX = newX;
+		shiftY = newY;
+	}
+	center.x -= ( double ) shiftX / tileSize / pow( 2, zoom );
+	center.y -= ( double ) shiftY / tileSize / pow( 2, zoom );
 	return center;
 }
 
-ProjectedCoordinate MapnikRendererClient::PointToCoordinate( ProjectedCoordinate center, int shiftX, int shiftY, int zoom )
+ProjectedCoordinate MapnikRendererClient::PointToCoordinate( int shiftX, int shiftY, const PaintRequest& request )
 {
 	if ( !loaded )
-		return center;
-	center.x += ( ( double ) shiftX ) / tileSize / ( 1u << zoom );
-	center.y += ( ( double ) shiftY ) / tileSize / ( 1u << zoom );
-	return center;
-}
-
-ProjectedCoordinate MapnikRendererClient::ZoomInOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int /*zoom*/ )
-{
-	if ( !loaded )
-		return center;
-	center.x = center.x + zoomPoint.x;
-	center.y = center.y + zoomPoint.y;
-	return center;
-}
-
-ProjectedCoordinate MapnikRendererClient::ZoomOutOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int /*zoom*/ )
-{
-	if ( !loaded )
-		return center;
-	center.x = center.x - zoomPoint.x / 2;
-	center.y = center.y - zoomPoint.y / 2;
+		return request.center;
+	int zoom = request.zoom + request.virtualZoom - 1;
+	ProjectedCoordinate center = request.center;
+	if ( request.rotation != 0 ) {
+		int newX, newY;
+		QTransform transform;
+		transform.rotate( -request.rotation );
+		transform.map( shiftX, shiftY, &newX, &newY );
+		shiftX = newX;
+		shiftY = newY;
+	}
+	center.x += ( ( double ) shiftX ) / tileSize / pow( 2, zoom );
+	center.y += ( ( double ) shiftY ) / tileSize / pow( 2, zoom );
 	return center;
 }
 
@@ -177,16 +179,16 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 	else if ( fmod( rotation / 90, 1 ) > 0.99 )
 		rotation = 90 * ceil( rotation / 90 );
 
-	double zoomFactor = ( double ) ( 1 << request.zoom ) * tileSize;
+	double tileFactor = 1u << request.zoom;
+	double zoomFactor = tileFactor * tileSize;
 	painter->translate( sizeX / 2, sizeY / 2 );
 	if ( request.virtualZoom > 0 )
 		painter->scale( request.virtualZoom, request.virtualZoom );
 	painter->rotate( rotation );
-	painter->translate( -request.center.x * zoomFactor, -request.center.y * zoomFactor );
-	if ( fabs( rotation ) > 1 || request.virtualZoom > 0 ) {
-		painter->setRenderHint( QPainter::SmoothPixmapTransform );
-		painter->setRenderHint( QPainter::Antialiasing );
-		painter->setRenderHint( QPainter::HighQualityAntialiasing );
+	if ( fabs( rotation ) > 1 || request.virtualZoom > 1 ) {
+		//painter->setRenderHint( QPainter::SmoothPixmapTransform );
+		//painter->setRenderHint( QPainter::Antialiasing );
+		//painter->setRenderHint( QPainter::HighQualityAntialiasing );
 	}
 
 	QTransform transform = painter->worldTransform();
@@ -197,10 +199,10 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 
 	QRect boundingBox = inverseTransform.mapRect( QRect(0, 0, sizeX, sizeY ) );
 
-	int minX = floor( ( double ) boundingBox.x() / tileSize );
-	int maxX = ceil( ( double ) boundingBox.right() / tileSize );
-	int minY = floor( ( double ) boundingBox.y() / tileSize );
-	int maxY = ceil( ( double ) boundingBox.bottom() / tileSize );
+	int minX = floor( ( double ) boundingBox.x() / tileSize + request.center.x * tileFactor );
+	int maxX = ceil( ( double ) boundingBox.right() / tileSize + request.center.x * tileFactor );
+	int minY = floor( ( double ) boundingBox.y() / tileSize + request.center.y * tileFactor );
+	int maxY = ceil( ( double ) boundingBox.bottom() / tileSize + request.center.y * tileFactor );
 
 	QDir dir( directory );
 	QString filename = dir.filePath( "Mapnik Renderer" );
@@ -209,7 +211,9 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 	QFile imageFile( filename + QString( "_%1_tiles" ).arg( request.zoom ) );
 	imageFile.open( QIODevice::ReadOnly );
 
+	int posX = ( minX - request.center.x * tileFactor ) * tileSize;
 	for ( int x = minX; x < maxX; ++x ) {
+		int posY = ( minY - request.center.y * tileFactor ) * tileSize;
 		for ( int y = minY; y < maxY; ++y ) {
 			const int xID = x - boxes[request.zoom].minX;
 			const int yID = y - boxes[request.zoom].minY;
@@ -244,87 +248,55 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 			}
 
 			if ( tile != NULL )
-				painter->drawPixmap( x * tileSize, y * tileSize, *tile );
+				painter->drawPixmap( posX, posY, *tile );
 			else
-				painter->fillRect( x * tileSize, y * tileSize, tileSize, tileSize, QColor( 241, 238 , 232, 255 ) );
+				painter->fillRect( posX, posY,  tileSize, tileSize, QColor( 241, 238 , 232, 255 ) );
+			posY += tileSize;
 		}
+		posX += tileSize;
 	}
 
 	painter->setRenderHint( QPainter::Antialiasing );
 
 	if ( request.edgeSegments.size() > 0 && request.edges.size() > 0 ) {
-		painter->setPen( QPen( QColor( 0, 0, 128, 128 ), 8, Qt::SolidLine, Qt::FlatCap ) );
-
 		int position = 0;
 		for ( int i = 0; i < request.edgeSegments.size(); i++ ) {
-			QPolygon polygon;
+			QVector< ProjectedCoordinate > line;
 			for ( ; position < request.edgeSegments[i]; position++ ) {
 				ProjectedCoordinate pos = request.edges[position].ToProjectedCoordinate();
-				polygon << QPoint( pos.x * zoomFactor, pos.y * zoomFactor );
+				line.push_back( ProjectedCoordinate( ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor ) );
 			}
-			painter->drawPolyline( polygon );
+			drawPolyline( painter, boundingBox, line, QColor( 0, 0, 128, 128 ) );
 		}
 	}
 
-	painter->setRenderHint( QPainter::Antialiasing, false );
 	if ( request.route.size() > 0 ) {
-		painter->setPen( QPen( QColor( 0, 0, 128, 128 ), 8, Qt::SolidLine, Qt::FlatCap ) );
-
-		QVector< bool > isInside;
-
-		for ( int i = 0; i < request.route.size(); i++ ) {
+		QVector< ProjectedCoordinate > line;
+		for ( int i = 0; i < request.route.size(); i++ ){
 			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
-			QPoint point( pos.x * zoomFactor, pos.y * zoomFactor );
-			isInside.push_back( boundingBox.contains( point ) );
+			line.push_back( ProjectedCoordinate( ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor ) );
 		}
-
-		QVector< bool > draw = isInside;
-		for ( int i = 1; i < request.route.size(); i++ ) {
-			if ( isInside[i - 1] )
-				draw[i] = true;
-			if ( isInside[i] )
-				draw[i - 1] = true;
-		}
-
-		QVector< QPoint > polygon;
-		ProjectedCoordinate lastCoord;
-		for ( int i = 0; i < request.route.size(); i++ ) {
-			if ( !draw[i] ) {
-				painter->drawPolyline( polygon.data(), polygon.size() );
-				polygon.clear();
-				continue;
-			}
-			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
-			if ( ( fabs( pos.x - lastCoord.x ) + fabs( pos.y - lastCoord.y ) ) * zoomFactor < 5 ) {
-				isInside.push_back( false );
-				continue;
-			}
-			QPoint point( pos.x * zoomFactor, pos.y * zoomFactor );
-			polygon.push_back( point );
-			lastCoord = pos;
-		}
-		painter->drawPolyline( polygon.data(), polygon.size() );
+		drawPolyline( painter, boundingBox, line, QColor( 0, 0, 128, 128 ) );
 	}
-	painter->setRenderHint( QPainter::Antialiasing );
 
 	if ( request.POIs.size() > 0 ) {
 		for ( int i = 0; i < request.POIs.size(); i++ ) {
 			ProjectedCoordinate pos = request.POIs[i].ToProjectedCoordinate();
-			drawIndicator( painter, transform, inverseTransform, pos.x * zoomFactor, pos.y * zoomFactor, sizeX, sizeY, QColor( 196, 0, 0 ), QColor( 0, 0, 196 ) );
+			drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, QColor( 196, 0, 0 ), QColor( 0, 0, 196 ) );
 		}
 	}
 
 	if ( request.target.x != 0 || request.target.y != 0 )
 	{
 		ProjectedCoordinate pos = request.target.ToProjectedCoordinate();
-		drawIndicator( painter, transform, inverseTransform, pos.x * zoomFactor, pos.y * zoomFactor, sizeX, sizeY, QColor( 0, 0, 128 ), QColor( 255, 0, 0 ) );
+		drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, QColor( 0, 0, 128 ), QColor( 255, 0, 0 ) );
 	}
 
 	if ( request.position.x != 0 || request.position.y != 0 )
 	{
 		ProjectedCoordinate pos = request.position.ToProjectedCoordinate();
-		drawIndicator( painter, transform, inverseTransform, pos.x * zoomFactor, pos.y * zoomFactor, sizeX, sizeY, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
-		drawArrow( painter, pos.x * zoomFactor, pos.y * zoomFactor, request.heading * 360 / 2 / M_PI - 90, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
+		drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
+		drawArrow( painter, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, request.heading * 360 / 2 / M_PI - 90, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
 	}
 
 	return true;
@@ -364,6 +336,46 @@ void MapnikRendererClient::drawIndicator( QPainter* painter, const QTransform& t
 		painter->setPen( QPen( inner, 2 ) );
 		painter->drawEllipse( x - 8, y - 8, 16, 16);
 	}
+}
+
+void MapnikRendererClient::drawPolyline( QPainter* painter, const QRect& boundingBox, QVector< ProjectedCoordinate > line, QColor color )
+{
+	painter->setPen( QPen( color, 8, Qt::SolidLine, Qt::FlatCap ) );
+
+	QVector< bool > isInside;
+
+	for ( int i = 0; i < line.size(); i++ ) {
+		ProjectedCoordinate pos = line[i];
+		QPoint point( pos.x, pos.y );
+		isInside.push_back( boundingBox.contains( point ) );
+	}
+
+	QVector< bool > draw = isInside;
+	for ( int i = 1; i < line.size(); i++ ) {
+		if ( isInside[i - 1] )
+			draw[i] = true;
+		if ( isInside[i] )
+			draw[i - 1] = true;
+	}
+
+	QVector< QPoint > polygon;
+	ProjectedCoordinate lastCoord;
+	for ( int i = 0; i < line.size(); i++ ) {
+		if ( !draw[i] ) {
+			painter->drawPolyline( polygon.data(), polygon.size() );
+			polygon.clear();
+			continue;
+		}
+		ProjectedCoordinate pos = line[i];
+		if ( fabs( pos.x - lastCoord.x ) + fabs( pos.y - lastCoord.y ) < 5 ) {
+			isInside.push_back( false );
+			continue;
+		}
+		QPoint point( pos.x, pos.y );
+		polygon.push_back( point );
+		lastCoord = pos;
+	}
+	painter->drawPolyline( polygon.data(), polygon.size() );
 }
 
 
