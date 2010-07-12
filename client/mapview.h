@@ -67,6 +67,7 @@ public slots:
 	void addZoom();
 	void substractZoom();
 	void bookmarks();
+	void magnify();
 
 signals:
 	void coordinateChosen( UnsignedCoordinate coordinate );
@@ -95,6 +96,7 @@ private:
 	UnsignedCoordinate target;
 	UnsignedCoordinate source;
 	double heading;
+	int virtualZoom;
 
 	bool contextMenuEnabled;
 	Mode mode;
@@ -105,9 +107,9 @@ private:
 	QAction* gotoGPSAction;
 	QAction* gotoAddressAction;
 	QAction* bookmarkAction;
+	QAction* magnifyAction;
 	QAction* modeSourceAction;
 	QAction* modeTargetAction;
-	QAction* modePOIAction;
 };
 
 #endif // MAPVIEW_H

@@ -99,6 +99,12 @@ void PaintWidget::setEdges( QVector< int > edgeSegments, QVector< UnsignedCoordi
 	if ( isVisible() )
 		update();
 }
+void PaintWidget::setVirtualZoom( int z )
+{
+	request.virtualZoom = z;
+	if ( isVisible() )
+		update();
+}
 
 void PaintWidget::mousePressEvent( QMouseEvent* event )
 {
@@ -117,7 +123,7 @@ void PaintWidget::mouseMoveEvent( QMouseEvent* event )
 		drag = true;
 	if ( !drag )
 		return;
-	request.center = renderer->Move( request.center, event->x() - lastMouseX, event->y() - lastMouseY, request.zoom );
+	request.center = renderer->Move( event->x() - lastMouseX, event->y() - lastMouseY, request );
 	lastMouseX = event->x();
 	lastMouseY = event->y();
 	update();
@@ -131,7 +137,7 @@ void PaintWidget::mouseReleaseEvent( QMouseEvent* event )
 		return;
 	if ( renderer == NULL )
 		return;
-	emit mouseClicked( renderer->PointToCoordinate( request.center, event->x() - width() / 2, event->y() - height() / 2, request.zoom ) );
+	emit mouseClicked( renderer->PointToCoordinate( event->x() - width() / 2, event->y() - height() / 2, request ) );
 }
 
 void PaintWidget::wheelEvent( QWheelEvent * event )
@@ -152,9 +158,9 @@ void PaintWidget::wheelEvent( QWheelEvent * event )
 	if ( newZoom == request.zoom )
 		return;
 
-	request.center = renderer->Move( request.center, width() / 2 - event->x(), height() / 2 - event->y(), request.zoom );
+	request.center = renderer->Move( width() / 2 - event->x(), height() / 2 - event->y(), request );
 	request.zoom = newZoom;
-	request.center = renderer->Move( request.center, event->x() - width() / 2, event->y() - height() / 2, request.zoom );
+	request.center = renderer->Move( event->x() - width() / 2, event->y() - height() / 2, request );
 
 	emit zoomChanged( newZoom );
 	update();

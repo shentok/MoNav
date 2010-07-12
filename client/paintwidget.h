@@ -44,6 +44,7 @@ public slots:
 	void setPOIs( QVector< UnsignedCoordinate > p );
 	void setRoute( QVector< UnsignedCoordinate > r );
 	void setEdges( QVector< int > edgeSegments, QVector< UnsignedCoordinate > edges );
+	void setVirtualZoom( int z );
 
 signals:
 

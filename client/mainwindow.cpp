@@ -259,6 +259,7 @@ void MainWindow::browseMap()
 	window->setSource( source, heading );
 	window->setTarget( target );
 	window->setContextMenuEnabled( true );
+	window->setMode( MapView::Target );
 	connect( window, SIGNAL(sourceChanged(UnsignedCoordinate,double)), this, SLOT(setSource(UnsignedCoordinate,double)) );
 	connect( window, SIGNAL(targetChanged(UnsignedCoordinate)), this, SLOT(setTarget(UnsignedCoordinate)) );
 	connect( this, SIGNAL(routeChanged(QVector<UnsignedCoordinate>)), window, SLOT(setRoute(QVector<UnsignedCoordinate>)) );
@@ -284,11 +285,7 @@ void MainWindow::targetMode()
 
 void MainWindow::routeView()
 {
-	MapView* window = new MapView( this );
-	window->setRender( renderer );
-	window->setGPSLookup( gpsLookup );
-	window->exec();
-	delete window;
+
 }
 
 void MainWindow::settingsMenu()

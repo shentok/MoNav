@@ -41,10 +41,8 @@ public:
 	virtual void ShowSettings();
 	virtual bool LoadData();
 	virtual int GetMaxZoom();
-	virtual ProjectedCoordinate Move( ProjectedCoordinate center, int shiftX, int shiftY, int zoom );
-	virtual ProjectedCoordinate PointToCoordinate( ProjectedCoordinate center, int shiftX, int shiftY, int zoom );
-	virtual ProjectedCoordinate ZoomInOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom );
-	virtual ProjectedCoordinate ZoomOutOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom );
+	virtual ProjectedCoordinate Move( int shiftX, int shiftY, const PaintRequest& request );
+	virtual ProjectedCoordinate PointToCoordinate( int shiftX, int shiftY, const PaintRequest& request );
 	virtual bool Paint( QPainter* painter, const PaintRequest& request );
 	virtual void setSlot( QObject* obj, const char* slot );
 

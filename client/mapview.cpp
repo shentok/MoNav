@@ -23,6 +23,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QInputDialog>
 #include "addressdialog.h"
 #include "bookmarksdialog.h"
+#include <QSettings>
 
 MapView::MapView(QWidget *parent) :
 	 QDialog(parent, Qt::Window ),
@@ -40,10 +41,16 @@ MapView::MapView(QWidget *parent) :
 	mode = POI;
 	connectSlots();
 	heading = 0;
+	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "MapView" );
+	virtualZoom = settings.value( "virtualZoom", 1 ).toInt();
 }
 
 MapView::~MapView()
 {
+	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "MapView" );
+	settings.setValue( "virtualZoom", virtualZoom );
 	delete ui;
 }
 
@@ -70,14 +77,12 @@ void MapView::setupMenu()
 	contextMenu->addSeparator();
 	bookmarkAction = contextMenu->addAction( tr( "Bookmarks" ), this, SLOT(bookmarks()) );
 	contextMenu->addSeparator();
+	magnifyAction = contextMenu->addAction( tr( "Magnify" ), this, SLOT(magnify()) );
+	contextMenu->addSeparator();
 	modeGroup = new QActionGroup( this );
 	modeSourceAction = new QAction( tr( "Choose Source" ), modeGroup );
 	modeSourceAction->setCheckable( true );
 	modeTargetAction = new QAction( tr( "Choose Target" ), modeGroup );
-	modeTargetAction->setCheckable( true );
-	modePOIAction = new QAction( tr( "Choose POI" ), modeGroup );
-	modePOIAction->setCheckable( true );
-	modePOIAction->setChecked( true );
 	contextMenu->addActions( modeGroup->actions() );
 }
 
@@ -90,6 +95,7 @@ void MapView::showEvent( QShowEvent * /*event*/ )
 		ui->zoomBar->setValue( maxZoom );
 		ui->paintArea->setZoom( maxZoom );
 		ui->paintArea->setMaxZoom( maxZoom );
+		ui->paintArea->setVirtualZoom( virtualZoom );
 	}
 }
 
@@ -144,6 +150,8 @@ void MapView::setContextMenuEnabled( bool e )
 void MapView::setMode( Mode m )
 {
 	mode = m;
+	modeSourceAction->setChecked( mode == Source );
+	modeTargetAction->setChecked( mode == Target );
 }
 
 void MapView::setRoute( QVector< UnsignedCoordinate > path )
@@ -276,8 +284,6 @@ void MapView::showContextMenu( QPoint globalPos )
 		mode = Source;
 	if ( action == modeTargetAction )
 		mode = Target;
-	if ( action == modePOIAction )
-		mode = POI;
 }
 
 void MapView::gotoSource()
@@ -330,5 +336,15 @@ void MapView::addZoom()
 void MapView::substractZoom()
 {
 	ui->zoomBar->triggerAction( QAbstractSlider::SliderSingleStepSub );
+}
+
+void MapView::magnify()
+{
+	bool ok = false;
+	int result = QInputDialog::getInt( this, "Magnification", "Enter Factor", virtualZoom, 1, 10, 1, &ok );
+	if ( !ok )
+		return;
+	virtualZoom = result;
+	ui->paintArea->setVirtualZoom( virtualZoom );
 }
 

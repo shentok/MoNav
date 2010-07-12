@@ -24,7 +24,7 @@ public:
 
 		PaintRequest() {
 			zoom = 0;
-			virtualZoom = 0;
+			virtualZoom = 1;
 			rotation = 0;
 			heading = 0;
 		}
@@ -35,15 +35,13 @@ public:
 	virtual void ShowSettings() = 0;
 	virtual bool LoadData() = 0;
 	virtual int GetMaxZoom() = 0;
-	virtual ProjectedCoordinate Move( ProjectedCoordinate center, int shiftX, int shiftY, int zoom ) = 0;
-	virtual ProjectedCoordinate PointToCoordinate( ProjectedCoordinate center, int shiftX, int shiftY, int zoom ) = 0;
-	virtual ProjectedCoordinate ZoomInOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom ) = 0;
-	virtual ProjectedCoordinate ZoomOutOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int zoom ) = 0;
+	virtual ProjectedCoordinate Move( int shiftX, int shiftY, const PaintRequest& request ) = 0;
+	virtual ProjectedCoordinate PointToCoordinate( int shiftX, int shiftY, const PaintRequest& request ) = 0;
 	virtual bool Paint( QPainter* painter, const PaintRequest& request ) = 0;
 	virtual void setSlot( QObject* obj, const char* slot ) = 0;
 	virtual ~IRenderer() {}
 };
 
-Q_DECLARE_INTERFACE( IRenderer, "monav.IRenderer/1.1" )
+Q_DECLARE_INTERFACE( IRenderer, "monav.IRenderer/1.2" )
 
 #endif // IRENDERER_H

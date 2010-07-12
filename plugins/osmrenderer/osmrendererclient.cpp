@@ -108,39 +108,41 @@ int OSMRendererClient::GetMaxZoom()
 	return 18;
 }
 
-ProjectedCoordinate OSMRendererClient::Move( ProjectedCoordinate center, int shiftX, int shiftY, int zoom )
+ProjectedCoordinate OSMRendererClient::Move( int shiftX, int shiftY, const PaintRequest& request )
 {
 	if ( !loaded )
-		return center;
-	center.x -= ( double ) shiftX / tileSize / ( 1u << zoom );
-	center.y -= ( double ) shiftY / tileSize / ( 1u << zoom );
+		return request.center;
+	int zoom = request.zoom + request.virtualZoom - 1;
+	ProjectedCoordinate center = request.center;
+	if ( request.rotation != 0 ) {
+		int newX, newY;
+		QTransform transform;
+		transform.rotate( -request.rotation );
+		transform.map( shiftX, shiftY, &newX, &newY );
+		shiftX = newX;
+		shiftY = newY;
+	}
+	center.x -= ( double ) shiftX / tileSize / pow( 2, zoom );
+	center.y -= ( double ) shiftY / tileSize / pow( 2, zoom );
 	return center;
 }
 
-ProjectedCoordinate OSMRendererClient::PointToCoordinate( ProjectedCoordinate center, int shiftX, int shiftY, int zoom )
+ProjectedCoordinate OSMRendererClient::PointToCoordinate( int shiftX, int shiftY, const PaintRequest& request )
 {
 	if ( !loaded )
-		return center;
-	center.x += ( ( double ) shiftX ) / tileSize / ( 1u << zoom );
-	center.y += ( ( double ) shiftY ) / tileSize / ( 1u << zoom );
-	return center;
-}
-
-ProjectedCoordinate OSMRendererClient::ZoomInOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int /*zoom*/ )
-{
-	if ( !loaded )
-		return center;
-	center.x = center.x + zoomPoint.x;
-	center.y = center.y + zoomPoint.y;
-	return center;
-}
-
-ProjectedCoordinate OSMRendererClient::ZoomOutOn( ProjectedCoordinate center, ProjectedCoordinate zoomPoint, int /*zoom*/ )
-{
-	if ( !loaded )
-		return center;
-	center.x = center.x - zoomPoint.x / 2;
-	center.y = center.y - zoomPoint.y / 2;
+		return request.center;
+	int zoom = request.zoom + request.virtualZoom - 1;
+	ProjectedCoordinate center = request.center;
+	if ( request.rotation != 0 ) {
+		int newX, newY;
+		QTransform transform;
+		transform.rotate( -request.rotation );
+		transform.map( shiftX, shiftY, &newX, &newY );
+		shiftX = newX;
+		shiftY = newY;
+	}
+	center.x += ( ( double ) shiftX ) / tileSize / pow( 2, zoom );
+	center.y += ( ( double ) shiftY ) / tileSize / pow( 2, zoom );
 	return center;
 }
 
@@ -192,11 +194,10 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 	if ( request.virtualZoom > 0 )
 		painter->scale( request.virtualZoom, request.virtualZoom );
 	painter->rotate( rotation );
-	//painter->translate( -request.center.x * zoomFactor, -request.center.y * zoomFactor );
-	if ( fabs( rotation ) > 1 || request.virtualZoom > 0 ) {
-		painter->setRenderHint( QPainter::SmoothPixmapTransform );
-		painter->setRenderHint( QPainter::Antialiasing );
-		painter->setRenderHint( QPainter::HighQualityAntialiasing );
+	if ( fabs( rotation ) > 1 || request.virtualZoom > 1 ) {
+		//painter->setRenderHint( QPainter::SmoothPixmapTransform );
+		//painter->setRenderHint( QPainter::Antialiasing );
+		//painter->setRenderHint( QPainter::HighQualityAntialiasing );
 	}
 
 	QTransform transform = painter->worldTransform();
@@ -212,7 +213,9 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 	int minY = floor( ( double ) boundingBox.y() / tileSize + request.center.y * tileFactor );
 	int maxY = ceil( ( double ) boundingBox.bottom() / tileSize + request.center.y * tileFactor );
 
+	int posX = ( minX - request.center.x * tileFactor ) * tileSize;
 	for ( int x = minX; x < maxX; ++x ) {
+		int posY = ( minY - request.center.y * tileFactor ) * tileSize;
 		for ( int y = minY; y < maxY; ++y ) {
 			const int xID = x;
 			const int yID = y;
@@ -224,7 +227,7 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 				if ( !cache.contains( id ) ) {
 					tile = new QPixmap( tileSize, tileSize );
 					tile->fill( QColor( 241, 238 , 232, 255 ) );
-					long long minCacheSize = tileSize * tileSize * tile->depth() / 8 * ( maxX - minX ) * ( maxY - minY );
+					long long minCacheSize = 2 * tileSize * tileSize * tile->depth() / 8 * ( maxX - minX ) * ( maxY - minY );
 					if ( cache.maxCost() < minCacheSize ) {
 						qDebug() << "had to increase cache size due accomodate all tiles for at least one image: " << minCacheSize / 1024 / 1024 << " MB";
 						cache.setMaxCost( minCacheSize );
@@ -246,10 +249,12 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 			}
 
 			if ( tile != NULL )
-				painter->drawPixmap( ( x - request.center.x * tileFactor ) * tileSize, ( y - request.center.y * tileFactor ) * tileSize, *tile );
+				painter->drawPixmap( posX, posY, *tile );
 			else
-				painter->fillRect( ( x - request.center.x * tileFactor ) * tileSize, ( y - request.center.y * tileFactor ) * tileSize,  tileSize, tileSize, QColor( 241, 238 , 232, 255 ) );
+				painter->fillRect( posX, posY,  tileSize, tileSize, QColor( 241, 238 , 232, 255 ) );
+			posY += tileSize;
 		}
+		posX += tileSize;
 	}
 
 	painter->setRenderHint( QPainter::Antialiasing );
