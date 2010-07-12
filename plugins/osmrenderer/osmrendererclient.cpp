@@ -112,7 +112,6 @@ ProjectedCoordinate OSMRendererClient::Move( int shiftX, int shiftY, const Paint
 {
 	if ( !loaded )
 		return request.center;
-	int zoom = request.zoom + request.virtualZoom - 1;
 	ProjectedCoordinate center = request.center;
 	if ( request.rotation != 0 ) {
 		int newX, newY;
@@ -122,28 +121,14 @@ ProjectedCoordinate OSMRendererClient::Move( int shiftX, int shiftY, const Paint
 		shiftX = newX;
 		shiftY = newY;
 	}
-	center.x -= ( double ) shiftX / tileSize / pow( 2, zoom );
-	center.y -= ( double ) shiftY / tileSize / pow( 2, zoom );
+	center.x -= ( double ) shiftX / tileSize / ( 1u << request.zoom ) / ( request.virtualZoom );
+	center.y -= ( double ) shiftY / tileSize / ( 1u << request.zoom ) / ( request.virtualZoom );
 	return center;
 }
 
 ProjectedCoordinate OSMRendererClient::PointToCoordinate( int shiftX, int shiftY, const PaintRequest& request )
 {
-	if ( !loaded )
-		return request.center;
-	int zoom = request.zoom + request.virtualZoom - 1;
-	ProjectedCoordinate center = request.center;
-	if ( request.rotation != 0 ) {
-		int newX, newY;
-		QTransform transform;
-		transform.rotate( -request.rotation );
-		transform.map( shiftX, shiftY, &newX, &newY );
-		shiftX = newX;
-		shiftY = newY;
-	}
-	center.x += ( ( double ) shiftX ) / tileSize / pow( 2, zoom );
-	center.y += ( ( double ) shiftY ) / tileSize / pow( 2, zoom );
-	return center;
+	return Move( -shiftX, -shiftY, request );
 }
 
 void OSMRendererClient::setSlot( QObject* obj, const char* slot )
@@ -283,20 +268,20 @@ bool OSMRendererClient::Paint( QPainter* painter, const PaintRequest& request )
 	if ( request.POIs.size() > 0 ) {
 		for ( int i = 0; i < request.POIs.size(); i++ ) {
 			ProjectedCoordinate pos = request.POIs[i].ToProjectedCoordinate();
-			drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, QColor( 196, 0, 0 ), QColor( 0, 0, 196 ) );
+			drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, request.virtualZoom, QColor( 196, 0, 0 ), QColor( 0, 0, 196 ) );
 		}
 	}
 
 	if ( request.target.x != 0 || request.target.y != 0 )
 	{
 		ProjectedCoordinate pos = request.target.ToProjectedCoordinate();
-		drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, QColor( 0, 0, 128 ), QColor( 255, 0, 0 ) );
+		drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, request.virtualZoom, QColor( 0, 0, 128 ), QColor( 255, 0, 0 ) );
 	}
 
 	if ( request.position.x != 0 || request.position.y != 0 )
 	{
 		ProjectedCoordinate pos = request.position.ToProjectedCoordinate();
-		drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
+		drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, request.virtualZoom, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
 		drawArrow( painter, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, request.heading * 360 / 2 / M_PI - 90, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
 	}
 
@@ -318,14 +303,15 @@ void OSMRendererClient::drawArrow( QPainter* painter, int x, int y, double rotat
 	painter->drawPolygon( arrowMatrix.map( arrow ) );
 }
 
-void OSMRendererClient::drawIndicator( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, QColor outer, QColor inner )
+void OSMRendererClient::drawIndicator( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, int virtualZoom, QColor outer, QColor inner )
 {
 	QPoint mapped = transform.map( QPoint( x, y ) );
-	if ( mapped.x() < 3 || mapped.y() < 3 || mapped.x() >= sizeX - 3 || mapped.y() >= sizeY - 3 ) {
+	int margin = 9 * virtualZoom;
+	if ( mapped.x() < margin || mapped.y() < margin || mapped.x() >= sizeX - margin || mapped.y() >= sizeY - margin ) {
 		//clip an imaginary line from the screen center to pos at the screen boundaries
 		ProjectedCoordinate start( mapped.x(), mapped.y() );
 		ProjectedCoordinate end( sizeX / 2, sizeY / 2 );
-		clipEdge( &start, &end, ProjectedCoordinate( 10, 10 ), ProjectedCoordinate( sizeX - 10, sizeY - 10) );
+		clipEdge( &start, &end, ProjectedCoordinate( margin, margin ), ProjectedCoordinate( sizeX - margin, sizeY - margin ) );
 		QPoint position = inverseTransform.map( QPoint( start.x, start.y ) );
 		double heading = atan2( mapped.y() - sizeY / 2, mapped.x() - sizeX / 2 ) * 360 / 2 / M_PI;
 		drawArrow( painter, position.x(), position.y(), heading, outer, inner );
