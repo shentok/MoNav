@@ -154,32 +154,49 @@ bool MainWindow::loadPlugins()
 
 	try
 	{
-		if ( renderer == NULL )
+		if ( renderer == NULL ) {
+			qCritical() << "Renderer plugin not found: " << rendererName;
 			return false;
+		}
 		renderer->SetInputDirectory( dataDirectory );
-		if ( !renderer->LoadData() )
+		if ( !renderer->LoadData() ) {
+			qCritical() << "Could not load renderer data";
 			return false;
+		}
 
-		if ( addressLookup == NULL )
+		if ( addressLookup == NULL ) {
+			qCritical() << "AddressLookup plugin not found: " << addressLookupName;
 			return false;
+		}
 		addressLookup->SetInputDirectory( dataDirectory );
-		if ( !addressLookup->LoadData() )
+		if ( !addressLookup->LoadData() ) {
+			qCritical() << "Could not load address lookup data";
 			return false;
+		}
 
-		if ( gpsLookup == NULL )
+		if ( gpsLookup == NULL ) {
+			qCritical() << "GPSLookup plugin not found: " << gpsLookupName;
 			return false;
+		}
 		gpsLookup->SetInputDirectory( dataDirectory );
-		if ( !gpsLookup->LoadData() )
+		if ( !gpsLookup->LoadData() ) {
+			qCritical() << "Could not load gps lookup data";
 			return false;
+		}
 
-		if ( router == NULL )
+		if ( router == NULL ) {
+			qCritical() << "Router plugin not found: " << routerName;
 			return false;
+		}
 		router->SetInputDirectory( dataDirectory );
-		if ( !router->LoadData() )
+		if ( !router->LoadData() ) {
+			qCritical() << "Could not load router data";
 			return false;
+		}
 	}
 	catch ( ... )
 	{
+		qCritical() << "Caught exception while loading plugins";
 		return false;
 	}
 	return true;
