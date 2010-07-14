@@ -1691,12 +1691,14 @@ private:
 					data.backward = edge.backward;
 					data.shortcut = edge.shortcut;
 					data.path_reversed = edge.path_reversed;
-					if ( PRE_UNPACK && !edge.internal_shortcut )
-						data.path = ( vertex_descriptor ) edge.path;
-					else
-						data.middle.set ( _block_map[edge.middle].block, _block_map[edge.middle].node, global_settings );
-					if ( DYNAMIC_DATA && edge.shortcut )
-						data.middle.set ( _block_map[edge.middle].block, _block_map[edge.middle].node, global_settings );
+					if ( data.shortcut ) {
+						if ( PRE_UNPACK && !edge.internal_shortcut )
+							data.path = ( vertex_descriptor ) edge.path;
+						else
+							data.middle.set ( _block_map[edge.middle].block, _block_map[edge.middle].node, global_settings );
+						if ( DYNAMIC_DATA && edge.shortcut )
+							data.middle.set ( _block_map[edge.middle].block, _block_map[edge.middle].node, global_settings );
+					}
 					if ( DYNAMIC_DATA ) {
 						data.witness_count = _witness_index[j + 1] - _witness_index[j];
 						for ( unsigned k = _witness_index[j], position = 0; k < _witness_index[j + 1]; k++ ) {
