@@ -41,16 +41,24 @@ MainWindow::MainWindow(QWidget *parent) :
 	targetSet = false;
 
 	ui->setupUi(this);
+	QSize maxSize = ui->mainMenuList->widget()->size();
+	maxSize = maxSize.expandedTo( ui->targetMenuList->widget()->size() );
+	maxSize = maxSize.expandedTo( ui->settingsMenuList->widget()->size() );
+	maxSize += QSize( 2, 2 );
+	ui->mainMenuList->setMinimumSize( maxSize );
+	ui->targetMenuList->setMinimumSize( maxSize );
+	ui->settingsMenuList->setMinimumSize( maxSize );
 	ui->targetSourceWidget->hide();
 	ui->settingsWidget->hide();
 	this->updateGeometry();
-	ui->mainMenuList->setMinimumSize( ui->mainMenuList->widget()->size() );
-	ui->targetMenuList->setMinimumSize( ui->targetMenuList->widget()->size() );
-	ui->settingsMenuList->setMinimumSize( ui->settingsMenuList->widget()->size() );
 	qDebug() << ui->mainMenuList->widget()->size();
 
 	QSettings settings( "MoNavClient" );
 	dataDirectory = settings.value( "dataDirectory" ).toString();
+	source.x = settings.value( "source.x", 0 ).toUInt();
+	source.y = settings.value( "source.y", 0 ).toUInt();
+	if ( source.x != 0 || source.y != 0 )
+		sourceSet = true;
 	mode = Source;
 
 	connectSlots();
@@ -63,7 +71,9 @@ MainWindow::~MainWindow()
 	unloadPlugins();
 	QSettings settings( "MoNavClient" );
 	settings.setValue( "dataDirectory", dataDirectory );
-    delete ui;
+	settings.setValue( "source.x", source.x );
+	settings.setValue( "source.y", source.y );
+	delete ui;
 }
 
 void MainWindow::connectSlots()
@@ -241,6 +251,7 @@ void MainWindow::browseMap()
 	window->setCenter( source.ToProjectedCoordinate() );
 	window->setSource( source, heading );
 	window->setTarget( target );
+	window->setRoute( path );
 	window->setContextMenuEnabled( true );
 	window->setMode( MapView::Target );
 	connect( window, SIGNAL(sourceChanged(UnsignedCoordinate,double)), this, SLOT(setSource(UnsignedCoordinate,double)) );
