@@ -18,10 +18,37 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <QtGui/QApplication>
+#include <QMessageBox>
+#include <cstdio>
 #include "preprocessingwindow.h"
+
+QtMsgHandler oldHandler = NULL;
+
+void MessageBoxHandler(QtMsgType type, const char *msg)
+{
+	switch (type) {
+	case QtDebugMsg:
+		//QMessageBox::information(0, "Debug message", msg, QMessageBox::Ok);
+		break;
+	case QtWarningMsg:
+		QMessageBox::warning(0, "Warning", msg, QMessageBox::Ok);
+		break;
+	case QtCriticalMsg:
+		QMessageBox::critical(0, "Critical error", msg, QMessageBox::Ok);
+		break;
+	case QtFatalMsg:
+		QMessageBox::critical(0, "Fatal error", msg, QMessageBox::Ok);
+		abort();
+	}
+	printf( "%s\n", msg );
+	if ( oldHandler != NULL )
+		oldHandler( type, msg );
+}
+
 
 int main(int argc, char *argv[])
 {
+	oldHandler = qInstallMsgHandler( MessageBoxHandler );
 	QApplication a(argc, argv);
 	PreprocessingWindow w;
 	w.show();
