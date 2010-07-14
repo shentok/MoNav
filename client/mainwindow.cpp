@@ -52,20 +52,19 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->targetSourceWidget->hide();
 	ui->settingsWidget->hide();
 	this->updateGeometry();
-	qDebug() << ui->mainMenuList->widget()->size();
 
 	QSettings settings( "MoNavClient" );
 	dataDirectory = settings.value( "dataDirectory" ).toString();
-	source.x = settings.value( "source.x", 0 ).toUInt();
-	source.y = settings.value( "source.y", 0 ).toUInt();
-	if ( source.x != 0 || source.y != 0 )
-		setSource( source, 0 );
+	UnsignedCoordinate oldSource;
+	oldSource.x = settings.value( "source.x", 0 ).toUInt();
+	oldSource.y = settings.value( "source.y", 0 ).toUInt();
 	mode = Source;
 
 	connectSlots();
 
 	if ( !loadPlugins() )
 		settingsDataDirectory();
+	setSource( oldSource, 0 );
 }
 
 MainWindow::~MainWindow()
