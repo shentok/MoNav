@@ -128,7 +128,7 @@ bool ContractionHierarchies::Preprocess( IImporter* importer )
 
 	importer->SetIDMap( map );
 
-	return false;
+	return true;
 }
 
 Q_EXPORT_PLUGIN2( contractionhierarchies, ContractionHierarchies )
