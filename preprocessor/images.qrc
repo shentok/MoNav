@@ -1,12 +1,7 @@
 <RCC>
-    <qresource prefix="/images">
-        <file>images/address.bmp</file>
-        <file>images/back.bmp</file>
-        <file>images/bookmark.bmp</file>
-        <file>images/choosetarget.bmp</file>
-        <file>images/citycenter.bmp</file>
-        <file>images/settings.bmp</file>
-        <file>images/viewmap.bmp</file>
+    <qresource prefix="/">
         <file>images/about.png</file>
+        <file>images/notok.png</file>
+        <file>images/ok.png</file>
     </qresource>
 </RCC>

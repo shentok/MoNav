@@ -51,6 +51,7 @@ public slots:
 	void addressLookupPreprocessing();
 	void preprocessAll();
 	void writeConfig();
+	void deleteTemporary();
 
 protected:
 	void changeEvent(QEvent *e);

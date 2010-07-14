@@ -86,6 +86,7 @@ public:
 	virtual bool GetRoutingNodes( std::vector< RoutingNode >* data ) = 0;
 	virtual bool GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer ) = 0;
 	virtual bool GetBoundingBox( BoundingBox* box ) = 0;
+	virtual void DeleteTemporaryFiles() = 0;
 	virtual ~IImporter() {};
 };
 

@@ -46,6 +46,7 @@ public:
 	virtual bool GetRoutingNodes( std::vector< RoutingNode >* data );
 	virtual bool GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer );
 	virtual bool GetBoundingBox( BoundingBox* box );
+	virtual void DeleteTemporaryFiles();
 	virtual ~OSMImporter();
 
 protected:

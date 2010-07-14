@@ -1048,4 +1048,18 @@ bool OSMImporter::GetBoundingBox( BoundingBox* box )
 	return true;
 }
 
+void OSMImporter::DeleteTemporaryFiles()
+{
+	QDir directory( outputDirectory );
+	QString filename = directory.filePath( "OSM Importer" );
+	QFile::remove( filename + "_bounding_box" );
+	QFile::remove( filename + "_city_outlines" );
+	QFile::remove( filename + "_edges" );
+	QFile::remove( filename + "_id_map" );
+	QFile::remove( filename + "_location" );
+	QFile::remove( filename + "_mapped_edges" );
+	QFile::remove( filename + "_node_coordinates" );
+	QFile::remove( filename + "_places" );
+}
+
 Q_EXPORT_PLUGIN2( osmimporter, OSMImporter )
