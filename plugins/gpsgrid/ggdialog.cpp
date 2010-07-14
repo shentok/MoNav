@@ -28,14 +28,12 @@ GGDialog::GGDialog(QWidget *parent) :
     ui->setupUi(this);
 	 QSettings settings( "MoNav" );
 	 settings.beginGroup( "GPSGrid" );
-	 ui->cells->setValue( settings.value( "cells", 1048576 ).toInt() );
 }
 
 GGDialog::~GGDialog()
 {
 	QSettings settings( "MoNav" );
 	settings.beginGroup( "GPSGrid" );
-	settings.setValue( "cells", ui->cells->value() );
 	delete ui;
 }
 
@@ -43,6 +41,5 @@ bool GGDialog::getSettings( Settings* settings )
 {
 	if ( settings == NULL )
 		return false;
-	settings->cells = ui->cells->value();
 	return true;
 }
