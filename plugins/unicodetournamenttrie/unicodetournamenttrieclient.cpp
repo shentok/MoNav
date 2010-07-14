@@ -26,6 +26,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QMap>
 #include <QtDebug>
 #include <algorithm>
+#include <QMessageBox>
 
 UnicodeTournamentTrieClient::UnicodeTournamentTrieClient()
 {
@@ -67,7 +68,7 @@ void UnicodeTournamentTrieClient::SetInputDirectory( const QString& dir )
 
 void UnicodeTournamentTrieClient::ShowSettings()
 {
-
+	QMessageBox::information( NULL, "Settings", "No settings available" );
 }
 
 bool UnicodeTournamentTrieClient::LoadData()
