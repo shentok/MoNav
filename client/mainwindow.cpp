@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QDir>
 #include <QSettings>
 #include <QFileDialog>
+#include <QMessageBox>
 #include <QtDebug>
 #include "mapview.h"
 #include "bookmarksdialog.h"
@@ -58,12 +59,13 @@ MainWindow::MainWindow(QWidget *parent) :
 	source.x = settings.value( "source.x", 0 ).toUInt();
 	source.y = settings.value( "source.y", 0 ).toUInt();
 	if ( source.x != 0 || source.y != 0 )
-		sourceSet = true;
+		setSource( source, 0 );
 	mode = Source;
 
 	connectSlots();
 
-	settingsDataDirectory();
+	if ( !loadPlugins() )
+		settingsDataDirectory();
 }
 
 MainWindow::~MainWindow()
@@ -350,13 +352,14 @@ void MainWindow::settingsDataDirectory()
 {
 	while ( true )
 	{
+		dataDirectory = QFileDialog::getExistingDirectory( this, "Enter Data Directory", dataDirectory );
+		if ( dataDirectory == "" ) {
+			QMessageBox::information( this, "Data Directory", "No Data Directory Specified" );
+			close();
+		}
 		unloadPlugins();
 		if ( loadPlugins() )
 			break;
-		QString newDir = QFileDialog::getExistingDirectory( this, "Enter Data Directory", dataDirectory );
-		if ( newDir == "" )
-			break;
-		dataDirectory = newDir;
 	}
 }
 

@@ -36,7 +36,6 @@ public:
 
 	 struct Settings
 	 {
-		 unsigned cells;
 	 };
 
 	 bool getSettings( Settings* settings );

@@ -4,7 +4,6 @@
 #
 #-------------------------------------------------
 
-TARGET = gpsgrid
 TEMPLATE = lib
 CONFIG += plugin
 
