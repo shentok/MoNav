@@ -32,6 +32,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QProgressDialog>
 #include <QTemporaryFile>
 #include <QProcess>
+#include <QtDebug>
 
 //#include <QLibrary>
 
@@ -70,8 +71,6 @@ void MapnikRenderer::ShowSettings()
 
 bool MapnikRenderer::Preprocess( IImporter* importer )
 {
-	bool aborted = false;
-
 	if ( settingsDialog == NULL )
 		settingsDialog = new MRSettingsDialog();
 	QDir directory( outputDirectory );
@@ -84,6 +83,18 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 		IImporter::BoundingBox box;
 		if ( !importer->GetBoundingBox( &box ) )
 			return false;
+		std::vector< IImporter::RoutingEdge > inputEdges;
+		std::vector< IImporter::RoutingNode > inputNodes;
+		if ( settings.deleteTiles ) {
+			if ( !importer->GetRoutingEdges( &inputEdges ) ) {
+				qCritical() << "Failed to read routing Edges";
+				return false;
+			}
+			if ( !importer->GetRoutingNodes( &inputNodes ) ) {
+				qCritical() << "Failed to read routing Nodes";
+				return false;
+			}
+		}
 
 		qDebug( "Initialize Database Link" );
 
@@ -119,7 +130,6 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 		configData << quint32( config.tileSize ) << quint32( config.maxZoom );
 
 		int numThreads = omp_get_max_threads();
-		omp_set_nested( true );
 
 		mapnik::Map* maps[numThreads];
 		mapnik::Image32* images[numThreads];
@@ -131,38 +141,7 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 		}
 		qDebug( "Using %d Threads", numThreads );
 
-		long long progressMax = 0;
-		long long progressValue = 0;
-		for ( int zoom = 0; zoom <= settings.maxZoom; zoom++ )
-		{
-			int minX = box.min.GetTileX( zoom );
-			int maxX = box.max.GetTileX( zoom ) + 1;
-			int minY = box.min.GetTileY( zoom );
-			int maxY = box.max.GetTileY( zoom ) + 1;
-			if ( zoom <= settings.minZoom ) {
-				minX = minY = 0;
-				maxX = maxY = 1 << zoom;
-			}
-			else {
-				minX = std::max( 0 , minX - settings.tileMargin );
-				maxX = std::min ( 1 << zoom, maxX + settings.tileMargin );
-				minY = std::max( 0, minY - settings.tileMargin );
-				maxY = std::min ( 1 << zoom, maxY + settings.tileMargin );
-			}
-			long long x = ( maxX - minX + settings.metaTileSize - 1 ) / settings.metaTileSize;
-			long long y = ( maxY - minY + settings.metaTileSize - 1 ) / settings.metaTileSize;
-			progressMax += x * y;
-		}
-
-		QProgressDialog progress( tr( "Rendering tiles..." ), tr( "Abort Rendering" ), 0, progressMax );
-		progress.setWindowModality( Qt::WindowModal );
-		progress.setMinimumDuration( 0 );
-		progress.setValue( 0 );
-
 		for ( int zoom = 0; zoom <= settings.maxZoom; zoom++ ) {
-
-			if ( aborted )
-				break;
 
 			int tilesRendered = 0;
 			int tilesSkipped = 0;
@@ -186,15 +165,15 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 			}
 
 			std::vector< std::vector< bool > > occupancy;
-			/*if ( removeEmpty ) {
+			if ( settings.deleteTiles ) {
 				occupancy.resize( maxX - minX );
 				for ( int x = minX; x < maxX; ++x )
 					occupancy[x - minX].resize( maxY - minY, false );
-				for ( std::vector< InputEdge >::const_iterator i = inputEdges.begin(), e = inputEdges.end(); i != e; ++i ) {
-					int sourceX = inputCoordinates[i->source].GetTileX( zoom );
-					int sourceY = inputCoordinates[i->source].GetTileY( zoom );
-					int targetX = inputCoordinates[i->target].GetTileX( zoom );
-					int targetY = inputCoordinates[i->target].GetTileY( zoom );
+				for ( std::vector< IImporter::RoutingEdge >::const_iterator i = inputEdges.begin(), e = inputEdges.end(); i != e; ++i ) {
+					int sourceX = inputNodes[i->source].coordinate.GetTileX( zoom );
+					int sourceY = inputNodes[i->source].coordinate.GetTileY( zoom );
+					int targetX = inputNodes[i->target].coordinate.GetTileX( zoom );
+					int targetY = inputNodes[i->target].coordinate.GetTileY( zoom );
 					if ( sourceX > targetX )
 						std::swap( sourceX, targetX );
 					if ( sourceY > targetY )
@@ -213,7 +192,7 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 						}
 					}
 				}
-			}*/
+			}
 
 			configData << quint32( minX ) << quint32( maxX ) << quint32( minY ) << quint32( maxY );
 
@@ -238,12 +217,9 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 				}
 			}
 
-			progress.setValue( progressValue );
+
 #pragma omp parallel for schedule( dynamic )
 			for ( int i = 0; i < ( int ) tasks.size(); i++ ) {
-
-				if ( aborted )
-					continue;
 
 				int metaTileSizeX = tasks[i].metaTileSizeX;
 				int metaTileSizeY = tasks[i].metaTileSizeY;
@@ -277,34 +253,36 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 								result = mapnik::save_to_string( view, "png256" );
 							else
 								result = mapnik::save_to_string( view, "png" );
+
+							if ( settings.pngcrush )
+							{
+								QTemporaryFile tempOut;
+								tempOut.open();
+								tempOut.write( result.data(), result.size() );
+								tempOut.close();
+
+								QTemporaryFile tempIn;
+								tempIn.open();
+
+								QProcess pngcrush;
+								pngcrush.start( "pngcrush", QStringList() << tempOut.fileName() << tempIn.fileName() );
+								if ( pngcrush.waitForStarted() && pngcrush.waitForFinished() )
+								{
+									QByteArray buffer = tempIn.readAll();
+									if ( buffer.size() != 0 && buffer.size() < ( int ) result.size() )
+									{
+#pragma omp critical
+										pngcrushSaved += result.size() - buffer.size();
+										result.assign( buffer.constData(), buffer.size() );
+									}
+								}
+							}
 						}
 						else {
 #pragma omp critical
 							tilesSkipped++;
 						}
-						if ( settings.pngcrush )
-						{
-							QTemporaryFile tempOut;
-							tempOut.open();
-							tempOut.write( result.data(), result.size() );
-							tempOut.close();
 
-							QTemporaryFile tempIn;
-							tempIn.open();
-
-							QProcess pngcrush;
-							pngcrush.start( "pngcrush", QStringList() << tempOut.fileName() << tempIn.fileName() );
-							if ( pngcrush.waitForStarted() && pngcrush.waitForFinished() )
-							{
-								QByteArray buffer = tempIn.readAll();
-								if ( buffer.size() != 0 && buffer.size() < ( int ) result.size() )
-								{
-#pragma omp critical
-									pngcrushSaved += result.size() - buffer.size();
-									result.assign( buffer.constData(), buffer.size() );
-								}
-							}
-						}
 #pragma omp critical
 						{
 							tilesFile.write( result.data(), result.size() );
@@ -318,17 +296,7 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 #pragma omp critical
 				{
 					metaTilesRendered++;
-					progressValue++;
-					if ( omp_get_thread_num() == 0 )
-					{
-						progress.setLabelText( QString( "Zoom: %1, Tiles: %2, Metatiles: %3" ).arg( zoom ).arg( tilesRendered ).arg( metaTilesRendered ) );
-						progress.setValue( progressValue );
-						if ( progress.wasCanceled() )
-						{
-							aborted = true;
-						}
-					}
-					qDebug( "Zoom: %d, Tiles: %d, Metatiles: %d, Thread %d", zoom, tilesRendered, metaTilesRendered, threadID );
+					qDebug( "Zoom: %d, Thread %d, Metatiles: %d, Tiles: %d / %d", zoom, threadID, metaTilesRendered, tilesRendered, ( maxX - minX ) * ( maxY - minY ) );
 				}
 			}
 			qDebug( "Zoom %d: Removed %d of %d tiles", zoom, tilesSkipped, tilesRendered );
@@ -357,7 +325,7 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 		qCritical( "### Unknown error" );
 		return false;
 	}
-	return !aborted;
+	return true;
 }
 
 Q_EXPORT_PLUGIN2( mapnikrenderer, MapnikRenderer )

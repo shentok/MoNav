@@ -25,6 +25,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils/utils.h"
 #include <QSettings>
 #include <QInputDialog>
+#include <QtDebug>
 
 MapnikRendererClient::MapnikRendererClient()
 {
@@ -223,15 +224,18 @@ bool MapnikRendererClient::Paint( QPainter* painter, const PaintRequest& request
 							qDebug( "failed to load picture" );
 							delete tile;
 							tile = NULL;
+							return false;
+						}
+						long long minCacheSize = 2 * tileSize * tileSize * tile->depth() / 8 * ( maxX - minX ) * ( maxY - minY );
+						if ( cache.maxCost() < minCacheSize ) {
+							qDebug() << "had to increase cache size due accomodate all tiles for at least one image: " << minCacheSize / 1024 / 1024 << " MB";
+							cache.setMaxCost( minCacheSize );
 						}
 						cache.insert( id, tile, tileSize * tileSize * tile->depth() / 8 );
 					}
 				}
-				else {
-					tile = cache.object( id );
-				}
+				tile = cache.object( id );
 			}
-
 			if ( tile != NULL )
 				painter->drawPixmap( posX, posY, *tile );
 			else
