@@ -52,6 +52,7 @@ public slots:
 	void preprocessAll();
 	void writeConfig();
 	void deleteTemporary();
+	void manual();
 
 protected:
 	void changeEvent(QEvent *e);

@@ -24,6 +24,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QDebug>
 #include <QDir>
 #include <QMessageBox>
+#include <QDesktopServices>
+#include <QUrl>
 
 PreprocessingWindow::PreprocessingWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -43,6 +45,8 @@ PreprocessingWindow::PreprocessingWindow(QWidget *parent) :
 void PreprocessingWindow::connectSlots()
 {
 	connect( ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()) );
+	connect( ui->actionManual, SIGNAL(triggered()), this, SLOT(manual()) );
+	connect( ui->actionExit, SIGNAL(triggered()), this, SLOT(close()) );
 	connect( ui->browseButton, SIGNAL(clicked()), this, SLOT(browse()) );
 	connect( ui->importerSettingsButton, SIGNAL(clicked()), this, SLOT(importerSettings()) );
 	connect( ui->importerPreprocessButton, SIGNAL(clicked()), this, SLOT(importerPreprocessing()) );
@@ -324,4 +328,9 @@ void PreprocessingWindow::deleteTemporary()
 	importerPlugins[index]->SetOutputDirectory( ui->outputEdit->text() );
 	importerPlugins[index]->DeleteTemporaryFiles();
 	QMessageBox::information( this, "Temporary Files", "Deleted temporary files" );
+}
+
+void PreprocessingWindow::manual()
+{
+	QDesktopServices::openUrl( QUrl( "http://code.google.com/p/monav/" ) );
 }

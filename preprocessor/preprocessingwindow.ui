@@ -283,8 +283,6 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <addaction name="actionClearOutputDirectory"/>
-    <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menu_Help">
