@@ -55,16 +55,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	QSettings settings( "MoNavClient" );
 	dataDirectory = settings.value( "dataDirectory" ).toString();
-	UnsignedCoordinate oldSource;
-	oldSource.x = settings.value( "source.x", 0 ).toUInt();
-	oldSource.y = settings.value( "source.y", 0 ).toUInt();
+	source.x = settings.value( "source.x", 0 ).toUInt();
+	source.y = settings.value( "source.y", 0 ).toUInt();
 	mode = Source;
 
 	connectSlots();
 
 	if ( !loadPlugins() )
 		settingsDataDirectory();
-	setSource( oldSource, 0 );
 }
 
 MainWindow::~MainWindow()
@@ -179,6 +177,16 @@ bool MainWindow::loadPlugins()
 		qCritical() << "Caught exception while loading plugins";
 		return false;
 	}
+
+	targetSet = false;
+	sourceSet = false;
+	UnsignedCoordinate oldSource = source;
+	UnsignedCoordinate oldTarget = target;
+	source = UnsignedCoordinate();
+	target = UnsignedCoordinate();
+	setSource( oldSource, heading );
+	setTarget( oldTarget );
+
 	return true;
 }
 
