@@ -5,8 +5,10 @@ HEADERS += osmrenderer.h \
     interfaces/ipreprocessor.h \
     interfaces/iimporter.h \
     utils/coordinates.h \
-    utils/config.h
-SOURCES += osmrenderer.cpp
+    utils/config.h \
+    orsettingsdialog.h
+SOURCES += osmrenderer.cpp \
+    orsettingsdialog.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -15,3 +17,6 @@ unix {
 		 -Wno-unused-function
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
+
+FORMS += \
+    orsettingsdialog.ui

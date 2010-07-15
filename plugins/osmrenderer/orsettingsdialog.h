@@ -17,27 +17,25 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef OSMRENDERER_H
-#define OSMRENDERER_H
+#ifndef ORSETTINGSDIALOG_H
+#define ORSETTINGSDIALOG_H
 
-#include <QObject>
-#include "interfaces/ipreprocessor.h"
-#include "orsettingsdialog.h"
-class OSMRenderer : public QObject, public IPreprocessor
+#include <QDialog>
+
+namespace Ui {
+    class ORSettingsDialog;
+}
+
+class ORSettingsDialog : public QDialog
 {
-	Q_OBJECT
-	Q_INTERFACES( IPreprocessor )
+    Q_OBJECT
 
 public:
-	OSMRenderer();
-	virtual QString GetName();
-	virtual Type GetType();
-	virtual void SetOutputDirectory( const QString& dir );
-	virtual void ShowSettings();
-	virtual bool Preprocess( IImporter* importer );
-	virtual ~OSMRenderer();
-protected:
-	ORSettingsDialog* settingsDialog;
+    explicit ORSettingsDialog(QWidget *parent = 0);
+    ~ORSettingsDialog();
+
+private:
+    Ui::ORSettingsDialog *ui;
 };
 
-#endif // OSMRENDERER_H
+#endif // ORSETTINGSDIALOG_H

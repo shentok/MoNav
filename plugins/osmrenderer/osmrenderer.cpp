@@ -21,10 +21,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 OSMRenderer::OSMRenderer()
 {
+	settingsDialog = NULL;
 }
 
 OSMRenderer::~OSMRenderer()
 {
+	if ( settingsDialog != NULL )
+		delete settingsDialog;
 }
 
 QString OSMRenderer::GetName()
@@ -43,6 +46,9 @@ void OSMRenderer::SetOutputDirectory( const QString& )
 
 void OSMRenderer::ShowSettings()
 {
+	if ( settingsDialog == NULL )
+		settingsDialog = new ORSettingsDialog();
+	settingsDialog->exec();
 }
 
 bool OSMRenderer::Preprocess( IImporter* )

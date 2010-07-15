@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>GGDialog</class>
- <widget class="QDialog" name="GGDialog">
+ <class>ORSettingsDialog</class>
+ <widget class="QDialog" name="ORSettingsDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>267</width>
-    <height>278</height>
+    <width>400</width>
+    <height>300</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>GPS Grid Settings</string>
+   <string>OSM Renderer Settings</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
@@ -25,14 +25,8 @@
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
        <widget class="QLabel" name="label">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
         <property name="text">
-         <string>Divides the map into grid cells. Saves edges crossing borders in multiple cells. Performance decreases for large areas or small amounts of cells.</string>
+         <string>This plugin has performs no preprocessing. It loads map tiles directly from the OpenStreetMap website. This makes it unsuitable for devices without an internet connection. Otherwise, the client implementation shares its codebase with the MapnikRenderer plugin.</string>
         </property>
         <property name="wordWrap">
          <bool>true</bool>
@@ -50,7 +44,7 @@
      <property name="sizeHint" stdset="0">
       <size>
        <width>20</width>
-       <height>142</height>
+       <height>147</height>
       </size>
      </property>
     </spacer>
@@ -73,7 +67,7 @@
      <item>
       <widget class="QPushButton" name="pushButton">
        <property name="text">
-        <string>&amp;Close</string>
+        <string>PushButton</string>
        </property>
       </widget>
      </item>
@@ -82,22 +76,5 @@
   </layout>
  </widget>
  <resources/>
- <connections>
-  <connection>
-   <sender>pushButton</sender>
-   <signal>clicked()</signal>
-   <receiver>GGDialog</receiver>
-   <slot>close()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>335</x>
-     <y>263</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>228</x>
-     <y>260</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>
