@@ -74,6 +74,11 @@ MainWindow::~MainWindow()
 	settings.setValue( "dataDirectory", dataDirectory );
 	settings.setValue( "source.x", source.x );
 	settings.setValue( "source.y", source.y );
+
+	//delete static plugins
+	foreach ( QObject *plugin, QPluginLoader::staticInstances() ) {
+		delete plugin;
+	}
 	delete ui;
 }
 

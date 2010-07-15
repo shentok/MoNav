@@ -154,6 +154,9 @@ void PreprocessingWindow::unloadPlugins()
 		pluginLoader->unload();
 		delete pluginLoader;
 	}
+	foreach ( QObject *plugin, QPluginLoader::staticInstances() ) {
+		delete plugin;
+	}
 }
 
 PreprocessingWindow::~PreprocessingWindow()
