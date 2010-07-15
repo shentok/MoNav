@@ -1,5 +1,5 @@
 TEMPLATE = lib
-CONFIG += plugin
+CONFIG += plugin static
 CONFIG += link_pkgconfig
 PKGCONFIG += libxml-2.0
 HEADERS += osmimporter.h \
@@ -13,6 +13,8 @@ SOURCES += osmimporter.cpp \
 DESTDIR = ../../bin/plugins_preprocessor
 FORMS += oisettingsdialog.ui
 INCLUDEPATH += /usr/include/libxml2
-QMAKE_CXXFLAGS_RELEASE -= -O2
-QMAKE_CXXFLAGS_RELEASE += -O3 -march=native -Wno-unused-function
-QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
+unix {
+	QMAKE_CXXFLAGS_RELEASE -= -O2
+	QMAKE_CXXFLAGS_RELEASE += -O3 -march=native -Wno-unused-function
+	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
+}

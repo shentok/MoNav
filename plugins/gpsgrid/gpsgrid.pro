@@ -4,8 +4,8 @@
 #
 #-------------------------------------------------
 
-TEMPLATE = lib
-CONFIG += plugin
+TEMPLATE = lib static
+CONFIG += plugin static
 
 DESTDIR = ../../bin/plugins_preprocessor
 
@@ -21,12 +21,13 @@ HEADERS += gpsgrid.h \
     cell.h \
     table.h
 
-QMAKE_CXXFLAGS_RELEASE -= -O2
-QMAKE_CXXFLAGS_RELEASE += -O3 \
-	 -march=native \
-	 -Wno-unused-function
-QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function \
-	 -fopenmp
+unix {
+	QMAKE_CXXFLAGS_RELEASE -= -O2
+	QMAKE_CXXFLAGS_RELEASE += -O3 \
+		 -march=native \
+		 -Wno-unused-function
+	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
+}
 
 FORMS += \
     ggdialog.ui

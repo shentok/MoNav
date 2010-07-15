@@ -21,6 +21,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "mainwindow.h"
 #include <QMessageBox>
 #include <cstdio>
+#include <QtPlugin>
+
+Q_IMPORT_PLUGIN( mapnikrendererclient );
+Q_IMPORT_PLUGIN( contractionhierarchiesclient );
+Q_IMPORT_PLUGIN( gpsgridclient );
+Q_IMPORT_PLUGIN( unicodetournamenttrieclient );
+Q_IMPORT_PLUGIN( osmrendererclient );
 
 QtMsgHandler oldHandler = NULL;
 
@@ -44,7 +51,6 @@ void MessageBoxHandler(QtMsgType type, const char *msg)
 	if ( oldHandler != NULL )
 		oldHandler( type, msg );
 }
-
 
 int main(int argc, char *argv[])
 {

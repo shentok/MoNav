@@ -6,7 +6,7 @@
 
 DESTDIR = ../../bin/plugins_client
 TEMPLATE = lib
-CONFIG += plugin
+CONFIG += plugin static
 
 HEADERS += utils/coordinates.h \
     utils/config.h \

@@ -101,10 +101,6 @@ void MainWindow::connectSlots()
 
 bool MainWindow::loadPlugins()
 {
-	QDir pluginDir( QApplication::applicationDirPath() );
-	if ( !pluginDir.cd( "plugins_client" ) )
-		return false;
-
 	QDir dir( dataDirectory );
 	QSettings pluginSettings( dir.filePath( "plugins.ini" ), QSettings::IniFormat );
 	QString rendererName = pluginSettings.value( "renderer" ).toString();
@@ -112,43 +108,23 @@ bool MainWindow::loadPlugins()
 	QString gpsLookupName = pluginSettings.value( "gpsLookup" ).toString();
 	QString addressLookupName = pluginSettings.value( "addressLookup" ).toString();
 
-	foreach ( QString fileName, pluginDir.entryList( QDir::Files ) ) {
-		QPluginLoader* loader = new QPluginLoader( pluginDir.absoluteFilePath( fileName ) );
-		if ( !loader->load() )
-			qDebug( "%s", loader->errorString().toAscii().constData() );
+	QDir pluginDir( QApplication::applicationDirPath() );
+	if ( pluginDir.cd( "plugins_client" ) ) {
+		foreach ( QString fileName, pluginDir.entryList( QDir::Files ) ) {
+			QPluginLoader* loader = new QPluginLoader( pluginDir.absoluteFilePath( fileName ) );
+			if ( !loader->load() )
+				qDebug( "%s", loader->errorString().toAscii().constData() );
+			if ( testPlugin( loader->instance(), rendererName, routerName, gpsLookupName, addressLookupName ) )
+				plugins.append( loader );
+			else {
+				loader->unload();
+				delete loader;
+			}
+		}
+	}
 
-		if ( IRenderer *interface = qobject_cast< IRenderer* >( loader->instance() ) )
-		{
-			if ( interface->GetName() == rendererName )
-			{
-				plugins.append( loader );
-				renderer = interface;
-			}
-		}
-		else if ( IAddressLookup *interface = qobject_cast< IAddressLookup* >( loader->instance() ) )
-		{
-			if ( interface->GetName() == addressLookupName )
-			{
-				plugins.append( loader );
-				addressLookup = interface;
-			}
-		}
-		else if ( IGPSLookup *interface = qobject_cast< IGPSLookup* >( loader->instance() ) )
-		{
-			if ( interface->GetName() == gpsLookupName )
-			{
-				plugins.append( loader );
-				gpsLookup = interface;
-			}
-		}
-		else if ( IRouter *interface = qobject_cast< IRouter* >( loader->instance() ) )
-		{
-			if ( interface->GetName() == routerName )
-			{
-				plugins.append( loader );
-				router = interface;
-			}
-		}
+	foreach ( QObject *plugin, QPluginLoader::staticInstances() ) {
+		testPlugin( plugin, rendererName, routerName, gpsLookupName, addressLookupName );
 	}
 
 	try
@@ -201,9 +177,41 @@ bool MainWindow::loadPlugins()
 	return true;
 }
 
+bool MainWindow::testPlugin( QObject* plugin, QString rendererName, QString routerName, QString gpsLookupName, QString addressLookupName )
+{
+	bool needed = false;
+	if ( IRenderer *interface = qobject_cast< IRenderer* >( plugin ) ) {
+		if ( interface->GetName() == rendererName ) {
+			renderer = interface;
+			needed = true;
+		}
+	}
+	if ( IAddressLookup *interface = qobject_cast< IAddressLookup* >( plugin ) ) {
+		if ( interface->GetName() == addressLookupName )
+		{
+			addressLookup = interface;
+			needed = true;
+		}
+	}
+	if ( IGPSLookup *interface = qobject_cast< IGPSLookup* >( plugin ) ) {
+		if ( interface->GetName() == gpsLookupName ) {
+			gpsLookup = interface;
+			needed = true;
+		}
+	}
+	if ( IRouter *interface = qobject_cast< IRouter* >( plugin ) ) {
+		if ( interface->GetName() == routerName ) {
+			router = interface;
+			needed = true;
+		}
+	}
+	return needed;
+}
+
 void MainWindow::unloadPlugins()
 {
 	renderer = NULL;
+	router = NULL;
 	addressLookup = NULL;
 	gpsLookup = NULL;
 	foreach( QPluginLoader* pluginLoader, plugins )
@@ -370,8 +378,8 @@ void MainWindow::settingsDataDirectory()
 	{
 		dataDirectory = QFileDialog::getExistingDirectory( this, "Enter Data Directory", dataDirectory );
 		if ( dataDirectory == "" ) {
-			QMessageBox::information( this, "Data Directory", "No Data Directory Specified" );
-			close();
+			QMessageBox::information( NULL, "Data Directory", "No Data Directory Specified" );
+			abort();
 		}
 		unloadPlugins();
 		if ( loadPlugins() )

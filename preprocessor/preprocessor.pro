@@ -21,3 +21,14 @@ TARGET = MoNavP
 FORMS += preprocessingwindow.ui \
     aboutdialog.ui
 RESOURCES += images.qrc
+unix {
+	QMAKE_CXXFLAGS_RELEASE -= -O2
+	QMAKE_CXXFLAGS_RELEASE += -O3 \
+		 -march=native \
+		 -Wno-unused-function \
+		 -fopenmp
+	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function \
+		 -fopenmp
+}
+LIBS += -fopenmp -lmapnik
+LIBS += -L../bin/plugins_preprocessor -lmapnikrenderer -lcontractionhierarchies -lgpsgrid -losmrenderer -lunicodetournamenttrie -losmimporter

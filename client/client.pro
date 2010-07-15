@@ -10,7 +10,6 @@ SOURCES += main.cpp \
     addressdialog.cpp \
     bookmarksdialog.cpp
 HEADERS += mainwindow.h \
-    interfaces/IRenderer.h \
     mapview.h \
     paintwidget.h \
     utils/coordinates.h \
@@ -36,3 +35,6 @@ unix {
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
 RESOURCES += images.qrc
+LIBS += -L../bin/plugins_client -lmapnikrendererclient -lcontractionhierarchiesclient -lgpsgridclient -losmrendererclient -lunicodetournamenttrieclient
+#required by osmrendererclient
+QT += network

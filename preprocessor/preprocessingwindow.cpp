@@ -70,38 +70,18 @@ void PreprocessingWindow::loadPlugins()
 		if ( !loader->load() )
 			qDebug( "%s", loader->errorString().toAscii().constData() );
 
-		if ( IImporter *interface = qobject_cast< IImporter* >( loader->instance() ) )
-		{
-			plugins.append( loader );
-			importerPlugins.append( interface );
-			ui->importerComboBox->addItem( interface->GetName() );
-		}
-		if ( IPreprocessor *interface = qobject_cast< IPreprocessor* >( loader->instance() ) )
-		{
-			QString name = interface->GetName();
-			plugins.append( loader );
-			if ( interface->GetType() == IPreprocessor::Renderer )
-			{
-				rendererPlugins.append( interface );
-				ui->rendererComboBox->addItem( interface->GetName() );
-			}
-			if ( interface->GetType() == IPreprocessor::Router )
-			{
-				routerPlugins.append( interface );
-				ui->routerComboBox->addItem( interface->GetName() );
-			}
-			if ( interface->GetType() == IPreprocessor::GPSLookup )
-			{
-				gpsLookupPlugins.append( interface );
-				ui->gpsLookupComboBox->addItem( interface->GetName() );
-			}
-			if ( interface->GetType() == IPreprocessor::AddressLookup )
-			{
-				addressLookupPlugins.append( interface );
-				ui->addressLookupComboBox->addItem( interface->GetName() );
-			}
+		if ( testPlugin( loader->instance() ) )
+			plugins.push_back( loader );
+		else {
+			loader->unload();
+			delete loader;
 		}
 	}
+
+	foreach ( QObject *plugin, QPluginLoader::staticInstances() ) {
+		testPlugin( plugin );
+	}
+
 	if ( importerPlugins.size() == 0 )
 	{
 		ui->importerPreprocessButton->setEnabled( false );
@@ -128,6 +108,43 @@ void PreprocessingWindow::loadPlugins()
 		ui->addressLookupPreprocessButton->setEnabled( false );
 		ui->addressLookupSettingsButton->setEnabled( false );
 	}
+}
+
+bool PreprocessingWindow::testPlugin( QObject* plugin )
+{
+	bool needed = false;
+	if ( IImporter *interface = qobject_cast< IImporter* >( plugin ) )
+	{
+		importerPlugins.append( interface );
+		ui->importerComboBox->addItem( interface->GetName() );
+		needed = true;
+	}
+	if ( IPreprocessor *interface = qobject_cast< IPreprocessor* >( plugin ) )
+	{
+		QString name = interface->GetName();
+		if ( interface->GetType() == IPreprocessor::Renderer )
+		{
+			rendererPlugins.append( interface );
+			ui->rendererComboBox->addItem( name );
+		}
+		if ( interface->GetType() == IPreprocessor::Router )
+		{
+			routerPlugins.append( interface );
+			ui->routerComboBox->addItem( name );
+		}
+		if ( interface->GetType() == IPreprocessor::GPSLookup )
+		{
+			gpsLookupPlugins.append( interface );
+			ui->gpsLookupComboBox->addItem( name );
+		}
+		if ( interface->GetType() == IPreprocessor::AddressLookup )
+		{
+			addressLookupPlugins.append( interface );
+			ui->addressLookupComboBox->addItem( name );
+		}
+		needed = true;
+	}
+	return needed;
 }
 
 void PreprocessingWindow::unloadPlugins()

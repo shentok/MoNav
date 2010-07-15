@@ -7,7 +7,7 @@
 TARGET = unicodetournamenttrie
 DESTDIR = ../../bin/plugins_preprocessor
 TEMPLATE = lib
-CONFIG += plugin
+CONFIG += plugin static
 
 SOURCES += unicodetournamenttrie.cpp
 

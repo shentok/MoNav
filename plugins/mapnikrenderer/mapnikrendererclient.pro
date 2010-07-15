@@ -1,5 +1,5 @@
 TEMPLATE = lib
-CONFIG += plugin
+CONFIG += plugin static
 DESTDIR = ../../bin/plugins_client
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2

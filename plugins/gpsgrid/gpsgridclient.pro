@@ -5,7 +5,7 @@
 #-------------------------------------------------
 
 TEMPLATE = lib
-CONFIG += plugin
+CONFIG += plugin static
 
 DESTDIR = ../../bin/plugins_client
 

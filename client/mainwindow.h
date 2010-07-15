@@ -69,6 +69,7 @@ signals:
 protected:
 	void connectSlots();
 	bool loadPlugins();
+	bool testPlugin( QObject* plugin, QString rendererName, QString routerName, QString gpsLookupName, QString addressLookupName );
 	void unloadPlugins();
 
 	QString dataDirectory;

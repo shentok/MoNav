@@ -1,13 +1,15 @@
 TEMPLATE = lib
-CONFIG += plugin
+CONFIG += plugin static
 DESTDIR = ../../bin/plugins_preprocessor
-QMAKE_CXXFLAGS_RELEASE -= -O2
-QMAKE_CXXFLAGS_RELEASE += -O3 \
-    -march=native \
-    -Wno-unused-function \
-    -fopenmp
-QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function \
-    -fopenmp
+unix {
+	QMAKE_CXXFLAGS_RELEASE -= -O2
+	QMAKE_CXXFLAGS_RELEASE += -O3 \
+		 -march=native \
+		 -Wno-unused-function \
+		 -fopenmp
+	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function \
+		 -fopenmp
+}
 LIBS += -fopenmp
 HEADERS += contractionhierarchies.h \
 	 dynamicgraph.h \
