@@ -293,12 +293,16 @@ void PreprocessingWindow::preprocessAll()
 {
 	qDebug() << "Importer";
 	importerPreprocessing();
+	QCoreApplication::processEvents();
 	qDebug() << "Router";
 	routerPreprocessing();
+	QCoreApplication::processEvents();
 	qDebug() << "Renderer";
 	rendererPreprocessing();
+	QCoreApplication::processEvents();
 	qDebug() << "GPS Lookup";
 	gpsLookupPreprocessing();
+	QCoreApplication::processEvents();
 	qDebug() << "Address Lookup";
 	addressLookupPreprocessing();
 }
