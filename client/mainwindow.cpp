@@ -26,6 +26,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QtDebug>
 #include "mapview.h"
 #include "bookmarksdialog.h"
+#include <cstdlib>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -392,7 +393,7 @@ void MainWindow::settingsDataDirectory()
 		dataDirectory = QFileDialog::getExistingDirectory( this, "Enter Data Directory", dataDirectory );
 		if ( dataDirectory == "" ) {
 			QMessageBox::information( NULL, "Data Directory", "No Data Directory Specified" );
-			abort();
+			exit( -1 );
 		}
 		unloadPlugins();
 		if ( loadPlugins() )

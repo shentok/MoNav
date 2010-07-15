@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QMessageBox>
 #include <cstdio>
 #include <QtPlugin>
+#include <cstdlib>
 
 Q_IMPORT_PLUGIN( mapnikrendererclient );
 Q_IMPORT_PLUGIN( contractionhierarchiesclient );
