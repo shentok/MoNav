@@ -153,6 +153,8 @@ bool OSMImporter::_ReadXML( const QString& inputFilename, const QString& filenam
 
 					if ( settings.ignoreOneway )
 						way.direction = _Way::bidirectional;
+					if ( settings.ignoreMaxspeed )
+						way.maximumSpeed = -1;
 
 					edgesData << qint32( way.type );
 					edgesData << way.maximumSpeed;

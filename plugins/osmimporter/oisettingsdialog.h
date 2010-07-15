@@ -45,6 +45,7 @@ public:
 		bool defaultCitySpeed;
 		bool ignoreOneway;
 		int trafficLightPenalty;
+		bool ignoreMaxspeed;
 	};
 
 	bool getSettings( Settings* settings );

@@ -25,6 +25,7 @@ OISettingsDialog::OISettingsDialog(QWidget *parent) :
 	ui->trafficLightPenalty->setValue( settings.value( "trafficLightPenalty", 1 ).toInt() );
 	ui->setDefaultCitySpeed->setChecked( settings.value( "defaultCitySpeed", true ).toBool() );
 	ui->ignoreOneway->setChecked( settings.value( "ignoreOneway", false ).toBool() );
+	ui->ignoreMaxspeed->setChecked( settings.value( "ignoreMaxspeed", false ).toBool() );
 	QString accessType = settings.value( "accessType", "motorcar" ).toString();
 	QList< QTreeWidgetItem* > items = ui->accessTree->findItems( accessType, Qt::MatchFixedString | Qt::MatchRecursive );
 	if ( items.size() > 0 )
@@ -50,6 +51,7 @@ OISettingsDialog::~OISettingsDialog()
 	settings.setValue( "trafficLightPenalty", ui->trafficLightPenalty->value() );
 	settings.setValue( "defaultCitySpeed", ui->setDefaultCitySpeed->isChecked() );
 	settings.setValue( "ignoreOneway", ui->ignoreOneway->isChecked() );
+	settings.setValue( "ignoreMaxspeed", ui->ignoreMaxspeed->isChecked() );
 	QList< QTreeWidgetItem* > items = ui->accessTree->selectedItems();
 	if ( items.size() == 1 )
 		settings.setValue( "accessType", items.first()->text( 0 ) );
@@ -169,6 +171,7 @@ bool OISettingsDialog::getSettings( Settings* settings )
 	settings->trafficLightPenalty = ui->trafficLightPenalty->value();
 	settings->input = ui->inputEdit->text();
 	settings->ignoreOneway = ui->ignoreOneway->isChecked();
+	settings->ignoreMaxspeed = ui->ignoreMaxspeed->isChecked();
 
 	int rowCount = ui->speedTable->rowCount();
 	int colCount = ui->speedTable->columnCount();

@@ -142,6 +142,13 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="ignoreMaxspeed">
+     <property name="text">
+      <string>Ignore Maxspeed Tag</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
       <string>Speed Settings</string>
