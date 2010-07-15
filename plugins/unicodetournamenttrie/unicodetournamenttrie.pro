@@ -9,7 +9,8 @@ DESTDIR = ../../bin/plugins_preprocessor
 TEMPLATE = lib
 CONFIG += plugin static
 
-SOURCES += unicodetournamenttrie.cpp
+SOURCES += unicodetournamenttrie.cpp \
+    uttsettingsdialog.cpp
 
 HEADERS += unicodetournamenttrie.h \
     utils/coordinates.h \
@@ -17,8 +18,12 @@ HEADERS += unicodetournamenttrie.h \
     interfaces/iimporter.h \
     interfaces/ipreprocessor.h \
     trie.h \
-    utils/utils.h
+    utils/utils.h \
+    uttsettingsdialog.h
 
 QMAKE_CXXFLAGS_RELEASE -= -O2
 QMAKE_CXXFLAGS_RELEASE += -O3 -march=native -Wno-unused-function
 QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
+
+FORMS += \
+    uttsettingsdialog.ui

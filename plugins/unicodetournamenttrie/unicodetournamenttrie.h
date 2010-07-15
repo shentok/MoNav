@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "interfaces/ipreprocessor.h"
 #include "trie.h"
+#include "uttsettingsdialog.h"
 #include <QFile>
 #include <vector>
 
@@ -70,6 +71,7 @@ protected:
 	};
 
 	QString outputDirectory;
+	UTTSettingsDialog* settingsDialog;
 };
 
 #endif // UNICODETOURNAMENTTRIE_H

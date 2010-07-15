@@ -28,12 +28,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 UnicodeTournamentTrie::UnicodeTournamentTrie()
 {
-
+	settingsDialog = NULL;
 }
 
 UnicodeTournamentTrie::~UnicodeTournamentTrie()
 {
-
+	if ( settingsDialog != NULL )
+		delete settingsDialog;
 }
 
 QString UnicodeTournamentTrie::GetName()
@@ -53,11 +54,19 @@ void UnicodeTournamentTrie::SetOutputDirectory( const QString& dir )
 
 void UnicodeTournamentTrie::ShowSettings()
 {
-
+	if ( settingsDialog == NULL )
+		settingsDialog = new UTTSettingsDialog();
+	settingsDialog->exec();
 }
 
 bool UnicodeTournamentTrie::Preprocess( IImporter* importer )
 {
+	if ( settingsDialog == NULL )
+		settingsDialog = new UTTSettingsDialog();
+
+	UTTSettingsDialog::Settings settings;
+	if ( !settingsDialog->getSettings( &settings ) )
+		return false;
 	QDir dir( outputDirectory );
 	QString filename = dir.filePath( "Unicode Tournament Trie" );
 
