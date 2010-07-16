@@ -60,16 +60,20 @@ MainWindow::MainWindow(QWidget *parent) :
 	source.y = settings.value( "source.y", 0 ).toUInt();
 	mode = Source;
 
-	updateSource = true;
-	updateTarget = false;
 	gpsSource = QGeoPositionInfoSource::createDefaultSource( this );
-	if ( gpsSource == 0 )
-		qDebug() << "No GPS Sensor found!";
+	if ( gpsSource == 0 ) {
+		qCritical() << "No GPS Sensor found! GPS Updates are not available";
+		ui->gpsButton->setEnabled( false );
+	}
 
 	connectSlots();
 
 	if ( !loadPlugins() )
 		settingsDataDirectory();
+
+	updateSource = true;
+	updateTarget = false;
+
 	if ( gpsSource != NULL ) {
 		gpsSource->startUpdates();
 	}
@@ -110,6 +114,8 @@ void MainWindow::connectSlots()
 	connect( ui->settingsMapButton, SIGNAL(clicked()), this, SLOT(settingsRenderer()) );
 	connect( ui->settingsSystemButton, SIGNAL(clicked()), this, SLOT(settingsSystem()) );
 
+	if ( gpsSource != NULL)
+	connect( gpsSource, SIGNAL(positionUpdated(QGeoPositionInfo)), this, SLOT(positionUpdated(QGeoPositionInfo)) );
 }
 
 bool MainWindow::loadPlugins()
