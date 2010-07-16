@@ -70,6 +70,8 @@ public slots:
 
 signals:
 	void routeChanged( QVector< UnsignedCoordinate > path );
+	void sourceChanged( UnsignedCoordinate source, double heading );
+	void targetChanged( UnsignedCoordinate target );
 
 protected:
 	void connectSlots();

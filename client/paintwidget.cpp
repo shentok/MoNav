@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QPainter>
 #include <QMouseEvent>
 #include <QWheelEvent>
+#include <algorithm>
 
 PaintWidget::PaintWidget(QWidget *parent) :
 	 QWidget(parent ),
@@ -31,11 +32,17 @@ PaintWidget::PaintWidget(QWidget *parent) :
 	lastMouseX = 0;
 	lastMouseY = 0;
 	wheelDelta = 0;
+	fixed = false;
 }
 
 PaintWidget::~PaintWidget()
 {
     delete ui;
+}
+
+void PaintWidget::setFixed( bool f )
+{
+	fixed = f;
 }
 
 void PaintWidget::setRenderer( IRenderer* r )
@@ -108,6 +115,8 @@ void PaintWidget::setVirtualZoom( int z )
 
 void PaintWidget::mousePressEvent( QMouseEvent* event )
 {
+	if ( fixed )
+		return;
 	if ( event->button() != Qt::LeftButton )
 		return;
 	startMouseX = lastMouseX = event->x();
@@ -117,6 +126,8 @@ void PaintWidget::mousePressEvent( QMouseEvent* event )
 
 void PaintWidget::mouseMoveEvent( QMouseEvent* event )
 {
+	if ( fixed )
+		return;
 	if ( ( event->buttons() & Qt::LeftButton ) == 0 )
 		return;
 	if ( abs( event->x() - startMouseX ) + abs( event->y() - startMouseY ) > 7 )
@@ -131,6 +142,8 @@ void PaintWidget::mouseMoveEvent( QMouseEvent* event )
 
 void PaintWidget::mouseReleaseEvent( QMouseEvent* event )
 {
+	if ( fixed )
+		return;
 	if ( drag )
 		return;
 	if ( event->button() != Qt::LeftButton )
@@ -145,19 +158,23 @@ void PaintWidget::wheelEvent( QWheelEvent * event )
 	if ( renderer == NULL )
 		return;
 
+	// 15 degrees is a full mousewheel "click"
 	int numDegrees = event->delta() / 8 + wheelDelta;
 	int numSteps = numDegrees / 15;
 	wheelDelta = numDegrees % 15;
 
+	// limit zoom
 	int newZoom = request.zoom + numSteps;
 	if ( newZoom < 0 )
 		newZoom = 0;
 	if ( newZoom > maxZoom )
 		newZoom = maxZoom;
 
+	// avoid looping event calls
 	if ( newZoom == request.zoom )
 		return;
 
+	// zoom in/out on current mouse position
 	request.center = renderer->Move( width() / 2 - event->x(), height() / 2 - event->y(), request );
 	request.zoom = newZoom;
 	request.center = renderer->Move( event->x() - width() / 2, event->y() - height() / 2, request );
@@ -172,6 +189,32 @@ void PaintWidget::paintEvent( QPaintEvent* )
 		return;
 	if ( !isVisible() )
 		return;
+
+	if ( fixed ) {
+		request.center = request.position.ToProjectedCoordinate();
+
+		//gradually change the screen rotation to match the heading
+		double diff = request.rotation + request.heading;
+		while ( diff <= -180 )
+			diff += 360;
+		while ( diff >= 180 )
+			diff -=360;
+		//to filter out noise stop when close enough
+		if ( diff > 0 )
+			diff = std::max( 0.0, diff - 15 );
+		if ( diff < 0 )
+			diff = std::min( 0.0, diff + 15 );
+		request.rotation -= diff / 2;
+
+		//normalize
+		while ( request.rotation < 0 )
+			request.rotation += 360;
+		while ( request.rotation >= 360 )
+			request.rotation -= 360;
+		int radius = height() * 0.3;
+
+		request.center = renderer->PointToCoordinate( 0, -radius, request );
+	}
 
 	QPainter painter( this );
 	renderer->Paint( &painter, request );

@@ -35,6 +35,7 @@ public:
 
 public slots:
 
+	void setFixed( bool f );
 	void setZoom( int z );
 	void setMaxZoom( int z );
 	void setRenderer( IRenderer* r );
@@ -49,7 +50,6 @@ public slots:
 signals:
 
 	void zoomChanged( int z );
-	void centerChanged( ProjectedCoordinate c );
 	void mouseClicked( ProjectedCoordinate clickPos );
 	void contextMenu( QPoint globalPos );
 
@@ -71,6 +71,7 @@ protected:
 	int startMouseY;
 	bool drag;
 	int wheelDelta;
+	bool fixed;
 
 private:
     Ui::PaintWidget *ui;

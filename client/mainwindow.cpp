@@ -309,11 +309,13 @@ void MainWindow::browseMap()
 	window->setSource( source, heading );
 	window->setTarget( target );
 	window->setRoute( path );
-	window->setContextMenuEnabled( true );
+	window->setMenu( MapView::ContextMenu );
 	window->setMode( MapView::Target );
 	connect( window, SIGNAL(sourceChanged(UnsignedCoordinate,double)), this, SLOT(setSource(UnsignedCoordinate,double)) );
 	connect( window, SIGNAL(targetChanged(UnsignedCoordinate)), this, SLOT(setTarget(UnsignedCoordinate)) );
 	connect( this, SIGNAL(routeChanged(QVector<UnsignedCoordinate>)), window, SLOT(setRoute(QVector<UnsignedCoordinate>)) );
+	connect( this, SIGNAL(sourceChanged(UnsignedCoordinate,double)), window, SLOT(setSource(UnsignedCoordinate,double)) );
+	connect( this, SIGNAL(targetChanged(UnsignedCoordinate)), window, SLOT(setTarget(UnsignedCoordinate)) );
 	window->exec();
 	delete window;
 }
@@ -336,7 +338,21 @@ void MainWindow::targetMode()
 
 void MainWindow::routeView()
 {
-
+	MapView* window = new MapView( this );
+	window->setFixed( true );
+	window->setRender( renderer );
+	window->setGPSLookup( gpsLookup );
+	window->setMode( MapView::None );
+	window->setSource( source, heading );
+	window->setTarget( target );
+	window->setRoute( path );
+	window->setMenu( MapView::RouteMenu );
+	connect( this, SIGNAL(routeChanged(QVector<UnsignedCoordinate>)), window, SLOT(setRoute(QVector<UnsignedCoordinate>)) );
+	connect( this, SIGNAL(sourceChanged(UnsignedCoordinate,double)), window, SLOT(setSource(UnsignedCoordinate,double)) );
+	int result = window->exec();
+	delete window;
+	if ( result == MapView::Accepted )
+		browseMap();
 }
 
 void MainWindow::settingsMenu()

@@ -25,22 +25,25 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "bookmarksdialog.h"
 #include <QSettings>
 
-MapView::MapView(QWidget *parent) :
+MapView::MapView( QWidget *parent ) :
 	 QDialog(parent, Qt::Window ),
     ui(new Ui::MapView)
 {
-	ui->setupUi(this);
-	setupMenu();
-	ui->headerWidget->hide();
-	ui->infoWidget->hide();
-	ui->menuButton->hide();
 	renderer = NULL;
 	gpsLookup = NULL;
 	addressLookup = NULL;
-	contextMenuEnabled = false;
+	menu = NoMenu;
 	mode = POI;
-	connectSlots();
 	heading = 0;
+
+	ui->setupUi(this);
+	setupMenu();
+	ui->headerWidget->hide();
+	ui->menuButton->hide();
+	ui->infoWidget->hide();
+
+	connectSlots();
+
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "MapView" );
 	virtualZoom = settings.value( "virtualZoom", 1 ).toInt();
@@ -85,25 +88,22 @@ void MapView::setupMenu()
 	modeTargetAction = new QAction( tr( "Choose Target" ), modeGroup );
 	modeTargetAction->setCheckable( true );
 	contextMenu->addActions( modeGroup->actions() );
-}
 
-void MapView::showEvent( QShowEvent * /*event*/ )
-{
-	if ( renderer != NULL )
-	{
-		maxZoom = renderer->GetMaxZoom();
-		ui->zoomBar->setMaximum( maxZoom );
-		ui->zoomBar->setValue( maxZoom );
-		ui->paintArea->setZoom( maxZoom );
-		ui->paintArea->setMaxZoom( maxZoom );
-		ui->paintArea->setVirtualZoom( virtualZoom );
-	}
+	routeMenu = new QMenu( this );
+	routeMenu->insertAction( NULL, magnifyAction );
+	routeMenu->addAction( tr( "Goto Mapview" ), this, SLOT(gotoMapview()) );
 }
 
 void MapView::setRender( IRenderer* r )
 {
 	renderer = r;
+	maxZoom = renderer->GetMaxZoom();
+	ui->zoomBar->setMaximum( maxZoom );
+	ui->zoomBar->setValue( maxZoom );
 	ui->paintArea->setRenderer( r );
+	ui->paintArea->setZoom( maxZoom );
+	ui->paintArea->setMaxZoom( maxZoom );
+	ui->paintArea->setVirtualZoom( virtualZoom );
 }
 
 void MapView::setGPSLookup( IGPSLookup*g )
@@ -142,10 +142,10 @@ void MapView::setTarget( UnsignedCoordinate t )
 	ui->paintArea->setTarget( target );
 }
 
-void MapView::setContextMenuEnabled( bool e )
+void MapView::setMenu( Menu m )
 {
-	contextMenuEnabled = e;
-	ui->menuButton->setVisible( e );
+	menu = m;
+	ui->menuButton->setVisible( menu != NoMenu );
 }
 
 void MapView::setMode( Mode m )
@@ -153,6 +153,11 @@ void MapView::setMode( Mode m )
 	mode = m;
 	modeSourceAction->setChecked( mode == Source );
 	modeTargetAction->setChecked( mode == Target );
+}
+
+void MapView::setFixed( bool fixed )
+{
+	ui->paintArea->setFixed( fixed );
 }
 
 void MapView::setRoute( QVector< UnsignedCoordinate > path )
@@ -273,18 +278,24 @@ void MapView::showContextMenu()
 
 void MapView::showContextMenu( QPoint globalPos )
 {
-	if ( !contextMenuEnabled )
+	if ( menu == NoMenu )
 		return;
-	gotoSourceAction->setEnabled( source.x != 0 || source.y != 0 );
-	gotoTargetAction->setEnabled( target.x != 0 || target.y != 0 );
-	gotoAddressAction->setEnabled( addressLookup != NULL );
+	if ( menu == ContextMenu ) {
+		gotoSourceAction->setEnabled( source.x != 0 || source.y != 0 );
+		gotoTargetAction->setEnabled( target.x != 0 || target.y != 0 );
+		gotoAddressAction->setEnabled( addressLookup != NULL );
 
-	contextMenu->exec( globalPos );
-	QAction* action = modeGroup->checkedAction();
-	if ( action == modeSourceAction )
-		mode = Source;
-	if ( action == modeTargetAction )
-		mode = Target;
+		contextMenu->exec( globalPos );
+		QAction* action = modeGroup->checkedAction();
+		if ( action == modeSourceAction )
+			mode = Source;
+		if ( action == modeTargetAction )
+			mode = Target;
+		return;
+	}
+	if ( menu == RouteMenu ) {
+		routeMenu->exec( globalPos );
+	}
 }
 
 void MapView::gotoSource()
@@ -347,5 +358,10 @@ void MapView::magnify()
 		return;
 	virtualZoom = result;
 	ui->paintArea->setVirtualZoom( virtualZoom );
+}
+
+void MapView::gotoMapview()
+{
+	accept();
 }
 

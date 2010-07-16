@@ -32,20 +32,25 @@ namespace Ui {
 }
 
 class MapView : public QDialog {
-    Q_OBJECT
+	Q_OBJECT
 public:
-    MapView(QWidget *parent = 0);
-    ~MapView();
+	MapView( QWidget *parent = 0 );
+	~MapView();
 
-	 enum Mode {
-		 Source, Target, POI, None
-	 };
+	enum Mode {
+		Source, Target, POI, None
+	};
+
+	enum Menu {
+		NoMenu, ContextMenu, RouteMenu
+	};
 
 	void setRender( IRenderer* r );
 	void setGPSLookup( IGPSLookup* g );
 	void setAddressLookup( IAddressLookup* al );
-	void setContextMenuEnabled( bool e );
+	void setMenu( Menu m );
 	void setMode( Mode m );
+	void setFixed( bool fixed );
 
 	static int selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* renderer, QWidget* p = NULL );
 	static bool selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, IRenderer* renderer, IGPSLookup* gpsLookup, QWidget* p = NULL );
@@ -68,6 +73,7 @@ public slots:
 	void substractZoom();
 	void bookmarks();
 	void magnify();
+	void gotoMapview();
 
 signals:
 	void coordinateChosen( UnsignedCoordinate coordinate );
@@ -75,7 +81,6 @@ signals:
 	void targetChanged( UnsignedCoordinate pos );
 
 protected:
-	void showEvent( QShowEvent * event );
 	void connectSlots();
 	void setupMenu();
 	void setPlaces( QVector< UnsignedCoordinate > p );
@@ -98,9 +103,12 @@ private:
 	double heading;
 	int virtualZoom;
 
-	bool contextMenuEnabled;
+	bool fixed;
+
+	Menu menu;
 	Mode mode;
 	QMenu* contextMenu;
+	QMenu* routeMenu;
 	QActionGroup* modeGroup;
 	QAction* gotoSourceAction;
 	QAction* gotoTargetAction;
@@ -110,6 +118,7 @@ private:
 	QAction* magnifyAction;
 	QAction* modeSourceAction;
 	QAction* modeTargetAction;
+	QAction* mapViewAction;
 };
 
 #endif // MAPVIEW_H

@@ -259,13 +259,6 @@
           </property>
          </widget>
         </item>
-        <item>
-         <widget class="QToolButton" name="infoButton">
-          <property name="text">
-           <string>Bookmark</string>
-          </property>
-         </widget>
-        </item>
        </layout>
       </item>
      </layout>
