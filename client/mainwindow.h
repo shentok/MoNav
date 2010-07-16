@@ -52,8 +52,6 @@ public slots:
 	void targetAddress();
 	void targetGPS();
 
-	void back();
-
 	void settingsSystem();
 	void settingsRenderer();
 	void settingsGPSLookup();

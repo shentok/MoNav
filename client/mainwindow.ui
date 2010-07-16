@@ -232,7 +232,7 @@
             <property name="geometry">
              <rect>
               <x>0</x>
-              <y>-90</y>
+              <y>0</y>
               <width>179</width>
               <height>432</height>
              </rect>
@@ -688,12 +688,60 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>601</x>
-     <y>219</y>
+     <x>228</x>
+     <y>250</y>
     </hint>
     <hint type="destinationlabel">
-     <x>301</x>
-     <y>220</y>
+     <x>39</x>
+     <y>251</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>backButton</sender>
+   <signal>clicked()</signal>
+   <receiver>targetSourceWidget</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>24</x>
+     <y>203</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>21</x>
+     <y>26</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>backButton</sender>
+   <signal>clicked()</signal>
+   <receiver>settingsWidget</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>21</x>
+     <y>148</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>220</x>
+     <y>26</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>backButton</sender>
+   <signal>clicked()</signal>
+   <receiver>mainMenuWidget</receiver>
+   <slot>show()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>30</x>
+     <y>309</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>434</x>
+     <y>29</y>
     </hint>
    </hints>
   </connection>

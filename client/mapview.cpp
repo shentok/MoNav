@@ -35,6 +35,8 @@ MapView::MapView( QWidget *parent ) :
 	menu = NoMenu;
 	mode = POI;
 	heading = 0;
+	fixed = false;
+	toMapview = false;
 
 	ui->setupUi(this);
 	setupMenu();
@@ -92,6 +94,11 @@ void MapView::setupMenu()
 	routeMenu = new QMenu( this );
 	routeMenu->insertAction( NULL, magnifyAction );
 	routeMenu->addAction( tr( "Goto Mapview" ), this, SLOT(gotoMapview()) );
+}
+
+bool MapView::exitedToMapview()
+{
+	return toMapview;
 }
 
 void MapView::setRender( IRenderer* r )
@@ -267,7 +274,16 @@ void MapView::setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinat
 	ui->nextButton->hide();
 	ui->previousButton->hide();
 
-	ui->paintArea->setCenter( coordinates.first().ToProjectedCoordinate() );
+	ProjectedCoordinate center;
+	foreach( UnsignedCoordinate coordinate, coordinates ) {
+		ProjectedCoordinate pos = coordinate.ToProjectedCoordinate();
+		center.x += pos.x;
+		center.y += pos.y;
+	}
+	center.x /= coordinates.size();
+	center.y /= coordinates.size();
+
+	ui->paintArea->setCenter( center );
 	ui->paintArea->setEdges( segmentLength, coordinates );
 }
 
@@ -362,6 +378,7 @@ void MapView::magnify()
 
 void MapView::gotoMapview()
 {
+	toMapview = true;
 	accept();
 }
 

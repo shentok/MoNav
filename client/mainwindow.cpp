@@ -96,7 +96,6 @@ MainWindow::~MainWindow()
 
 void MainWindow::connectSlots()
 {
-	connect( ui->backButton, SIGNAL(clicked()), this, SLOT(back()) );
 	connect( ui->sourceButton, SIGNAL(clicked()), this, SLOT(sourceMode()) );
 	connect( ui->targetButton, SIGNAL(clicked()), this, SLOT(targetMode()) );
 	connect( ui->routeButton, SIGNAL(clicked()), this, SLOT(routeView()) );
@@ -292,13 +291,6 @@ void MainWindow::computeRoute()
 	emit routeChanged( path );
 }
 
-void MainWindow::back()
-{
-	ui->targetSourceWidget->hide();
-	ui->settingsWidget->hide();
-	ui->mainMenuWidget->show();
-}
-
 void MainWindow::browseMap()
 {
 	MapView* window = new MapView( this );
@@ -349,9 +341,10 @@ void MainWindow::routeView()
 	window->setMenu( MapView::RouteMenu );
 	connect( this, SIGNAL(routeChanged(QVector<UnsignedCoordinate>)), window, SLOT(setRoute(QVector<UnsignedCoordinate>)) );
 	connect( this, SIGNAL(sourceChanged(UnsignedCoordinate,double)), window, SLOT(setSource(UnsignedCoordinate,double)) );
-	int result = window->exec();
+	window->exec();
+	bool mapView = window->exitedToMapview();
 	delete window;
-	if ( result == MapView::Accepted )
+	if ( mapView )
 		browseMap();
 }
 
@@ -371,6 +364,8 @@ void MainWindow::targetBookmarks()
 		setSource( result, 0 );
 	else if ( mode == Target )
 		setTarget( result );
+
+	ui->backButton->click();
 }
 
 void MainWindow::targetAddress()
@@ -383,6 +378,8 @@ void MainWindow::targetAddress()
 		setSource( result, 0 );
 	else if ( mode == Target )
 		setTarget( result );
+
+	ui->backButton->click();
 }
 
 void MainWindow::targetGPS()
@@ -391,6 +388,9 @@ void MainWindow::targetGPS()
 		updateTarget = true;
 	if ( mode == Source )
 		updateSource = true;
+	QMessageBox::information( this, "GPS", "Activated GPS source" );
+
+	ui->backButton->click();
 }
 
 
@@ -435,6 +435,8 @@ void MainWindow::settingsDataDirectory()
 		if ( loadPlugins() )
 			break;
 	}
+
+	ui->backButton->click();
 }
 
 void MainWindow::positionUpdated( const QGeoPositionInfo & update )

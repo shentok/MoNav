@@ -52,6 +52,8 @@ public:
 	void setMode( Mode m );
 	void setFixed( bool fixed );
 
+	bool exitedToMapview();
+
 	static int selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* renderer, QWidget* p = NULL );
 	static bool selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, IRenderer* renderer, IGPSLookup* gpsLookup, QWidget* p = NULL );
 
@@ -104,6 +106,7 @@ private:
 	int virtualZoom;
 
 	bool fixed;
+	bool toMapview;
 
 	Menu menu;
 	Mode mode;
