@@ -56,7 +56,7 @@ bool OSMRendererClient::load()
 	if ( cacheDir == "" ) {
 		cacheDir = QDesktopServices::storageLocation( QDesktopServices::TempLocation );
 		QDir dir( cacheDir );
-		dir.mkdir( "osmrendere" );
+		dir.mkdir( "osmrenderer" );
 		dir.cd( "osmrenderer" );
 		cacheDir = dir.path();
 	}

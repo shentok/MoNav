@@ -130,6 +130,7 @@ bool MapnikRendererClient::loadTile( int x, int y, int zoom, QPixmap** tile )
 	*tile = new QPixmap( tileSize, tileSize );
 	if ( !( *tile )->loadFromData( data, "PNG" ) ) {
 		qDebug() << "Failed to load picture:" << x << y << zoom << " data: (" << start << "-" << end << ")";
+		delete *tile;
 		return false;
 	}
 	return true;
