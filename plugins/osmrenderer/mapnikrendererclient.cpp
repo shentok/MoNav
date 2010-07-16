@@ -105,9 +105,15 @@ bool MapnikRendererClient::loadTile( int x, int y, int zoom, QPixmap** tile )
 		QDir dir( directory );
 		QString filename = dir.filePath( "Mapnik Renderer" );
 		indexFile->setFileName( filename + QString( "_%1_index" ).arg( zoom ) );
-		indexFile->open( QIODevice::ReadOnly );
+		if ( !indexFile->open( QIODevice::ReadOnly ) ) {
+			qCritical() << "failed to open index file:" << indexFile->fileName();
+			return false;
+		}
 		tileFile->setFileName( filename + QString( "_%1_tiles" ).arg( zoom ) );
-		tileFile->open( QIODevice::ReadOnly );
+		if ( !tileFile->open( QIODevice::ReadOnly ) ) {
+			qCritical() << "failed to open tile file:" << tileFile->fileName();
+			return false;
+		}
 		fileZoom = zoom;
 	}
 
@@ -121,6 +127,7 @@ bool MapnikRendererClient::loadTile( int x, int y, int zoom, QPixmap** tile )
 
 	tileFile->seek( start );
 	QByteArray data = tileFile->read( end - start );
+	*tile = new QPixmap( tileSize, tileSize );
 	if ( !( *tile )->loadFromData( data, "PNG" ) ) {
 		qDebug() << "Failed to load picture:" << x << y << zoom << " data: (" << start << "-" << end << ")";
 		return false;

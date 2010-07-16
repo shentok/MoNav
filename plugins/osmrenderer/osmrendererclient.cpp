@@ -53,6 +53,13 @@ bool OSMRendererClient::load()
 	network = new QNetworkAccessManager( this );
 	diskCache = new QNetworkDiskCache( this );
 	QString cacheDir = QDesktopServices::storageLocation( QDesktopServices::CacheLocation );
+	if ( cacheDir == "" ) {
+		cacheDir = QDesktopServices::storageLocation( QDesktopServices::TempLocation );
+		QDir dir( cacheDir );
+		dir.mkdir( "osmrendere" );
+		dir.cd( "osmrenderer" );
+		cacheDir = dir.path();
+	}
 	qDebug() << "set disk cache to: " << cacheDir;
 	diskCache->setCacheDirectory( cacheDir );
 	network->setCache( diskCache );
