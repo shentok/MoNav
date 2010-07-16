@@ -28,6 +28,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "interfaces/irouter.h"
 #include "addressdialog.h"
 
+#include <QGeoPositionInfoSource>
+QTM_USE_NAMESPACE
+
 namespace Ui {
     class MainWindow;
 }
@@ -63,6 +66,8 @@ public slots:
 
 	void computeRoute();
 
+	void positionUpdated( const QGeoPositionInfo & update );
+
 signals:
 	void routeChanged( QVector< UnsignedCoordinate > path );
 
@@ -91,6 +96,10 @@ protected:
 	enum {
 		Source = 0, Target = 1
 	} mode;
+
+	QGeoPositionInfoSource* gpsSource;
+	bool updateTarget;
+	bool updateSource;
 
 private:
     Ui::MainWindow *ui;

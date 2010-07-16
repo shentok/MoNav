@@ -38,3 +38,5 @@ RESOURCES += images.qrc
 LIBS += -L../bin/plugins_client -lmapnikrendererclient -lcontractionhierarchiesclient -lgpsgridclient -losmrendererclient -lunicodetournamenttrieclient
 #required by osmrendererclient
 QT += network
+CONFIG += mobility
+MOBILITY += location

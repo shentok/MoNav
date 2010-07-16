@@ -46,7 +46,7 @@ void MessageBoxHandler(QtMsgType type, const char *msg)
 		break;
 	case QtFatalMsg:
 		QMessageBox::critical(0, "Fatal error", msg, QMessageBox::Ok);
-		abort();
+		exit( -1 );
 	}
 	printf( "%s\n", msg );
 	if ( oldHandler != NULL )

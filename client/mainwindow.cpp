@@ -60,10 +60,19 @@ MainWindow::MainWindow(QWidget *parent) :
 	source.y = settings.value( "source.y", 0 ).toUInt();
 	mode = Source;
 
+	updateSource = true;
+	updateTarget = false;
+	gpsSource = QGeoPositionInfoSource::createDefaultSource( this );
+	if ( gpsSource == 0 )
+		qDebug() << "No GPS Sensor found!";
+
 	connectSlots();
 
 	if ( !loadPlugins() )
 		settingsDataDirectory();
+	if ( gpsSource != NULL ) {
+		gpsSource->startUpdates();
+	}
 }
 
 MainWindow::~MainWindow()
@@ -238,6 +247,7 @@ void MainWindow::unloadPlugins()
 
 void MainWindow::setSource( UnsignedCoordinate s, double h )
 {
+	updateSource = false;
 	if ( source.x == s.x && source.y == s.y && heading == h )
 		return;
 	source = s;
@@ -252,6 +262,7 @@ void MainWindow::setSource( UnsignedCoordinate s, double h )
 
 void MainWindow::setTarget( UnsignedCoordinate t )
 {
+	updateTarget = false;
 	if ( target.x == t.x && target.y == t.y )
 		return;
 	target = t;
@@ -354,7 +365,10 @@ void MainWindow::targetAddress()
 
 void MainWindow::targetGPS()
 {
-
+	if ( mode == Target )
+		updateTarget = true;
+	if ( mode == Source )
+		updateSource = true;
 }
 
 
@@ -398,6 +412,24 @@ void MainWindow::settingsDataDirectory()
 		unloadPlugins();
 		if ( loadPlugins() )
 			break;
+	}
+}
+
+void MainWindow::positionUpdated( const QGeoPositionInfo & update )
+{
+	GPSCoordinate gps;
+	gps.latitude = update.coordinate().latitude();
+	gps.longitude = update.coordinate().longitude();
+	UnsignedCoordinate pos( gps );
+	if ( updateSource ) {
+		if ( update.hasAttribute( QGeoPositionInfo::Direction ) )
+			heading = update.attribute( QGeoPositionInfo::Direction );
+		setSource( pos, heading );
+		updateSource = true;
+	}
+	if ( updateTarget ) {
+		setTarget( pos );
+		updateTarget = true;
 	}
 }
 

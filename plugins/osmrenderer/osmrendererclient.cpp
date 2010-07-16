@@ -39,7 +39,7 @@ OSMRendererClient::OSMRendererClient()
 	setupPolygons();
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "OSM Renderer" );
-	cacheSize = settings.value( "cacheSize", 10 ).toInt();
+	cacheSize = settings.value( "cacheSize", 1 ).toInt();
 	cache.setMaxCost( 1024 * 1024 * cacheSize );
 }
 
@@ -79,7 +79,7 @@ void OSMRendererClient::SetInputDirectory( const QString& )
 void OSMRendererClient::ShowSettings()
 {
 	bool ok = false;
-	int result = QInputDialog::getInt( NULL, "Settings", "Enter Cache Size [MB]", cacheSize, 10, 1024, 1, &ok );
+	int result = QInputDialog::getInt( NULL, "Settings", "Enter Cache Size [MB]", cacheSize, 1, 1024, 1, &ok );
 	if ( !ok )
 		return;
 	cacheSize = result;
