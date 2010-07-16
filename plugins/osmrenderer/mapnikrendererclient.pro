@@ -13,6 +13,11 @@ HEADERS += mapnikrendererclient.h \
     utils/coordinates.h \
     utils/config.h \
     utils/utils.h \
-    rendererbase.h
+    rendererbase.h \
+    brsettingsdialog.h
 SOURCES += mapnikrendererclient.cpp \
-    rendererbase.cpp
+    rendererbase.cpp \
+    brsettingsdialog.cpp
+
+FORMS += \
+    brsettingsdialog.ui

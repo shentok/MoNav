@@ -13,7 +13,12 @@ HEADERS += osmrendererclient.h \
     utils/coordinates.h \
     utils/config.h \
     utils/utils.h \
-    rendererbase.h
+    rendererbase.h \
+    brsettingsdialog.h
 SOURCES += osmrendererclient.cpp \
-    rendererbase.cpp
+    rendererbase.cpp \
+    brsettingsdialog.cpp
 QT += network
+
+FORMS += \
+    brsettingsdialog.ui

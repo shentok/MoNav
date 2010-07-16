@@ -19,12 +19,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QDir>
 #include <QPainter>
-#include <algorithm>
-#include <cmath>
 #include "mapnikrendererclient.h"
 #include "utils/utils.h"
-#include <QSettings>
-#include <QInputDialog>
 #include <QtDebug>
 
 MapnikRendererClient::MapnikRendererClient()
@@ -36,9 +32,6 @@ MapnikRendererClient::MapnikRendererClient()
 
 MapnikRendererClient::~MapnikRendererClient()
 {
-	QSettings settings( "MoNavClient" );
-	settings.beginGroup( "Mapnik Renderer" );
-	settings.setValue( "cacheSize", 1024 * 1024 * cacheSize );
 }
 
 void MapnikRendererClient::unload()
@@ -106,7 +99,7 @@ bool MapnikRendererClient::loadTile( int x, int y, int zoom, QPixmap** tile )
 		return false;
 
 	if ( fileZoom != zoom ) {
-		indexFile.close();
+		indexFile->close();
 		tileFile->close();
 
 		QDir dir( directory );
@@ -119,19 +112,20 @@ bool MapnikRendererClient::loadTile( int x, int y, int zoom, QPixmap** tile )
 	}
 
 	qint64 indexPosition = qint64( y - box.minY ) * ( box.maxX - box.minX ) + ( x - box.minX );
-	indexFile.seek( indexPosition * 2 * sizeof( qint64 ) );
+	indexFile->seek( indexPosition * 2 * sizeof( qint64 ) );
 	qint64 start, end;
-	indexFile.read( ( char* ) &start, sizeof( start ) );
-	indexFile.read( ( char* ) &end, sizeof( end ) );
-	if ( start != end ) {
-		tileFile->seek( start );
-		QByteArray data = tileFile->read( end - start );
-		if ( !( *tile )->loadFromData( data, "PNG" ) ) {
-			qDebug() << "Failed to load picture:" << id << " data: (" << start << "-" << end << ")";
-			return false;
-		}
-	}
+	indexFile->read( ( char* ) &start, sizeof( start ) );
+	indexFile->read( ( char* ) &end, sizeof( end ) );
+	if ( start == end )
+		return false;
 
+	tileFile->seek( start );
+	QByteArray data = tileFile->read( end - start );
+	if ( !( *tile )->loadFromData( data, "PNG" ) ) {
+		qDebug() << "Failed to load picture:" << x << y << zoom << " data: (" << start << "-" << end << ")";
+		return false;
+	}
+	return true;
 }
 
 Q_EXPORT_PLUGIN2( mapnikrendererclient, MapnikRendererClient )

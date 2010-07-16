@@ -24,6 +24,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QCache>
 #include "interfaces/irenderer.h"
 #include "utils/coordinates.h"
+#include "brsettingsdialog.h"
 
 class RendererBase : public QObject, IRenderer
 {
@@ -65,7 +66,10 @@ protected:
 	bool loaded;
 	int tileSize;
 	QPolygonF arrow;
-	long long cacheSize;
+
+private:
+	BRSettingsDialog::Settings settings;
+	BRSettingsDialog* settingsDialog;
 };
 
 #endif // RENDERERBASE_H

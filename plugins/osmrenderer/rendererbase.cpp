@@ -21,10 +21,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QPainter>
 #include <algorithm>
 #include <cmath>
-#include <QNetworkReply>
 #include <QDebug>
 #include <QSettings>
-#include <QDesktopServices>
 #include <QInputDialog>
 
 #include "rendererbase.h"
@@ -35,17 +33,13 @@ RendererBase::RendererBase()
 	loaded = false;
 	setupPolygons();
 	tileSize = 256;
-	QSettings settings( "MoNavClient" );
-	settings.beginGroup( "Renderer Base" );
-	cacheSize = settings.value( "cacheSize", 1 ).toInt();
-	cache.setMaxCost( 1024 * 1024 * cacheSize );
+	settingsDialog = NULL;
 }
 
 RendererBase::~RendererBase()
 {
-	QSettings settings( "MoNavClient" );
-	settings.beginGroup( "Renderer Base" );
-	settings.setValue( "cacheSize", cacheSize );
+	if ( settingsDialog != NULL )
+		delete settingsDialog;
 }
 
 void RendererBase::reset()
@@ -71,18 +65,24 @@ void RendererBase::SetInputDirectory( const QString& dir )
 
 void RendererBase::ShowSettings()
 {
-	bool ok = false;
-	int result = QInputDialog::getInt( NULL, "Settings", "Enter Cache Size [MB]", cacheSize, 1, 1024, 1, &ok );
-	if ( !ok )
+	assert( loaded );
+	settingsDialog->exec();
+	if ( !settingsDialog->getSettings( &settings ) )
 		return;
-	cacheSize = result;
-	cache.setMaxCost( 1024 * 1024 * cacheSize );
+	cache.setMaxCost( 1024 * 1024 * settings.cacheSize );
 }
 
 bool RendererBase::LoadData()
 {
 	if ( loaded )
 		reset();
+
+	if ( settingsDialog == NULL )
+		settingsDialog = new BRSettingsDialog();
+	if ( !settingsDialog->getSettings( &settings ) )
+		return false;
+	cache.setMaxCost( 1024 * 1024 * settings.cacheSize );
+
 	if ( !load() )
 		return false;
 	loaded = true;
@@ -150,11 +150,12 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 	if ( request.virtualZoom > 0 )
 		painter->scale( request.virtualZoom, request.virtualZoom );
 	painter->rotate( rotation );
-	if ( fabs( rotation ) > 1 || request.virtualZoom > 1 ) {
+
+	if ( settings.filter && ( fmod( rotation, 90 ) != 0 || request.virtualZoom > 1 ) )
 		painter->setRenderHint( QPainter::SmoothPixmapTransform );
-		painter->setRenderHint( QPainter::Antialiasing );
+
+	if ( settings.hqAntiAliasing )
 		painter->setRenderHint( QPainter::HighQualityAntialiasing );
-	}
 
 	QTransform transform = painter->worldTransform();
 	QTransform inverseTransform = transform.inverted();
@@ -205,7 +206,8 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 		posX += tileSize;
 	}
 
-	painter->setRenderHint( QPainter::Antialiasing );
+	if ( settings.antiAliasing )
+		painter->setRenderHint( QPainter::Antialiasing );
 
 	if ( request.edgeSegments.size() > 0 && request.edges.size() > 0 ) {
 		int position = 0;
