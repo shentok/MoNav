@@ -68,10 +68,14 @@ void AddressDialog::connectSlots()
 void AddressDialog::characterClicked( QListWidgetItem * item )
 {
 	QString text = item->text();
-	if ( mode == City )
+	if ( mode == City ) {
 		ui->cityEdit->setText( text );
-	else if ( mode == Street )
+		ui->cityEdit->setFocus( Qt::OtherFocusReason );
+	}
+	else if ( mode == Street ) {
 		ui->streetEdit->setText( text );
+		ui->streetEdit->setFocus( Qt::OtherFocusReason );
+	}
 }
 
 void AddressDialog::suggestionClicked( QListWidgetItem * item )
@@ -127,7 +131,7 @@ void AddressDialog::cityTextChanged( QString text )
 	ui->characterList->clear();
 	QStringList suggestions;
 	QStringList characters;
-	if ( !addressLookup->GetPlaceSuggestions( text, 16, &suggestions, &characters ) )
+	if ( !addressLookup->GetPlaceSuggestions( text, 8, &suggestions, &characters ) )
 		return;
 	bool parity = false;
 	foreach( QString label, suggestions ) {
@@ -166,7 +170,7 @@ void AddressDialog::streetTextChanged( QString text)
 	ui->characterList->clear();
 	QStringList suggestions;
 	QStringList characters;
-	if ( !addressLookup->GetStreetSuggestions( text, 16, &suggestions, &characters ) )
+	if ( !addressLookup->GetStreetSuggestions( text, 8, &suggestions, &characters ) )
 		return;
 	bool parity = false;
 	foreach( QString label, suggestions ) {
@@ -205,12 +209,14 @@ void AddressDialog::resetCity()
 	ui->cityEdit->setText( "" );
 	mode = City;
 	cityTextChanged( "" );
+	ui->cityEdit->setFocus( Qt::OtherFocusReason );
 }
 
 void AddressDialog::resetStreet()
 {
 	ui->streetEdit->setText( "" );
 	streetTextChanged( "" );
+	ui->streetEdit->setFocus( Qt::OtherFocusReason );
 }
 
 bool AddressDialog::getAddress( UnsignedCoordinate* result, IAddressLookup* addressLookup, IRenderer* renderer, IGPSLookup* gpsLookup, QWidget* p, bool cityOnly )
