@@ -20,32 +20,45 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef MAPNIKRENDERER_H
 #define MAPNIKRENDERER_H
 
-#include "rendererbase.h"
-#include <QNetworkAccessManager>
-#include <QNetworkDiskCache>
+#include <QObject>
+#include "interfaces/ipreprocessor.h"
+#include "mrsettingsdialog.h"
 
-class OSMRendererClient : public RendererBase
+class MapnikRenderer : public QObject, public IPreprocessor
 {
 	Q_OBJECT
+	Q_INTERFACES( IPreprocessor )
+
 public:
-
-	OSMRendererClient();
-	virtual ~OSMRendererClient();
+    MapnikRenderer();
 	virtual QString GetName();
-	virtual int GetMaxZoom();
+	virtual Type GetType();
+	virtual void SetOutputDirectory( const QString& dir );
+	virtual void ShowSettings();
+	virtual bool Preprocess( IImporter* importer );
+	virtual ~MapnikRenderer();
 
-public slots:
-	void finished( QNetworkReply* reply );
+signals:
+	void changed();
 
 protected:
+	struct MapnikConfig {
+		int tileSize;
+		int maxZoom;
+	};
+	struct MapnikMetaTile {
+		int x;
+		int y;
+		int metaTileSizeX;
+		int metaTileSizeY;
+	};
+	struct MapnikIndexElement {
+		qint64 start;
+		qint64 end;
+	};
 
-	virtual bool loadTile( int x, int y, int zoom, QPixmap** tile );
-	virtual bool load();
-	virtual void unload();
-
-	QNetworkAccessManager* network;
-	QNetworkDiskCache* diskCache;
-	int tileSize;
+	MRSettingsDialog* settingsDialog;
+	QString outputDirectory;
 };
 
 #endif // MAPNIKRENDERER_H

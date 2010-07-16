@@ -20,22 +20,20 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef MAPNIKRENDERER_H
 #define MAPNIKRENDERER_H
 
+#include <QDataStream>
+#include <QFile>
 #include "rendererbase.h"
-#include <QNetworkAccessManager>
-#include <QNetworkDiskCache>
 
-class OSMRendererClient : public RendererBase
+class MapnikRendererClient : public RendererBase
 {
 	Q_OBJECT
+
 public:
 
-	OSMRendererClient();
-	virtual ~OSMRendererClient();
+	MapnikRendererClient();
+	virtual ~MapnikRendererClient();
 	virtual QString GetName();
 	virtual int GetMaxZoom();
-
-public slots:
-	void finished( QNetworkReply* reply );
 
 protected:
 
@@ -43,9 +41,19 @@ protected:
 	virtual bool load();
 	virtual void unload();
 
-	QNetworkAccessManager* network;
-	QNetworkDiskCache* diskCache;
-	int tileSize;
+	struct Box
+	{
+		int minX;
+		int maxX;
+		int minY;
+		int maxY;
+	};
+
+	int maxZoom;
+	QVector< Box > boxes;
+	QFile* indexFile;
+	QFile* tileFile;
+	int fileZoom;
 };
 
 #endif // MAPNIKRENDERER_H

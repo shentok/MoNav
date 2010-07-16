@@ -8,12 +8,11 @@ unix {
 		 -Wno-unused-function
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
-HEADERS += osmrendererclient.h \
+HEADERS += mapnikrendererclient.h \
     interfaces/irenderer.h \
     utils/coordinates.h \
     utils/config.h \
     utils/utils.h \
     rendererbase.h
-SOURCES += osmrendererclient.cpp \
+SOURCES += mapnikrendererclient.cpp \
     rendererbase.cpp
-QT += network
