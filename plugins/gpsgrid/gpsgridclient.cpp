@@ -111,7 +111,7 @@ bool GPSGridClient::GetNearEdges( QVector< Result >* result, const UnsignedCoord
 	gridRadius *= gridRadius;
 	double gridHeadingPenalty = (( double ) UnsignedCoordinate( ProjectedCoordinate( gpsMoved ) ).x - coordinate.x ) / meter * headingPenalty;
 	gridHeadingPenalty *= gridHeadingPenalty;
-        heading = fmod( heading * 2.0 * M_PI / 360.0, 2 * M_PI );
+	heading = fmod( ( heading + 270 ) * 2.0 * M_PI / 360.0, 2 * M_PI );
 
 	static const int width = 32 * 32 * 32;
 
