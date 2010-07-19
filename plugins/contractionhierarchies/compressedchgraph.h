@@ -412,29 +412,24 @@ public:
 		return _node_count;
 	}
 
-	std::pair<out_edge_iterator, out_edge_iterator> find_edge ( const vertex_descriptor& source, const vertex_descriptor& target ) {
+	std::pair< out_edge_iterator, out_edge_iterator > find_edge ( const vertex_descriptor& source, const vertex_descriptor& target ) {
 		if ( target < source ) {
 			std::pair<out_edge_iterator, out_edge_iterator> edges = out_edges( source );
-			while ( edges.first != edges.second && get_target( edges.first ) != target && get_shortcut( edges.first ) )
+			while ( get_target( edges.first ) != target && get_shortcut( edges.first ) && get_forward( edges.first ) ) {
 				++edges.first;
-
-			assert( edges.first != edges.second );
-
-			return edges;
-		}
-		else if ( source < target ) {
-			std::pair<out_edge_iterator, out_edge_iterator> edges = out_edges( target );
-			while ( edges.first != edges.second && get_target( edges.first ) != source && get_shortcut( edges.first ) )
-				++edges.first;
-
-			assert( edges.first != edges.second );
-
+				assert( edges.first != edges.second );
+			}
 			return edges;
 		}
 		else {
-			assert( false );
+			assert( source < target );
+			std::pair<out_edge_iterator, out_edge_iterator> edges = out_edges( target );
+			while ( get_target( edges.first ) != source && get_shortcut( edges.first ) && get_backward( edges.first ) ) {
+				++edges.first;
+				assert( edges.first != edges.second );
+			}
+			return edges;
 		}
-		return out_edges( source );
 	}
 
 	//mapping external node id to internal id
