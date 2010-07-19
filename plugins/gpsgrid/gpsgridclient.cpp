@@ -109,8 +109,6 @@ bool GPSGridClient::GetNearEdges( QVector< Result >* result, const UnsignedCoord
 	const double meter = gps.ApproximateDistance( gpsMoved );
 	double gridRadius = (( double ) UnsignedCoordinate( ProjectedCoordinate( gpsMoved ) ).x - coordinate.x ) / meter * radius;
 	gridRadius *= gridRadius;
-	double gridHeadingPenalty = (( double ) UnsignedCoordinate( ProjectedCoordinate( gpsMoved ) ).x - coordinate.x ) / meter * headingPenalty;
-	gridHeadingPenalty *= gridHeadingPenalty;
 	heading = fmod( ( heading + 270 ) * 2.0 * M_PI / 360.0, 2 * M_PI );
 
 	static const int width = 32 * 32 * 32;
@@ -119,17 +117,17 @@ bool GPSGridClient::GetNearEdges( QVector< Result >* result, const UnsignedCoord
 	NodeID yGrid = floor( position.y * width );
 	NodeID xGrid = floor( position.x * width );
 
-	checkCell( result, gridRadius, xGrid - 1, yGrid - 1, coordinate, heading, gridHeadingPenalty );
-	checkCell( result, gridRadius, xGrid - 1, yGrid, coordinate, heading, gridHeadingPenalty );
-	checkCell( result, gridRadius, xGrid - 1, yGrid + 1, coordinate, heading, gridHeadingPenalty );
+	checkCell( result, gridRadius, xGrid - 1, yGrid - 1, coordinate, heading, headingPenalty );
+	checkCell( result, gridRadius, xGrid - 1, yGrid, coordinate, heading, headingPenalty );
+	checkCell( result, gridRadius, xGrid - 1, yGrid + 1, coordinate, heading, headingPenalty );
 
-	checkCell( result, gridRadius, xGrid, yGrid - 1, coordinate, heading, gridHeadingPenalty );
-	checkCell( result, gridRadius, xGrid, yGrid, coordinate, heading, gridHeadingPenalty );
-	checkCell( result, gridRadius, xGrid, yGrid + 1, coordinate, heading, gridHeadingPenalty );
+	checkCell( result, gridRadius, xGrid, yGrid - 1, coordinate, heading, headingPenalty );
+	checkCell( result, gridRadius, xGrid, yGrid, coordinate, heading, headingPenalty );
+	checkCell( result, gridRadius, xGrid, yGrid + 1, coordinate, heading, headingPenalty );
 
-	checkCell( result, gridRadius, xGrid + 1, yGrid - 1, coordinate, heading, gridHeadingPenalty );
-	checkCell( result, gridRadius, xGrid + 1, yGrid, coordinate, heading, gridHeadingPenalty );
-	checkCell( result, gridRadius, xGrid + 1, yGrid + 1, coordinate, heading, gridHeadingPenalty );
+	checkCell( result, gridRadius, xGrid + 1, yGrid - 1, coordinate, heading, headingPenalty );
+	checkCell( result, gridRadius, xGrid + 1, yGrid, coordinate, heading, headingPenalty );
+	checkCell( result, gridRadius, xGrid + 1, yGrid + 1, coordinate, heading, headingPenalty );
 
 	std::sort( result->begin(), result->end() );
 	return result->size() != 0;
@@ -178,7 +176,7 @@ bool GPSGridClient::checkCell( QVector< Result >* result, double radius, NodeID 
 		double yDiff = ( double ) i->targetCoord.y - i->sourceCoord.y;
 		double direction = 0;
 		if ( xDiff != 0 || yDiff != 0 )
-			direction = fmod( atan2( yDiff, xDiff ) + M_PI / 2, 2 * M_PI );
+			direction = fmod( atan2( yDiff, xDiff ), 2 * M_PI );
 		else
 			headingPenalty = 0;
 		double penalty = fabs( direction - heading );

@@ -259,7 +259,7 @@ void MainWindow::setSource( UnsignedCoordinate s, double h )
 	heading = h;
 	emit sourceChanged( source, heading );
 	QVector< IGPSLookup::Result > result;
-	if ( !gpsLookup->GetNearEdges( &result, source, 100, heading == 0 ? 0 : 5, heading ) )
+	if ( !gpsLookup->GetNearEdges( &result, source, 100, heading == 0 ? 0 : 10, heading ) )
 		return;
 	sourcePos = result.first();
 	sourceSet = true;
