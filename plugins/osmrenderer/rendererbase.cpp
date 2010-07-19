@@ -151,7 +151,7 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 		painter->scale( request.virtualZoom, request.virtualZoom );
 	painter->rotate( rotation );
 
-	if ( settings.filter && ( fmod( rotation, 90 ) != 0 || request.virtualZoom > 1 ) )
+	if ( settings.filter && fmod( rotation, 90 ) != 0 )
 		painter->setRenderHint( QPainter::SmoothPixmapTransform );
 
 	if ( settings.hqAntiAliasing )
