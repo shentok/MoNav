@@ -120,7 +120,12 @@ void MainWindow::connectSlots()
 bool MainWindow::loadPlugins()
 {
 	QDir dir( dataDirectory );
-	QSettings pluginSettings( dir.filePath( "plugins.ini" ), QSettings::IniFormat );
+	QString configFilename = dir.filePath( "plugins.ini" );
+	if ( !QFile::exists( configFilename ) ) {
+		qCritical() << "Not a valid data directory: Missing plugins.ini";
+		return false;
+	}
+	QSettings pluginSettings( configFilename, QSettings::IniFormat );
 	QString rendererName = pluginSettings.value( "renderer" ).toString();
 	QString routerName = pluginSettings.value( "router" ).toString();
 	QString gpsLookupName = pluginSettings.value( "gpsLookup" ).toString();

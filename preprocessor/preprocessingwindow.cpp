@@ -66,19 +66,19 @@ void PreprocessingWindow::connectSlots()
 void PreprocessingWindow::loadPlugins()
 {
 	QDir pluginDir( QApplication::applicationDirPath() );
-	if (!pluginDir.cd("plugins_preprocessor"))
-		return;
-	foreach ( QString fileName, pluginDir.entryList( QDir::Files ) ) {
-		QPluginLoader* loader = new QPluginLoader( pluginDir.absoluteFilePath( fileName ) );
-		loader->setLoadHints( QLibrary::ExportExternalSymbolsHint );
-		if ( !loader->load() )
-			qDebug( "%s", loader->errorString().toAscii().constData() );
+	if ( pluginDir.cd("plugins_preprocessor") ) {
+		foreach ( QString fileName, pluginDir.entryList( QDir::Files ) ) {
+			QPluginLoader* loader = new QPluginLoader( pluginDir.absoluteFilePath( fileName ) );
+			loader->setLoadHints( QLibrary::ExportExternalSymbolsHint );
+			if ( !loader->load() )
+				qDebug( "%s", loader->errorString().toAscii().constData() );
 
-		if ( testPlugin( loader->instance() ) )
-			plugins.push_back( loader );
-		else {
-			loader->unload();
-			delete loader;
+			if ( testPlugin( loader->instance() ) )
+				plugins.push_back( loader );
+			else {
+				loader->unload();
+				delete loader;
+			}
 		}
 	}
 
