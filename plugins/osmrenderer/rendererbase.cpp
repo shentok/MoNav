@@ -319,10 +319,8 @@ void RendererBase::drawPolyline( QPainter* painter, const QRect& boundingBox, QV
 			continue;
 		}
 		ProjectedCoordinate pos = line[i];
-		if ( fabs( pos.x - lastCoord.x ) + fabs( pos.y - lastCoord.y ) < 5 ) {
-			isInside.push_back( false );
+		if ( i != 0 && fabs( pos.x - lastCoord.x ) + fabs( pos.y - lastCoord.y ) < 5 )
 			continue;
-		}
 		QPoint point( pos.x, pos.y );
 		polygon.push_back( point );
 		lastCoord = pos;
