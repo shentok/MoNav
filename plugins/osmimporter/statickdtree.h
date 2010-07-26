@@ -46,16 +46,16 @@ struct NoData {};
 template< unsigned k, typename T >
 class EuclidianMetric {
 	public:
-		double operator() ( T left[k], T right[k] ) {
+		double operator() ( const T left[k], const T right[k] ) {
 			double result = 0;
 			for ( unsigned i = 0; i < k; ++i ) {
-				double temp = left[i] - right[i];
+				double temp = ( double ) left[i] - ( double ) right[i];
 				result += temp * temp;
 			}
 			return result;
 		}
 		
-		double operator() ( const BoundingBox< k, T > &box, T point[k] ) {
+		double operator() ( const BoundingBox< k, T > &box, const T point[k] ) {
 			T nearest[k];
 			for ( unsigned dim = 0; dim < k; ++dim ) {
 				if ( point[dim] < box.min[dim] )
@@ -78,7 +78,7 @@ class StaticKDTree {
 			Data data;
 		};
 
-		StaticKDTree( std::vector< InputPoint > points ){
+		StaticKDTree( const std::vector< InputPoint >& points ){
 			assert( k > 0 );
 			assert ( points.size() > 0 );
 			size = points.size();
@@ -112,7 +112,7 @@ class StaticKDTree {
 			delete[] kdtree;
 		}
 		
-		bool Find ( InputPoint& point ){
+		bool Find ( const InputPoint& point ){
 			std::stack< Tree > s;
 			s.push ( Tree ( kdtree.begin(), kdtree.end() ), 0 );
 			while ( !s.empty() ) {
@@ -145,7 +145,7 @@ class StaticKDTree {
 			return false;
 		}
 		
-		bool NearestNeighbor( InputPoint* result, InputPoint& point, double radius = std::numeric_limits< T >::max() ) {
+		bool NearestNeighbor( InputPoint* result, const InputPoint& point, double radius = std::numeric_limits< T >::max() ) {
 			Metric distance;
 			bool found = false;
 			double nearestDistance = radius;
@@ -192,7 +192,7 @@ class StaticKDTree {
 			return found;
 		}
 		
-		bool NearNeighbors( std::vector< InputPoint >* result, InputPoint& point, double radius = std::numeric_limits< T >::max() ) {
+		bool NearNeighbors( std::vector< InputPoint >* result, const InputPoint& point, double radius ) {
 			Metric distance;
 			bool found = false;
 			std::stack< NNTree > s;

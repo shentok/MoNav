@@ -118,14 +118,14 @@ protected:
 
 	class GPSMetric {
 	public:
-		double operator() ( double left[2], double right[2] ) {
+		double operator() ( const double left[2], const double right[2] ) {
 			GPSCoordinate leftGPS( left[0], left[1] );
 			GPSCoordinate rightGPS( right[0], right[1] );
 			double result = leftGPS.ApproximateDistance( rightGPS );
 			return result;
 		}
 
-		double operator() ( const KDTree::BoundingBox< 2, double > &box, double point[2] ) {
+		double operator() ( const KDTree::BoundingBox< 2, double > &box, const double point[2] ) {
 			double nearest[2];
 			for ( unsigned dim = 0; dim < 2; ++dim ) {
 				if ( point[dim] < box.min[dim] )
