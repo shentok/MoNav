@@ -171,8 +171,8 @@ class UnsignedCoordinate {
 			y = yVal;
 		}
 		explicit UnsignedCoordinate( ProjectedCoordinate tile ) {
-			x = floor( tile.x * std::numeric_limits< unsigned >::max() + 0.5 );
-			y = floor( tile.y * std::numeric_limits< unsigned >::max() + 0.5 );
+			x = floor( tile.x * ( 1u << 30 ) );
+			y = floor( tile.y * ( 1u << 30 ) );
 		}
 		explicit UnsignedCoordinate( GPSCoordinate gps ) {
 			*this = UnsignedCoordinate( ProjectedCoordinate( gps ) );
@@ -185,36 +185,32 @@ class UnsignedCoordinate {
 			ProjectedCoordinate tile;
 			tile.x = x;
 			tile.y = y;
-			tile.x /= std::numeric_limits< unsigned >::max();
-			tile.y /= std::numeric_limits< unsigned >::max();
+			tile.x /= ( 1u << 30 );
+			tile.y /= ( 1u << 30 );
 			return tile;
 		}
-		
+
 		unsigned GetTileX( int zoom ) const {
 			if ( zoom == 0 )
 				return 0;
-			return x >> ( sizeof( unsigned ) * 8 - zoom );
+			return x >> ( 30 - zoom );
 		}
 		unsigned GetTileY( int zoom ) const {
 			if ( zoom == 0 )
 				return 0;
-			return y >> ( sizeof( unsigned ) * 8 - zoom );
+			return y >> ( 30 - zoom );
 		}
 		unsigned GetTileSubX( int zoom, int precision ) const {
-			assert( zoom + precision < ( int ) sizeof( unsigned ) * 8 );
+			assert( zoom + precision < 31 );
 			assert( zoom + precision > 0 );
-			if ( zoom == 0 )
-				return x >> ( sizeof( unsigned ) * 8 - precision );
 			const unsigned subX = ( x << zoom ) >> zoom;
-			return subX >> ( sizeof( unsigned ) * 8 - precision - zoom );
+			return subX >> ( 30 - precision - zoom );
 		}
 		unsigned GetTileSubY( int zoom, int precision ) const {
-			assert( zoom + precision < ( int ) sizeof( unsigned ) * 8 );
+			assert( zoom + precision < 31 );
 			assert( zoom + precision > 0 );
-			if ( zoom == 0 )
-				return y >> ( sizeof( unsigned ) * 8 - precision );
 			const unsigned subY = ( y << zoom ) >> zoom;
-			return subY >> ( sizeof( unsigned ) * 8 - precision - zoom );
+			return subY >> ( 30 - precision - zoom );
 		}
 		
 		bool operator==( const UnsignedCoordinate& right ) const {
