@@ -117,8 +117,9 @@ struct Node {
 
 	size_t GetSize() const {
 		size_t result = 0;
-		result += sizeof( unsigned short );
-		result += sizeof( unsigned char );
+		result += sizeof( short );
+		if ( dataList.size() != 0 )
+			result += sizeof( unsigned short );
 		for ( int i = 0; i < ( int ) labelList.size(); i++ )
 			result += labelList[i].GetSize();
 		for ( int i = 0; i < ( int ) dataList.size(); i++ )
@@ -127,12 +128,14 @@ struct Node {
 	}
 
 	void Write( char* buffer ) const {
-		assert( labelList.size() <= std::numeric_limits< unsigned short >::max() );
-		assert( dataList.size() <= std::numeric_limits< unsigned char >::max() );
-		*( ( unsigned short* ) buffer ) = labelList.size();
-		buffer += sizeof( unsigned short );
-		*( ( unsigned char* ) buffer ) = dataList.size();
-		buffer += sizeof( unsigned char );
+		assert( ( int ) labelList.size() <= std::numeric_limits< short >::max() );
+		assert( dataList.size() <= std::numeric_limits< unsigned short >::max() );
+		*( ( short* ) buffer ) = labelList.size() * ( dataList.size() > 0 ? -1 : 1 );
+		buffer += sizeof( short );
+		if ( dataList.size() > 0 ) {
+			*( ( unsigned short* ) buffer ) = dataList.size();
+			buffer += sizeof( unsigned short );
+		}
 		for ( int i = 0; i < ( int ) labelList.size(); i++ ) {
 			labelList[i].Write( buffer );
 			buffer += labelList[i].GetSize();
@@ -144,10 +147,13 @@ struct Node {
 	}
 
 	void Read( const char* buffer ) {
-		labelList.resize( readUnaligned< unsigned short >( buffer ) );
+		short labelSize = readUnaligned< short >( buffer );
+		labelList.resize( labelSize >= 0 ? labelSize : -labelSize );
 		buffer += sizeof( unsigned short );
-		dataList.resize( readUnaligned< unsigned char >( buffer ) );
-		buffer += sizeof( unsigned char );
+		if ( labelSize <= 0 ) {
+			dataList.resize( readUnaligned< unsigned short >( buffer ) );
+			buffer += sizeof( unsigned short );
+		}
 		for( int i = 0; i < ( int ) labelList.size(); i++ ) {
 			labelList[i].Read( buffer );
 			buffer += labelList[i].GetSize();

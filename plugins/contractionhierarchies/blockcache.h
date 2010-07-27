@@ -72,7 +72,7 @@ public:
 		}
 
 		//load block (skip first block -> header )
-		_inputFile.seek( ( block + 1 ) * _blockSize );
+		_inputFile.seek( ( ( long long ) block + 1 ) * _blockSize );
 		_inputFile.read(_cache + free_block * _blockSize, _blockSize );
 		_blocks[free_block].id = block;
 

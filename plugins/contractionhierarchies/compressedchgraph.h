@@ -1184,7 +1184,7 @@ public:
 				}
 			}
 
-			qDebug( "Merged external unpacked shortcuts: %d Mb", ( int ) unpacked_path_buffer.size() * 4 / 1024 / 1024 );
+			qDebug( "Merged external unpacked shortcuts: %lld Mb", ( long long ) unpacked_path_buffer.size() * 4 / 1024 / 1024 );
 			qDebug( "Unpacked %d of total shortcuts: %lf Percent", stats_unpacked_shortcuts, 100.0f * stats_unpacked_shortcuts / stats_shortcuts );
 
 			unpacked_path_blocks = ( unpacked_path_buffer.size() * sizeof ( unsigned ) + block_size - 1 ) / block_size;
@@ -1195,7 +1195,7 @@ public:
 		}
 
 
-		unsigned char* buffer = new unsigned char[ ( blocks + 10 ) * block_size];
+		unsigned char* buffer = new unsigned char[ ( ( long long ) blocks + 10 ) * block_size];
 		unsigned char* header_buffer = new unsigned char[block_size];
 		unsigned* header = ( unsigned* ) header_buffer;
 		memset ( buffer, 0, ( blocks + 10 ) * block_size );
@@ -1216,7 +1216,7 @@ public:
 		qDebug( "\tblocks: %d", blocks );
 		if ( PRE_UNPACK )
 			qDebug( "\tpath blocks: %d", unpacked_path_blocks );
-		qDebug( "\tspace: %d Mb" , ( blocks + unpacked_path_blocks ) * block_size / 1024 / 1024 );
+		qDebug( "\tspace: %lld Mb" , ( ( long long ) blocks + unpacked_path_blocks ) * block_size / 1024 / 1024 );
 		vertex_descriptor max_internal ( 0 );
 		max_internal.set ( builder._block_map[( *remap )[node_count - 1]].block, builder._block_map[( *remap )[node_count - 1]].node, settings );
 		qDebug( "\tmax internal ID: %d",( unsigned ) max_internal );
@@ -1242,9 +1242,9 @@ public:
 		qDebug( "Time to import: %lf s", time );
 
 		outputFile.write ( ( char* ) header_buffer, block_size );
-		outputFile.write ( ( char* ) buffer, blocks * block_size );
+		outputFile.write ( ( char* ) buffer, ( long long ) blocks * block_size );
 		if ( PRE_UNPACK )
-			outputFile.write ( ( char* ) &unpacked_path_buffer[0], unpacked_path_blocks * block_size );
+			outputFile.write ( ( char* ) &unpacked_path_buffer[0], ( long long ) unpacked_path_blocks * block_size );
 
 		delete[] buffer;
 		delete[] header_buffer;
