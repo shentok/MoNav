@@ -1065,8 +1065,8 @@ public:
 
 		//inputFile.read ( ( char* ) remap, sizeof ( unsigned ) * node_count );
 		for ( unsigned i = 0; i < node_count; i++ ) {
-			nodes[( *remap )[i]].x = inputNodes[i].x;
-			nodes[( *remap )[i]].y = inputNodes[i].y;
+			nodes[i].x = inputNodes[i].x;
+			nodes[i].y = inputNodes[i].y;
 		}
 		std::vector< UnsignedCoordinate >().swap( inputNodes );
 

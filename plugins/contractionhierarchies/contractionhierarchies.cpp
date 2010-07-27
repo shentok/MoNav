@@ -121,7 +121,7 @@ bool ContractionHierarchies::Preprocess( IImporter* importer )
 
 	std::vector< UnsignedCoordinate > nodes( inputNodes.size() );
 	for ( std::vector< IImporter::RoutingNode >::const_iterator i = inputNodes.begin(), iend = inputNodes.end(); i != iend; i++ )
-		nodes[i - inputNodes.begin()] = i->coordinate;
+		nodes[map[i - inputNodes.begin()]] = i->coordinate;
 	std::vector< IImporter::RoutingNode >().swap( inputNodes );
 
 	block_graph::build( edges, nodes, &map, filename, 1u << settings.blockSize );
