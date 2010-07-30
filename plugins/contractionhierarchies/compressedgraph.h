@@ -45,6 +45,7 @@ public:
 			bool forward : 1;
 			bool backward : 1;
 			bool unpacked : 1;
+			bool reversed : 1;
 			unsigned middle;
 			unsigned path;
 		} data;
@@ -140,10 +141,10 @@ protected:
 			while ( firstEdge.size() <= inputEdges[i].source )
 				firstEdge.push_back( i );
 		}
-		while ( firstEdge.size() < inputNodes.size() )
+		while ( firstEdge.size() <= inputNodes.size() )
 			firstEdge.push_back( inputEdges.size() );
 
-		std::vector< nodeDescriptor > nodeID( firstEdge.size() );
+		std::vector< nodeDescriptor > nodeID( inputNodes.size() );
 		// TODO: BUILD
 
 		std::vector< Node > pathBuffer;
@@ -229,6 +230,40 @@ protected:
 	void unloadGraph()
 	{
 
+	}
+
+	static void unpackPath( const std::vector< Node >& nodes, const std::vector< unsigned >& firstEdge, const std::vector< Edge >& edges, std::vector< Node >* buffer, unsigned source, unsigned target, bool forward ) {
+		unsigned edge = firstEdge[source];
+		assert ( edge != firstEdge[source + 1] );
+		for ( ;edges[edge].target != target || ( forward && !edges[edge].forward ) || ( !forward && !edges[edge].backward ); edge++ )
+			assert ( edge <= nodes[source + 1].first_edge );
+
+		if ( !edges[edge].shortcut ) {
+			if ( forward )
+				buffer->push_back ( nodes[target] );
+			else
+				buffer->push_back ( nodes[source] );
+			return;
+		}
+
+		unsigned middle = edges[edge].middle;
+		edges[edge].data.reversed = !forward;
+		edges[edge].data.unpacked = true;
+
+		//unpack the nodes in the right order
+		if ( forward ) {
+			//point at first node between source and destination
+			edges[edge].path = buffer->size() - 1;
+
+			_unpack_path ( nodes, firstEdge, edges, buffer, middle, source, false );
+			_unpack_path ( nodes, firstEdge, edges, buffer, middle, target, true );
+		} else {
+			_unpack_path ( nodes, firstEdge, edges, buffer, middle, target, false );
+			_unpack_path ( nodes, firstEdge, edges, buffer, middle, source, true );
+
+			//point at last node between source and destination
+			edges[edge].path = buffer.size() - 1;
+		}
 	}
 
 	// VARIABLES
