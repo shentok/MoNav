@@ -79,6 +79,8 @@ struct Label {
 	unsigned importance;
 
 	bool operator<( const Label& right ) const {
+		if ( importance != right.importance )
+			return importance > right.importance;
 		return string < right.string;
 	}
 

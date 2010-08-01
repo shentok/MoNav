@@ -279,12 +279,25 @@ void UnicodeTournamentTrie::insert( std::vector< utt::Node >* trie, unsigned imp
 
 void UnicodeTournamentTrie::writeTrie( std::vector< utt::Node >* trie, QFile& file )
 {
+	if ( trie->size() == 0 )
+		return;
+
 	size_t position = 0;
 	std::vector< unsigned > index( trie->size() );
-	for ( int i = 0; i < ( int ) trie->size(); i++ ) {
-		std::sort( (*trie)[i].labelList.begin(), (*trie)[i].labelList.end() );
-		index[i] = position;
-		position += (*trie)[i].GetSize();
+	std::vector< unsigned > stack;
+	std::vector< unsigned > order;
+	stack.push_back( 0 );
+	while ( !stack.empty() ) {
+		unsigned node = stack.back();
+		stack.pop_back();
+		order.push_back( node );
+
+		index[node] = position;
+		position += (*trie)[node].GetSize();
+
+		std::sort( (*trie)[node].labelList.begin(), (*trie)[node].labelList.end() );
+		for ( int i = (*trie)[node].labelList.size() - 1; i >= 0; i-- )
+			stack.push_back( (*trie)[node].labelList[i].index );
 	}
 
 	for ( int i = 0; i < ( int ) trie->size(); i++ ) {
@@ -292,16 +305,18 @@ void UnicodeTournamentTrie::writeTrie( std::vector< utt::Node >* trie, QFile& fi
 			(*trie)[i].labelList[c].index = index[(*trie)[i].labelList[c].index];
 		}
 	}
+	assert( order.size() == trie->size() );
 
 	char* buffer = new char[position];
 
 	position = 0;
-	for ( int i = 0; i < ( int ) trie->size(); i++ ) {
-		(*trie)[i].Write( buffer + position );
+	for ( int i = 0; i < ( int ) order.size(); i++ ) {
+		unsigned node = order[i];
+		(*trie)[node].Write( buffer + position );
 		utt::Node testElement;
 		testElement.Read( buffer + position );
-		assert( testElement == (*trie)[i] );
-		position += (*trie)[i].GetSize();
+		assert( testElement == (*trie)[node] );
+		position += (*trie)[node].GetSize();
 	}
 	file.write( buffer, position );
 
