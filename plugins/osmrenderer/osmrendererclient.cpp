@@ -93,23 +93,30 @@ void OSMRendererClient::finished( QNetworkReply* reply ) {
 
 bool OSMRendererClient::loadTile( int x, int y, int zoom, QPixmap** tile )
 {
-		long long id = tileID( x, y, zoom );
+	static int lastZoom = -1;
+	if ( zoom != lastZoom ) {
+		lastZoom = zoom;
+		emit abort();
+		cache.clear();
+	}
+	long long id = tileID( x, y, zoom );
 
-		QString path = "http://tile.openstreetmap.org/%1/%2/%3.png";
-		QUrl url = QUrl( path.arg( zoom ).arg( x ).arg( y ) );
-		QNetworkRequest request;
-		request.setUrl( url );
-		request.setRawHeader( "User-Agent", "MoNav OSM Renderer 1.0" );
-		request.setAttribute( QNetworkRequest::User, QVariant( id ) );
-		request.setAttribute( QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache );
-		network->get( request );
+	QString path = "http://tile.openstreetmap.org/%1/%2/%3.png";
+	QUrl url = QUrl( path.arg( zoom ).arg( x ).arg( y ) );
+	QNetworkRequest request;
+	request.setUrl( url );
+	request.setRawHeader( "User-Agent", "MoNav OSM Renderer 1.0" );
+	request.setAttribute( QNetworkRequest::User, QVariant( id ) );
+	request.setAttribute( QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache );
+	QNetworkReply* reply = network->get( request );
+	connect( this, SIGNAL(abort()), reply, SLOT(deleteLater()) );
 
-		// was the tile loaded immediately? Do not overwrite in this case
-		if ( cache.contains( id ) ) {
-			*tile = cache.object( id );
-			return true;
-		}
-		return false;
+	// was the tile loaded immediately? Do not overwrite in this case
+	if ( cache.contains( id ) ) {
+		*tile = cache.object( id );
+		return true;
+	}
+	return false;
 }
 
 Q_EXPORT_PLUGIN2( osmrendererclient, OSMRendererClient )

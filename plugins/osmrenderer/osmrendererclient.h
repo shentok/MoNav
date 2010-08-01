@@ -37,6 +37,9 @@ public:
 public slots:
 	void finished( QNetworkReply* reply );
 
+signals:
+	void abort();
+
 protected:
 
 	virtual bool loadTile( int x, int y, int zoom, QPixmap** tile );
