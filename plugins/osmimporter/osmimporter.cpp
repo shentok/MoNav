@@ -9,6 +9,21 @@
 OSMImporter::OSMImporter()
 {
 	settingsDialog = NULL;
+	kmhStrings.push_back( "%.lf" );
+	kmhStrings.push_back( "%.lf kmh" );
+	kmhStrings.push_back( "%.lf km/h" );
+	kmhStrings.push_back( "%.lfkmh" );
+	kmhStrings.push_back( "%.lfkm/h" );
+	kmhStrings.push_back( "%lf" );
+	kmhStrings.push_back( "%lf kmh" );
+	kmhStrings.push_back( "%lf km/h" );
+	kmhStrings.push_back( "%lfkmh" );
+	kmhStrings.push_back( "%lfkm/h" );
+
+	mphStrings.push_back( "%.lf mph" );
+	mphStrings.push_back( "%.lfmph" );
+	mphStrings.push_back( "%lf mph" );
+	mphStrings.push_back( "%lfmph" );
 }
 
 OSMImporter::~OSMImporter()
@@ -599,33 +614,20 @@ OSMImporter::_Way OSMImporter::_ReadXMLWay( xmlTextReaderPtr& inputReader ) {
 						double maxspeed = atof(( const char* ) value );
 
 						xmlChar buffer[100];
-						xmlStrPrintf( buffer, 100, ( const xmlChar* ) "%.lf", maxspeed );
-						if ( xmlStrEqual( value, buffer ) == 1 ) {
-							way.maximumSpeed = maxspeed;
-							stats.numberOfMaxspeed++;
-						} else {
-							xmlStrPrintf( buffer, 100, ( const xmlChar* ) "%.lf kmh", maxspeed );
+						for ( int i = 0; i < ( int ) kmhStrings.size(); i++ ) {
+							xmlStrPrintf( buffer, 100, ( const xmlChar* ) kmhStrings[i], maxspeed );
 							if ( xmlStrEqual( value, buffer ) == 1 ) {
 								way.maximumSpeed = maxspeed;
 								stats.numberOfMaxspeed++;
-							} else {
-								xmlStrPrintf( buffer, 100, ( const xmlChar* ) "%.lfkmh", maxspeed );
-								if ( xmlStrEqual( value, buffer ) == 1 ) {
-									way.maximumSpeed = maxspeed;
-									stats.numberOfMaxspeed++;
-								} else {
-									xmlStrPrintf( buffer, 100, ( const xmlChar* ) "%.lf km/h", maxspeed );
-									if ( xmlStrEqual( value, buffer ) == 1 ) {
-										way.maximumSpeed = maxspeed;
-										stats.numberOfMaxspeed++;
-									} else {
-										xmlStrPrintf( buffer, 100, ( const xmlChar* ) "%.lfkm/h", maxspeed );
-										if ( xmlStrEqual( value, buffer ) == 1 ) {
-											way.maximumSpeed = maxspeed;
-											stats.numberOfMaxspeed++;
-										}
-									}
-								}
+								break;
+							}
+						}
+						for ( int i = 0; i < ( int ) mphStrings.size(); i++ ) {
+							xmlStrPrintf( buffer, 100, ( const xmlChar* ) mphStrings[i], maxspeed );
+							if ( xmlStrEqual( value, buffer ) == 1 ) {
+								way.maximumSpeed = maxspeed * 1.609344;
+								stats.numberOfMaxspeed++;
+								break;
 							}
 						}
 					} else {

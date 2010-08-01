@@ -54,6 +54,8 @@ protected:
 	OISettingsDialog* settingsDialog;
 
 	OISettingsDialog::Settings settings;
+	std::vector< const char* > kmhStrings;
+	std::vector< const char* > mphStrings;
 
 	struct {
 		NodeID numberOfNodes;
