@@ -214,6 +214,10 @@ void PreprocessingWindow::importerPreprocessing()
 		ui->importerLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
 	else
 		ui->importerLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
+	ui->rendererLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
+	ui->routerLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
+	ui->gpsLookupLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
+	ui->addressLookupLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 }
 
 void PreprocessingWindow::rendererSettings()
@@ -253,6 +257,7 @@ void PreprocessingWindow::routerPreprocessing()
 		ui->routerLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
 	else
 		ui->routerLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
+	ui->gpsLookupLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 }
 
 void PreprocessingWindow::gpsLookupSettings()
