@@ -1,4 +1,5 @@
 #include "osmimporter.h"
+#include "bz2input.h"
 #include <QMessageBox>
 #include <algorithm>
 #include <map>
@@ -121,7 +122,17 @@ bool OSMImporter::_ReadXML( const QString& inputFilename, const QString& filenam
 	QDataStream allNodesData( &allNodesFile );
 	QDataStream cityOutlineData( &cityOutlineFile );
 
-	xmlTextReaderPtr inputReader = xmlNewTextReaderFilename( inputFilename.toLocal8Bit().constData() );
+	xmlTextReaderPtr inputReader;
+	if ( inputFilename.endsWith( ".bz2" ) )
+		inputReader = getBz2Reader( inputFilename.toLocal8Bit().constData() );
+	else
+		inputReader = xmlNewTextReaderFilename( inputFilename.toLocal8Bit().constData() );
+
+	if ( inputReader == NULL ) {
+		qCritical() << "Failed to open XML Reader";
+		return false;
+	}
+
 	try {
 		while ( xmlTextReaderRead( inputReader ) == 1 ) {
 			const int type = xmlTextReaderNodeType( inputReader );

@@ -7,7 +7,8 @@ HEADERS += osmimporter.h \
 	 statickdtree.h \
     interfaces/iimporter.h \
     utils/coordinates.h \
-    utils/config.h
+    utils/config.h \
+    bz2input.h
 SOURCES += osmimporter.cpp \
 	 oisettingsdialog.cpp
 DESTDIR = ../../bin/plugins_preprocessor
