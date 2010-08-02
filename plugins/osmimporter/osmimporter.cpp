@@ -1067,6 +1067,7 @@ void OSMImporter::DeleteTemporaryFiles()
 {
 	QDir directory( outputDirectory );
 	QString filename = directory.filePath( "OSM Importer" );
+	QFile::remove( filename + "_all_nodes" );
 	QFile::remove( filename + "_bounding_box" );
 	QFile::remove( filename + "_city_outlines" );
 	QFile::remove( filename + "_edges" );
