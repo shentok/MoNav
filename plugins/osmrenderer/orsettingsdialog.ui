@@ -67,7 +67,7 @@
      <item>
       <widget class="QPushButton" name="pushButton">
        <property name="text">
-        <string>PushButton</string>
+        <string>Close</string>
        </property>
       </widget>
      </item>
@@ -76,5 +76,22 @@
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>pushButton</sender>
+   <signal>clicked()</signal>
+   <receiver>ORSettingsDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>369</x>
+     <y>265</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>148</x>
+     <y>230</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
