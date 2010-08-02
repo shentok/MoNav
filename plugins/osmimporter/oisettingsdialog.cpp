@@ -157,7 +157,7 @@ void OISettingsDialog::loadSpeed()
 
 void OISettingsDialog::browse() {
 	QString file = ui->inputEdit->text();
-	file = QFileDialog::getOpenFileName( this, tr("Enter OSM XML Filename"), file, "*.osm|*osm.bz2" );
+	file = QFileDialog::getOpenFileName( this, tr("Enter OSM XML Filename"), file, "*.osm *osm.bz2" );
 	if ( file != "" )
 		ui->inputEdit->setText( file );
 }
