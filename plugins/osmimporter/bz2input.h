@@ -39,13 +39,13 @@ int readFile( void* pointer, char* buffer, int len )
 
 	int error = 0;
 	int read = BZ2_bzRead( &error, context->bz2, buffer, len );
+	if ( error == BZ_OK )
+		return read;
 
-	if ( ( error != BZ_OK && error != BZ_STREAM_END ) || read < 0 ) {
-		context->error = true;
-		return 0;
-	}
-
-	return read;
+	context->error = true;
+	if ( error == BZ_STREAM_END )
+		return read;
+	return 0;
 }
 
 int inputClose( void *pointer )
