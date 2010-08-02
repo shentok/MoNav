@@ -177,7 +177,7 @@ void MapView::mouseClicked( ProjectedCoordinate clickPos )
 	if ( gpsLookup == NULL )
 		return;
 	QVector< IGPSLookup::Result > result;
-	gpsLookup->GetNearEdges( &result, UnsignedCoordinate( clickPos ), 5000 );
+	gpsLookup->GetNearEdges( &result, UnsignedCoordinate( clickPos ), 100 );
 	if ( result.size() == 0 )
 		return;
 	if ( mode == POI ) {
