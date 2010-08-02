@@ -177,7 +177,7 @@ void MapView::mouseClicked( ProjectedCoordinate clickPos )
 	if ( gpsLookup == NULL )
 		return;
 	QVector< IGPSLookup::Result > result;
-	gpsLookup->GetNearEdges( &result, UnsignedCoordinate( clickPos ), 100 );
+	gpsLookup->GetNearEdges( &result, UnsignedCoordinate( clickPos ), 5000 );
 	if ( result.size() == 0 )
 		return;
 	if ( mode == POI ) {
@@ -317,6 +317,7 @@ void MapView::showContextMenu( QPoint globalPos )
 void MapView::gotoSource()
 {
 	ui->paintArea->setCenter( source.ToProjectedCoordinate() );
+	ui->paintArea->setZoom( maxZoom );
 }
 
 void MapView::gotoGPS()
@@ -330,11 +331,13 @@ void MapView::gotoGPS()
 		return;
 	GPSCoordinate gps( latitude, longitude );
 	ui->paintArea->setCenter( ProjectedCoordinate( gps ) );
+	ui->paintArea->setZoom( maxZoom );
 }
 
 void MapView::gotoTarget()
 {
 	ui->paintArea->setCenter( target.ToProjectedCoordinate() );
+	ui->paintArea->setZoom( maxZoom );
 }
 
 void MapView::gotoAddress()
@@ -345,6 +348,7 @@ void MapView::gotoAddress()
 	if ( !AddressDialog::getAddress( &result, addressLookup, renderer, gpsLookup, this, true ) )
 		return;
 	ui->paintArea->setCenter( result.ToProjectedCoordinate() );
+	ui->paintArea->setZoom( maxZoom );
 }
 
 void MapView::bookmarks()
