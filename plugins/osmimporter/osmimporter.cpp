@@ -583,8 +583,8 @@ OSMImporter::_Way OSMImporter::_ReadXMLWay( xmlTextReaderPtr& inputReader ) {
 							if ( way.direction == _Way::notSure ) {
 								way.direction = _Way::oneway;
 							}
-							if ( way.maximumSpeed == -1 )
-								way.maximumSpeed = 10;
+							//if ( way.maximumSpeed == -1 )
+							//	way.maximumSpeed = 10;
 						}
 					} else if ( xmlStrEqual( k, ( const xmlChar* ) "highway" ) == 1 ) {
 						if ( xmlStrEqual( value, ( const xmlChar* ) "motorway" ) == 1 ) {
