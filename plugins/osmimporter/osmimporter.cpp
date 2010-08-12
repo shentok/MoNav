@@ -6,6 +6,7 @@
 #include <QtDebug>
 #include <QDir>
 #include <QDataStream>
+#include <QTime>
 
 OSMImporter::OSMImporter()
 {
@@ -73,9 +74,13 @@ bool OSMImporter::Preprocess()
 	stats.numberOfDefaultCitySpeed = 0;
 	stats.numberOfCityEdges = 0;
 
-	qDebug( "Starting Import Pass 1" );
+	QTime time;
+	time.start();
+
+	qDebug( "starting import pass 1" );
 	if ( !_ReadXML( settings.input, filename, usedNodes, outlineNodes, signalNodes ) )
 		return false;
+	qDebug() << "finished import pass 1:" << time.restart() << "ms";
 
 	std::sort( usedNodes.begin(), usedNodes.end() );
 	usedNodes.resize( std::unique( usedNodes.begin(), usedNodes.end() ) - usedNodes.begin() );
@@ -83,9 +88,10 @@ bool OSMImporter::Preprocess()
 	outlineNodes.resize( std::unique( outlineNodes.begin(), outlineNodes.end() ) - outlineNodes.begin() );
 	std::sort( signalNodes.begin(), signalNodes.end() );
 
-	qDebug( "Starting Import Pass 2" );
+	qDebug( "starting import pass 2" );
 	if ( !_PreprocessData( filename, usedNodes, outlineNodes, signalNodes ) )
 		return false;
+	qDebug() << "finished import pass 2:" << time.restart() << "ms";
 
 	qDebug( "OSM Importer: Nodes: %d", stats.numberOfNodes );
 	qDebug( "OSM Importer: Ways: %d", stats.numberOfWays );
@@ -99,7 +105,7 @@ bool OSMImporter::Preprocess()
 	qDebug( "OSM Importer: Number Of Zero Speed Ways: %d" , stats.numberOfZeroSpeed );
 	qDebug( "OSM Importer: Number Of Edges with Default City Speed: %d" , stats.numberOfDefaultCitySpeed );
 
-	qDebug( "Import Finished" );
+	qDebug() << "finished:" << time.restart() << "ms";
 
 	return true;
 	return false;
@@ -280,6 +286,9 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 	QDataStream mappedEdgesData( &mappedEdgesFile );
 	QDataStream locationData( &locationFile );
 
+	QTime time;
+	time.start();
+
 	while ( true ) {
 		quint32 node;
 		GPSCoordinate gps;
@@ -296,12 +305,16 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 		}
 	}
 
+	qDebug() << "filtered node coordinates:" << time.restart() << "ms";
+
 	for ( std::vector< NodeID >::const_iterator i = usedNodes.begin(); i != usedNodes.end(); ++i ) {
 		NodeID node = i - usedNodes.begin();
 		nodeCoordinatesData << nodeCoordinates[node].latitude << nodeCoordinates[node].longitude;
 		if ( nodeCoordinates[node].latitude == -1 && nodeCoordinates[node].longitude == -1 )
 			qDebug( "Inconsistent OSM Data: Missing Way Node Coordinate %d" , ( int ) node );
 	}
+
+	qDebug() << "wrote routing node coordinates:" << time.restart() << "ms";
 
 	std::vector< _Outline > cityOutlines;
 	while ( true ) {
@@ -330,6 +343,8 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 	outlineCoordinates.clear();
 	std::sort( cityOutlines.begin(), cityOutlines.end() );
 
+	qDebug() << "read city outlines:" << time.restart() << "s";
+
 	std::vector< _Place > places;
 	while ( true ) {
 		_Place place;
@@ -343,6 +358,8 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 		place.type = ( Place::Type ) type;
 		places.push_back( place );
 	}
+
+	qDebug() << "read places:" << time.restart() << "ms";
 
 	typedef GPSTree::InputPoint InputPoint;
 	std::vector< InputPoint > kdPoints;
@@ -359,6 +376,8 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 	}
 	GPSTree* kdTree = new GPSTree( kdPoints );
 	kdPoints.clear();
+
+	qDebug() << "build kd-tree:" << time.restart() << "ms";
 
 	for ( std::vector< _Place >::const_iterator place = places.begin(), endPlace = places.end(); place != endPlace; ++place ) {
 		InputPoint point;
@@ -442,9 +461,13 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 	places.clear();
 	cityOutlines.clear();
 
+	qDebug() << "assigned 'in-city' flags:" << time.restart() << "ms";
+
 	for ( std::vector< _NodeLocation >::const_iterator i = nodeLocation.begin(), e = nodeLocation.end(); i != e; ++i ) {
 		locationData << quint32( i->isInPlace ? 1 : 0 ) << quint32( i->place );
 	}
+
+	qDebug() << "wrote 'in-city' flags" << time.restart() << "ms";
 
 	while ( true ) {
 		QString name;
@@ -531,6 +554,8 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 		}
 
 	}
+
+	qDebug() << "remapped edges" << time.restart() << "ms";
 
 	return true;
 }
