@@ -27,6 +27,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace KDTree {
 
+#define KDTREE_BASESIZE (8)
+
 template< unsigned k, typename T >
 class BoundingBox {
 	public:
@@ -76,6 +78,14 @@ class StaticKDTree {
 		struct InputPoint {
 			T coordinates[k];
 			Data data;
+			bool operator==( const InputPoint& right )
+			{
+				for ( int i = 0; i < k; i++ ) {
+					if ( coordinates[i] != right.coordinates[i] )
+						return false;
+				}
+				return true;
+			}
 		};
 
 		StaticKDTree( const std::vector< InputPoint >& points ){
@@ -98,7 +108,7 @@ class StaticKDTree {
 				Tree tree = s.top();
 				s.pop();
 				
-				if ( tree.left == tree.right )
+				if ( tree.right - tree.left < KDTREE_BASESIZE )
 					continue;
 					
 				Iterator middle = tree.left + ( tree.right - tree.left ) / 2;
@@ -118,20 +128,20 @@ class StaticKDTree {
 			while ( !s.empty() ) {
 				Tree tree = s.top();
 				s.pop();
-				
-				if ( tree.left == tree.right )
+
+				if ( tree.right - tree.left < KDTREE_BASESIZE ) {
+					for ( unsigned i = tree.left; i < tree.right; i++ ) {
+						if ( point == kdtree[i] ) {
+							point.data = kdtree[i].data;
+							return true;
+						}
+					}
 					continue;
+				}
 					
 				Iterator middle = tree.left + ( tree.right - tree.left ) / 2;
 				
-				bool found = true;
-				for ( int i = 0; i < k; ++i ) {
-					if ( point.coordinates[i] != kdtree[middle].coordinates[i] ) {
-						found = false;
-						break;
-					}
-				}
-				if ( found ) {
+				if ( point == kdtree[middle] ) {
 					point.data = kdtree[middle].data;
 					return true;
 				}
@@ -158,8 +168,17 @@ class StaticKDTree {
 				if ( distance( tree.box, point.coordinates ) >= nearestDistance )
 					continue;
 				
-				if ( tree.left == tree.right )
+				if ( tree.right - tree.left < KDTREE_BASESIZE ) {
+					for ( unsigned i = tree.left; i < tree.right; i++ ) {
+						double newDistance = distance( kdtree[i].coordinates, point.coordinates );
+						if ( newDistance < nearestDistance ) {
+							nearestDistance = newDistance;
+							*result = kdtree[i];
+							found = true;
+						}
+					}
 					continue;
+				}
 					
 				Iterator middle = tree.left + ( tree.right - tree.left ) / 2;
 				
@@ -194,7 +213,6 @@ class StaticKDTree {
 		
 		bool NearNeighbors( std::vector< InputPoint >* result, const InputPoint& point, double radius ) {
 			Metric distance;
-			bool found = false;
 			std::stack< NNTree > s;
 			s.push ( NNTree ( 0, size, 0, boundingBox ) );
 			while ( !s.empty() ) {
@@ -204,16 +222,20 @@ class StaticKDTree {
 				if ( distance( tree.box, point.coordinates ) >= radius )
 					continue;
 				
-				if ( tree.left == tree.right )
+				if ( tree.right - tree.left < KDTREE_BASESIZE ) {
+					for ( unsigned i = tree.left; i < tree.right; i++ ) {
+						double newDistance = distance( kdtree[i].coordinates, point.coordinates );
+						if ( newDistance < radius )
+							result->push_back( kdtree[i] );
+					}
 					continue;
+				}
 					
 				Iterator middle = tree.left + ( tree.right - tree.left ) / 2;
 				
 				double newDistance = distance( kdtree[middle].coordinates, point.coordinates );
-				if ( newDistance < radius ) {
+				if ( newDistance < radius )
 					result->push_back( kdtree[middle] );
-					found = true;
-				}
 				
 				Less comperator( tree.dimension );
 				if ( !comperator( point, kdtree[middle] ) ) {
@@ -234,7 +256,7 @@ class StaticKDTree {
 				}
 			}
 			
-			return found;
+			return result->size() != 0;
 		}
 
 	private:

@@ -105,8 +105,6 @@ bool OSMImporter::Preprocess()
 	qDebug( "OSM Importer: Number Of Zero Speed Ways: %d" , stats.numberOfZeroSpeed );
 	qDebug( "OSM Importer: Number Of Edges with Default City Speed: %d" , stats.numberOfDefaultCitySpeed );
 
-	qDebug() << "finished:" << time.restart() << "ms";
-
 	return true;
 	return false;
 }
