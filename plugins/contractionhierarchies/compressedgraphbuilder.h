@@ -117,31 +117,23 @@ private:
 	{
 		BlockBuilder& block = m_blocks.back();
 		unsigned size = 0;
-		// forward flag
-		size++;
-		// backward flag
-		size++;
-		// target flag ( internal vs external )
-		size++;
-		// distance flag ( short vs long );
+		size++; // forward flag
+		size++; // backward flag
+		size++; // target flag ( internal vs external )
 		if ( shortWeightBits != 0 )
-			size++;
-		// shortcut flag
-		size++;
+			size++; // distance flag ( short vs long );
+		size++; // shortcut flag
 		// target ( log2( node ) due to DAG property vs adjBlock + internalID
 		size += m_edges[edge].target >= block.firstNode ? log2_rounded ( node ) : block.settings.internalBits + block.settings.adj_block_bits;
 		// distance ( short bits vs long bits )
 		size += log2_rounded( m_edges[edge].data.distance ) > shortWeightBits ? settings.long_weight_bits : short_weight_bits;
+
 		if ( m_edges[edge].shortcut ) {
-			if ( m_edges[edge].middle - _first_node < node_count && m_edges[edge].internal_shortcut ) {
-				bits_used += 1 + 1 + settings.internal_bits;
-			} else {
-				bits_used += 32;
-				if ( PRE_UNPACK && DYNAMIC_DATA )
-					bits_used += 32;
-			}
-		} else
-			bits_used++;
+			if ( m_edges[edge].middle < block.firstNode + block.nodeCount ) {
+				size += 1 + 1 + settings.internal_bits;
+			} else
+				size += 32;
+		}
 	}
 
 	// build edge index
