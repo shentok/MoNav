@@ -106,32 +106,33 @@ static bool clipEdge( ProjectedCoordinate* start, ProjectedCoordinate* end, Proj
 
 }
 
+// safe with unaligned memory access
 template< class T > static T readUnaligned( const char* buffer ) {
 	T temp;
 	memcpy( &temp, buffer, sizeof( T ) );
 	return temp;
 }
 
-//writes first bits to a max of 31 bits (31 because 1u << 32 is undefined
-//offset has to be <8
+// reads first bits to a max of 31 bits ( 31 because 1u << 32 is undefined )
+// offset has to be <8
+// safe with unaligned memory access
 static unsigned read_unaligned_unsigned( const unsigned char* buffer, int offset ){
 	assert ( offset <= 7 );
-	//unsigned long long temp;
-	//temp = * ( ( unsigned long long * ) buffer );
+
 	const int diff = ( ( size_t ) buffer ) & 3;
 	buffer -= diff;
 	offset += 8 * diff;
+
 	unsigned temp = * ( unsigned * ) buffer;
-	unsigned temp2 = * ( ( ( unsigned * ) buffer ) + 1);
 	if ( offset == 0 )
 		return temp;
+	unsigned temp2 = * ( ( ( unsigned * ) buffer ) + 1);
 	return ( temp >> offset ) | ( temp2 << ( 32 - offset ) );
 }
 
 static unsigned read_unaligned_unsigned( const char** buffer, int bits, int* offset ){
 	assert ( *offset <= 7 );
-	//unsigned long long temp;
-	//temp = * ( ( unsigned long long * ) buffer );
+
 	const int diff = ( ( size_t ) *buffer ) & 3;
 	const char* alignedBuffer = *buffer - diff;
 	int alignedOffset = *offset + 8 * diff;
@@ -172,14 +173,36 @@ static void write_unaligned_unsigned( char** buffer, unsigned data, int bits, in
 }
 
 static unsigned read_bits ( unsigned data, char bits ) {
+	if ( bits == 32 )
+		return data;
+
 	return data & ( ( 1u << bits ) - 1 );
+}
+
+static unsigned pack_array ( unsigned char* buffer, const unsigned* data, unsigned data_count, unsigned bits ) {
+	unsigned used_bits = 0;
+
+	for ( unsigned i = 0, e = ( bits * data_count + 7 ) / 8; i <= e; i++ )
+		buffer[i] = 0;
+
+	for ( unsigned i = 0; i < data_count; i++ ) {
+		unsigned* destination = ( unsigned* ) ( buffer + ( used_bits >> 3 ) );
+		destination[0] |= data[i] << ( used_bits & 7 );
+		destination = ( unsigned* ) ( buffer + ( used_bits >> 3 ) + 1 );
+		destination[0] |= data[i] >> ( 8 - ( used_bits & 7 ) );
+		used_bits += bits;
+	}
+
+	return ( bits * data_count + 7 ) / 8;
 }
 
 static unsigned log2_rounded ( unsigned x ) {
 	static const unsigned bit_position[32] = {
-		0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
+		32, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
 		31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
 	};
+	if ( x == 0 )
+		return 0;
 
 	//round up
 	--x;
