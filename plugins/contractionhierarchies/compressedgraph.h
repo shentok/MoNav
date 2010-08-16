@@ -66,22 +66,50 @@ public:
 
 	class EdgeIterator {
 
+		friend class CompressedGraph;
+
 	public:
+
+		bool hasEdgesLeft()
+		{
+			return m_position < m_end;
+		}
+
+		// can only be invoked when hasEdgesLeft return true
+		// furthermore the edge has to be unpacked by the graph
+		bool operator++()
+		{
+			assert( m_position + size <= m_end );
+			assert( m_size != 0 );
+			m_position += m_size;
+#ifndef NDEBUG
+			m_size = 0;
+#endif
+		}
 
 	private:
 
-		Edge m_data;
+		EdgeIterator( unsigned block, unsigned position, unsigned end )
+		{
+			m_block = block;
+			m_position = position;
+			m_end = end;
+			m_size = 0;
+		}
+
+		unsigned m_block;
+		unsigned m_position;
+		unsigned m_end;
+		unsigned m_size;
+		Edge m_edge;
 	};
 
-	CompressedGraph( QString filename, unsigned blockSize, std::vector< Edge >& inputEdges, std::vector< UnsignedCoordinate >& inputNodes, std::vector< unsigned >* remap )
+	CompressedGraph()
 	{
-		createGraph( filename, inputEdges, inputNodes, remap );
-		loadGraph( filename );
 	}
 
 	CompressedGraph( const QString& filename )
 	{
-		unloadGraph();
 		loadGraph( filename );
 	}
 
@@ -90,13 +118,73 @@ public:
 		unloadGraph();
 	}
 
+	EdgeIterator getEdges( NodeIterator node )
+	{
+
+	}
+
+	EdgeIterator findEdge( NodeIterator source, NodeIterator target )
+	{
+
+	}
+
+	Edge unpackEdge( const EdgeIterator& edge )
+	{
+		edge.size = 1;
+	}
+
+	Node getNode( NodeIterator )
+	{
+
+	}
+
 protected:
 
 	// TYPES
 
-	struct globalSettings {
+	struct Block {
+		struct Settings {
+			unsigned char blockBits;
+			unsigned char adjacentBlockBits;
+			unsigned char internalBits;
+			unsigned char firstEdgeBits;
+			unsigned char shortWeightBits;
+			unsigned char longWeightBits;
+			unsigned char xBits;
+			unsigned char yBits;
+			unsigned minX;
+			unsigned minY;
+		} settings;
+
+		unsigned edges;
+		unsigned adjacentBlocks;
+		unsigned firstEdges;
+		unsigned nodeX;
+		unsigned nodeY;
+		unsigned id;
+		unsigned nodeCount;
+		unsigned cacheID;
+	};
+
+	struct PathBlock {
+
+	};
+
+	struct GlobalSettings {
 		char internalBits;
 		char blockSize;
+
+		bool read( QFile& in )
+		{
+			in.read( ( const char* ) &blockSize, sizeof( blockSize ) );
+			in.read( ( const char* ) &internalBits, sizeof( internalBits ) );
+		}
+
+		void write( QFile& out )
+		{
+			out.write( ( const char* ) &blockSize, sizeof( blockSize ) );
+			out.write( ( const char* ) &internalBits, sizeof( internalBits ) );
+		}
 	};
 
 	struct nodeDescriptor {
@@ -124,104 +212,6 @@ protected:
 		return result;
 	}
 
-	void createGraph( QString filename, unsigned blockSize, std::vector< Edge >& inputEdges, std::vector< Node >& inputNodes, std::vector< unsigned >* remap )
-	{
-		assert( inputNodes.size() == remap->size() );
-		qDebug( "creating compressed graph with %d nodes and %d edges", inputNodes.size(), inputEdges.size() );
-
-		m_settings.blockSize = blockSize;
-		m_settings.internalBits = 1;
-
-		// build edge index
-		std::vector< unsigned > firstEdge;
-		for ( unsigned i = 0; i < inputEdges.size(); i++ ) {
-			inputEdges[i].unpacked = false;
-
-			//edges belong to a new node? -> update index
-			while ( firstEdge.size() <= inputEdges[i].source )
-				firstEdge.push_back( i );
-		}
-		while ( firstEdge.size() <= inputNodes.size() )
-			firstEdge.push_back( inputEdges.size() );
-
-		std::vector< nodeDescriptor > nodeID( inputNodes.size() );
-		// TODO: BUILD
-
-		std::vector< Node > pathBuffer;
-		unsigned pathBlocks = 0;
-
-		//pre-unpack paths
-		QFile pathFile( filename + "_path" );
-		pathFile.open( QIODevice::WriteOnly );
-		unsigned numberOfShortcuts = 0;
-		unsigned numberOfUnpacked = 0;
-
-		qDebug( "Computing path data" );
-		for ( unsigned i = 0; i < inputEdges.size(); i++ ) {
-			if ( !inputEdges[i].data.shortcut )
-				continue;
-
-			numberOfShortcuts++;
-
-			//do not unpack internal shortcuts
-			if ( nodeID[inputEdges[i].source].block == nodeID[inputEdges[i].target].block )
-				continue;
-
-			//path already fully unpacked ( covered by some higher level shortcut )?
-			if ( inputEdges[i].data.unpacked )
-				continue;
-
-			//get unpacked path
-			if ( edges[i].forward ) {
-				pathBuffer.push_back( inputNodes[inputEdges[i].source] );
-				unpackPath ( inputNodes, firstEdge, inputEdge, &pathBuffer, inputEdges[i].source, inputNodes[i].target, true );
-			} else {
-				pathBuffer.push_back( inputNodes[inputEdges[i].target] );
-				unpackPath ( inputNodes, firstEdge, inputEdge, &pathBuffer, inputEdges[i].source, inputNodes[i].target, false );
-			}
-			numberOfUnpacked++;
-		}
-
-		qDebug( "unpacked total shortcuts: %lf %%", 100.0f * numberOfUnpacked / numberOfShortcuts );
-
-		//TODO: STORE PATH BLOCKS
-		QFile pathFile( filename + "_path" );
-		pathFile.open( QIODevice::WriteOnly );
-
-		unsigned blocks = 0;
-		unsigned pathBlocks = 0;
-
-		// write config
-		QFile configFile( filename + "_config" );
-		configFile.open( QIODevice::WriteOnly );
-		unsigned temp = m_settings.blockSize;
-		configFile.write( ( const char* ) &temp, sizeof( temp ) );
-		temp = m_settings.blockSize;
-		configFile.write( ( const char* ) &temp, sizeof( temp ) );
-		temp = m_settings.internalBits;
-		configFile.write( ( const char* ) &temp, sizeof( temp ) );
-		temp = blocks; //BLOCKS
-		configFile.write( ( const char* ) &temp, sizeof( temp ) );
-		temp = pathBlocks; //PATH BLOCKS
-		configFile.write( ( const char* ) &temp, sizeof( temp ) );
-
-
-		qDebug( "Used Settings:" );
-		qDebug( "\tblock size: %d", m_settings.blockSize );
-		qDebug( "\tinternal bits: %d", m_settings.internalBits );
-		qDebug( "\tblocks: %d", 0 );
-		qDebug( "\tpath blocks: %d", 0 );
-		qDebug( "\tblock space: %lld Mb" , ( long long ) blocks * block_size / 1024 / 1024 );
-		qDebug( "\tpath block space: %lld Mb" , ( long long ) pathBlocks * block_size / 1024 / 1024 );
-		qDebug( "\tmax internal ID: %ud", nodeFromDescriptor( nodeID.back() ) );
-
-		m_settings.internalBits = 1;
-		//TODO: STORE & BUILD?
-
-		for ( unsigned i = 0; i < node_count; i++ )
-			( *remap )[i] = nodeFromDescriptor( nodeID[( *remap )[i]] );
-	}
-
 	void loadGraph()
 	{
 
@@ -232,43 +222,9 @@ protected:
 
 	}
 
-	static void unpackPath( const std::vector< Node >& nodes, const std::vector< unsigned >& firstEdge, const std::vector< Edge >& edges, std::vector< Node >* buffer, unsigned source, unsigned target, bool forward ) {
-		unsigned edge = firstEdge[source];
-		assert ( edge != firstEdge[source + 1] );
-		for ( ;edges[edge].target != target || ( forward && !edges[edge].forward ) || ( !forward && !edges[edge].backward ); edge++ )
-			assert ( edge <= nodes[source + 1].first_edge );
-
-		if ( !edges[edge].shortcut ) {
-			if ( forward )
-				buffer->push_back ( nodes[target] );
-			else
-				buffer->push_back ( nodes[source] );
-			return;
-		}
-
-		unsigned middle = edges[edge].middle;
-		edges[edge].data.reversed = !forward;
-		edges[edge].data.unpacked = true;
-
-		//unpack the nodes in the right order
-		if ( forward ) {
-			//point at first node between source and destination
-			edges[edge].path = buffer->size() - 1;
-
-			_unpack_path ( nodes, firstEdge, edges, buffer, middle, source, false );
-			_unpack_path ( nodes, firstEdge, edges, buffer, middle, target, true );
-		} else {
-			_unpack_path ( nodes, firstEdge, edges, buffer, middle, target, false );
-			_unpack_path ( nodes, firstEdge, edges, buffer, middle, source, true );
-
-			//point at last node between source and destination
-			edges[edge].path = buffer.size() - 1;
-		}
-	}
-
 	// VARIABLES
 
-	globalSettings m_settings;
+	GlobalSettings m_settings;
 };
 
 #endif // COMPRESSEDGRAPH_H
