@@ -23,7 +23,8 @@ HEADERS += contractionhierarchies.h \
     utils/coordinates.h \
     utils/config.h \
     chsettingsdialog.h \
-    compressedgraph.h
+    compressedgraph.h \
+    compressedgraphbuilder.h
 SOURCES += contractionhierarchies.cpp \
     chsettingsdialog.cpp
 FORMS += chsettingsdialog.ui
