@@ -144,15 +144,25 @@ protected:
 
 	struct Block {
 		struct Settings {
+			// adress blocks from the adjacent blocks array
 			unsigned char blockBits;
+			// address an entry in the adjacent blocks array
 			unsigned char adjacentBlockBits;
+			// address an internal node with a shortcut's middle
 			unsigned char internalBits;
+			// address the first edge of a node
 			unsigned char firstEdgeBits;
+			// bits used for the short weight class
 			unsigned char shortWeightBits;
+			// bits uses for the long weight class
 			unsigned char longWeightBits;
+			// bits used for the difference ( x - minX )
 			unsigned char xBits;
+			// bits used for the difference ( y - minY )
 			unsigned char yBits;
+			// minimal x value
 			unsigned minX;
+			// minimal y value
 			unsigned minY;
 		} settings;
 

@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "compressedgraph.h"
 #include <limits>
+#include <QHash>
 
 class CompressedGraphBuilder : public CompressedGraph {
 
@@ -52,6 +53,14 @@ private:
 		unsigned maxX;
 		unsigned maxY;
 		unsigned firstNode;
+
+		unsigned internalShortcutCount;
+		unsigned shortcutCount;
+		unsigned internalEdgeCount;
+		unsigned edgeCount;
+		std::vector< unsigned > weightDistribution;
+		QHash< unsigned, int > internalShortcutTargets;
+		QHash< unsigned, unsigned > adjacentBlocks;
 	};
 
 	struct PathBlockBuilder: public PathBlock {
@@ -63,26 +72,32 @@ private:
 	// Adds a new builder block starting at node
 	initBlock( unsigned node )
 	{
-		BlockBuilder block;
-		block.blockID = m_blocks.size();
-		block.maxSize = 1u << m_settings.blockSize;
+		m_block.blockID = m_blocks.size();
+		m_block.maxSize = 1u << m_settings.blockSize;
 		// Settings + #nodes + +adjacent blocks + 64Bit buffer
-		block.baseSize = sizeof( Block::Settings ) + 2 * sizeof( unsigned ) + 4;
-		block.maxX = 0;
-		block.maxY = 0;
-		block.firstNode = node;
-		block.settings.blockBits = log2_rounded( m_blocks.size() );
-		block.settings.adjacentBlockBits = 1;
+		m_block.baseSize = sizeof( Block::Settings ) + 2 * sizeof( unsigned ) + 4;
+		m_block.maxX = 0;
+		m_block.maxY = 0;
+		m_block.firstNode = node;
+		m_block.settings.blockBits = bits_needed( m_blocks.size() );
+		m_block.settings.adjacentBlockBits = 1;
 		// set internal bits to the maximum encountered so far
-		block.settings.internalBits = m_settings.internalBits;
-		block.settings.firstEdgeBits = 1;
-		block.settings.shortWeightBits = 0;
-		block.settings.longWeightBits = 1;
-		block.settings.xBits = 1;
-		block.settings.yBits = 1;
-		block.settings.minX = std::numeric_limits< unsigned >::max();
-		block.settings.minY = std::numeric_limits< unsigned >::max();
-		m_blocks.push_back( block );
+		m_block.settings.internalBits = m_settings.internalBits;
+		m_block.settings.firstEdgeBits = 1;
+		m_block.settings.shortWeightBits = 0;
+		m_block.settings.longWeightBits = 1;
+		m_block.settings.xBits = 1;
+		m_block.settings.yBits = 1;
+		m_block.settings.minX = std::numeric_limits< unsigned >::max();
+		m_block.settings.minY = std::numeric_limits< unsigned >::max();
+
+		m_block.internalShortcutCount = 0;
+		m_block.shortcutCount = 0;
+		m_block.internalEdgeCount = 0;
+		m_block.edgeCount = 0;
+		m_block.weightDistribution.clear();
+		m_block.weightDistribution.resize( 33, 0 );
+		m_block.internalShortcutTargets.clear();
 	}
 
 	// recalculates size of the edges part of the last block in m_blocks
@@ -124,9 +139,9 @@ private:
 			size++; // distance flag ( short vs long );
 		size++; // shortcut flag
 		// target ( log2( node ) due to DAG property vs adjBlock + internalID
-		size += m_edges[edge].target >= block.firstNode ? log2_rounded ( node ) : block.settings.internalBits + block.settings.adj_block_bits;
+		size += m_edges[edge].target >= block.firstNode ? bits_needed ( node ) : block.settings.internalBits + block.settings.adj_block_bits;
 		// distance ( short bits vs long bits )
-		size += log2_rounded( m_edges[edge].data.distance ) > shortWeightBits ? settings.long_weight_bits : short_weight_bits;
+		size += bits_needed( m_edges[edge].data.distance ) > shortWeightBits ? settings.long_weight_bits : short_weight_bits;
 
 		if ( m_edges[edge].shortcut ) {
 			if ( m_edges[edge].middle < block.firstNode + block.nodeCount ) {
@@ -134,6 +149,79 @@ private:
 			} else
 				size += 32;
 		}
+	}
+
+	bool addNode ( unsigned node ) {
+		m_block.nodeCount++;
+		m_block.settings.internalBits = bits_needed( m_block.nodeCount );
+
+		m_block.settings.minX = std::min( m_nodes[node].x, m_block.settings.minX );
+		m_block.settings.minY = std::min( m_nodes[node].x, m_block.settings.minY );
+		m_block.settings.maxX = std::max( m_nodes[node].x, m_block.settings.maxX );
+		m_block.settings.maxX = std::max( m_nodes[node].x, m_block.settings.maxY );
+
+		m_block.settings.xBits = bits_needed( m_block.maxX - m_block.settings.minX );
+		m_block.settings.yBits = bits_needed( m_block.maxY - m_block.settings.minY );
+
+		for ( unsigned i = m_firstEdges[node]; i < m_firstEdges[node + 1]; i++ ) {
+			const Edge& edge = m_edges[i];
+
+			unsigned weightBits = bits_needed( edge.data.distance );
+			m_weightDistribution[weightBits]++;
+			m_block.settings.longWeightBits = std::max( weightBits, m_block.settings.longWeightBits );
+
+			if ( edge.target >= m_block.firstNode )
+				m_block.internalEdgeCount++;
+			else
+				m_block.adjacentBlocks.contains[m_nodeIDs[node].block]++;
+
+			if ( edge.data.shortcut ) {
+				m_block.shortcutCount++;
+				m_block.internalShortcutTargets[edge.data.middle]++;
+			}
+		}
+		m_block.edgeCount += m_firstEdges[node + 1] - m_firstEdges[node];
+		m_block.internalShortcutCount += m_block.internalShortcutTargets[node];
+		m_block.settings.adjacentBlockBits = bits_needed( m_block.adjacentBlocks.size() );
+
+		int size = 0;
+		size += m_block.settings.xBits * m_block.nodeCount; // x coordinate
+		size += m_block.settings.yBits * m_block.nodeCount; // y coordinate
+
+		while ( newEdgeSize + 1 >= ( 1u << new_settings.first_edge_bits ) )
+			new_settings.first_edge_bits++;
+
+		if ( size + m_block.baseSize > m_block.maxSize ) {
+			if ( m_block.nodeCount == 1 ) {
+				qCritical( "ERROR: a node requires more space than a single block can suffice: node %d", node );
+				qCritical( "try increasing the block size" );
+				exit( -1 );
+			}
+			return false;
+		}
+
+		for ( std::map<unsigned, unsigned>::const_iterator i = new_adj_blocks.begin(); i != new_adj_blocks.end(); i++ ) {
+			const unsigned ID = ( unsigned ) _adj_blocks.size();
+			_adj_blocks[i->first] = ID;
+		}
+
+		//remap nodes
+		_block_map[node].block = _block_id ;
+		_block_map[node].node = _node_count;
+
+		_first_edge_size = new_first_edge_size;
+		_adj_blocks_size = new_adj_blocks_size;
+		_edge_size = newEdgeSize;
+		if ( PATH_DATA ) {
+			_node_x_size = new_node_x_size;
+			_node_y_size = new_node_y_size;
+			_max_x = newMaxX;
+			_max_y = newMaxY;
+		}
+		_settings = new_settings;
+		global_settings.internal_bits = new_settings.internal_bits;
+		_node_count++;
+		return true;
 	}
 
 	// build edge index
@@ -266,9 +354,8 @@ private:
 	std::vector< Edge > m_edges;
 	std::vector< nodeDescriptor > m_nodeIDs;
 	std::vector< Node > m_unpackBuffer;
-	std::vector< BlockBuilder > m_blocks;
 	std::vector< PathBlockBuilder > m_pathBlocks;
-
+	BlockBuilder m_block;
 };
 
 #endif // COMPRESSEDGRAPHBUILDER_H

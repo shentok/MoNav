@@ -198,14 +198,34 @@ static unsigned pack_array ( unsigned char* buffer, const unsigned* data, unsign
 
 static unsigned log2_rounded ( unsigned x ) {
 	static const unsigned bit_position[32] = {
-		32, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
+		0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
 		31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
 	};
-	if ( x == 0 )
-		return 0;
 
 	//round up
 	--x;
+	x |= x >> 1;
+	x |= x >> 2;
+	x |= x >> 4;
+	x |= x >> 8;
+	x |= x >> 16;
+	++x;
+
+	return bit_position[ ( x * 0x077CB531u ) >> 27];
+}
+
+// computes log2_rounded( x + 1 ), works even up to x = 2^32 - 1
+static unsigned bits_needed( unsigned x )
+{
+	static const unsigned bit_position[32] = {
+		32, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
+		31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
+	};
+	//slower, maybe think of a better workaround
+	if ( x == 0 )
+		return 0;
+
+	//+1 and round up
 	x |= x >> 1;
 	x |= x >> 2;
 	x |= x >> 4;

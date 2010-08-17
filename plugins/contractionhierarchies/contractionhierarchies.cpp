@@ -84,19 +84,13 @@ bool ContractionHierarchies::Preprocess( IImporter* importer )
 	/*QFile textFile( filename + ".dtmp" );
 	textFile.open( QIODevice::WriteOnly );
 	QTextStream textOut( &textFile );
-	textOut << inputNodes.size() << "\n";
-	for ( int i = 0; i < ( int ) inputNodes.size(); i++ ) {
-		GPSCoordinate gps = inputNodes[i].coordinate.ToGPSCoordinate();
-		textOut << i << " " << int( gps.longitude * 100000 ) << " " << int( gps.latitude * 100000 ) << "\n";
-	}
-	textOut << inputEdges.size() << endl;
-	for ( int i = 0; i < ( int ) inputEdges.size(); i++ ) {
-		int direction = 0;
-		if ( !inputEdges[i].bidirectional )
-			direction = 1;
-		textOut << inputEdges[i].source << " " << inputEdges[i].target << " " << "1" << " " << direction << " " <<  int ( std::max( inputEdges[i].distance * 10, 1.0 ) ) << "\n";
-	}
-	return false;*/
+	textOut << inputNodes.size() << " " << inputEdges.size() << "\n";
+	for ( int i = 0; i < ( int ) inputNodes.size(); i++ )
+		textOut << i << " " << inputNodes[i].coordinate.x << " " << inputNodes[i].coordinate.y << "\n";
+	for ( int i = 0; i < ( int ) inputEdges.size(); i++ )
+		textOut << inputEdges[i].source << " " << inputEdges[i].target << "\n";
+	return false;
+	*/
 
 	Contractor* contractor = new Contractor( inputNodes.size(), inputEdges );
 	std::vector< IImporter::RoutingEdge >().swap( inputEdges );
