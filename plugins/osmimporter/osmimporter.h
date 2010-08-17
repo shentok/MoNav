@@ -124,7 +124,7 @@ protected:
 			GPSCoordinate leftGPS( left[0], left[1] );
 			GPSCoordinate rightGPS( right[0], right[1] );
 			double result = leftGPS.ApproximateDistance( rightGPS );
-			return result;
+			return result * result;
 		}
 
 		double operator() ( const KDTree::BoundingBox< 2, double > &box, const double point[2] ) {
@@ -138,6 +138,17 @@ protected:
 					nearest[dim] = point[dim];
 			}
 			return operator() ( point, nearest );
+		}
+
+		bool operator() ( const KDTree::BoundingBox< 2, double > &box, const double point[2], const double radiusSquared ) {
+			double farthest[2];
+			for ( unsigned dim = 0; dim < 2; ++dim ) {
+				if ( point[dim] < ( box.min[dim] + box.max[dim] ) / 2 )
+					farthest[dim] = box.max[dim];
+				else
+					farthest[dim] = box.min[dim];
+			}
+			return operator() ( point, farthest ) <= radiusSquared;
 		}
 	};
 

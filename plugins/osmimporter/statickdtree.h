@@ -48,6 +48,7 @@ struct NoData {};
 template< unsigned k, typename T >
 class EuclidianMetric {
 	public:
+		// squared distance point <-> point
 		double operator() ( const T left[k], const T right[k] ) {
 			double result = 0;
 			for ( unsigned i = 0; i < k; ++i ) {
@@ -57,6 +58,7 @@ class EuclidianMetric {
 			return result;
 		}
 		
+		// squared distance box <-> point
 		double operator() ( const BoundingBox< k, T > &box, const T point[k] ) {
 			T nearest[k];
 			for ( unsigned dim = 0; dim < k; ++dim ) {
@@ -68,6 +70,18 @@ class EuclidianMetric {
 					nearest[dim] = point[dim];
 			}
 			return operator() ( point, nearest );
+		}
+
+		// is box completely within circle center on point with radius
+		bool operator() ( const BoundingBox< k, T > &box, const T point[k], double radiusSquared ) {
+			T farthest[k];
+			for ( unsigned dim = 0; dim < k; ++dim ) {
+				if ( point[dim] < ( box.min[dim] + box.max[dim] ) / 2 )
+					farthest[dim] = box.max[dim];
+				else
+					farthest[dim] = box.min[dim];
+			}
+			return operator() ( point, farthest ) <= radiusSquared;
 		}
 };
 
@@ -155,10 +169,10 @@ class StaticKDTree {
 			return false;
 		}
 		
-		bool NearestNeighbor( InputPoint* result, const InputPoint& point, double radius = std::numeric_limits< T >::max() ) {
+		bool NearestNeighbor( InputPoint* result, const InputPoint& point ) {
 			Metric distance;
 			bool found = false;
-			double nearestDistance = radius;
+			double nearestDistance = std::numeric_limits< T >::max();
 			std::stack< NNTree > s;
 			s.push ( NNTree ( 0, size, 0, boundingBox ) );
 			while ( !s.empty() ) {
@@ -213,6 +227,7 @@ class StaticKDTree {
 		
 		bool NearNeighbors( std::vector< InputPoint >* result, const InputPoint& point, double radius ) {
 			Metric distance;
+			radius *= radius;
 			std::stack< NNTree > s;
 			s.push ( NNTree ( 0, size, 0, boundingBox ) );
 			while ( !s.empty() ) {
@@ -221,6 +236,12 @@ class StaticKDTree {
 				
 				if ( distance( tree.box, point.coordinates ) >= radius )
 					continue;
+
+				if ( distance( tree.box, point.coordinates, radius ) ) {
+					for ( unsigned i = tree.left; i < tree.right; i++ )
+						result->push_back( kdtree[i] );
+					continue;
+				}
 				
 				if ( tree.right - tree.left < KDTREE_BASESIZE ) {
 					for ( unsigned i = tree.left; i < tree.right; i++ ) {
