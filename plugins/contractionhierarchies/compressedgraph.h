@@ -79,7 +79,7 @@ public:
 		// furthermore the edge has to be unpacked by the graph
 		bool operator++()
 		{
-			assert( m_position + size <= m_end );
+			assert( m_position + m_size <= m_end );
 			assert( m_size != 0 );
 			m_position += m_size;
 #ifndef NDEBUG
@@ -128,9 +128,9 @@ public:
 
 	}
 
-	Edge unpackEdge( const EdgeIterator& edge )
+	Edge unpackEdge( EdgeIterator* edge )
 	{
-		edge.size = 1;
+		edge->m_size = 1;
 	}
 
 	Node getNode( NodeIterator )
@@ -147,9 +147,11 @@ protected:
 			// adress blocks from the adjacent blocks array
 			unsigned char blockBits;
 			// address an entry in the adjacent blocks array
-			unsigned char adjacentBlockBits;
+			//unsigned char adjacentBlockBits; ==> can be computed from adjacentBlockcount bitsNeeded( count - 1 )
 			// address an internal node with a shortcut's middle
-			unsigned char internalBits;
+			//unsigned char internalBits; ==> can be computed from nodeCount bitsNeeded( count - 1 );
+			// address an external node in another block
+			unsigned char externalBits;
 			// address the first edge of a node
 			unsigned char firstEdgeBits;
 			// bits used for the short weight class
@@ -164,6 +166,10 @@ protected:
 			unsigned minX;
 			// minimal y value
 			unsigned minY;
+			// #nodes => used for the size of firstEdges
+			unsigned nodeCount;
+			// #adjacent blocks => used for the size of adjacentBlocks
+			unsigned adjacentBlockCount;
 		} settings;
 
 		unsigned edges;
@@ -172,7 +178,6 @@ protected:
 		unsigned nodeX;
 		unsigned nodeY;
 		unsigned id;
-		unsigned nodeCount;
 		unsigned cacheID;
 	};
 
@@ -181,13 +186,13 @@ protected:
 	};
 
 	struct GlobalSettings {
-		char internalBits;
-		char blockSize;
+		unsigned char internalBits;
+		unsigned blockSize;
 
 		bool read( QFile& in )
 		{
-			in.read( ( const char* ) &blockSize, sizeof( blockSize ) );
-			in.read( ( const char* ) &internalBits, sizeof( internalBits ) );
+			in.read( ( char* ) &blockSize, sizeof( blockSize ) );
+			in.read( ( char* ) &internalBits, sizeof( internalBits ) );
 		}
 
 		void write( QFile& out )
@@ -199,7 +204,7 @@ protected:
 
 	struct nodeDescriptor {
 		unsigned block;
-		unsigned id;
+		unsigned node;
 	};
 
 	// FUNCTIONS
@@ -216,13 +221,13 @@ protected:
 
 	NodeIterator nodeFromDescriptor( nodeDescriptor node )
 	{
-		NodeIterator result = ( node.block << m_settings.internalBits ) | node.id;
+		NodeIterator result = ( node.block << m_settings.internalBits ) | node.node;
 		assert( nodeToBlock( result ) == node.block );
-		assert( nodeToInternal( result ) == node.id );
+		assert( nodeToInternal( result ) == node.node );
 		return result;
 	}
 
-	void loadGraph()
+	void loadGraph( QString filename )
 	{
 
 	}

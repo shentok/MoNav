@@ -23,23 +23,26 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "compressedgraph.h"
 #include <limits>
 #include <QHash>
+#include <QSet>
+#include <QTime>
+#include <QtDebug>
 
 class CompressedGraphBuilder : public CompressedGraph {
 
 public:
 
-	CompressedGraphBuilder( QString filename, unsigned blockSize, std::vector< Edge >& inputEdges, std::vector< Node >& inputNodes, std::vector< unsigned >* remap )
+	CompressedGraphBuilder( unsigned blockSize, std::vector< Node >& inputNodes, std::vector< Edge >& inputEdges )
 	{
 		m_edges.swap( inputEdges );
 		m_settings.blockSize = blockSize;
 		m_nodes.swap( inputNodes );
-		for ( std::vector< Node >::iterator i = m_edges.begin(), iend = m_edges.end(); i != iend; i++ )
+		for ( std::vector< Edge >::iterator i = m_edges.begin(), iend = m_edges.end(); i != iend; i++ )
 			i->data.unpacked = false;
 	}
 
-	bool run()
+	bool run( QString filename, std::vector< unsigned >* remap)
 	{
-		createGraph( filename, remap );
+		return createGraph( filename, remap );
 	}
 
 private:
@@ -56,11 +59,12 @@ private:
 
 		unsigned internalShortcutCount;
 		unsigned shortcutCount;
-		unsigned internalEdgeCount;
+		unsigned externalEdgeCount;
+		unsigned internalEdgeTargetSize;
 		unsigned edgeCount;
 		std::vector< unsigned > weightDistribution;
 		QHash< unsigned, int > internalShortcutTargets;
-		QHash< unsigned, unsigned > adjacentBlocks;
+		QSet< unsigned > adjacentBlocks;
 	};
 
 	struct PathBlockBuilder: public PathBlock {
@@ -70,158 +74,127 @@ private:
 	// FUNCTIONS
 
 	// Adds a new builder block starting at node
-	initBlock( unsigned node )
+	void initBlock( unsigned blockID, unsigned firstNode )
 	{
-		m_block.blockID = m_blocks.size();
-		m_block.maxSize = 1u << m_settings.blockSize;
-		// Settings + #nodes + +adjacent blocks + 64Bit buffer
-		m_block.baseSize = sizeof( Block::Settings ) + 2 * sizeof( unsigned ) + 4;
+		m_block.id = blockID;
+		m_block.maxSize = m_settings.blockSize;
+		// Settings + 64Bit buffer
+		m_block.baseSize = sizeof( Block::Settings ) + 4;
 		m_block.maxX = 0;
 		m_block.maxY = 0;
-		m_block.firstNode = node;
-		m_block.settings.blockBits = bits_needed( m_blocks.size() );
-		m_block.settings.adjacentBlockBits = 1;
-		// set internal bits to the maximum encountered so far
-		m_block.settings.internalBits = m_settings.internalBits;
-		m_block.settings.firstEdgeBits = 1;
+		m_block.firstNode = firstNode;
+
+		m_block.settings.blockBits = bits_needed( blockID - 1 );
+		m_block.settings.externalBits = 0;
+		m_block.settings.firstEdgeBits = 0;
 		m_block.settings.shortWeightBits = 0;
-		m_block.settings.longWeightBits = 1;
-		m_block.settings.xBits = 1;
-		m_block.settings.yBits = 1;
+		m_block.settings.longWeightBits = 0;
+		m_block.settings.xBits = 0;
+		m_block.settings.yBits = 0;
 		m_block.settings.minX = std::numeric_limits< unsigned >::max();
 		m_block.settings.minY = std::numeric_limits< unsigned >::max();
+		m_block.settings.adjacentBlockCount = 0;
+		m_block.settings.nodeCount = 0;
 
 		m_block.internalShortcutCount = 0;
 		m_block.shortcutCount = 0;
-		m_block.internalEdgeCount = 0;
+		m_block.externalEdgeCount = 0;
+		m_block.internalEdgeTargetSize = 0;
 		m_block.edgeCount = 0;
 		m_block.weightDistribution.clear();
 		m_block.weightDistribution.resize( 33, 0 );
 		m_block.internalShortcutTargets.clear();
 	}
 
-	// recalculates size of the edges part of the last block in m_blocks
-	unsigned reevaluateEdges()
-	{
-		assert( m_blocks.size() > 0 );
-		BlockBuilder& block = m_blocks.back();
-		// best weight distribution found so far
-		unsigned bestSize = std::numeric_limits< unsigned >::max();
-
-		for ( unsigned shortWeightBits = 0; shortWeightBits < block.settings.longWeightBits; shortWeightBits++ ) {
-			unsigned size = 0;
-			for ( unsigned node = 0; node < block->nodeCount; node++ ) {
-				const unsigned edgesBegin = m_firstEdges[node];
-				const unsigned edgesEnd = m_firstEdges[node + 1];
-
-				for ( unsigned edge = edgesBegin; edge < edgesEnd; edge++ )
-					size += edgeSize( node, edge, shortWeightBits );
-			}
-
-			if ( size < bestSize ) {
-				bestSize = size;
-				block.settings.shortWeightBits = shortWeightBits;
-			}
-		}
-
-		return bestSize;
-	}
-
-	// calculates the size of an edge in the last block in m_blocks
-	unsigned edgeSize( unsigned node, unsigned edge, unsigned shortWeightBits )
-	{
-		BlockBuilder& block = m_blocks.back();
-		unsigned size = 0;
-		size++; // forward flag
-		size++; // backward flag
-		size++; // target flag ( internal vs external )
-		if ( shortWeightBits != 0 )
-			size++; // distance flag ( short vs long );
-		size++; // shortcut flag
-		// target ( log2( node ) due to DAG property vs adjBlock + internalID
-		size += m_edges[edge].target >= block.firstNode ? bits_needed ( node ) : block.settings.internalBits + block.settings.adj_block_bits;
-		// distance ( short bits vs long bits )
-		size += bits_needed( m_edges[edge].data.distance ) > shortWeightBits ? settings.long_weight_bits : short_weight_bits;
-
-		if ( m_edges[edge].shortcut ) {
-			if ( m_edges[edge].middle < block.firstNode + block.nodeCount ) {
-				size += 1 + 1 + settings.internal_bits;
-			} else
-				size += 32;
-		}
-	}
-
 	bool addNode ( unsigned node ) {
-		m_block.nodeCount++;
-		m_block.settings.internalBits = bits_needed( m_block.nodeCount );
+		m_block.settings.nodeCount++;
 
-		m_block.settings.minX = std::min( m_nodes[node].x, m_block.settings.minX );
-		m_block.settings.minY = std::min( m_nodes[node].x, m_block.settings.minY );
-		m_block.settings.maxX = std::max( m_nodes[node].x, m_block.settings.maxX );
-		m_block.settings.maxX = std::max( m_nodes[node].x, m_block.settings.maxY );
+		m_block.settings.minX = std::min( m_nodes[node].coordinate.x, m_block.settings.minX );
+		m_block.settings.minY = std::min( m_nodes[node].coordinate.y, m_block.settings.minY );
+		m_block.maxX = std::max( m_nodes[node].coordinate.x, m_block.maxX );
+		m_block.maxY = std::max( m_nodes[node].coordinate.y, m_block.maxY );
 
 		m_block.settings.xBits = bits_needed( m_block.maxX - m_block.settings.minX );
 		m_block.settings.yBits = bits_needed( m_block.maxY - m_block.settings.minY );
 
+		unsigned internalTargetBits = bits_needed( node - m_block.firstNode - 1 ); // no loops, only previous nodes, (0 - 1) will never be used
 		for ( unsigned i = m_firstEdges[node]; i < m_firstEdges[node + 1]; i++ ) {
 			const Edge& edge = m_edges[i];
 
-			unsigned weightBits = bits_needed( edge.data.distance );
-			m_weightDistribution[weightBits]++;
+			unsigned char weightBits = bits_needed( edge.data.distance );
+			m_block.weightDistribution[weightBits]++;
 			m_block.settings.longWeightBits = std::max( weightBits, m_block.settings.longWeightBits );
 
-			if ( edge.target >= m_block.firstNode )
-				m_block.internalEdgeCount++;
-			else
-				m_block.adjacentBlocks.contains[m_nodeIDs[node].block]++;
+			if ( edge.target >= m_block.firstNode ) {
+				m_block.internalEdgeTargetSize += internalTargetBits; // we only need to address previous nodes due to DAG property
+			} else {
+				m_block.externalEdgeCount++;
+				int block = m_nodeIDs[node].block;
+				if ( !m_block.adjacentBlocks.contains( block ) ) {
+					m_block.adjacentBlocks.insert( block );
+					m_block.settings.externalBits = std::max( m_externalBits[block], m_block.settings.externalBits );
+				}
+			}
 
 			if ( edge.data.shortcut ) {
 				m_block.shortcutCount++;
 				m_block.internalShortcutTargets[edge.data.middle]++;
 			}
 		}
+
 		m_block.edgeCount += m_firstEdges[node + 1] - m_firstEdges[node];
 		m_block.internalShortcutCount += m_block.internalShortcutTargets[node];
-		m_block.settings.adjacentBlockBits = bits_needed( m_block.adjacentBlocks.size() );
+		m_block.settings.adjacentBlockCount = m_block.adjacentBlocks.size();
 
 		int size = 0;
-		size += m_block.settings.xBits * m_block.nodeCount; // x coordinate
-		size += m_block.settings.yBits * m_block.nodeCount; // y coordinate
+		size += m_block.edgeCount * ( 1 + 1 + 1 + 1 ); // forward + backward + shortcut + target ( external vs internal ) flags
+		size += m_block.externalEdgeCount * ( bits_needed( m_block.settings.adjacentBlockCount - 1 ) + m_block.settings.externalBits ); // external targets
+		size += m_block.internalEdgeTargetSize; // internal targets
+		size += m_block.shortcutCount * ( 1 ); // middle ( external vs internal ) flag
+		size += ( m_block.shortcutCount - m_block.internalShortcutCount ) * ( 32 ); // external middle => unpacked
+		size += m_block.internalShortcutCount * bits_needed( node - m_block.firstNode ); // internal middle
+		unsigned shortWeightsCount = 0;
+		unsigned minimumWeightSize = std::numeric_limits< unsigned >::max();
+		for ( int bits = 0; bits <= m_block.settings.longWeightBits; bits++ ) {
+			shortWeightsCount += m_block.weightDistribution[bits];
+			unsigned weightSize = shortWeightsCount * bits + ( m_block.edgeCount - shortWeightsCount ) * m_block.settings.longWeightBits;
+			if ( bits == m_block.settings.longWeightBits )
+				weightSize++; // long vs short flag
+			if ( weightSize < minimumWeightSize ) {
+				weightSize = minimumWeightSize;
+				m_block.settings.shortWeightBits = bits;
+			}
+		}
+		// size == edge block size => compute firstEdgeBits
+		m_block.settings.firstEdgeBits = bits_needed( size );
 
-		while ( newEdgeSize + 1 >= ( 1u << new_settings.first_edge_bits ) )
-			new_settings.first_edge_bits++;
+		size = ( size + 7 ) / 8; // round to full bytes;
+
+		size += ( m_block.settings.xBits * m_block.settings.nodeCount + 7 ) / 8; // x coordinate
+		size += ( m_block.settings.yBits * m_block.settings.nodeCount + 7 ) / 8; // y coordinate
+		size += ( m_block.settings.firstEdgeBits * ( m_block.settings.nodeCount + 1 ) + 7 ) / 8; // first edge entries
+		size += ( m_block.settings.blockBits * m_block.settings.adjacentBlockCount + 7 ) / 8; // adjacent blocks entries
 
 		if ( size + m_block.baseSize > m_block.maxSize ) {
-			if ( m_block.nodeCount == 1 ) {
-				qCritical( "ERROR: a node requires more space than a single block can suffice: node %d", node );
-				qCritical( "try increasing the block size" );
+			if ( m_block.settings.nodeCount == 1 ) {
+				qCritical() << "ERROR: a node requires more space than a single block can suffice\n"
+					<< "block:" << m_block.id << "node:" << node << "size:" << size << "maxSize:" << m_block.maxSize << "\n"
+					<< "try increasing the block size";
 				exit( -1 );
 			}
 			return false;
 		}
 
-		for ( std::map<unsigned, unsigned>::const_iterator i = new_adj_blocks.begin(); i != new_adj_blocks.end(); i++ ) {
-			const unsigned ID = ( unsigned ) _adj_blocks.size();
-			_adj_blocks[i->first] = ID;
-		}
-
 		//remap nodes
-		_block_map[node].block = _block_id ;
-		_block_map[node].node = _node_count;
+		m_nodeIDs[node].block = m_block.blockID;
+		m_nodeIDs[node].node = node - m_block.firstNode;
 
-		_first_edge_size = new_first_edge_size;
-		_adj_blocks_size = new_adj_blocks_size;
-		_edge_size = newEdgeSize;
-		if ( PATH_DATA ) {
-			_node_x_size = new_node_x_size;
-			_node_y_size = new_node_y_size;
-			_max_x = newMaxX;
-			_max_y = newMaxY;
-		}
-		_settings = new_settings;
-		global_settings.internal_bits = new_settings.internal_bits;
-		_node_count++;
 		return true;
+	}
+
+	void writeBlock( QFile& blockFile )
+	{
+
 	}
 
 	// build edge index
@@ -243,27 +216,27 @@ private:
 		unsigned numberOfUnpacked = 0;
 
 		qDebug( "Computing path data" );
-		for ( unsigned i = 0; i < inputEdges.size(); i++ ) {
-			if ( !inputEdges[i].data.shortcut )
+		for ( unsigned i = 0; i < m_edges.size(); i++ ) {
+			if ( !m_edges[i].data.shortcut )
 				continue;
 
 			numberOfShortcuts++;
 
 			//do not unpack internal shortcuts
-			if ( m_nodeIDs[inputEdges[i].source].block == m_nodeIDs[inputEdges[i].target].block )
+			if ( m_nodeIDs[m_edges[i].source].block == m_nodeIDs[m_edges[i].target].block )
 				continue;
 
 			//path already fully unpacked ( covered by some higher level shortcut )?
-			if ( inputEdges[i].data.unpacked )
+			if ( m_edges[i].data.unpacked )
 				continue;
 
 			//get unpacked path
-			if ( m_edges[i].forward ) {
-				pathBuffer.push_back( inputNodes[inputEdges[i].source] );
-				unpackPath ( inputEdges[i].source, inputNodes[i].target, true );
+			if ( m_edges[i].data.forward ) {
+				m_unpackBuffer.push_back( m_nodes[m_edges[i].source] );
+				unpackPath ( m_edges[i].source, m_edges[i].target, true );
 			} else {
-				pathBuffer.push_back( inputNodes[inputEdges[i].target] );
-				unpackPath ( inputEdges[i].source, inputNodes[i].target, false );
+				m_unpackBuffer.push_back( m_nodes[m_edges[i].target] );
+				unpackPath ( m_edges[i].source, m_edges[i].target, false );
 			}
 			numberOfUnpacked++;
 		}
@@ -277,52 +250,88 @@ private:
 	void unpackPath( unsigned source, unsigned target, bool forward ) {
 		unsigned edge = m_firstEdges[source];
 		assert ( edge != m_firstEdges[source + 1] );
-		for ( ;m_edges[edge].target != target || ( forward && !m_edges[edge].forward ) || ( !forward && !m_edges[edge].backward ); edge++ )
-			assert ( edge <= m_nodes[source + 1].first_edge );
+		for ( ;m_edges[edge].target != target || ( forward && !m_edges[edge].data.forward ) || ( !forward && !m_edges[edge].data.backward ); edge++ )
+			assert ( edge <= m_firstEdges[source + 1] );
 
-		if ( !m_edges[edge].shortcut ) {
+		if ( !m_edges[edge].data.shortcut ) {
 			m_unpackBuffer.push_back ( m_nodes[forward ? target : source] );
 			return;
 		}
 
-		unsigned middle = m_edges[edge].middle;
+		unsigned middle = m_edges[edge].data.middle;
 		m_edges[edge].data.reversed = !forward;
 		m_edges[edge].data.unpacked = true;
 
 		//unpack the nodes in the right order
 		if ( forward ) {
 			//point at first node between source and destination
-			m_edges[edge].path = m_unpackBuffer.size() - 1;
+			m_edges[edge].data.path = m_unpackBuffer.size() - 1;
 
-			unpack_path ( middle, source, false );
-			unpack_path ( middle, target, true );
+			unpackPath ( middle, source, false );
+			unpackPath ( middle, target, true );
 		} else {
-			unpack_path ( middle, target, false );
-			unpack_path ( middle, source, true );
+			unpackPath ( middle, target, false );
+			unpackPath ( middle, source, true );
 
 			//point at last node between source and destination
-			m_edges[edge].path = m_unpackBuffer.size() - 1;
+			m_edges[edge].data.path = m_unpackBuffer.size() - 1;
 		}
 	}
 
-	void createGraph( QString filename, std::vector< unsigned >* remap )
+	bool createGraph( QString filename, std::vector< unsigned >* remap )
 	{
-		assert( inputNodes.size() == remap->size() );
-		qDebug( "creating compressed graph with %d nodes and %d edges", inputNodes.size(), inputEdges.size() );
+		assert( m_nodes.size() == remap->size() );
+		qDebug( "creating compressed graph with %d nodes and %d edges", m_nodes.size(), m_edges.size() );
+		QTime time;
+		time.start();
 
 		buildIndex();
-		m_settings.internalBits = 1;
-		m_nodeIDs.resize( inputNodes.size() );
-		// TODO: BUILD
+		m_nodeIDs.resize( m_nodes.size() );
+		qDebug() << "build node index:" << time.restart() << "ms";
 
-		QFile pathFile( filename + "_path" );
+		// compute mapping nodes -> blocks
+		unsigned blocks = 0;
+		initBlock( 0, 0 );
+		for ( unsigned node = 0; node < m_nodes.size(); node++ ) {
+			if ( !addNode( node ) ) {
+				m_externalBits.push_back( bits_needed( node - 1 - m_block.firstNode ) ); // never negative <= at least one node
+				initBlock( blocks++, node );
+				addNode( node ); // cannot fail -> exit( -1 ) in addNode otherwise
+			}
+		}
+		assert( blocks == m_externalBits.size() );
+		// account for the last block
+		blocks++;
+		m_externalBits.push_back( bits_needed( m_nodes.size() - 1 - m_block.firstNode ) );
+		qDebug() << "computed block layout:" << time.restart() << "ms";
+
+		// unpack shortcuts
+		QFile pathFile( filename + "_paths" );
 		if ( !pathFile.open( QIODevice::WriteOnly ) ) {
 			qCritical() << "failed to open path file:" << pathFile.fileName();
 			return false;
 		}
 		unpackShortcuts( pathFile );
+		qDebug() << "unpacked shortcuts:" << time.restart() << "ms";
 
-		unsigned blocks = 0;
+		// recompute block settings and write
+		QFile blockFile( filename + "_edges" );
+		if ( !blockFile.open( QIODevice::WriteOnly ) ) {
+			qCritical() << "failed to open path file:" << blockFile.fileName();
+			return false;
+		}
+		for ( unsigned block = 0, node = 0; block < blocks; block++ ) {
+			initBlock( block, node );
+			while ( node < m_nodes.size() && m_nodeIDs[node].block == block )
+				addNode( node++ );  // should never fail
+			writeBlock( blockFile );
+			qDebug() << block;
+		}
+		qDebug() << "wrote blocks" << time.restart() << "ms";
+
+		m_settings.internalBits = 0;
+		for ( unsigned block = 0; block < blocks; block++ )
+			m_settings.internalBits = std::max( m_externalBits[block], m_settings.internalBits );
 
 		// write config
 		QFile configFile( filename + "_config" );
@@ -332,20 +341,19 @@ private:
 		}
 		m_settings.write( configFile );
 
-		qDebug( "Used Settings:" );
+		qDebug( "used Settings:" );
 		qDebug( "\tblock size: %d", m_settings.blockSize );
 		qDebug( "\tinternal bits: %d", m_settings.internalBits );
 		qDebug( "\tblocks: %d", blocks );
-		qDebug( "\tpath blocks: %d", pathBlocks );
-		qDebug( "\tblock space: %lld Mb" , ( long long ) blocks * block_size / 1024 / 1024 );
+		qDebug( "\tpath blocks: %d", m_unpackBuffer.size() / m_settings.blockSize );
+		qDebug( "\tblock space: %lld Mb" , ( long long ) blocks * m_settings.blockSize / 1024 / 1024 );
 		qDebug( "\tpath block space: %lld Mb" , pathFile.size() / 1024 / 1024 );
-		qDebug( "\tmax internal ID: %ud", nodeFromDescriptor( m_nodeIDs.back() ) );
+		qDebug( "\tmax internal ID: %u", nodeFromDescriptor( m_nodeIDs.back() ) );
 
-		m_settings.internalBits = 1;
-		//TODO: STORE & BUILD?
-
-		for ( unsigned i = 0; i < node_count; i++ )
+		for ( unsigned i = 0; i < m_nodes.size(); i++ )
 			( *remap )[i] = nodeFromDescriptor( m_nodeIDs[( *remap )[i]] );
+
+		return true;
 	}
 
 	//VARIABLES
@@ -353,6 +361,7 @@ private:
 	std::vector< unsigned > m_firstEdges;
 	std::vector< Edge > m_edges;
 	std::vector< nodeDescriptor > m_nodeIDs;
+	std::vector< unsigned char > m_externalBits;
 	std::vector< Node > m_unpackBuffer;
 	std::vector< PathBlockBuilder > m_pathBlocks;
 	BlockBuilder m_block;
