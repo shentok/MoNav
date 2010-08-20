@@ -191,7 +191,8 @@ bool GPSGridClient::checkCell( QVector< Result >* result, double radius, NodeID 
 			resultEdge.target = i->target;
 			resultEdge.nearestPoint = nearestPoint;
 			resultEdge.percentage = percentage;
-			resultEdge.distance = resultEdge.nearestPoint.ToProjectedCoordinate().ToGPSCoordinate().ApproximateDistance( coordinate.ToProjectedCoordinate().ToGPSCoordinate() ) + penalty;
+			//resultEdge.distance = resultEdge.nearestPoint.ToProjectedCoordinate().ToGPSCoordinate().ApproximateDistance( coordinate.ToProjectedCoordinate().ToGPSCoordinate() ) + penalty;
+			resultEdge.distance = d;
 			resultEdge.bidirectional = i->bidirectional;
 			result->push_back( resultEdge );
 		}
