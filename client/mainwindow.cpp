@@ -68,8 +68,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	connectSlots();
 
-	if ( !loadPlugins() )
+	if ( dataDirectory.isEmpty() ) {
+		QMessageBox::information( this, "Data Directory", "Please specifiy a data directory" );
 		settingsDataDirectory();
+	} else {
+		if ( !loadPlugins() )
+			settingsDataDirectory();
+	}
 
 	updateSource = true;
 	updateTarget = false;
@@ -433,7 +438,9 @@ void MainWindow::settingsDataDirectory()
 {
 	while ( true )
 	{
-		dataDirectory = QFileDialog::getExistingDirectory( this, "Enter Data Directory", dataDirectory );
+		QString input = QFileDialog::getExistingDirectory( this, "Enter Data Directory", dataDirectory );
+		if ( !input.isEmpty() )
+			dataDirectory = input;
 		if ( dataDirectory == "" ) {
 			QMessageBox::information( NULL, "Data Directory", "No Data Directory Specified" );
 			exit( -1 );
