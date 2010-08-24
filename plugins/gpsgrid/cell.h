@@ -55,8 +55,8 @@ namespace gg
 			return true;
 		}
 
-		size_t write( char* buffer, UnsignedCoordinate min, UnsignedCoordinate max ) {
-			char* const oldBuffer = buffer;
+		size_t write( unsigned char* buffer, UnsignedCoordinate min, UnsignedCoordinate max ) {
+			unsigned char* const oldBuffer = buffer;
 
 			NodeID minID = std::numeric_limits< NodeID >::max();
 			NodeID maxID = 0;
@@ -182,8 +182,8 @@ namespace gg
 			return buffer - oldBuffer;
 		}
 
-		size_t  read( const char* buffer, UnsignedCoordinate min, UnsignedCoordinate /*max*/ ) {
-			const char* oldBuffer = buffer;
+		size_t  read( const unsigned char* buffer, UnsignedCoordinate min, UnsignedCoordinate /*max*/ ) {
+			const unsigned char* oldBuffer = buffer;
 
 			int offset = 0;
 			const unsigned numNodes = *(( unsigned* ) buffer );

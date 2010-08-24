@@ -161,7 +161,7 @@ bool GPSGrid::Preprocess( IImporter* importer )
 		ProjectedCoordinate min( ( double ) entry.x / width, ( double ) entry.y / width );
 		ProjectedCoordinate max( ( double ) ( entry.x + 1 ) / width, ( double ) ( entry.y + 1 ) / width );
 
-		char* buffer = new char[cell.edges.size() * sizeof( gg::Cell::Edge ) * 2 + 100];
+		unsigned char* buffer = new unsigned char[cell.edges.size() * sizeof( gg::Cell::Edge ) * 2 + 100];
 		memset( buffer, 0, cell.edges.size() * sizeof( gg::Cell::Edge ) * 2 + 100 );
 		int size = cell.write( buffer, UnsignedCoordinate( min ), UnsignedCoordinate( max ) );
 		assert( size < ( int ) ( cell.edges.size() * sizeof( gg::Cell::Edge ) * 2 + 100 ) );
@@ -172,8 +172,8 @@ bool GPSGrid::Preprocess( IImporter* importer )
 		assert( unpackCell == cell );
 #endif
 
-		gridFile.write( ( char* ) &size, sizeof( size ) );
-		gridFile.write( buffer, size );
+		gridFile.write( ( const char* ) &size, sizeof( size ) );
+		gridFile.write( ( const char* ) buffer, size );
 
 		delete[] buffer;
 		position += size + sizeof( size );

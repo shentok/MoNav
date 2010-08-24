@@ -28,7 +28,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 ContractionHierarchiesClient::ContractionHierarchiesClient()
 {
-	graph = NULL;
 	heapForward = NULL;
 	heapBackward = NULL;
 }
@@ -56,9 +55,6 @@ void ContractionHierarchiesClient::ShowSettings()
 
 void ContractionHierarchiesClient::unload()
 {
-	if ( graph != NULL )
-		delete graph;
-	graph = NULL;
 	if ( heapForward != NULL )
 		delete heapForward;
 	heapForward = NULL;
@@ -72,13 +68,10 @@ bool ContractionHierarchiesClient::LoadData()
 	unload();
 	QDir dir( directory );
 	QString filename = dir.filePath( "Contraction Hierarchies" );
-	if ( !QFile::exists( filename ) ) {
-		qDebug() << "Failed to locate :" << filename;
+	if ( !graph.loadGraph( filename, 1024 * 1024 * 4 ) )
 		return false;
-	}
-	graph = new block_graph( filename, false, 500 );
-	heapForward = new _Heap( graph->number_of_nodes() );
-	heapBackward = new _Heap( graph->number_of_nodes() );
+	heapForward = new _Heap( graph.numberOfNodes() );
+	heapBackward = new _Heap( graph.numberOfNodes() );
 	return true;
 }
 
@@ -86,16 +79,12 @@ bool ContractionHierarchiesClient::GetRoute( double* distance, QVector< Unsigned
 {
 	heapForward->Clear();
 	heapBackward->Clear();
-	qDebug() << "source: " << source.source << "->" << source.target << "<-:" << source.bidirectional;
-	qDebug() << "target: " << target.source << "->" << target.target << "<-:" << target.bidirectional;
 	if ( target.source == source.source && target.target == source.target && ( source.bidirectional || source.percentage < target.percentage ) ) {
 		path->push_back( source.nearestPoint );
 		path->push_back( target.nearestPoint );
-		block_graph::vertex_descriptor mappedSource = graph->map_ext_to_int( source.source );
-		block_graph::vertex_descriptor mappedTarget = graph->map_ext_to_int( source.target );
 		if ( source.source != source.target ) {
-			std::pair< block_graph::out_edge_iterator, block_graph::out_edge_iterator > targetEdge = graph->find_edge( mappedSource, mappedTarget );
-			const unsigned targetWeight = graph->get_weight( targetEdge.first );
+			EdgeIterator targetEdge = graph.findEdge( source.source, source.target );
+			const unsigned targetWeight = targetEdge.distance();
 			*distance = fabs( target.percentage - source.percentage ) * targetWeight;
 		}
 		else
@@ -130,13 +119,14 @@ void ContractionHierarchiesClient::computeStep( _Heap* heapForward, _Heap* heapB
 		heapForward->DeleteAll();
 		return;
 	}
-	for ( EdgeIterator edge = graph->out_edges( node ); edge.first != edge.second; ++edge.first ) {
-		const Node to = graph->get_target( edge.first );
-		const int edgeWeight = graph->get_weight( edge.first );
+	for ( EdgeIterator edge = graph.edges( node ); edge.hasEdgesLeft(); ) {
+		graph.unpackNextEdge( &edge );
+		const Node to = edge.target();
+		const int edgeWeight = edge.distance();
 		assert( edgeWeight > 0 );
 		const int toDistance = distance + edgeWeight;
 
-		if ( stallEdgeAllowed( graph->get_forward( edge.first ), graph->get_backward( edge.first ) ) && heapForward->WasInserted( to ) ) {
+		if ( stallEdgeAllowed( edge.forward(), edge.backward() ) && heapForward->WasInserted( to ) ) {
 			const int shorterDistance = heapForward->GetKey( to ) + edgeWeight;
 			if ( shorterDistance < distance ) {
 				//perform a bfs starting at node
@@ -153,17 +143,18 @@ void ContractionHierarchiesClient::computeStep( _Heap* heapForward, _Heap* heapB
 					const int stallDistance = heapForward->GetKey( stallNode );
 
 					//iterate over outgoing edges
-					for ( EdgeIterator stallEdge = graph->out_edges( stallNode ); stallEdge.first != stallEdge.second; ++stallEdge.first ) {
+					for ( EdgeIterator stallEdge = graph.edges( stallNode ); stallEdge.hasEdgesLeft(); ) {
+						graph.unpackNextEdge( &stallEdge );
 						//is edge outgoing/reached/stalled?
-						if ( !edgeAllowed( graph->get_forward( edge.first ), graph->get_backward( edge.first ) ) )
+						if ( !edgeAllowed( stallEdge.forward(), stallEdge.backward() ) )
 							continue;
-						const Node stallTo = graph->get_target( stallEdge.first );
+						const Node stallTo = stallEdge.target();
 						if ( !heapForward->WasInserted( stallTo ) )
 							continue;
 						if ( heapForward->GetData( stallTo ).stalled == true )
 							continue;
 
-						const int stallToDistance = stallDistance + graph->get_weight( stallEdge.first );
+						const int stallToDistance = stallDistance + stallEdge.distance();
 						//sub-optimal path found -> insert stallTo
 						if ( stallToDistance < heapForward->GetKey( stallTo ) ) {
 							if ( heapForward->WasRemoved( stallTo ) )
@@ -180,7 +171,7 @@ void ContractionHierarchiesClient::computeStep( _Heap* heapForward, _Heap* heapB
 			}
 		}
 
-		if ( edgeAllowed( graph->get_forward( edge.first ), graph->get_backward( edge.first ) ) ) {
+		if ( edgeAllowed( edge.forward(), edge.backward() ) ) {
 			//New Node discovered -> Add to Heap + Node Info Storage
 			if ( !heapForward->WasInserted( to ) )
 				heapForward->Insert( to, toDistance, node );
@@ -201,21 +192,21 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& inputS
 		Node source;
 		Node target;
 	} source, target;
-	source.source = graph->map_ext_to_int( inputSource.source );
-	source.target = graph->map_ext_to_int( inputSource.target );
-	target.source = graph->map_ext_to_int( inputTarget.source );
-	target.target = graph->map_ext_to_int( inputTarget.target );
+	source.source = inputSource.source;
+	source.target = inputSource.target;
+	target.source = inputTarget.source;
+	target.target = inputTarget.target;
 
 	//insert source into heap
 	unsigned sourceWeight = 0;
 	unsigned targetWeight = 0;
 	if ( source.source != source.target ) {
-		EdgeIterator sourceEdge = graph->find_edge( source.source, source.target );
-		sourceWeight = graph->get_weight( sourceEdge.first );
+		EdgeIterator sourceEdge = graph.findEdge( source.source, source.target );
+		sourceWeight = sourceEdge.distance();
 	}
 	if ( target.source != target.target ) {
-		EdgeIterator targetEdge = graph->find_edge( target.source, target.target );
-		targetWeight = graph->get_weight( targetEdge.first );
+		EdgeIterator targetEdge = graph.findEdge( target.source, target.target );
+		targetWeight = targetEdge.distance();
 	}
 
 	heapForward->Insert( source.target, sourceWeight - sourceWeight * inputSource.percentage, source.target );
@@ -261,7 +252,7 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& inputS
 	}
 	stack.push( pathNode );
 	path->push_back( inputSource.nearestPoint );
-	path->push_back( graph->get_location( pathNode ) );
+	path->push_back( graph.node( pathNode ).coordinate );
 
 	while ( stack.size() > 1 ) {
 		const Node node = stack.top();
@@ -285,35 +276,32 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& inputS
 }
 
 bool ContractionHierarchiesClient::unpackEdge( const Node source, const Node target, bool forward, QVector< UnsignedCoordinate >* path ) {
-	EdgeIterator edge = graph->out_edges( source );
+	EdgeIterator edge = graph.edges( source );
 
-	for ( ; edge.first != edge.second; ++edge.first ) {
-		if ( graph->get_target( edge.first ) == target ) {
-			if ( forward && graph->get_forward( edge.first ) )
+	for ( ; edge.hasEdgesLeft(); ) {
+		graph.unpackNextEdge( &edge );
+		if ( edge.target() == target ) {
+			if ( forward && edge.forward() )
 				break;
-			if ( ( !forward ) && graph->get_backward( edge.first ) )
+			if ( ( !forward ) && edge.backward() )
 				break;
 		}
 	}
-	assert( edge.first != edge.second );
 
-	if ( !graph->get_shortcut( edge.first ) ) {
+	if ( !edge.shortcut() ) {
 		if ( forward )
-			path->push_back( graph->get_location( target ) );
+			path->push_back( graph.node( target ).coordinate );
 		else
-			path->push_back( graph->get_location( source ) );
+			path->push_back( graph.node( source ).coordinate );
 		return true;
 	}
 
-	if ( graph->get_unpacked( edge.first ) ) {
-		std::vector< UnsignedCoordinate > buffer;
-		graph->get_unpacked_path( edge.first, &buffer, forward );
-		for ( std::vector< UnsignedCoordinate >::const_iterator i = buffer.begin(), e = buffer.end(); i != e; ++i )
-			path->push_back( *i );
+	if ( edge.unpacked() ) {
+		graph.path( edge, path, forward );
 		return true;
 	}
 
-	const Node middle = graph->get_middle( edge.first );
+	const Node middle = edge.middle();
 
 	if ( forward ) {
 		unpackEdge( middle, source, false, path );

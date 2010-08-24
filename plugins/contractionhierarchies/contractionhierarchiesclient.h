@@ -23,7 +23,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QObject>
 #include "interfaces/irouter.h"
 #include "binaryheap.h"
-#include "compressedchgraph.h"
+#include "compressedgraph.h"
 #include <queue>
 
 class ContractionHierarchiesClient : public QObject, public IRouter
@@ -42,9 +42,9 @@ public:
 
 protected:
 	struct _HeapData {
-		block_graph::vertex_descriptor parent;
+		CompressedGraph::NodeIterator parent;
 		bool stalled: 1;
-		_HeapData( block_graph::vertex_descriptor p ) {
+		_HeapData( CompressedGraph::NodeIterator p ) {
 			parent = p;
 			stalled = false;
 		}
@@ -64,14 +64,14 @@ protected:
 			}
 	};
 
-	typedef BinaryHeap< block_graph::vertex_descriptor, int, int, _HeapData, MapStorage< block_graph::vertex_descriptor, unsigned > > _Heap;
-	typedef block_graph::vertex_descriptor Node;
-	typedef std::pair< block_graph::out_edge_iterator, block_graph::out_edge_iterator > EdgeIterator;
+	typedef CompressedGraph::NodeIterator Node;
+	typedef CompressedGraph::EdgeIterator EdgeIterator;
+	typedef BinaryHeap< Node, int, int, _HeapData, MapStorage< Node, unsigned > > _Heap;
 
-	block_graph* graph;
+	CompressedGraph graph;
 	_Heap* heapForward;
 	_Heap* heapBackward;
-	std::queue< block_graph::vertex_descriptor > stallQueue;
+	std::queue< Node > stallQueue;
 
 	void unload();
 	template< class EdgeAllowed, class StallEdgeAllowed >

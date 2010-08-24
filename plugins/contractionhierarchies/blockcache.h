@@ -21,114 +21,127 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define BLOCKCACHE_H_INCLUDED
 
 #include <QFile>
+#include <QHash>
+#include <limits>
+#include <QtDebug>
 
+// Block must have member function / variables:
+// variable id => block id
+// function void load( const unsigned char* buffer )
+template< class Block >
 class BlockCache{
 
 public:
 
-	void Init ( const QString& filename, unsigned cacheBlocks, unsigned blockSize ){
-		_cacheBlocks = cacheBlocks;
-		_blockSize = blockSize;
-		_inputFile.setFileName( filename );
-		_inputFile.open( QIODevice::ReadOnly | QIODevice::Unbuffered );
+	bool load( const QString& filename, int cacheBlocks, unsigned blockSize )
+	{
+		m_cacheBlocks = cacheBlocks;
+		m_blockSize = blockSize;
+		m_inputFile.setFileName( filename );
+		if ( !m_inputFile.open( QIODevice::ReadOnly | QIODevice::Unbuffered ) ) {
+			qCritical() << "failed to open file:" << m_inputFile.fileName();
+			return false;
+		}
 
-		//get an page aligned adress
-		_cache = new char[( _cacheBlocks + 1 ) * _blockSize];
-		_blocks = new _CacheBlock[_cacheBlocks];
+		m_cache = new unsigned char[( m_cacheBlocks + 1 ) * m_blockSize];
+		m_LRU = new LRUEntry[m_cacheBlocks];
+		m_blocks = new Block[m_cacheBlocks];
 
-		_firstLoaded = NONE;
-		_lastLoaded = NONE;
-		_loadedCount = 0;
+		m_firstLoaded = -1;
+		m_lastLoaded = -1;
+		m_loadedCount = 0;
+
+		return true;
 	}
 
-	void Destroy ( ){
-		_inputFile.close();
-		delete[] _cache;
-		delete[] _blocks;
+	void unload ( )
+	{
+		m_inputFile.close();
+		delete[] m_cache;
+		delete[] m_LRU;
+		delete[] m_blocks;
 	}
 
-	const unsigned char* LoadBlock ( unsigned block, unsigned* cacheID, bool* unloaded, unsigned* unloaded_id ){
-		unsigned free_block = _loadedCount;
-		if ( _loadedCount == _cacheBlocks ) {
-			assert ( _lastLoaded != NONE );
+	const Block* getBlock( unsigned block )
+	{
+		int cacheID = m_index.value( block, -1 );
+		if ( cacheID == -1 )
+			return loadBlock( block );
 
-			free_block = _lastLoaded;
-
-			*unloaded = true;
-			*unloaded_id = _blocks[_lastLoaded].id;
-
-		}
-		else{
-			*unloaded = false;
-			//insert into the front of the list
-			_blocks[_loadedCount].previousLoaded = NONE;
-			_blocks[_loadedCount].nextLoaded = _firstLoaded;
-			if ( _firstLoaded != NONE )
-				_blocks[_firstLoaded].previousLoaded = free_block;
-			if ( _lastLoaded == NONE )
-				_lastLoaded = free_block;
-			_firstLoaded = free_block;
-			_loadedCount++;
-		}
-
-		//load block (skip first block -> header )
-		_inputFile.seek( ( ( long long ) block + 1 ) * _blockSize );
-		_inputFile.read(_cache + free_block * _blockSize, _blockSize );
-		_blocks[free_block].id = block;
-
-		*cacheID = free_block;
-
-		UseBlock( free_block );
-
-		return ( unsigned char* ) ( _cache + free_block * _blockSize );
-	}
-
-	void UseBlock ( unsigned cacheID ){
-		if ( _firstLoaded == cacheID )
-			return;
-
-		_CacheBlock& block = _blocks[cacheID];
-
-		//remove block from the list to put it into the front
-		if ( block.nextLoaded != NONE )
-			_blocks[block.nextLoaded].previousLoaded = block.previousLoaded;
-		else
-			_lastLoaded = block.previousLoaded;
-
-		_blocks[block.previousLoaded].nextLoaded = block.nextLoaded;
-
-		// insert block into the front
-		if ( _firstLoaded != NONE ) {
-			_blocks[_firstLoaded].previousLoaded = cacheID;
-			block.nextLoaded = _firstLoaded;
-		}
-		else {
-			_lastLoaded = cacheID;
-			block.nextLoaded = NONE;
-		}
-		block.previousLoaded = NONE;
-		_firstLoaded = cacheID;
-
-		return;
+		useBlock( cacheID );
+		return m_blocks + cacheID;
 	}
 
 private:
 
-	struct _CacheBlock{
-		unsigned nextLoaded;
-		unsigned previousLoaded;
-		unsigned id;
+	const Block* loadBlock( unsigned block )
+	{
+		int freeBlock = m_loadedCount;
+		// cache is full => select least recently used block
+		if ( m_loadedCount == m_cacheBlocks ) {
+			assert ( m_lastLoaded != -1 );
+			freeBlock = m_lastLoaded;
+			m_index.remove( m_blocks[freeBlock].id );
+			useBlock( freeBlock );
+		} else {
+			//insert into the front of the list
+			m_LRU[freeBlock].previousLoaded = -1;
+			m_LRU[freeBlock].nextLoaded = m_firstLoaded;
+			if ( m_firstLoaded != -1 )
+				m_LRU[m_firstLoaded].previousLoaded = freeBlock;
+			if ( m_lastLoaded == -1 )
+				m_lastLoaded = freeBlock;
+			m_firstLoaded = freeBlock;
+			m_loadedCount++;
+		}
+
+		//load block
+		m_inputFile.seek( ( long long ) block * m_blockSize );
+		m_inputFile.read( ( char* ) m_cache + freeBlock * m_blockSize, m_blockSize );
+		m_blocks[freeBlock].load( block, m_cache + freeBlock * m_blockSize );
+		m_index[block] = freeBlock;
+
+		return m_blocks + freeBlock;
+	}
+
+	void useBlock( int cacheID )
+	{
+		assert( m_firstLoaded != -1 );
+		if ( m_firstLoaded == cacheID )
+			return;
+
+		LRUEntry& block = m_LRU[cacheID];
+
+		//remove block from the list to put it into the front
+		if ( block.nextLoaded != -1 )
+			m_LRU[block.nextLoaded].previousLoaded = block.previousLoaded;
+		else
+			m_lastLoaded = block.previousLoaded;
+
+		m_LRU[block.previousLoaded].nextLoaded = block.nextLoaded;
+
+		// insert block into the front
+		m_LRU[m_firstLoaded].previousLoaded = cacheID;
+		block.nextLoaded = m_firstLoaded;
+		block.previousLoaded = -1;
+		m_firstLoaded = cacheID;
+	}
+
+	struct LRUEntry{
+		int nextLoaded;
+		int previousLoaded;
 	};
 
-	_CacheBlock* _blocks;
-	char* _cache;
-	static const unsigned NONE = ( unsigned ) - 1;
-	unsigned _firstLoaded;
-	unsigned _lastLoaded;
-	unsigned _loadedCount;
-	unsigned _cacheBlocks;
-	unsigned _blockSize;
-	QFile _inputFile;
+	Block* m_blocks;
+	LRUEntry* m_LRU;
+	unsigned char* m_cache;
+	int m_firstLoaded;
+	int m_lastLoaded;
+	int m_loadedCount;
+	int m_cacheBlocks;
+	unsigned m_blockSize;
+	QFile m_inputFile;
+	QHash< unsigned, int > m_index;
 
 };
 

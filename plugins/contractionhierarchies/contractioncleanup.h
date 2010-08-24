@@ -233,12 +233,13 @@ class ContractionCleanup {
 			for ( unsigned i = 0; i < ( unsigned ) _graph.size(); i++ ) {
 
 				for ( unsigned edge = _firstEdge[_graph[i].source]; edge < _firstEdge[_graph[i].source + 1]; ++edge ) {
-					if ( edge == i )
-						continue;
 					if ( _graph[edge].target != _graph[i].target )
 						continue;
 					if ( _graph[edge].data.distance < _graph[i].data.distance )
 						continue;
+					if ( edge == i )
+						continue;
+
 
 					_graph[edge].data.forward &= !_graph[i].data.forward;
 					_graph[edge].data.backward &= !_graph[i].data.backward;
@@ -283,7 +284,7 @@ class ContractionCleanup {
 			qDebug( "Removing edges" );
 			int usefull = 0;
 			for ( int i = 0; i < ( int ) _graph.size(); i++ ) {
-				if ( !_graph[i].data.forward && !_graph[i].data.backward && _graph[i].data.shortcut )
+				if ( !_graph[i].data.forward && !_graph[i].data.backward /*&& _graph[i].data.shortcut */ ) // remove original edges which are too long
 					continue;
 				_graph[usefull] = _graph[i];
 				usefull++;

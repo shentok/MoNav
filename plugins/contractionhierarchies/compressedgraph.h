@@ -22,125 +22,17 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "utils/coordinates.h"
 #include "utils/utils.h"
+#include "blockcache.h"
 #include <QString>
 #include <QFile>
+#include <algorithm>
 #include <vector>
 
 class CompressedGraph {
 
-public:
-
-	typedef unsigned NodeIterator;
-
-	struct Node {
-		UnsignedCoordinate coordinate;
-	};
-
-	struct Edge {
-		unsigned source;
-		unsigned target;
-		struct Data {
-			int distance;
-			bool shortcut : 1;
-			bool forward : 1;
-			bool backward : 1;
-			bool unpacked : 1;
-			bool reversed : 1;
-			unsigned middle;
-			unsigned path;
-		} data;
-
-		bool operator<( const Edge& right ) const {
-			if ( source != right.source )
-				return source < right.source;
-			int l = ( data.forward ? -1 : 0 ) + ( data.backward ? 1 : 0 );
-			int r = ( right.data.forward ? -1 : 0 ) + ( right.data.backward ? 1 : 0 );
-			if ( l != r )
-				return l < r;
-			if ( target != right.target )
-				return target < right.target;
-			return data.distance < right.data.distance;
-		}
-
-	};
-
-	class EdgeIterator {
-
-		friend class CompressedGraph;
-
-	public:
-
-		bool hasEdgesLeft()
-		{
-			return m_position < m_end;
-		}
-
-		// can only be invoked when hasEdgesLeft return true
-		// furthermore the edge has to be unpacked by the graph
-		bool operator++()
-		{
-			assert( m_position + m_size <= m_end );
-			assert( m_size != 0 );
-			m_position += m_size;
-#ifndef NDEBUG
-			m_size = 0;
-#endif
-		}
-
-	private:
-
-		EdgeIterator( unsigned block, unsigned position, unsigned end )
-		{
-			m_block = block;
-			m_position = position;
-			m_end = end;
-			m_size = 0;
-		}
-
-		unsigned m_block;
-		unsigned m_position;
-		unsigned m_end;
-		unsigned m_size;
-		Edge m_edge;
-	};
-
-	CompressedGraph()
-	{
-	}
-
-	CompressedGraph( const QString& filename )
-	{
-		loadGraph( filename );
-	}
-
-	~CompressedGraph()
-	{
-		unloadGraph();
-	}
-
-	EdgeIterator getEdges( NodeIterator node )
-	{
-
-	}
-
-	EdgeIterator findEdge( NodeIterator source, NodeIterator target )
-	{
-
-	}
-
-	Edge unpackEdge( EdgeIterator* edge )
-	{
-		edge->m_size = 1;
-	}
-
-	Node getNode( NodeIterator )
-	{
-
-	}
-
 protected:
 
-	// TYPES
+	//TYPES
 
 	struct Block {
 		struct Settings {
@@ -172,33 +64,294 @@ protected:
 			unsigned adjacentBlockCount;
 		} settings;
 
+		unsigned char adjacentBlockBits;
+		unsigned char internalBits;
+
 		unsigned edges;
 		unsigned adjacentBlocks;
 		unsigned firstEdges;
-		unsigned nodeX;
-		unsigned nodeY;
+		unsigned nodeCoordinates;
+
 		unsigned id;
-		unsigned cacheID;
+		const unsigned char* buffer;
+
+		void load( unsigned id, const unsigned char* buffer )
+		{
+			CompressedGraph::loadBlock( this, id, buffer );
+		}
 	};
 
 	struct PathBlock {
+		unsigned id;
+		const unsigned char* buffer;
+
+		void load( unsigned id, const unsigned char* buffer )
+		{
+			CompressedGraph::loadPathBlock( this, id, buffer );
+		}
+	};
+
+public:
+
+	// TYPES
+
+	typedef unsigned NodeIterator;
+
+	struct Node {
+		UnsignedCoordinate coordinate;
+	};
+
+	struct Edge {
+		NodeIterator source;
+		NodeIterator target;
+		struct Data {
+			unsigned distance;
+			bool shortcut : 1;
+			bool forward : 1;
+			bool backward : 1;
+			bool unpacked : 1;
+			bool reversed : 1;
+			NodeIterator middle;
+			unsigned path;
+		} data;
+
+		bool operator<( const Edge& right ) const {
+			if ( source != right.source )
+				return source < right.source;
+			int l = ( data.forward ? -1 : 0 ) + ( data.backward ? 1 : 0 );
+			int r = ( right.data.forward ? -1 : 0 ) + ( right.data.backward ? 1 : 0 );
+			if ( l != r )
+				return l < r;
+			if ( target != right.target )
+				return target < right.target;
+			return data.distance < right.data.distance;
+		}
 
 	};
 
-	struct GlobalSettings {
-		unsigned char internalBits;
-		unsigned blockSize;
+	class EdgeIterator {
 
-		bool read( QFile& in )
+		friend class CompressedGraph;
+
+	public:
+
+		bool hasEdgesLeft()
+		{
+			return m_position < m_end;
+		}
+
+		NodeIterator target() const { return m_edge.target; }
+		bool forward() const { return m_edge.data.forward; }
+		bool backward() const { return m_edge.data.backward; }
+		bool shortcut() const { return m_edge.data.shortcut; }
+		bool unpacked() const { return m_edge.data.unpacked; }
+		NodeIterator middle() const { return m_edge.data.middle; }
+		unsigned distance() const { return m_edge.data.distance; }
+#ifdef NDEBUG
+	private:
+#endif
+
+		EdgeIterator( unsigned source, const Block& block, unsigned position, unsigned end ) :
+				m_block( block ), m_source( source ), m_position( position ), m_end( end )
+		{
+		}
+
+		const Block& m_block;
+		unsigned m_source;
+		unsigned m_position;
+		unsigned m_end;
+		Edge m_edge;
+	};
+
+	// FUNCTIONS
+
+	CompressedGraph()
+	{
+		m_loaded = false;
+	}
+
+	~CompressedGraph()
+	{
+		if ( m_loaded )
+			unloadGraph();
+	}
+
+	bool loadGraph( QString filename, unsigned cacheSize )
+	{
+		if ( m_loaded )
+			unloadGraph();
+		QFile settingsFile( filename + "_config" );
+		if ( !settingsFile.open( QIODevice::ReadOnly ) ) {
+			qCritical() << "failed to open file:" << settingsFile.fileName();
+			return false;
+		}
+		m_settings.read( settingsFile );
+		if ( !m_blockCache.load( filename + "_edges", cacheSize / m_settings.blockSize / 2 + 1, m_settings.blockSize ) )
+			return false;
+		if ( !m_pathCache.load( filename + "_paths", cacheSize / m_settings.blockSize / 2 + 1, m_settings.blockSize ) )
+			return false;
+		m_loaded = true;
+		return true;
+	}
+
+	EdgeIterator edges( NodeIterator node )
+	{
+		unsigned blockID = nodeToBlock( node );
+		unsigned internal = nodeToInternal( node );
+		const Block* block = getBlock( blockID );
+		return unpackFirstEdges( *block, internal );
+	}
+
+	EdgeIterator findEdge( NodeIterator source, NodeIterator target )
+	{
+		bool forward = true;
+		if ( source < target ) {
+			std::swap( source, target );
+			forward = false;
+		}
+		EdgeIterator e = edges( source );
+		for ( ; e.hasEdgesLeft(); ) {
+			unpackNextEdge( &e );
+			if ( e.target() != target )
+				continue;
+			if ( forward && !e.forward() )
+				continue;
+			if ( !forward && !e.backward() )
+				continue;
+			return e;
+		}
+		assert( false );
+	}
+
+	void unpackNextEdge( EdgeIterator* edge )
+	{
+		const Block& block = edge->m_block;
+		Edge& edgeData = edge->m_edge;
+		const unsigned char* buffer = block.buffer + ( edge->m_position >> 3 );
+		int offset = edge->m_position & 7;
+
+		// forward + backward flag
+		bool forwardAndBackward = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
+		if ( forwardAndBackward ) {
+			edgeData.data.forward = true;
+			edgeData.data.backward = true;
+		} else {
+			edgeData.data.forward = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
+			edgeData.data.backward = !edgeData.data.forward;
+		}
+
+		// target
+		bool internalTarget = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
+		if ( internalTarget ) {
+			unsigned target = read_unaligned_unsigned( &buffer, bits_needed( edge->m_source - 1 ), &offset );
+			edgeData.target = nodeFromDescriptor( block.id, target );
+		} else {
+			unsigned adjacentBlock = read_unaligned_unsigned( &buffer, block.adjacentBlockBits, &offset );
+			unsigned target = read_unaligned_unsigned( &buffer, block.settings.externalBits, &offset );
+			unsigned adjacentBlockPosition = block.adjacentBlocks + adjacentBlock * block.settings.blockBits;
+			unsigned targetBlock = read_unaligned_unsigned( block.buffer + ( adjacentBlockPosition >> 3 ), block.settings.blockBits, adjacentBlockPosition & 7 );
+			edgeData.target = nodeFromDescriptor( targetBlock, target );
+		}
+
+		// weight
+		bool longWeight = block.settings.shortWeightBits == block.settings.longWeightBits;
+		if ( !longWeight )
+			longWeight = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
+		edgeData.data.distance = read_unaligned_unsigned( &buffer, longWeight ? block.settings.longWeightBits : block.settings.shortWeightBits, &offset );
+
+		// shortcut
+		edgeData.data.shortcut = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
+		if ( edgeData.data.shortcut ) {
+			edgeData.data.unpacked = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
+			if ( !edgeData.data.unpacked ) {
+				unsigned middle = read_unaligned_unsigned( &buffer, block.internalBits, &offset );
+				edgeData.data.middle = nodeFromDescriptor( block.id, middle );
+			} else {
+				if ( forwardAndBackward )
+					edgeData.data.reversed = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
+				else
+					edgeData.data.reversed = edgeData.data.backward;
+				edgeData.data.path = read_unaligned_unsigned( &buffer, m_settings.pathBits, &offset );
+			}
+		}
+
+		edge->m_position = ( buffer - block.buffer ) * 8 + offset;
+	}
+
+	Node node( NodeIterator node )
+	{
+		unsigned blockID = nodeToBlock( node );
+		unsigned internal = nodeToInternal( node );
+		const Block* block = getBlock( blockID );
+		Node result;
+		unpackCoordinates( *block, internal, &result );
+		return result;
+	}
+
+	unsigned numberOfNodes() const
+	{
+		return m_settings.numberOfNodes;
+	}
+
+	unsigned numberOfEdges() const
+	{
+		return m_settings.numberOfEdges;
+	}
+
+	template< class T >
+	void path( const EdgeIterator& edge, T path, bool forward )
+	{
+		unsigned begin = path->size();
+		int increase = edge.m_edge.data.reversed ? -1 : 1;
+
+		Node targetCoordinate = node( edge.target() );
+		unsigned pathID = edge.m_edge.data.path;
+
+		if ( !forward )
+			path->push_back( unpackPath( pathID ).coordinate );
+
+		pathID += increase;
+
+		Node node = unpackPath( pathID );
+		while( node.coordinate.x != targetCoordinate.coordinate.x || node.coordinate.y != targetCoordinate.coordinate.y ) {
+			path->push_back( node.coordinate );
+			pathID += increase;
+			node = unpackPath( pathID );
+		}
+
+		if ( forward )
+			path->push_back( targetCoordinate.coordinate );
+		else
+			std::reverse( path->begin() + begin, path->end() );
+	}
+
+protected:
+
+	// TYPES
+
+	struct GlobalSettings {
+		unsigned blockSize;
+		unsigned char internalBits;
+		unsigned char pathBits;
+		unsigned numberOfNodes;
+		unsigned numberOfEdges;
+
+		void read( QFile& in )
 		{
 			in.read( ( char* ) &blockSize, sizeof( blockSize ) );
 			in.read( ( char* ) &internalBits, sizeof( internalBits ) );
+			in.read( ( char* ) &pathBits, sizeof( pathBits ) );
+			in.read( ( char* ) &numberOfNodes, sizeof( numberOfNodes ) );
+			in.read( ( char* ) &numberOfEdges, sizeof( numberOfEdges ) );
 		}
 
 		void write( QFile& out )
 		{
 			out.write( ( const char* ) &blockSize, sizeof( blockSize ) );
 			out.write( ( const char* ) &internalBits, sizeof( internalBits ) );
+			out.write( ( const char* ) &pathBits, sizeof( pathBits ) );
+			out.write( ( const char* ) &numberOfNodes, sizeof( numberOfNodes ) );
+			out.write( ( const char* ) &numberOfEdges, sizeof( numberOfEdges ) );
 		}
 	};
 
@@ -208,6 +361,45 @@ protected:
 	};
 
 	// FUNCTIONS
+
+	Node unpackPath( unsigned position ) {
+		unsigned blockID = position / ( m_settings.blockSize / 8 );
+		unsigned internal = ( position % ( m_settings.blockSize / 8 ) ) * 8;
+		const PathBlock* block = getPathBlock( blockID );
+		Node node;
+		node.coordinate.x = *( ( unsigned* ) ( block->buffer + internal ) );
+		node.coordinate.y = *( ( unsigned* ) ( block->buffer + internal + 4 ) );
+		return node;
+	}
+
+	void unpackCoordinates( const Block& block, unsigned node, Node* result )
+	{
+		unsigned position = block.nodeCoordinates + ( block.settings.xBits + block.settings.yBits ) * node;
+		const unsigned char* buffer = block.buffer + ( position >> 3 );
+		int offset = position & 7;
+		result->coordinate.x = read_unaligned_unsigned( &buffer, block.settings.xBits, &offset ) + block.settings.minX;
+		result->coordinate.y = read_unaligned_unsigned( buffer, block.settings.yBits, offset ) + block.settings.minY;
+	}
+
+	EdgeIterator unpackFirstEdges( const Block& block, unsigned node )
+	{
+		unsigned position = block.firstEdges + block.settings.firstEdgeBits * node;
+		const unsigned char* buffer = block.buffer + ( position >> 3 );
+		int offset = position & 7;
+		unsigned begin = read_unaligned_unsigned( &buffer, block.settings.firstEdgeBits, &offset );
+		unsigned end = read_unaligned_unsigned( buffer, block.settings.firstEdgeBits, offset );
+		return EdgeIterator( node, block, begin + block.edges, end + block.edges );
+	}
+
+	const Block* getBlock( unsigned block )
+	{
+		return m_blockCache.getBlock( block );
+	}
+
+	const PathBlock* getPathBlock( unsigned block )
+	{
+		return m_pathCache.getBlock( block );
+	}
 
 	unsigned nodeToBlock( NodeIterator node )
 	{
@@ -227,19 +419,63 @@ protected:
 		return result;
 	}
 
-	void loadGraph( QString filename )
+	NodeIterator nodeFromDescriptor( unsigned block, unsigned node )
 	{
+		NodeIterator result = ( block << m_settings.internalBits ) | node;
+		assert( nodeToBlock( result ) == block );
+		assert( nodeToInternal( result ) == node );
+		return result;
+	}
 
+	static void loadBlock( Block* block, unsigned blockID, const unsigned char* blockBuffer )
+	{
+		const unsigned char* buffer = blockBuffer;
+		int offset = 0;
+
+		// read settings
+		block->settings.blockBits = read_unaligned_unsigned( &buffer, 8, &offset );
+		block->settings.externalBits = read_unaligned_unsigned( &buffer, 8, &offset );
+		block->settings.firstEdgeBits = read_unaligned_unsigned( &buffer, 8, &offset );
+		block->settings.shortWeightBits = read_unaligned_unsigned( &buffer, 8, &offset );
+		block->settings.longWeightBits = read_unaligned_unsigned( &buffer, 8, &offset );
+		block->settings.xBits = read_unaligned_unsigned( &buffer, 8, &offset );
+		block->settings.yBits = read_unaligned_unsigned( &buffer, 8, &offset );
+		block->settings.minX = read_unaligned_unsigned( &buffer, 32, &offset );
+		block->settings.minY = read_unaligned_unsigned( &buffer, 32, &offset );
+		block->settings.nodeCount = read_unaligned_unsigned( &buffer, 32, &offset );
+		block->settings.adjacentBlockCount = read_unaligned_unsigned( &buffer, 32, &offset );
+
+		// set other values
+		block->internalBits = bits_needed( block->settings.nodeCount - 1 );
+		block->adjacentBlockBits = bits_needed( block->settings.adjacentBlockCount - 1 );
+		block->id = blockID;
+		block->buffer = blockBuffer;
+
+		// compute offsets
+		block->nodeCoordinates = ( buffer - blockBuffer ) * 8 + offset;
+		block->adjacentBlocks = block->nodeCoordinates + ( block->settings.xBits + block->settings.yBits ) * block->settings.nodeCount;
+		block->firstEdges = block->adjacentBlocks + block->settings.blockBits * block->settings.adjacentBlockCount;
+		block->edges = block->firstEdges + block->settings.firstEdgeBits * ( block->settings.nodeCount + 1 );
+	}
+
+	static void loadPathBlock( PathBlock* block, unsigned blockID, const unsigned char* blockBuffer )
+	{
+		block->id = blockID;
+		block->buffer = blockBuffer;
 	}
 
 	void unloadGraph()
 	{
-
+		m_blockCache.unload();
+		m_pathCache.unload();
 	}
 
 	// VARIABLES
 
 	GlobalSettings m_settings;
+	BlockCache< Block > m_blockCache;
+	BlockCache< PathBlock > m_pathCache;
+	bool m_loaded;
 };
 
 #endif // COMPRESSEDGRAPH_H

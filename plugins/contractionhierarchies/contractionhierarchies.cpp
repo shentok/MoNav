@@ -18,7 +18,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "contractionhierarchies.h"
-#include "compressedchgraph.h"
+#include "compressedgraphbuilder.h"
 #include "contractor.h"
 #include "contractioncleanup.h"
 #include <cassert>
@@ -108,17 +108,20 @@ bool ContractionHierarchies::Preprocess( IImporter* importer )
 	std::vector< Contractor::Witness >().swap( witnessList );
 	cleanup->Run();
 
-	std::vector< block_graph::InputEdge > edges;
+	std::vector< CompressedGraph::Edge > edges;
 	std::vector< NodeID > map;
 	cleanup->GetData( edges, map );
 	delete cleanup;
 
-	std::vector< UnsignedCoordinate > nodes( inputNodes.size() );
+	std::vector< CompressedGraph::Node > nodes( inputNodes.size() );
 	for ( std::vector< IImporter::RoutingNode >::const_iterator i = inputNodes.begin(), iend = inputNodes.end(); i != iend; i++ )
-		nodes[map[i - inputNodes.begin()]] = i->coordinate;
+		nodes[map[i - inputNodes.begin()]].coordinate = i->coordinate;
 	std::vector< IImporter::RoutingNode >().swap( inputNodes );
 
-	block_graph::build( edges, nodes, &map, filename, 1u << settings.blockSize );
+	//block_graph::build( edges, nodes, &map, filename, 1u << settings.blockSize );
+	CompressedGraphBuilder builder( 1u << settings.blockSize, nodes, edges );
+	if ( !builder.run( filename, &map ) )
+		return false;
 
 	importer->SetIDMap( map );
 

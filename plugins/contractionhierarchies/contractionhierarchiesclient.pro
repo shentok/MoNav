@@ -17,7 +17,8 @@ HEADERS += \
     binaryheap.h \
     interfaces/irouter.h \
     contractionhierarchiesclient.h \
-    compressedchgraph.h
+    compressedgraph.h \
+    interfaces/igpslookup.h
 
 SOURCES += \
     contractionhierarchiesclient.cpp

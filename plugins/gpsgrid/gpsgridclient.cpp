@@ -154,9 +154,9 @@ bool GPSGridClient::checkCell( QVector< Result >* result, double radius, NodeID 
 		gridFile->seek( position );
 		int size;
 		gridFile->read( (char* ) &size, sizeof( size ) );
-		char* buffer = new char[size];
+		unsigned char* buffer = new unsigned char[size + 8]; // reading buffer + 4 bytes
 
-		gridFile->read( buffer, size );
+		gridFile->read( ( char* ) buffer, size );
 		gg::Cell* cell = new gg::Cell();
 		cell->read( buffer, min, max );
 		cache.insert( cellNumber, cell, cell->edges.size() * sizeof( gg::Cell::Edge ) );

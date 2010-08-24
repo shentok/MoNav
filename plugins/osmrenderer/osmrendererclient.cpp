@@ -87,6 +87,7 @@ void OSMRendererClient::finished( QNetworkReply* reply ) {
 	}
 	QPixmap* tile = new QPixmap( QPixmap::fromImage( image ) );
 	cache.insert( id, tile , tileSize * tileSize * tile->depth() / 8 );
+	reply->disconnect( this );
 	reply->deleteLater();
 	emit changed();
 }

@@ -14,7 +14,6 @@ LIBS += -fopenmp
 HEADERS += contractionhierarchies.h \
 	 dynamicgraph.h \
 	 contractioncleanup.h \
-	 compressedchgraph.h \
 	 blockcache.h \
 	 binaryheap.h \
 	 contractor.h \
