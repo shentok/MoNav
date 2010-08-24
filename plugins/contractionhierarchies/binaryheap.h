@@ -24,24 +24,28 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cassert>
 #include <vector>
-#include <map>
+#include <QHash>
 
 template< typename NodeID, typename Key >
 class ArrayStorage {
 	public:
 
-		ArrayStorage( size_t size )
-				: positions( new Key[size] ) {}
+		ArrayStorage( size_t size ) :
+				positions( new Key[size] )
+		{
+		}
 
-		~ArrayStorage() {
+		~ArrayStorage()
+		{
 			delete[] positions;
 		}
 
-		Key &operator[]( NodeID node ) {
+		Key &operator[]( NodeID node )
+		{
 			return positions[node];
 		}
 
-		void Clear() {}
+		void clear() {}
 
 	private:
 		Key* positions;
@@ -51,22 +55,29 @@ template< typename NodeID, typename Key >
 class MapStorage {
 	public:
 
-		MapStorage( size_t ) {}
+		MapStorage( size_t )
+		{
+		}
 
-		Key &operator[]( NodeID node ) {
+		Key &operator[]( NodeID node )
+		{
 			return nodes[node];
 		}
 
-		void Clear() {
-			nodes.clear();
+		void clear()
+		{
+			for ( typename QHash< NodeID, Key >::iterator i = nodes.begin(); i != nodes.end(); i = nodes.erase( i ) );
+
+			//if ( nodes.size() > 10000 )
+			//	nodes.clear();
 		}
 
 	private:
-		std::map< NodeID, Key > nodes;
+		QHash< NodeID, Key > nodes;
 
 };
 
-template < typename NodeID, typename Key, typename Weight, typename Data, typename IndexStorage = ArrayStorage< NodeID, Key > >
+template < typename NodeID, typename Key, typename Weight, typename Data, typename IndexStorage = MapStorage< NodeID, Key > >
 class BinaryHeap {
 	private:
 		BinaryHeap( const BinaryHeap& right );
@@ -83,6 +94,7 @@ class BinaryHeap {
 		void Clear() {
 			heap.resize( 1 );
 			insertedNodes.clear();
+			nodeIndex.clear();
 			heap[0].weight = 0;
 		}
 
@@ -140,13 +152,6 @@ class BinaryHeap {
 			insertedNodes[removedIndex].key = 0;
 			CheckHeap();
 			return insertedNodes[removedIndex].node;
-		}
-		
-		void DeleteAll() {
-			for ( typename std::vector< HeapElement >::iterator i = heap.begin() + 1, iend = heap.end(); i != iend; ++i )
-				insertedNodes[i->index].key = 0;
-			heap.resize( 1 );
-			heap[0].weight = 0;
 		}
 
 		void DecreaseKey( NodeID node, Weight weight ) {

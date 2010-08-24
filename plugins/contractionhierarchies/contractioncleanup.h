@@ -521,7 +521,7 @@ class ContractionCleanup {
 			}
 
 			if ( distance > *targetDistance ) {
-				heapForward->DeleteAll();
+				heapForward->Clear();
 				return;
 			}
 			for ( int edge = _firstEdge[node], endEdges = _firstEdge[node + 1]; edge != endEdges; ++edge ) {

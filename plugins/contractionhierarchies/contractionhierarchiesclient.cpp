@@ -116,7 +116,7 @@ void ContractionHierarchiesClient::computeStep( _Heap* heapForward, _Heap* heapB
 	}
 
 	if ( distance > *targetDistance ) {
-		heapForward->DeleteAll();
+		heapForward->Clear();
 		return;
 	}
 	for ( EdgeIterator edge = graph.edges( node ); edge.hasEdgesLeft(); ) {
