@@ -27,6 +27,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "mapview.h"
 #include "bookmarksdialog.h"
 #include <cstdlib>
+#include <QTime>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -269,7 +270,11 @@ void MainWindow::setSource( UnsignedCoordinate s, double h )
 	heading = h;
 	emit sourceChanged( source, heading );
 	QVector< IGPSLookup::Result > result;
-	if ( !gpsLookup->GetNearEdges( &result, source, 100, heading == 0 ? 0 : 10, heading ) )
+	QTime time;
+	time.start();
+	bool found = gpsLookup->GetNearEdges( &result, source, 100, heading == 0 ? 0 : 10, heading );
+	qDebug() << "GPS Lookup:" << time.elapsed() << "ms";
+	if ( !found )
 		return;
 	sourcePos = result.first();
 	sourceSet = true;
@@ -284,7 +289,11 @@ void MainWindow::setTarget( UnsignedCoordinate t )
 	target = t;
 	QVector< IGPSLookup::Result > result;
 	emit targetChanged( target );
-	if ( !gpsLookup->GetNearEdges( &result, target, 100 ) )
+	QTime time;
+	time.start();
+	bool found = gpsLookup->GetNearEdges( &result, target, 100 );
+	qDebug() << "GPS Lookup:" << time.elapsed() << "ms";
+	if ( !found )
 		return;
 	targetPos = result.first();
 	targetSet = true;
@@ -297,7 +306,11 @@ void MainWindow::computeRoute()
 		return;
 	double distance;
 	path.clear();
-	if ( !router->GetRoute( &distance, &path, sourcePos, targetPos ) )
+	QTime time;
+	time.start();
+	bool found = router->GetRoute( &distance, &path, sourcePos, targetPos );
+	qDebug() << "Routing:" << time.elapsed() << "ms";
+	if ( !found )
 		path.clear();
 	qDebug() << "Distance: " << distance << "; Path Segments: " << path.size();
 	emit routeChanged( path );

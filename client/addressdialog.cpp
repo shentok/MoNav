@@ -20,6 +20,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "addressdialog.h"
 #include "ui_addressdialog.h"
 #include "mapview.h"
+#include <QTime>
+#include <QtDebug>
 
 AddressDialog::AddressDialog(QWidget *parent) :
 		QDialog(parent),
@@ -137,7 +139,11 @@ void AddressDialog::cityTextChanged( QString text )
 	ui->characterList->clear();
 	QStringList suggestions;
 	QStringList characters;
-	if ( !addressLookup->GetPlaceSuggestions( text, 10, &suggestions, &characters ) )
+	QTime time;
+	time.start();
+	bool found = addressLookup->GetPlaceSuggestions( text, 10, &suggestions, &characters );
+	qDebug() << "City Lookup:" << time.elapsed() << "ms";
+	if ( !found )
 		return;
 	ui->suggestionList->addItems( suggestions );
 	ui->characterList->addItems( characters );
@@ -153,7 +159,11 @@ void AddressDialog::streetTextChanged( QString text)
 	ui->characterList->clear();
 	QStringList suggestions;
 	QStringList characters;
-	if ( !addressLookup->GetStreetSuggestions( text, 10, &suggestions, &characters ) )
+	QTime time;
+	time.start();
+	bool found = addressLookup->GetStreetSuggestions( text, 10, &suggestions, &characters );
+	qDebug() << "Street Lookup:" << time.elapsed() << "ms";
+	if ( !found )
 		return;
 	ui->suggestionList->addItems( suggestions );
 	ui->characterList->addItems( characters );

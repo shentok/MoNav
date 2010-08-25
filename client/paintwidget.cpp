@@ -23,6 +23,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <algorithm>
+#include <QtDebug>
+#include <QTime>
 
 PaintWidget::PaintWidget(QWidget *parent) :
 	 QWidget(parent ),
@@ -217,7 +219,10 @@ void PaintWidget::paintEvent( QPaintEvent* )
 	}
 
 	QPainter painter( this );
+	QTime time;
+	time.start();
 	renderer->Paint( &painter, request );
+	qDebug() << "Rendering:" << time.elapsed() << "ms";
 }
 
 void PaintWidget::contextMenuEvent(QContextMenuEvent *event )

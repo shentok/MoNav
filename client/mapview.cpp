@@ -24,6 +24,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "addressdialog.h"
 #include "bookmarksdialog.h"
 #include <QSettings>
+#include <QTime>
 
 MapView::MapView( QWidget *parent ) :
 	 QDialog(parent, Qt::Window ),
@@ -177,7 +178,10 @@ void MapView::mouseClicked( ProjectedCoordinate clickPos )
 	if ( gpsLookup == NULL )
 		return;
 	QVector< IGPSLookup::Result > result;
+	QTime time;
+	time.start();
 	gpsLookup->GetNearEdges( &result, UnsignedCoordinate( clickPos ), 100 );
+	qDebug() << "GPS Lookup:" << time.elapsed() << "ms";
 	if ( result.size() == 0 )
 		return;
 	if ( mode == POI ) {
