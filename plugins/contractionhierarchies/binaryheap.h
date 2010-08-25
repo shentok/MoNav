@@ -66,10 +66,7 @@ class MapStorage {
 
 		void clear()
 		{
-			for ( typename QHash< NodeID, Key >::iterator i = nodes.begin(); i != nodes.end(); i = nodes.erase( i ) );
-
-			//if ( nodes.size() > 10000 )
-			//	nodes.clear();
+			nodes.clear();
 		}
 
 	private:
@@ -77,7 +74,7 @@ class MapStorage {
 
 };
 
-template < typename NodeID, typename Key, typename Weight, typename Data, typename IndexStorage = MapStorage< NodeID, Key > >
+template < typename NodeID, typename Key, typename Weight, typename Data, typename IndexStorage = ArrayStorage< NodeID, Key > >
 class BinaryHeap {
 	private:
 		BinaryHeap( const BinaryHeap& right );
@@ -153,6 +150,14 @@ class BinaryHeap {
 			CheckHeap();
 			return insertedNodes[removedIndex].node;
 		}
+
+		void DeleteAll() {
+			for ( typename std::vector< HeapElement >::iterator i = heap.begin() + 1, iend = heap.end(); i != iend; ++i )
+				insertedNodes[i->index].key = 0;
+			heap.resize( 1 );
+			heap[0].weight = 0;
+		}
+
 
 		void DecreaseKey( NodeID node, Weight weight ) {
 			const Key index = nodeIndex[node];
