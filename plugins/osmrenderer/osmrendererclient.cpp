@@ -76,47 +76,51 @@ int OSMRendererClient::GetMaxZoom()
 void OSMRendererClient::finished( QNetworkReply* reply ) {
 	long long id = reply->request().attribute( QNetworkRequest::User ).toLongLong();
 	if ( reply->error() ) {
+		cache.remove( id );
 		qDebug() << "failed to get: " << reply->url();
 		return;
 	}
 
 	QImage image;
 	if ( !image.load( reply, 0 ) ) {
+		cache.remove( id );
 		qDebug() << "failed to load image: " << id;
 		return;
 	}
 	QPixmap* tile = new QPixmap( QPixmap::fromImage( image ) );
 	cache.insert( id, tile , tileSize * tileSize * tile->depth() / 8 );
-	reply->disconnect( this );
 	reply->deleteLater();
 	emit changed();
 }
 
 bool OSMRendererClient::loadTile( int x, int y, int zoom, QPixmap** tile )
 {
-	static int lastZoom = -1;
-	if ( zoom != lastZoom ) {
-		lastZoom = zoom;
-		emit abort();
-		cache.clear();
-	}
 	long long id = tileID( x, y, zoom );
 
 	QString path = "http://tile.openstreetmap.org/%1/%2/%3.png";
 	QUrl url = QUrl( path.arg( zoom ).arg( x ).arg( y ) );
+
+	QIODevice* cacheItem = diskCache->data( url );
+	if ( cacheItem != NULL ) {
+		QImage image;
+		if ( !image.load( cacheItem, 0 ) ) {
+			cache.remove( id );
+			qDebug() << "failed to load image from cache: " << id;
+			return false;
+		}
+
+		*tile = new QPixmap( QPixmap::fromImage( image ) );
+		delete cacheItem;
+		return true;
+	}
+
 	QNetworkRequest request;
 	request.setUrl( url );
 	request.setRawHeader( "User-Agent", "MoNav OSM Renderer 1.0" );
 	request.setAttribute( QNetworkRequest::User, QVariant( id ) );
 	request.setAttribute( QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache );
-	QNetworkReply* reply = network->get( request );
-	connect( this, SIGNAL(abort()), reply, SLOT(deleteLater()) );
+	network->get( request );
 
-	// was the tile loaded immediately? Do not overwrite in this case
-	if ( cache.contains( id ) ) {
-		*tile = cache.object( id );
-		return true;
-	}
 	return false;
 }
 
