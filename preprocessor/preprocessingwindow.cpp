@@ -205,7 +205,7 @@ void PreprocessingWindow::importerSettings()
 	importerPlugins[index]->ShowSettings();
 }
 
-void PreprocessingWindow::importerPreprocessing()
+bool PreprocessingWindow::importerPreprocessing()
 {
 	int index = ui->importerComboBox->currentIndex();
 	importerPlugins[index]->SetOutputDirectory( ui->outputEdit->text() );
@@ -218,6 +218,7 @@ void PreprocessingWindow::importerPreprocessing()
 	ui->routerLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 	ui->gpsLookupLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 	ui->addressLookupLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
+	return result;
 }
 
 void PreprocessingWindow::rendererSettings()
@@ -227,7 +228,7 @@ void PreprocessingWindow::rendererSettings()
 	rendererPlugins[index]->ShowSettings();
 }
 
-void PreprocessingWindow::rendererPreprocessing()
+bool PreprocessingWindow::rendererPreprocessing()
 {
 	int importerIndex = ui->importerComboBox->currentIndex();
 	importerPlugins[importerIndex]->SetOutputDirectory( ui->outputEdit->text() );
@@ -238,6 +239,7 @@ void PreprocessingWindow::rendererPreprocessing()
 		ui->rendererLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
 	else
 		ui->rendererLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
+	return result;
 }
 
 void PreprocessingWindow::routerSettings()
@@ -246,7 +248,7 @@ void PreprocessingWindow::routerSettings()
 	routerPlugins[index]->ShowSettings();
 }
 
-void PreprocessingWindow::routerPreprocessing()
+bool PreprocessingWindow::routerPreprocessing()
 {
 	int importerIndex = ui->importerComboBox->currentIndex();
 	importerPlugins[importerIndex]->SetOutputDirectory( ui->outputEdit->text() );
@@ -258,6 +260,7 @@ void PreprocessingWindow::routerPreprocessing()
 	else
 		ui->routerLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 	ui->gpsLookupLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
+	return result;
 }
 
 void PreprocessingWindow::gpsLookupSettings()
@@ -266,7 +269,7 @@ void PreprocessingWindow::gpsLookupSettings()
 	gpsLookupPlugins[index]->ShowSettings();
 }
 
-void PreprocessingWindow::gpsLookupPreprocessing()
+bool PreprocessingWindow::gpsLookupPreprocessing()
 {
 	int importerIndex = ui->importerComboBox->currentIndex();
 	importerPlugins[importerIndex]->SetOutputDirectory( ui->outputEdit->text() );
@@ -277,6 +280,7 @@ void PreprocessingWindow::gpsLookupPreprocessing()
 		ui->gpsLookupLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
 	else
 		ui->gpsLookupLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
+	return result;
 }
 
 void PreprocessingWindow::addressLookupSettings()
@@ -285,7 +289,7 @@ void PreprocessingWindow::addressLookupSettings()
 	addressLookupPlugins[index]->ShowSettings();
 }
 
-void PreprocessingWindow::addressLookupPreprocessing()
+bool PreprocessingWindow::addressLookupPreprocessing()
 {
 	int importerIndex = ui->importerComboBox->currentIndex();
 	importerPlugins[importerIndex]->SetOutputDirectory( ui->outputEdit->text() );
@@ -296,24 +300,30 @@ void PreprocessingWindow::addressLookupPreprocessing()
 		ui->addressLookupLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
 	else
 		ui->addressLookupLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
+	return result;
 }
 
 void PreprocessingWindow::preprocessAll()
 {
 	qDebug() << "Importer";
-	importerPreprocessing();
+	if ( !importerPreprocessing() )
+		return;
 	QCoreApplication::processEvents();
 	qDebug() << "Router";
-	routerPreprocessing();
+	if ( !routerPreprocessing() )
+		return;
 	QCoreApplication::processEvents();
 	qDebug() << "Renderer";
-	rendererPreprocessing();
+	if ( !rendererPreprocessing() )
+		return;
 	QCoreApplication::processEvents();
 	qDebug() << "GPS Lookup";
-	gpsLookupPreprocessing();
+	if ( !gpsLookupPreprocessing() )
+		return;
 	QCoreApplication::processEvents();
 	qDebug() << "Address Lookup";
-	addressLookupPreprocessing();
+	if ( !addressLookupPreprocessing() )
+		return;
 }
 
 void PreprocessingWindow::writeConfig()

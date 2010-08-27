@@ -76,6 +76,10 @@ bool OSMImporter::Preprocess()
 		settingsDialog = new OISettingsDialog();
 	if ( !settingsDialog->getSettings( &settings ) )
 		return false;
+	if ( settings.speedProfile.names.size() == 0 ) {
+		qCritical( "no speed profile specified" );
+		return false;
+	}
 
 	std::vector< NodeID > usedNodes;
 	std::vector< NodeID > outlineNodes;
@@ -100,6 +104,11 @@ bool OSMImporter::Preprocess()
 	if ( !_ReadXML( settings.input, filename, usedNodes, outlineNodes, signalNodes ) )
 		return false;
 	qDebug() << "finished import pass 1:" << time.restart() << "ms";
+
+	if ( usedNodes.size() == 0 ) {
+		qCritical( "no routing nodes found in the data set" );
+		return false;
+	}
 
 	std::sort( usedNodes.begin(), usedNodes.end() );
 	usedNodes.resize( std::unique( usedNodes.begin(), usedNodes.end() ) - usedNodes.begin() );
