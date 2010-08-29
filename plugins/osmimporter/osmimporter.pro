@@ -14,6 +14,7 @@ SOURCES += osmimporter.cpp \
 DESTDIR = ../../bin/plugins_preprocessor
 FORMS += oisettingsdialog.ui
 INCLUDEPATH += /usr/include/libxml2
+LIBS += -lxml2
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
 	QMAKE_CXXFLAGS_RELEASE += -O3 -march=native -Wno-unused-function
