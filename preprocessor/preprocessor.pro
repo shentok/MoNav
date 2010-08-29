@@ -30,5 +30,5 @@ unix {
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function \
 		 -fopenmp
 }
-LIBS += -fopenmp -lmapnik -lbz2 -lxml2
 LIBS += -L../bin/plugins_preprocessor -lmapnikrenderer -lcontractionhierarchies -lgpsgrid -losmrenderer -lunicodetournamenttrie -losmimporter
+LIBS += -fopenmp -lmapnik -lbz2 -lxml2
