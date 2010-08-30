@@ -20,3 +20,6 @@ unix {
 	QMAKE_CXXFLAGS_RELEASE += -O3 -march=native -Wno-unused-function
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
+
+RESOURCES += \
+    speedprofiles.qrc

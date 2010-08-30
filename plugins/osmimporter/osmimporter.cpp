@@ -29,6 +29,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 OSMImporter::OSMImporter()
 {
+	Q_INIT_RESOURCE(speedprofiles);
 	settingsDialog = NULL;
 	kmhStrings.push_back( "%.lf" );
 	kmhStrings.push_back( "%.lf kmh" );
@@ -49,6 +50,7 @@ OSMImporter::OSMImporter()
 
 OSMImporter::~OSMImporter()
 {
+	Q_CLEANUP_RESOURCE(speedprofiles);
 	if ( settingsDialog != NULL )
 		delete settingsDialog;
 }

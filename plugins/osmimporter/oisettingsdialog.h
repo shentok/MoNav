@@ -64,8 +64,8 @@ protected:
 	void load( const QString& filename );
 	void save( const QString& filename );
 
-private:
-	 Ui::OISettingsDialog *ui;
+	Ui::OISettingsDialog *m_ui;
+	QString m_lastFilename;
 };
 
 #endif // SETTINGSDIALOG_H

@@ -27,54 +27,58 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 OISettingsDialog::OISettingsDialog(QWidget *parent) :
     QDialog(parent),
-	 ui(new Ui::OISettingsDialog)
+	 m_ui(new Ui::OISettingsDialog)
 {
-	ui->setupUi(this);
-	ui->speedTable->resizeColumnsToContents();
+	m_ui->setupUi(this);
+	m_ui->speedTable->resizeColumnsToContents();
 
 	connectSlots();
 
-	QDir appDir( QApplication::applicationDirPath() );
-	QString defaultFilename = appDir.filePath( "default.spp" );
-	load( defaultFilename );
-
 	QSettings settings( "MoNav" );
 	settings.beginGroup( "OSM Importer" );
-	ui->inputEdit->setText( settings.value( "inputFile" ).toString() );
-	ui->trafficLightPenalty->setValue( settings.value( "trafficLightPenalty", 1 ).toInt() );
-	ui->setDefaultCitySpeed->setChecked( settings.value( "defaultCitySpeed", true ).toBool() );
-	ui->ignoreOneway->setChecked( settings.value( "ignoreOneway", false ).toBool() );
-	ui->ignoreMaxspeed->setChecked( settings.value( "ignoreMaxspeed", false ).toBool() );
+	m_ui->inputEdit->setText( settings.value( "inputFile" ).toString() );
+	m_ui->trafficLightPenalty->setValue( settings.value( "trafficLightPenalty", 1 ).toInt() );
+	m_ui->setDefaultCitySpeed->setChecked( settings.value( "defaultCitySpeed", true ).toBool() );
+	m_ui->ignoreOneway->setChecked( settings.value( "ignoreOneway", false ).toBool() );
+	m_ui->ignoreMaxspeed->setChecked( settings.value( "ignoreMaxspeed", false ).toBool() );
+	m_lastFilename = settings.value( "speedProfile" ).toString();
 	QString accessType = settings.value( "accessType", "motorcar" ).toString();
-	QList< QTreeWidgetItem* > items = ui->accessTree->findItems( accessType, Qt::MatchFixedString | Qt::MatchRecursive );
+
+	QList< QTreeWidgetItem* > items = m_ui->accessTree->findItems( accessType, Qt::MatchFixedString | Qt::MatchRecursive );
 	if ( items.size() > 0 )
 		items.first()->setSelected( true );
-	ui->accessTree->expandAll();
+	m_ui->accessTree->expandAll();
+
+	if ( QFile::exists( m_lastFilename ) )
+		load( m_lastFilename );
+	else
+		setDefaultSpeed();
 }
 
 void OISettingsDialog::connectSlots()
 {
-	connect( ui->browseButton, SIGNAL(clicked()), this, SLOT(browse()) );
-	connect( ui->addRowButton, SIGNAL(clicked()), this, SLOT(addSpeed()) );
-	connect( ui->deleteEntryButton, SIGNAL(clicked()), this, SLOT(removeSpeed()) );
-	connect( ui->defaultButton, SIGNAL(clicked()), this, SLOT(setDefaultSpeed()) );
-	connect( ui->saveButton, SIGNAL(clicked()), this, SLOT(saveSpeed()) );
-	connect( ui->loadButton, SIGNAL(clicked()), this, SLOT(loadSpeed()) );
+	connect( m_ui->browseButton, SIGNAL(clicked()), this, SLOT(browse()) );
+	connect( m_ui->addRowButton, SIGNAL(clicked()), this, SLOT(addSpeed()) );
+	connect( m_ui->deleteEntryButton, SIGNAL(clicked()), this, SLOT(removeSpeed()) );
+	connect( m_ui->defaultButton, SIGNAL(clicked()), this, SLOT(setDefaultSpeed()) );
+	connect( m_ui->saveButton, SIGNAL(clicked()), this, SLOT(saveSpeed()) );
+	connect( m_ui->loadButton, SIGNAL(clicked()), this, SLOT(loadSpeed()) );
 }
 
 OISettingsDialog::~OISettingsDialog()
 {
 	QSettings settings( "MoNav" );
 	settings.beginGroup( "OSM Importer" );
-	settings.setValue( "inputFile", ui->inputEdit->text()  );
-	settings.setValue( "trafficLightPenalty", ui->trafficLightPenalty->value() );
-	settings.setValue( "defaultCitySpeed", ui->setDefaultCitySpeed->isChecked() );
-	settings.setValue( "ignoreOneway", ui->ignoreOneway->isChecked() );
-	settings.setValue( "ignoreMaxspeed", ui->ignoreMaxspeed->isChecked() );
-	QList< QTreeWidgetItem* > items = ui->accessTree->selectedItems();
+	settings.setValue( "inputFile", m_ui->inputEdit->text()  );
+	settings.setValue( "trafficLightPenalty", m_ui->trafficLightPenalty->value() );
+	settings.setValue( "defaultCitySpeed", m_ui->setDefaultCitySpeed->isChecked() );
+	settings.setValue( "ignoreOneway", m_ui->ignoreOneway->isChecked() );
+	settings.setValue( "ignoreMaxspeed", m_ui->ignoreMaxspeed->isChecked() );
+	settings.setValue( "speedProfile", m_lastFilename );
+	QList< QTreeWidgetItem* > items = m_ui->accessTree->selectedItems();
 	if ( items.size() == 1 )
 		settings.setValue( "accessType", items.first()->text( 0 ) );
-	delete ui;
+	delete m_ui;
 }
 
 void OISettingsDialog::changeEvent(QEvent *e)
@@ -82,7 +86,7 @@ void OISettingsDialog::changeEvent(QEvent *e)
     QDialog::changeEvent(e);
     switch (e->type()) {
     case QEvent::LanguageChange:
-        ui->retranslateUi(this);
+		  m_ui->retranslateUi(this);
         break;
     default:
         break;
@@ -90,19 +94,20 @@ void OISettingsDialog::changeEvent(QEvent *e)
 }
 
 void OISettingsDialog::setDefaultSpeed() {
+	load( ":/speedprofiles/default.spp" );
 }
 
 void OISettingsDialog::addSpeed() {
-	int rows = ui->speedTable->rowCount();
-	ui->speedTable->setRowCount( rows + 1 );
+	int rows = m_ui->speedTable->rowCount();
+	m_ui->speedTable->setRowCount( rows + 1 );
 }
 
 void OISettingsDialog::removeSpeed() {
-	if ( ui->speedTable->rowCount() == 0 )
+	if ( m_ui->speedTable->rowCount() == 0 )
 		return;
 
-	int row = ui->speedTable->currentRow();
-	ui->speedTable->removeRow( row );
+	int row = m_ui->speedTable->currentRow();
+	m_ui->speedTable->removeRow( row );
 }
 
 void OISettingsDialog::save( const QString& filename )
@@ -114,52 +119,55 @@ void OISettingsDialog::save( const QString& filename )
 	}
 
 	QTextStream out( &file );
-	int rowCount = ui->speedTable->rowCount();
-	int colCount = ui->speedTable->columnCount();
+	int rowCount = m_ui->speedTable->rowCount();
+	int colCount = m_ui->speedTable->columnCount();
 	for ( int row = 0; row < rowCount; ++row ) {
 		bool valid = true;
 		for ( int i = 0; i < colCount; i++ )
 		{
-			if ( ui->speedTable->item( row, i ) == NULL )
+			if ( m_ui->speedTable->item( row, i ) == NULL )
 				valid = false;
 		}
 		if ( !valid )
 			continue;
 		for ( int i = 0; i < colCount - 1; i++ )
-			out << ui->speedTable->item( row, i )->text() << "\t";
+			out << m_ui->speedTable->item( row, i )->text() << "\t";
 
-		out << ui->speedTable->item( row, colCount - 1 )->text() << "\n";
+		out << m_ui->speedTable->item( row, colCount - 1 )->text() << "\n";
 	}
+	m_lastFilename = filename;
 }
 
-void OISettingsDialog::load( const QString&filename )
+void OISettingsDialog::load( const QString& filename )
 {
 	QFile file( filename );
 	if ( !file.open( QIODevice::ReadOnly ) ) {
-		QMessageBox::warning( this, tr( "Load Speed Profile" ), tr( "Cannot read from file %1:\n%2" ).arg( file.fileName() ).arg( file.errorString() ) );
+		qCritical() << "OSM Importer: cannot read from speed profile file" << file.fileName();
 		return;
 	}
 
 	QTextStream in( &file );
 	int rowCount = 0;
-	int colCount = ui->speedTable->columnCount();
+	int colCount = m_ui->speedTable->columnCount();
 	while ( !in.atEnd() ) {
 		rowCount++;
-		ui->speedTable->setRowCount( rowCount );
+		m_ui->speedTable->setRowCount( rowCount );
 		QString text = in.readLine();
 		QStringList entries = text.split( '\t' );
 		if ( entries.size() != colCount )
 			continue;
 		for ( int i = 0; i < colCount; i++ )
 		{
-			if ( ui->speedTable->item( rowCount - 1, i ) == NULL )
-				ui->speedTable->setItem( rowCount - 1, i, new QTableWidgetItem );
+			if ( m_ui->speedTable->item( rowCount - 1, i ) == NULL )
+				m_ui->speedTable->setItem( rowCount - 1, i, new QTableWidgetItem );
 		}
 		for ( int i = 0; i < colCount; i++ )
 		{
-			ui->speedTable->item( rowCount - 1, i )->setText( entries[i] );
+			m_ui->speedTable->item( rowCount - 1, i )->setText( entries[i] );
 		}
 	}
+	qDebug() << "OSM Importer: read speed profile from:" << filename;
+	m_lastFilename = filename;
 }
 
 void OISettingsDialog::saveSpeed()
@@ -175,10 +183,10 @@ void OISettingsDialog::loadSpeed()
 }
 
 void OISettingsDialog::browse() {
-	QString file = ui->inputEdit->text();
+	QString file = m_ui->inputEdit->text();
 	file = QFileDialog::getOpenFileName( this, tr("Enter OSM XML Filename"), file, "*.osm *osm.bz2" );
 	if ( file != "" )
-		ui->inputEdit->setText( file );
+		m_ui->inputEdit->setText( file );
 }
 
 bool OISettingsDialog::getSettings( Settings* settings )
@@ -186,14 +194,14 @@ bool OISettingsDialog::getSettings( Settings* settings )
 	if ( settings == NULL )
 		return false;
 	settings->accessList.clear();
-	settings->defaultCitySpeed = ui->setDefaultCitySpeed->isChecked();
-	settings->trafficLightPenalty = ui->trafficLightPenalty->value();
-	settings->input = ui->inputEdit->text();
-	settings->ignoreOneway = ui->ignoreOneway->isChecked();
-	settings->ignoreMaxspeed = ui->ignoreMaxspeed->isChecked();
+	settings->defaultCitySpeed = m_ui->setDefaultCitySpeed->isChecked();
+	settings->trafficLightPenalty = m_ui->trafficLightPenalty->value();
+	settings->input = m_ui->inputEdit->text();
+	settings->ignoreOneway = m_ui->ignoreOneway->isChecked();
+	settings->ignoreMaxspeed = m_ui->ignoreMaxspeed->isChecked();
 
-	int rowCount = ui->speedTable->rowCount();
-	int colCount = ui->speedTable->columnCount();
+	int rowCount = m_ui->speedTable->rowCount();
+	int colCount = m_ui->speedTable->columnCount();
 
 	if ( colCount != 4 )
 		return false;
@@ -206,25 +214,25 @@ bool OISettingsDialog::getSettings( Settings* settings )
 	for ( int row = 0; row < rowCount; ++row ) {
 		for ( int i = 0; i < colCount; i++ )
 		{
-			if ( ui->speedTable->item( row, i ) == NULL ) {
+			if ( m_ui->speedTable->item( row, i ) == NULL ) {
 				qCritical() << tr( "Missing entry in speed profile table" );
 				return false;
 			}
 		}
-		settings->speedProfile.names.push_back( ui->speedTable->item( row, 0 )->text() );
-		settings->speedProfile.speed.push_back( ui->speedTable->item( row, 1 )->text().toInt() );
-		settings->speedProfile.speedInCity.push_back( ui->speedTable->item( row, 2 )->text().toInt() );
-		settings->speedProfile.averagePercentage.push_back( ui->speedTable->item( row, 3 )->text().toInt() );
+		settings->speedProfile.names.push_back( m_ui->speedTable->item( row, 0 )->text() );
+		settings->speedProfile.speed.push_back( m_ui->speedTable->item( row, 1 )->text().toInt() );
+		settings->speedProfile.speedInCity.push_back( m_ui->speedTable->item( row, 2 )->text().toInt() );
+		settings->speedProfile.averagePercentage.push_back( m_ui->speedTable->item( row, 3 )->text().toInt() );
 	}
 
-	QList< QTreeWidgetItem* > items = ui->accessTree->selectedItems();
+	QList< QTreeWidgetItem* > items = m_ui->accessTree->selectedItems();
 	if ( items.size() != 1 ) {
 		qCritical() << tr( "No Access Type selected" );
 		return false;
 	}
 	QTreeWidgetItem* item = items.first();
 	do {
-		qDebug() << settings->accessList.size() << ": " << item->text( 0 );
+		qDebug() << "OSM Importer: access list:" << settings->accessList.size() << ":" << item->text( 0 );
 		settings->accessList.push_back( item->text( 0 ) );
 		item = item->parent();
 	} while ( item != NULL );

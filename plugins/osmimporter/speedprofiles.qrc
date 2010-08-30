@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/speedprofiles">
+        <file>default.spp</file>
+    </qresource>
+</RCC>
