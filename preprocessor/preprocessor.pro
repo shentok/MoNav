@@ -1,7 +1,6 @@
 # -------------------------------------------------
 # Project created by QtCreator 2010-06-08T10:48:36
 # -------------------------------------------------
-TARGET = MoNav
 TEMPLATE = app
 SOURCES += main.cpp \
     preprocessingwindow.cpp \

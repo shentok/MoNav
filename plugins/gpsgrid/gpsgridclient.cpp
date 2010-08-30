@@ -22,7 +22,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QtDebug>
 #include <QHash>
 #include <algorithm>
-#include <QInputDialog>
+#ifndef NOGUI
+	#include <QInputDialog>
+#endif
 #include <QSettings>
 
 GPSGridClient::GPSGridClient()
@@ -66,6 +68,7 @@ void GPSGridClient::SetInputDirectory( const QString& dir )
 
 void GPSGridClient::ShowSettings()
 {
+#ifndef NOGUI
 	bool ok = false;
 	int result = QInputDialog::getInt( NULL, "Settings", "Enter Cache Size [MB]", cacheSize, 1, 1024, 1, &ok );
 	if ( !ok )
@@ -74,6 +77,7 @@ void GPSGridClient::ShowSettings()
 	if ( index != NULL )
 		index->SetCacheSize( 1024 * 1024 * cacheSize / 4 );
 	cache.setMaxCost( 1024 * 1024 * 3 * cacheSize / 4 );
+#endif
 }
 
 bool GPSGridClient::LoadData()

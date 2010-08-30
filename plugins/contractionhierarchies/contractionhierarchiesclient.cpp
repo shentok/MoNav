@@ -24,7 +24,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QDir>
 #include <QtDebug>
 #include <stack>
-#include <QMessageBox>
+#ifndef NOGUI
+	#include <QMessageBox>
+#endif
 
 ContractionHierarchiesClient::ContractionHierarchiesClient()
 {
@@ -50,7 +52,9 @@ void ContractionHierarchiesClient::SetInputDirectory( const QString& dir )
 
 void ContractionHierarchiesClient::ShowSettings()
 {
+#ifndef NOGUI
 	QMessageBox::information( NULL, "Settings", "No settings available" );
+#endif
 }
 
 void ContractionHierarchiesClient::unload()
