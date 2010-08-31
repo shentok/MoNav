@@ -18,7 +18,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "gpsgrid.h"
-#include "utils/utils.h"
+#include "utils/intersection.h"
 #include <QDir>
 #include <QFile>
 #include <algorithm>

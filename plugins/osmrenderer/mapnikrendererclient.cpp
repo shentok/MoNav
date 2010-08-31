@@ -20,7 +20,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QDir>
 #include <QPainter>
 #include "mapnikrendererclient.h"
-#include "utils/utils.h"
 #include <QtDebug>
 
 MapnikRendererClient::MapnikRendererClient()

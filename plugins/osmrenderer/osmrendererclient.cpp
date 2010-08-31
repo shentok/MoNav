@@ -19,11 +19,10 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QDir>
 #include <QNetworkReply>
-#include <QDebug>
+#include <QtDebug>
 #include <QDesktopServices>
 
 #include "osmrendererclient.h"
-#include "utils/utils.h"
 
 OSMRendererClient::OSMRendererClient()
 {

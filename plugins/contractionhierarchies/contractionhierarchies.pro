@@ -18,12 +18,12 @@ HEADERS += contractionhierarchies.h \
 	 binaryheap.h \
 	 contractor.h \
     interfaces/ipreprocessor.h \
-    utils/utils.h \
     utils/coordinates.h \
     utils/config.h \
     chsettingsdialog.h \
     compressedgraph.h \
-    compressedgraphbuilder.h
+    compressedgraphbuilder.h \
+    utils/bithelpers.h
 SOURCES += contractionhierarchies.cpp \
     chsettingsdialog.cpp
 FORMS += chsettingsdialog.ui

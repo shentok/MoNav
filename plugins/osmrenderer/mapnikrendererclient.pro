@@ -12,9 +12,9 @@ HEADERS += mapnikrendererclient.h \
     interfaces/irenderer.h \
     utils/coordinates.h \
     utils/config.h \
-    utils/utils.h \
     rendererbase.h \
-    brsettingsdialog.h
+    brsettingsdialog.h \
+    utils/intersection.h
 SOURCES += mapnikrendererclient.cpp \
     rendererbase.cpp \
     brsettingsdialog.cpp

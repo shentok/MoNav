@@ -21,12 +21,10 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QPainter>
 #include <algorithm>
 #include <cmath>
-#include <QDebug>
-#include <QSettings>
-#include <QInputDialog>
+#include <QtDebug>
 
 #include "rendererbase.h"
-#include "utils/utils.h"
+#include "utils/intersection.h"
 
 RendererBase::RendererBase()
 {

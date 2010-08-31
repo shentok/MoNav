@@ -21,7 +21,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define COMPRESSEDGRAPH_H
 
 #include "utils/coordinates.h"
-#include "utils/utils.h"
+#include "utils/bithelpers.h"
 #include "blockcache.h"
 #include <QString>
 #include <QFile>

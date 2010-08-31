@@ -23,7 +23,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QString>
 #include <vector>
 #include "utils/coordinates.h"
-#include "utils/utils.h"
+#include "utils/bithelpers.h"
 
 namespace utt
 {

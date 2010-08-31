@@ -22,7 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <vector>
 #include <algorithm>
-#include "utils/utils.h"
+#include "utils/bithelpers.h"
 
 template< typename EdgeData>
 class DynamicGraph {

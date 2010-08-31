@@ -26,7 +26,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "interfaces/iimporter.h"
 #include "oisettingsdialog.h"
 #include "statickdtree.h"
-#include "utils/utils.h"
+#include "utils/intersection.h"
 
 class OSMImporter : public QObject, public IImporter
 {

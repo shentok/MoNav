@@ -18,8 +18,8 @@ HEADERS += unicodetournamenttrie.h \
     interfaces/iimporter.h \
     interfaces/ipreprocessor.h \
     trie.h \
-    utils/utils.h \
-    uttsettingsdialog.h
+    uttsettingsdialog.h \
+    utils/bithelpers.h
 
 QMAKE_CXXFLAGS_RELEASE -= -O2
 QMAKE_CXXFLAGS_RELEASE += -O3 -march=native -Wno-unused-function

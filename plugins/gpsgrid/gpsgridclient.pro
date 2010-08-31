@@ -15,7 +15,8 @@ HEADERS += \
     cell.h \
     interfaces/igpslookup.h \
     gpsgridclient.h \
-    table.h
+    table.h \
+    utils/bithelpers.h
 
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2

@@ -10,7 +10,6 @@ unix {
 }
 
 HEADERS += \
-    utils/utils.h \
     utils/coordinates.h \
     utils/config.h \
     blockcache.h \
@@ -18,7 +17,8 @@ HEADERS += \
     interfaces/irouter.h \
     contractionhierarchiesclient.h \
     compressedgraph.h \
-    interfaces/igpslookup.h
+    interfaces/igpslookup.h \
+    utils/bithelpers.h
 
 SOURCES += \
     contractionhierarchiesclient.cpp

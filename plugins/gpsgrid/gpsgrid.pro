@@ -19,7 +19,9 @@ HEADERS += gpsgrid.h \
     utils/config.h \
     ggdialog.h \
     cell.h \
-    table.h
+    table.h \
+    utils/bithelpers.h \
+    utils/intersection.h
 
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
