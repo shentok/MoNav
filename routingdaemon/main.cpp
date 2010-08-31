@@ -18,7 +18,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <QtDebug>
-
+#
 #include "routinddaemon.h"
 
 Q_IMPORT_PLUGIN( contractionhierarchiesclient );
@@ -29,8 +29,6 @@ RoutingDaemon* servicePointer = NULL;
 
 void MessageBoxHandler( QtMsgType type, const char *msg )
 {
-	if ( servicePointer == NULL )
-		return;
 	switch (type) {
 	case QtDebugMsg:
 		servicePointer->logMessage( msg, QtServiceBase::Information );
@@ -52,9 +50,22 @@ void MessageBoxHandler( QtMsgType type, const char *msg )
 
 int main( int argc, char** argv )
 {
-	oldHandler = qInstallMsgHandler( MessageBoxHandler );
+	if ( argc == 2 && argv[1] == QString( "--help" ) ) {
+		qDebug() << "usage:" << argv[0] << "-i | -install";
+		qDebug() << "\tinstalls the service";
+		qDebug() << "usage:" << argv[0] << "-u | -uninstall";
+		qDebug() << "\tuninstalls the service";
+		qDebug() << "usage:" << argv[0] << "-t | -terminate";
+		qDebug() << "\tterminates the service";
+		qDebug() << "usage:" << argv[0] << "-v | -version";
+		qDebug() << "\tdisplays version and status";
+		return 1;
+	}
+
 	RoutingDaemon service( argc, argv );
 	servicePointer = &service;
+
+	oldHandler = qInstallMsgHandler( MessageBoxHandler );
 	return service.exec();
 }
 

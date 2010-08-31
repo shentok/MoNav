@@ -42,7 +42,6 @@ public:
 		 m_gpsLookup = NULL,
 		 m_router = NULL;
 		 m_server = new QLocalServer( this );
-		 m_server->removeServer( "MoNavD" );
 		 connect( m_server, SIGNAL(newConnection()), this, SLOT(newConnection()) );
 	}
 
@@ -113,8 +112,12 @@ protected:
 	virtual void start()
 	{
 		if ( !m_server->listen( "MoNavD" ) ) {
-			qCritical() << "unable to start server";
-			exit( -1 );
+			// try to clean up after possible crash
+			m_server->removeServer( "MoNavD" );
+			if ( !m_server->listen( "MoNavD" ) ) {
+				qCritical() << "unable to start server";
+				exit( -1 );
+			}
 		}
 	}
 
