@@ -21,12 +21,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "compressedgraphbuilder.h"
 #include "contractor.h"
 #include "contractioncleanup.h"
-#include <cassert>
-#include <limits>
-#include <stack>
-#include <omp.h>
-#include <QDir>
-#include <QTextStream>
+#include "utils/qthelpers.h"
 
 ContractionHierarchies::ContractionHierarchies()
 {
@@ -65,8 +60,7 @@ bool ContractionHierarchies::Preprocess( IImporter* importer )
 		settingsDialog = new CHSettingsDialog();
 	settingsDialog->getSettings( &settings );
 
-	QDir directory( outputDirectory );
-	QString filename = directory.filePath( "Contraction Hierarchies" );
+	QString filename = fileInDirectory( outputDirectory, "Contraction Hierarchies" );
 
 	if ( settings.threads == 0 )
 		omp_set_num_threads( omp_get_max_threads() );
@@ -80,17 +74,6 @@ bool ContractionHierarchies::Preprocess( IImporter* importer )
 		return false;
 	if ( !importer->GetRoutingEdges( &inputEdges ) )
 		return false;
-
-	/*QFile textFile( filename + ".dtmp" );
-	textFile.open( QIODevice::WriteOnly );
-	QTextStream textOut( &textFile );
-	textOut << inputNodes.size() << " " << inputEdges.size() << "\n";
-	for ( int i = 0; i < ( int ) inputNodes.size(); i++ )
-		textOut << i << " " << inputNodes[i].coordinate.x << " " << inputNodes[i].coordinate.y << "\n";
-	for ( int i = 0; i < ( int ) inputEdges.size(); i++ )
-		textOut << inputEdges[i].source << " " << inputEdges[i].target << "\n";
-	return false;
-	*/
 
 	Contractor* contractor = new Contractor( inputNodes.size(), inputEdges );
 	std::vector< IImporter::RoutingEdge >().swap( inputEdges );
@@ -118,7 +101,6 @@ bool ContractionHierarchies::Preprocess( IImporter* importer )
 		nodes[map[i - inputNodes.begin()]].coordinate = i->coordinate;
 	std::vector< IImporter::RoutingNode >().swap( inputNodes );
 
-	//block_graph::build( edges, nodes, &map, filename, 1u << settings.blockSize );
 	CompressedGraphBuilder builder( 1u << settings.blockSize, nodes, edges );
 	if ( !builder.run( filename, &map ) )
 		return false;

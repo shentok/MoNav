@@ -18,8 +18,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "unicodetournamenttrie.h"
+#include "utils/qthelpers.h"
 #include <algorithm>
-#include <QDir>
 #include <QHash>
 #include <limits>
 #ifndef NDEBUG
@@ -67,22 +67,26 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer )
 	UTTSettingsDialog::Settings settings;
 	if ( !settingsDialog->getSettings( &settings ) )
 		return false;
-	QDir dir( outputDirectory );
-	QString filename = dir.filePath( "Unicode Tournament Trie" );
+	QString filename = fileInDirectory( outputDirectory, "Unicode Tournament Trie" );
 
 	QFile subTrieFile( filename + "_sub" );
 	QFile mainTrieFile( filename + "_main" );
 	QFile wayFile( filename + "_ways" );
 
-	subTrieFile.open( QIODevice::WriteOnly );
-	mainTrieFile.open( QIODevice::WriteOnly );
-	wayFile.open( QIODevice::WriteOnly );
+	if ( !openQFile( &subTrieFile, QIODevice::WriteOnly ) )
+		return false;
+	if ( !openQFile( &mainTrieFile, QIODevice::WriteOnly ) )
+		return false;
+	if ( !openQFile( &wayFile, QIODevice::WriteOnly ) )
+		return false;
 
 	std::vector< IImporter::Place > inputPlaces;
 	std::vector< IImporter::Address > inputAddress;
 	std::vector< UnsignedCoordinate > inputWayBuffer;
 	if ( !importer->GetAddressData( &inputPlaces, &inputAddress, &inputWayBuffer ) )
 		return false;
+
+	Timer time;
 
 	std::vector< PlaceImportance > importanceOrder;
 	importanceOrder.reserve( inputPlaces.size() );
@@ -124,17 +128,17 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer )
 		}
 		importanceOrder.push_back( temp );
 	}
+
 	std::sort( importanceOrder.begin(), importanceOrder.end() );
 	QHash< QString, unsigned > importance;
-	for ( int i = 0; i < ( int ) importanceOrder.size(); i++ ) {
+	for ( int i = 0; i < ( int ) importanceOrder.size(); i++ )
 		importance[importanceOrder[i].name] = i;
-	}
 	std::vector< PlaceImportance >().swap( importanceOrder );
 
 	std::sort( inputAddress.begin(), inputAddress.end() );
+	qDebug() << "Unicode Tournament Trie: sorted addresses by importance:" << time.restart() << "s";
 
 	std::vector< utt::Node > trie( 1 );
-
 	std::vector< IImporter::Address >::const_iterator address = inputAddress.begin();
 	for ( std::vector< IImporter::Place >::const_iterator i = inputPlaces.begin(), e = inputPlaces.end(); i != e; ++i ) {
 		if ( i->type != IImporter::Place::Suburb ) {
@@ -204,13 +208,16 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer )
 		}
 	}
 	assert( address == inputAddress.end() );
+	qDebug() << "Unicode Tournament Trie: build tries and tournament trees:" << time.restart() << "s";
 
 	writeTrie( &trie, mainTrieFile );
+	qDebug() << "Unicode Tournament Trie: wrote tries:" << time.restart() << "s";
 
 	for ( std::vector< UnsignedCoordinate >::const_iterator i = inputWayBuffer.begin(), e = inputWayBuffer.end(); i != e; ++i ) {
 		wayFile.write( ( char* ) &i->x, sizeof( i->x ) );
 		wayFile.write( ( char* ) &i->y, sizeof( i->y ) );
 	}
+	qDebug() << "Unicode Tournament Trie: wrote ways:" << time.restart() << "s";
 
 	return true;
 }
@@ -321,25 +328,6 @@ void UnicodeTournamentTrie::writeTrie( std::vector< utt::Node >* trie, QFile& fi
 	file.write( buffer, position );
 
 	delete[] buffer;
-}
-
-void UnicodeTournamentTrie::writeDebugTrie( const std::vector< utt::Node >& trie, QFile& file )
-{
-#ifndef NDEBUG
-	QTextStream text( &file );
-	text << "tree" << endl;
-	for ( int i = 0; i < ( int ) trie.size(); i++ )
-	{
-		if ( trie[i].dataList.size() > 0 )
-			text << "node\t" << i << "\tdata" << endl;
-		else
-			text << "node\t" << i << "\tnodata" << endl;
-		for ( int c = 0; c < ( int ) trie[i].labelList.size(); c++ )
-		{
-			text << "edge\t" << i << " -> " << trie[i].labelList[c].index << "\t" << trie[i].labelList[c].string << "\t" << trie[i].labelList[c].importance <<endl;
-		}
-	}
-#endif
 }
 
 Q_EXPORT_PLUGIN2(unicodetournamenttrie, UnicodeTournamentTrie)

@@ -8,7 +8,8 @@ HEADERS += mapnikrenderer.h \
     interfaces/ipreprocessor.h \
     interfaces/iimporter.h \
     utils/coordinates.h \
-    utils/config.h
+    utils/config.h \
+    utils/qthelpers.h
 SOURCES += mapnikrenderer.cpp \
 	 mrsettingsdialog.cpp
 DESTDIR = ../../bin/plugins_preprocessor

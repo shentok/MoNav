@@ -180,12 +180,12 @@ namespace gg {
 				bottom[bottomIndex].SetIndex( bottomx, bottomy, i->position );
 			}
 
-			qDebug() << "top index filled: " << ( double ) middle.size() * 100 / 32 / 32 << "%";
-			qDebug() << "middle tables: " << middle.size();
-			qDebug() << "middle index filled: " << ( double ) bottom.size() * 100 / middle.size() / 32 / 32 << "%";
-			qDebug() << "bottom tables: " << bottom.size();
-			qDebug() << "bottom index filled: " << ( double ) data.size() * 100 / bottom.size() / 32 / 32 << "%";
-			qDebug() << "grid cells: " << data.size();
+			qDebug() << "GPS Grid: top index filled: " << ( double ) middle.size() * 100 / 32 / 32 << "%";
+			qDebug() << "GPS Grid: middle tables: " << middle.size();
+			qDebug() << "GPS Grid: middle index filled: " << ( double ) bottom.size() * 100 / middle.size() / 32 / 32 << "%";
+			qDebug() << "GPS Grid: bottom tables: " << bottom.size();
+			qDebug() << "GPS Grid: bottom index filled: " << ( double ) data.size() * 100 / bottom.size() / 32 / 32 << "%";
+			qDebug() << "GPS Grid: grid cells: " << data.size();
 
 			QFile file1( filename + "_1" );
 			QFile file2( filename + "_2" );

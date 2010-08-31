@@ -19,13 +19,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "osmimporter.h"
 #include "bz2input.h"
-#include <QMessageBox>
 #include <algorithm>
-#include <map>
 #include <QtDebug>
-#include <QDir>
-#include <QDataStream>
-#include <QTime>
+#include "utils/qthelpers.h"
 
 OSMImporter::OSMImporter()
 {
@@ -86,8 +82,7 @@ bool OSMImporter::Preprocess()
 	std::vector< NodeID > usedNodes;
 	std::vector< NodeID > outlineNodes;
 	std::vector< NodeID > signalNodes;
-	QDir directory( outputDirectory );
-	QString filename = directory.filePath( "OSM Importer" );
+	QString filename = fileInDirectory( outputDirectory, "OSM Importer" );
 
 	stats.numberOfNodes = 0;
 	stats.numberOfEdges = 0;
@@ -99,16 +94,14 @@ bool OSMImporter::Preprocess()
 	stats.numberOfDefaultCitySpeed = 0;
 	stats.numberOfCityEdges = 0;
 
-	QTime time;
-	time.start();
+	Timer time;
 
-	qDebug( "starting import pass 1" );
 	if ( !_ReadXML( settings.input, filename, usedNodes, outlineNodes, signalNodes ) )
 		return false;
-	qDebug() << "finished import pass 1:" << time.restart() << "ms";
+	qDebug() << "OSM Importer: finished import pass 1:" << time.restart() << "ms";
 
 	if ( usedNodes.size() == 0 ) {
-		qCritical( "no routing nodes found in the data set" );
+		qCritical( "OSM Importer: no routing nodes found in the data set" );
 		return false;
 	}
 
@@ -118,43 +111,42 @@ bool OSMImporter::Preprocess()
 	outlineNodes.resize( std::unique( outlineNodes.begin(), outlineNodes.end() ) - outlineNodes.begin() );
 	std::sort( signalNodes.begin(), signalNodes.end() );
 
-	qDebug( "starting import pass 2" );
 	if ( !_PreprocessData( filename, usedNodes, outlineNodes, signalNodes ) )
 		return false;
-	qDebug() << "finished import pass 2:" << time.restart() << "ms";
+	qDebug() << "OSM Importer: finished import pass 2:" << time.restart() << "ms";
 
-	qDebug( "OSM Importer: Nodes: %d", stats.numberOfNodes );
-	qDebug( "OSM Importer: Ways: %d", stats.numberOfWays );
-	qDebug( "OSM Importer: Places: %d", stats.numberOfPlaces );
-	qDebug( "OSM Importer: Places Outlines: %d ", stats.numberOfOutlines );
-	qDebug( "OSM Importer: Places Outline Nodes: %d " , ( int ) outlineNodes.size() );
-	qDebug( "OSM Importer: Edges: %d" , stats.numberOfEdges );
-	qDebug( "OSM Importer: Routing Nodes: %d" , ( int ) usedNodes.size() );
-	qDebug( "OSM Importer: Traffic Signal Nodes: %d" , ( int ) signalNodes.size() );
-	qDebug( "OSM Importer: #Maxspeed Specified: %d" , stats.numberOfMaxspeed );
-	qDebug( "OSM Importer: Number Of Zero Speed Ways: %d" , stats.numberOfZeroSpeed );
-	qDebug( "OSM Importer: Number Of Edges with Default City Speed: %d" , stats.numberOfDefaultCitySpeed );
+	qDebug() << "OSM Importer: Nodes:" << stats.numberOfNodes;
+	qDebug() << "OSM Importer: Ways:" << stats.numberOfWays;
+	qDebug() << "OSM Importer: Places:" << stats.numberOfPlaces;
+	qDebug() << "OSM Importer: Places Outlines:" << stats.numberOfOutlines;
+	qDebug() << "OSM Importer: Places Outline Nodes:" << ( int ) outlineNodes.size();
+	qDebug() << "OSM Importer: Edges:" << stats.numberOfEdges;
+	qDebug() << "OSM Importer: Routing Nodes:" << ( int ) usedNodes.size();
+	qDebug() << "OSM Importer: Traffic Signal Nodes:" << ( int ) signalNodes.size();
+	qDebug() << "OSM Importer: #Maxspeed Specified:" << stats.numberOfMaxspeed;
+	qDebug() << "OSM Importer: Number Of Zero Speed Ways:" << stats.numberOfZeroSpeed;
+	qDebug() << "OSM Importer: Number Of Edges with Default City Speed:" << stats.numberOfDefaultCitySpeed;
 
 	return true;
-	return false;
 }
 
 bool OSMImporter::_ReadXML( const QString& inputFilename, const QString& filename, std::vector< NodeID >& usedNodes, std::vector< NodeID >& outlineNodes, std::vector< NodeID >& signalNodes ) {
-	QFile edgesFile( filename + "_edges" );
-	QFile placesFile( filename + "_places" );
-	QFile boundBoxFile( filename + "_bounding_box" );
-	QFile allNodesFile( filename + "_all_nodes" );
-	QFile cityOutlineFile( filename + "_city_outlines" );
-	edgesFile.open( QIODevice::WriteOnly );
-	placesFile.open( QIODevice::WriteOnly );
-	boundBoxFile.open( QIODevice::WriteOnly );
-	allNodesFile.open( QIODevice::WriteOnly );
-	cityOutlineFile.open( QIODevice::WriteOnly );
-	QDataStream edgesData( &edgesFile );
-	QDataStream placesData( &placesFile );
-	QDataStream boundingBoxData( &boundBoxFile );
-	QDataStream allNodesData( &allNodesFile );
-	QDataStream cityOutlineData( &cityOutlineFile );
+	FileStream edgesData( filename + "_edges" );
+	FileStream placesData( filename + "_places" );
+	FileStream boundingBoxData( filename + "_bounding_box" );
+	FileStream allNodesData( filename + "_all_nodes" );
+	FileStream cityOutlineData( filename + "_city_outlines" );
+
+	if ( !edgesData.open( QIODevice::WriteOnly ) )
+		return false;
+	if ( !placesData.open( QIODevice::WriteOnly ) )
+		return false;
+	if ( !boundingBoxData.open( QIODevice::WriteOnly ) )
+		return false;
+	if ( !allNodesData.open( QIODevice::WriteOnly ) )
+		return false;
+	if ( !cityOutlineData.open( QIODevice::WriteOnly ) )
+		return false;
 
 	xmlTextReaderPtr inputReader;
 	if ( inputFilename.endsWith( ".bz2" ) )
@@ -163,7 +155,7 @@ bool OSMImporter::_ReadXML( const QString& inputFilename, const QString& filenam
 		inputReader = xmlNewTextReaderFilename( inputFilename.toLocal8Bit().constData() );
 
 	if ( inputReader == NULL ) {
-		qCritical() << "Failed to open XML Reader";
+		qCritical() << "failed to open XML reader";
 		return false;
 	}
 
@@ -257,7 +249,7 @@ bool OSMImporter::_ReadXML( const QString& inputFilename, const QString& filenam
 					QStringList coordinateList = boxString.split( ',' );
 					if ( coordinateList.size() != 4 )
 					{
-						qCritical( "Bounding Box not valid!" );
+						qCritical( "OSM Importer: bounding box not valid!" );
 						return false;
 					}
 					double temp;
@@ -277,7 +269,7 @@ bool OSMImporter::_ReadXML( const QString& inputFilename, const QString& filenam
 		}
 
 	} catch ( const std::exception& e ) {
-		qCritical( "Caught Execption: %s", e.what() );
+		qCritical( "OSM Importer: caught execption: %s", e.what() );
 		return false;
 	}
 	return true;
@@ -287,35 +279,32 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 	std::vector< GPSCoordinate > nodeCoordinates( usedNodes.size(), GPSCoordinate( -1, -1 ) );
 	std::vector< GPSCoordinate > outlineCoordinates( outlineNodes.size(), GPSCoordinate( -1, -1 ) );
 
-	QFile allNodesFile( filename + "_all_nodes" );
-	QFile edgesFile( filename + "_edges" );
-	QFile cityOutlinesFile( filename + "_city_outlines" );
-	QFile placesFile( filename + "_places" );
+	FileStream allNodesData( filename + "_all_nodes" );
+	FileStream edgesData( filename + "_edges" );
+	FileStream cityOutlinesData( filename + "_city_outlines" );
+	FileStream placesData( filename + "_places" );
 
-	allNodesFile.open( QIODevice::ReadOnly );
-	edgesFile.open( QIODevice::ReadOnly );
-	cityOutlinesFile.open( QIODevice::ReadOnly );
-	placesFile.open( QIODevice::ReadOnly );
+	if ( !allNodesData.open( QIODevice::ReadOnly ) )
+		return false;
+	if ( !edgesData.open( QIODevice::ReadOnly ) )
+		return false;
+	if ( !cityOutlinesData.open( QIODevice::ReadOnly ) )
+		return false;
+	if ( !placesData.open( QIODevice::ReadOnly ) )
+		return false;
 
-	QDataStream allNodesData( &allNodesFile );
-	QDataStream edgesData( &edgesFile );
-	QDataStream cityOutlineData( &cityOutlinesFile );
-	QDataStream placesData( &placesFile );
+	FileStream nodeCoordinatesData( filename + "_node_coordinates" );
+	FileStream mappedEdgesData( filename + "_mapped_edges" );
+	FileStream locationData( filename + "_location" );
 
-	QFile nodeCoordinatesFile( filename + "_node_coordinates" );
-	QFile mappedEdgesFile( filename + "_mapped_edges" );
-	QFile locationFile( filename + "_location" );
+	if ( !nodeCoordinatesData.open( QIODevice::WriteOnly ) )
+		return false;
+	if ( !mappedEdgesData.open( QIODevice::WriteOnly ) )
+		return false;
+	if ( !locationData.open( QIODevice::WriteOnly ) )
+		return false;
 
-	nodeCoordinatesFile.open( QIODevice::WriteOnly );
-	mappedEdgesFile.open( QIODevice::WriteOnly );
-	locationFile.open( QIODevice::WriteOnly );
-
-	QDataStream nodeCoordinatesData( &nodeCoordinatesFile );
-	QDataStream mappedEdgesData( &mappedEdgesFile );
-	QDataStream locationData( &locationFile );
-
-	QTime time;
-	time.start();
+	Timer time;
 
 	while ( true ) {
 		quint32 node;
@@ -333,33 +322,33 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 		}
 	}
 
-	qDebug() << "filtered node coordinates:" << time.restart() << "ms";
+	qDebug() << "OSM Importer: filtered node coordinates:" << time.restart() << "ms";
 
 	for ( std::vector< NodeID >::const_iterator i = usedNodes.begin(); i != usedNodes.end(); ++i ) {
 		NodeID node = i - usedNodes.begin();
 		nodeCoordinatesData << nodeCoordinates[node].latitude << nodeCoordinates[node].longitude;
 		if ( nodeCoordinates[node].latitude == -1 && nodeCoordinates[node].longitude == -1 )
-			qDebug( "Inconsistent OSM Data: Missing Way Node Coordinate %d" , ( int ) node );
+			qDebug( "OSM Importer: inconsistent OSM data: missing way node coordinate %d" , ( int ) node );
 	}
 
-	qDebug() << "wrote routing node coordinates:" << time.restart() << "ms";
+	qDebug() << "OSM Importer: wrote routing node coordinates:" << time.restart() << "ms";
 
 	std::vector< _Outline > cityOutlines;
 	while ( true ) {
 		_Outline outline;
 		quint32 type, numberOfPathNodes;
-		cityOutlineData >> type >> numberOfPathNodes >> outline.name;
-		if ( cityOutlineData.status() == QDataStream::ReadPastEnd )
+		cityOutlinesData >> type >> numberOfPathNodes >> outline.name;
+		if ( cityOutlinesData.status() == QDataStream::ReadPastEnd )
 			break;
 
 		bool valid = true;
 		for ( int i = 0; i < ( int ) numberOfPathNodes; ++i ) {
 			quint32 node;
-			cityOutlineData >> node;
+			cityOutlinesData >> node;
 			NodeID mappedNode = std::lower_bound( outlineNodes.begin(), outlineNodes.end(), node ) - outlineNodes.begin();
 			UnsignedCoordinate coordinate( outlineCoordinates[mappedNode] );
 			if ( outlineCoordinates[mappedNode].latitude == -1 && outlineCoordinates[mappedNode].longitude == -1 ) {
-				qDebug( "Inconsistent OSM Data: Missing Outline Node Coordinate %d", ( int ) mappedNode );
+				qDebug( "OSM Importer: inconsistent OSM data: missing outline node coordinate %d", ( int ) mappedNode );
 				valid = false;
 			}
 			DoublePoint point( coordinate.x, coordinate.y );
@@ -371,7 +360,7 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 	outlineCoordinates.clear();
 	std::sort( cityOutlines.begin(), cityOutlines.end() );
 
-	qDebug() << "read city outlines:" << time.restart() << "s";
+	qDebug() << "OSM Importer: read city outlines:" << time.restart() << "s";
 
 	std::vector< _Place > places;
 	while ( true ) {
@@ -387,7 +376,7 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 		places.push_back( place );
 	}
 
-	qDebug() << "read places:" << time.restart() << "ms";
+	qDebug() << "OSM Importer: read places:" << time.restart() << "ms";
 
 	typedef GPSTree::InputPoint InputPoint;
 	std::vector< InputPoint > kdPoints;
@@ -405,7 +394,7 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 	GPSTree* kdTree = new GPSTree( kdPoints );
 	kdPoints.clear();
 
-	qDebug() << "build kd-tree:" << time.restart() << "ms";
+	qDebug() << "OSM Importer: build kd-tree:" << time.restart() << "ms";
 
 	for ( std::vector< _Place >::const_iterator place = places.begin(), endPlace = places.end(); place != endPlace; ++place ) {
 		InputPoint point;
@@ -420,9 +409,7 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 		for ( std::vector< _Outline >::const_iterator outline = std::lower_bound( cityOutlines.begin(), cityOutlines.end(), searchOutline ), outlineEnd = std::upper_bound( cityOutlines.begin(), cityOutlines.end(), searchOutline ); outline != outlineEnd; ++outline ) {
 			UnsignedCoordinate cityCoordinate = UnsignedCoordinate( place->coordinate );
 			DoublePoint cityPoint( cityCoordinate.x, cityCoordinate.y );
-			//qDebug( place->name );
 			if ( pointInPolygon( outline->way.size(), &outline->way[0], cityPoint ) ) {
-				//qDebug( "!!!!!" ) + place->name );
 				placeOutline = &( *outline );
 				for ( std::vector< DoublePoint >::const_iterator way = outline->way.begin(), wayEnd = outline->way.end(); way != wayEnd; ++way ) {
 					UnsignedCoordinate coordinate;
@@ -489,13 +476,13 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 	places.clear();
 	cityOutlines.clear();
 
-	qDebug() << "assigned 'in-city' flags:" << time.restart() << "ms";
+	qDebug() << "OSM Importer: assigned 'in-city' flags:" << time.restart() << "ms";
 
 	for ( std::vector< _NodeLocation >::const_iterator i = nodeLocation.begin(), e = nodeLocation.end(); i != e; ++i ) {
 		locationData << quint32( i->isInPlace ? 1 : 0 ) << quint32( i->place );
 	}
 
-	qDebug() << "wrote 'in-city' flags" << time.restart() << "ms";
+	qDebug() << "OSM Importer: wrote 'in-city' flags" << time.restart() << "ms";
 
 	while ( true ) {
 		QString name;
@@ -518,7 +505,7 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 			NodeID mappedNode = std::lower_bound( usedNodes.begin(), usedNodes.end(), node ) - usedNodes.begin();
 			way.push_back( mappedNode );
 			if ( nodeCoordinates[mappedNode].latitude == -1 && nodeCoordinates[mappedNode].longitude == -1 ) {
-				qDebug( "Inconsistent OSM Data: Skipping Way With Missing Node Coordinate %d", ( int ) mappedNode );
+				qDebug( "OSM Importer: inconsistent OSM data: skipping way with missing node coordinate %d", ( int ) mappedNode );
 				valid = false;
 			}
 		}
@@ -563,12 +550,12 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 			double seconds = distance * 36 / tempSpeed;
 
 			if ( seconds < 0 )
-				qCritical( "Distance less than Zero: %lf", seconds );
+				qCritical() << "OSM Importer: distance less than Zero:" << seconds;
 			if ( seconds > 24 * 60 * 60 ) {
-				qDebug( "Found very large edge: %lf seconds", distance * 36 / tempSpeed );
-				qDebug( "Found very large edge: %d to %d", way[i-1], way[i] );
-				qDebug( "Found very large edge: lat %lf, lon %lf to lat %lf, lon %lf", fromCoordinate.latitude, fromCoordinate.longitude, toCoordinate.latitude, toCoordinate.longitude );
-				qDebug( "Found very large edge: %lf speed", tempSpeed );
+				qDebug() << "OSM Importer: found very large edge:" << distance * 36 / tempSpeed << "seconds";
+				qDebug() << "OSM Importer: found very large edge:" << way[i-1] << "->" << way[i];
+				qDebug() << "OSM Importer: found very large edge: (" << fromCoordinate.latitude << "," << fromCoordinate.longitude << ") -> (" << toCoordinate.latitude << "," << toCoordinate.longitude << ")";
+				qDebug() << "OSM Importer: found very large edge:" << tempSpeed << "km/h";
 			}
 
 			std::vector< NodeID >::const_iterator sourceNode = std::lower_bound( signalNodes.begin(), signalNodes.end(), way[i - 1] );
@@ -583,7 +570,7 @@ bool OSMImporter::_PreprocessData( const QString& filename, const std::vector< N
 
 	}
 
-	qDebug() << "remapped edges" << time.restart() << "ms";
+	qDebug() << "OSM Importer: remapped edges" << time.restart() << "ms";
 
 	return true;
 }
@@ -820,42 +807,31 @@ OSMImporter::_Node OSMImporter::_ReadXMLNode( xmlTextReaderPtr& inputReader ) {
 
 bool OSMImporter::SetIDMap( const std::vector< NodeID >& idMap )
 {
-	QDir directory( outputDirectory );
-	QString filename = directory.filePath( "OSM Importer" );
-	QFile idMapFile( filename + "_id_map" );
+	FileStream idMapData( fileInDirectory( outputDirectory, "OSM Importer" ) + "_id_map" );
 
-	idMapFile.open( QIODevice::WriteOnly );
-	QDataStream idMapData( &idMapFile );
+	if ( !idMapData.open( QIODevice::WriteOnly ) )
+		return false;
 
 	idMapData << quint32( idMap.size() );
 	for ( NodeID i = 0; i < ( NodeID ) idMap.size(); i++ )
-	{
 		idMapData << quint32( idMap[i] );
-	}
 
 	return true;
 }
 
 bool OSMImporter::GetIDMap( std::vector< NodeID >* idMap )
 {
-	QDir directory( outputDirectory );
-	QString filename = directory.filePath( "OSM Importer" );
-	QFile idMapFile( filename + "_id_map" );
+	FileStream idMapData( fileInDirectory( outputDirectory, "OSM Importer" ) + "_id_map" );
 
-	if ( !idMapFile.exists() ) {
-		qCritical( "File Not Found: node_coordinates" );
+	if ( !idMapData.open( QIODevice::ReadOnly ) )
 		return false;
-	}
 
-	idMapFile.open( QIODevice::ReadOnly );
-	QDataStream idMapData( &idMapFile );
 	quint32 numNodes;
 
 	idMapData >> numNodes;
 	idMap->resize( numNodes );
 
-	for ( NodeID i = 0; i < ( NodeID ) numNodes; i++ )
-	{
+	for ( NodeID i = 0; i < ( NodeID ) numNodes; i++ ) {
 		quint32 temp;
 		idMapData >> temp;
 		( *idMap )[i] = temp;
@@ -869,17 +845,10 @@ bool OSMImporter::GetIDMap( std::vector< NodeID >* idMap )
 
 bool OSMImporter::GetRoutingEdges( std::vector< RoutingEdge >* data )
 {
-	QDir directory( outputDirectory );
-	QString filename = directory.filePath( "OSM Importer" );
-	QFile mappedEdgesFile( filename + "_mapped_edges" );
+	FileStream mappedEdgesData( fileInDirectory( outputDirectory, "OSM Importer" ) + "_mapped_edges" );
 
-	if ( !mappedEdgesFile.exists() ) {
-		qCritical( "File Not Found: _mapped_edges" );
+	if ( !mappedEdgesData.open( QIODevice::ReadOnly ) )
 		return false;
-	}
-
-	mappedEdgesFile.open( QIODevice::ReadOnly );
-	QDataStream mappedEdgesData( &mappedEdgesFile );
 
 	unsigned wayID = 0;
 	std::vector< NodeID > way;
@@ -915,17 +884,10 @@ bool OSMImporter::GetRoutingEdges( std::vector< RoutingEdge >* data )
 
 bool OSMImporter::GetRoutingNodes( std::vector< RoutingNode >* data )
 {
-	QDir directory( outputDirectory );
-	QString filename = directory.filePath( "OSM Importer" );
-	QFile nodeCoordinatesFile( filename + "_node_coordinates" );
+	FileStream nodeCoordinatesData( fileInDirectory( outputDirectory, "OSM Importer" ) + "_node_coordinates" );
 
-	if ( !nodeCoordinatesFile.exists() ) {
-		qCritical( "File Not Found: _node_coordinates" );
+	if ( !nodeCoordinatesData.open( QIODevice::ReadOnly ) )
 		return false;
-	}
-
-	nodeCoordinatesFile.open( QIODevice::ReadOnly );
-	QDataStream nodeCoordinatesData( &nodeCoordinatesFile );
 
 	while ( true ) {
 		GPSCoordinate gps;
@@ -942,42 +904,23 @@ bool OSMImporter::GetRoutingNodes( std::vector< RoutingNode >* data )
 
 bool OSMImporter::GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer )
 {
-	QDir directory( outputDirectory );
-	QString filename = directory.filePath( "OSM Importer" );
+	QString filename = fileInDirectory( outputDirectory, "OSM Importer" );
 
-	QFile mappedEdgesFile( filename + "_mapped_edges" );
-	QFile nodeCoordinatesFile( filename + "_node_coordinates" );
-	QFile placesFile( filename + "_places" );
-	QFile locationFile( filename + "_location" );
+	FileStream mappedEdgesData( filename + "_mapped_edges" );
+	FileStream nodeCoordinatesData( filename + "_node_coordinates" );
+	FileStream placesData( filename + "_places" );
+	FileStream locationData( filename + "_location" );
 
-	if ( !mappedEdgesFile.exists() ) {
-		qCritical( "File Not Found: _mapped_edges" );
+	if ( !mappedEdgesData.open( QIODevice::ReadOnly ) )
 		return false;
-	}
-	if ( !nodeCoordinatesFile.exists() ) {
-		qCritical( "File Not Found: _node_coordinates" );
+	if ( !nodeCoordinatesData.open( QIODevice::ReadOnly ) )
 		return false;
-	}
-	if ( !placesFile.exists() ) {
-		qCritical( "File Not Found: _places" );
+	if ( !placesData.open( QIODevice::ReadOnly ) )
 		return false;
-	}
-	if ( !locationFile.exists() ) {
-		qCritical( "File Not Found: _location" );
+	if ( !locationData.open( QIODevice::ReadOnly ) )
 		return false;
-	}
 
-	mappedEdgesFile.open( QIODevice::ReadOnly );
-	nodeCoordinatesFile.open( QIODevice::ReadOnly );
-	placesFile.open( QIODevice::ReadOnly );
-	locationFile.open( QIODevice::ReadOnly );
-
-	QDataStream mappedEdgesData( &mappedEdgesFile );
-	QDataStream nodeCoordinatesData( &nodeCoordinatesFile );
-	QDataStream placesData( &placesFile );
-	QDataStream locationData( &locationFile );
-
-	std::vector< GPSCoordinate >  coordinates;
+	std::vector< GPSCoordinate > coordinates;
 
 	while ( true ) {
 		GPSCoordinate gps;
@@ -1078,26 +1021,19 @@ bool OSMImporter::GetAddressData( std::vector< Place >* dataPlaces, std::vector<
 	}
 	wayBuffer.clear();
 
-	qDebug( "Number of ways: %lld", numberOfWays );
-	qDebug( "Number of address entries: %lld", numberOfAddressPlaces );
-	qDebug( "Average address entries per way: %lf", ( double ) numberOfAddressPlaces / numberOfWays );
-	qDebug( "Number of way nodes: %d", ( int ) dataWayBuffer->size() );
+	qDebug() << "OSM Importer: Number of ways:" << numberOfWays;
+	qDebug() << "OSM Importer: Number of address entries:" << numberOfAddressPlaces;
+	qDebug() << "OSM Importer: Average address entries per way:" << ( double ) numberOfAddressPlaces / numberOfWays;
+	qDebug() << "OSM Importer: Number of way nodes:" << dataWayBuffer->size();
 	return true;
 }
 
 bool OSMImporter::GetBoundingBox( BoundingBox* box )
 {
-	QDir directory( outputDirectory );
-	QString filename = directory.filePath( "OSM Importer" );
-	QFile boundingBoxFile( filename + "_bounding_box" );
+	FileStream boundingBoxData( fileInDirectory( outputDirectory, "OSM Importer" ) + "_bounding_box" );
 
-	if ( !boundingBoxFile.exists() ) {
-		qCritical( "File Not Found: _bounding_box" );
+	if ( !boundingBoxData.open( QIODevice::ReadOnly ) )
 		return false;
-	}
-
-	boundingBoxFile.open( QIODevice::ReadOnly );
-	QDataStream boundingBoxData( &boundingBoxFile );
 
 	GPSCoordinate minGPS, maxGPS;
 
@@ -1118,8 +1054,7 @@ bool OSMImporter::GetBoundingBox( BoundingBox* box )
 
 void OSMImporter::DeleteTemporaryFiles()
 {
-	QDir directory( outputDirectory );
-	QString filename = directory.filePath( "OSM Importer" );
+	QString filename = fileInDirectory( outputDirectory, "OSM Importer" );
 	QFile::remove( filename + "_all_nodes" );
 	QFile::remove( filename + "_bounding_box" );
 	QFile::remove( filename + "_city_outlines" );

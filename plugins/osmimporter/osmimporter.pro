@@ -9,7 +9,8 @@ HEADERS += osmimporter.h \
     utils/coordinates.h \
     utils/config.h \
     bz2input.h \
-    utils/intersection.h
+    utils/intersection.h \
+    utils/qthelpers.h
 SOURCES += osmimporter.cpp \
 	 oisettingsdialog.cpp
 DESTDIR = ../../bin/plugins_preprocessor

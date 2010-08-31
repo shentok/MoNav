@@ -18,10 +18,10 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "gpsgridclient.h"
-#include <QDir>
 #include <QtDebug>
 #include <QHash>
 #include <algorithm>
+#include "utils/qthelpers.h"
 #ifndef NOGUI
 	#include <QInputDialog>
 #endif
@@ -83,21 +83,16 @@ void GPSGridClient::ShowSettings()
 bool GPSGridClient::LoadData()
 {
 	unload();
-	QDir dir( directory );
-	QString filename = dir.filePath( "GPSGrid" );
+	QString filename = fileInDirectory( directory, "GPSGrid" );
 	QFile configFile( filename + "_config" );
-	if ( !configFile.open( QIODevice::ReadOnly ) )
-	{
-		qCritical() << "failed top open file: " << configFile.fileName();
+	if ( !openQFile( &configFile, QIODevice::ReadOnly ) )
 		return false;
-	}
 
 	index = new gg::Index( filename + "_index" );
 	index->SetCacheSize( 1024 * 1024 * cacheSize / 4 );
 
 	gridFile = new QFile( filename + "_grid" );
-	if ( !gridFile->open( QIODevice::ReadOnly ) )
-	{
+	if ( !gridFile->open( QIODevice::ReadOnly ) ) {
 		qCritical() << "failed to open file: " << gridFile->fileName();
 		return false;
 	}
@@ -144,15 +139,12 @@ bool GPSGridClient::checkCell( QVector< Result >* result, double radius, NodeID 
 	UnsignedCoordinate min( minPos );
 	UnsignedCoordinate max( maxPos );
 	UnsignedCoordinate nearestPoint;
-	//qDebug() << "Try Cell (" << gridX << ", " << gridY << ")";
 	if ( distance( min, max, coordinate ) >= radius )
 		return false;
 
 	qint64 cellNumber = ( qint64( gridX ) << 32 ) + gridY;
-	//qDebug() << "Cell number: " << cellNumber;
 	if ( !cache.contains( cellNumber ) ) {
 		qint64 position = index->GetIndex( gridX, gridY );
-		//qDebug() << "Load position: " << position;
 		if ( position == -1 )
 			return true;
 		gridFile->seek( position );
@@ -169,8 +161,6 @@ bool GPSGridClient::checkCell( QVector< Result >* result, double radius, NodeID 
 	gg::Cell* cell = cache.object( cellNumber );
 	if ( cell == NULL )
 		return true;
-
-	//qDebug() << "Checking cell, " << cell->edges.size() << " edges";
 
 	for ( std::vector< gg::Cell::Edge >::const_iterator i = cell->edges.begin(), e = cell->edges.end(); i != e; ++i ) {
 		double percentage = 0;
@@ -195,7 +185,6 @@ bool GPSGridClient::checkCell( QVector< Result >* result, double radius, NodeID 
 			resultEdge.target = i->target;
 			resultEdge.nearestPoint = nearestPoint;
 			resultEdge.percentage = percentage;
-			//resultEdge.distance = resultEdge.nearestPoint.ToProjectedCoordinate().ToGPSCoordinate().ApproximateDistance( coordinate.ToProjectedCoordinate().ToGPSCoordinate() ) + penalty;
 			resultEdge.distance = d;
 			resultEdge.bidirectional = i->bidirectional;
 			result->push_back( resultEdge );

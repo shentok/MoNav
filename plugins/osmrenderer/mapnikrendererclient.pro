@@ -14,7 +14,8 @@ HEADERS += mapnikrendererclient.h \
     utils/config.h \
     rendererbase.h \
     brsettingsdialog.h \
-    utils/intersection.h
+    utils/intersection.h \
+    utils/qthelpers.h
 SOURCES += mapnikrendererclient.cpp \
     rendererbase.cpp \
     brsettingsdialog.cpp

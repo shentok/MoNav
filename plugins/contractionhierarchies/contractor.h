@@ -22,7 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include <omp.h>
 #include <limits>
-#include <QTime>
+#include "utils/qthelpers.h"
 #include "dynamicgraph.h"
 #include "binaryheap.h"
 #include "utils/config.h"
@@ -425,13 +425,7 @@ class Contractor {
 	private:
 
 		double _Timestamp() {
-			static QTime timer;
-			static bool first = true;
-			if ( first )
-			{
-				first = false;
-				timer.start();
-			}
+			static Timer timer;
 			return ( double ) timer.elapsed() / 1000;
 		}
 

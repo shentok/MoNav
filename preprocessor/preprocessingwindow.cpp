@@ -305,23 +305,23 @@ bool PreprocessingWindow::addressLookupPreprocessing()
 
 void PreprocessingWindow::preprocessAll()
 {
-	qDebug() << "Importer";
+	qDebug() << "===Importer===";
 	if ( !importerPreprocessing() )
 		return;
 	QCoreApplication::processEvents();
-	qDebug() << "Router";
+	qDebug() << "===Router===";
 	if ( !routerPreprocessing() )
 		return;
 	QCoreApplication::processEvents();
-	qDebug() << "Renderer";
+	qDebug() << "===Renderer===";
 	if ( !rendererPreprocessing() )
 		return;
 	QCoreApplication::processEvents();
-	qDebug() << "GPS Lookup";
+	qDebug() << "===GPS Lookup===";
 	if ( !gpsLookupPreprocessing() )
 		return;
 	QCoreApplication::processEvents();
-	qDebug() << "Address Lookup";
+	qDebug() << "===Address Lookup===";
 	if ( !addressLookupPreprocessing() )
 		return;
 }

@@ -12,8 +12,8 @@ HEADERS += utils/coordinates.h \
     utils/config.h \
     interfaces/iaddresslookup.h \
     trie.h \
-    utils/utils.h \
-    unicodetournamenttrieclient.h
+    unicodetournamenttrieclient.h \
+    utils/qthelpers.h
 
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2

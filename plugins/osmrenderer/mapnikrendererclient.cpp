@@ -17,9 +17,8 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <QDir>
-#include <QPainter>
 #include "mapnikrendererclient.h"
+#include "utils/qthelpers.h"
 #include <QtDebug>
 
 MapnikRendererClient::MapnikRendererClient()
@@ -51,11 +50,10 @@ QString MapnikRendererClient::GetName()
 
 bool MapnikRendererClient::load()
 {
-	QDir dir( directory );
-	QString filename = dir.filePath( "Mapnik Renderer" );
-	QFile configFile( filename );
-	configFile.open( QIODevice::ReadOnly );
-	QDataStream configData( &configFile );
+	QString filename = fileInDirectory( directory, "Mapnik Renderer" );
+	FileStream configData( filename );
+	if ( !configData.open( QIODevice::ReadOnly ) )
+		return false;
 
 	quint32 zoom, size;
 	configData >> size >> zoom;
@@ -101,18 +99,13 @@ bool MapnikRendererClient::loadTile( int x, int y, int zoom, QPixmap** tile )
 		indexFile->close();
 		tileFile->close();
 
-		QDir dir( directory );
-		QString filename = dir.filePath( "Mapnik Renderer" );
+		QString filename = fileInDirectory( directory, "Mapnik Renderer" );
 		indexFile->setFileName( filename + QString( "_%1_index" ).arg( zoom ) );
-		if ( !indexFile->open( QIODevice::ReadOnly ) ) {
-			qCritical() << "failed to open index file:" << indexFile->fileName();
+		if ( !openQFile( indexFile, QIODevice::ReadOnly ) )
 			return false;
-		}
 		tileFile->setFileName( filename + QString( "_%1_tiles" ).arg( zoom ) );
-		if ( !tileFile->open( QIODevice::ReadOnly ) ) {
-			qCritical() << "failed to open tile file:" << tileFile->fileName();
+		if ( !openQFile( tileFile, QIODevice::ReadOnly ) )
 			return false;
-		}
 		fileZoom = zoom;
 	}
 

@@ -45,7 +45,6 @@ protected:
 
 	void insert( std::vector< utt::Node >* trie, unsigned importance, const QString& name, utt::Data data );
 	void writeTrie( std::vector< utt::Node >* trie, QFile& file );
-	void writeDebugTrie( const std::vector< utt::Node >& trie, QFile& file );
 
 	struct PlaceImportance {
 		QString name;

@@ -22,8 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "unicodetournamenttrieclient.h"
-#include <QDir>
-#include <QMap>
+#include "utils/qthelpers.h"
 #include <QtDebug>
 #include <algorithm>
 #ifndef NOGUI
@@ -78,39 +77,26 @@ void UnicodeTournamentTrieClient::ShowSettings()
 bool UnicodeTournamentTrieClient::LoadData()
 {
 	unload();
-	QDir dir( directory );
-	QString filename = dir.filePath( "Unicode Tournament Trie" );
+	QString filename = fileInDirectory( directory, "Unicode Tournament Trie" );
 	trieFile = new QFile( filename + "_main" );
 	subTrieFile = new QFile( filename + "_sub" );
 	dataFile = new QFile( filename + "_ways" );
 
-	if ( !trieFile->exists() ) {
-		qCritical( "Ansi Trie File Missing: %s", trieFile->fileName().toAscii().constData() );
+	if ( !openQFile( trieFile, QIODevice::ReadOnly ) )
 		return false;
-	}
-	if ( !subTrieFile->exists() ) {
-		qCritical( "Ansi Trie File Missing: %s", subTrieFile->fileName().toAscii().constData() );
+	if ( !openQFile( subTrieFile, QIODevice::ReadOnly ) )
 		return false;
-	}
-	if ( !dataFile->exists() ) {
-		qCritical( "Ansi Trie File Missing: %s", dataFile->fileName().toAscii().constData() );
+	if ( !openQFile( dataFile, QIODevice::ReadOnly ) )
 		return false;
-	}
-
-	trieFile->open( QIODevice::ReadOnly );
-	subTrieFile->open( QIODevice::ReadOnly );
-	dataFile->open( QIODevice::ReadOnly );
 
 	trieData = ( char* ) trieFile->map( 0, trieFile->size() );
 	subTrieData = ( char* ) subTrieFile->map( 0, subTrieFile->size() );
 
-	if ( trieData == NULL )
-	{
+	if ( trieData == NULL ) {
 		qDebug( "Failed to Memory Map trie data" );
 		return false;
 	}
-	if ( subTrieData == NULL )
-	{
+	if ( subTrieData == NULL ) {
 		qDebug( "Failed to Memory Map sub trie data" );
 		return false;
 	}

@@ -20,10 +20,10 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "oisettingsdialog.h"
 #include "ui_oisettingsdialog.h"
 #include <QFileDialog>
-#include <QMessageBox>
 #include <QTextStream>
 #include <QSettings>
 #include <QtDebug>
+#include "utils/qthelpers.h"
 
 OISettingsDialog::OISettingsDialog(QWidget *parent) :
     QDialog(parent),
@@ -113,10 +113,8 @@ void OISettingsDialog::removeSpeed() {
 void OISettingsDialog::save( const QString& filename )
 {
 	QFile file( filename );
-	if ( !file.open( QIODevice::WriteOnly ) ) {
-		QMessageBox::warning( this, tr( "Save Speed Profile" ), tr( "Cannot write to file %1:\n%2" ).arg( file.fileName() ).arg( file.errorString() ) );
+	if ( !openQFile( &file, QIODevice::WriteOnly ) )
 		return;
-	}
 
 	QTextStream out( &file );
 	int rowCount = m_ui->speedTable->rowCount();
@@ -141,10 +139,8 @@ void OISettingsDialog::save( const QString& filename )
 void OISettingsDialog::load( const QString& filename )
 {
 	QFile file( filename );
-	if ( !file.open( QIODevice::ReadOnly ) ) {
-		qCritical() << "OSM Importer: cannot read from speed profile file" << file.fileName();
+	if ( !openQFile( &file, QIODevice::ReadOnly ) )
 		return;
-	}
 
 	QTextStream in( &file );
 	int rowCount = 0;

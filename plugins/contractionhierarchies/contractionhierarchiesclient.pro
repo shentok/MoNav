@@ -18,7 +18,8 @@ HEADERS += \
     contractionhierarchiesclient.h \
     compressedgraph.h \
     interfaces/igpslookup.h \
-    utils/bithelpers.h
+    utils/bithelpers.h \
+    utils/qthelpers.h
 
 SOURCES += \
     contractionhierarchiesclient.cpp

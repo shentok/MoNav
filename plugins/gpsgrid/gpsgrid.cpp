@@ -19,10 +19,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "gpsgrid.h"
 #include "utils/intersection.h"
-#include <QDir>
+#include "utils/qthelpers.h"
 #include <QFile>
 #include <algorithm>
-#include <cmath>
 
 GPSGrid::GPSGrid()
 {
@@ -65,14 +64,15 @@ bool GPSGrid::Preprocess( IImporter* importer )
 	if ( !settingsDialog->getSettings( &settings ) )
 		return false;
 
-	QDir dir( outputDirectory );
-	QString filename = dir.filePath( "GPSGrid" );
+	QString filename = fileInDirectory( outputDirectory, "GPSGrid" );
 
 	QFile gridFile( filename + "_grid" );
 	QFile configFile( filename + "_config" );
 
-	gridFile.open( QIODevice::WriteOnly );
-	configFile.open( QIODevice::WriteOnly );
+	if ( !openQFile( &gridFile, QIODevice::WriteOnly ) )
+		return false;
+	if ( !openQFile( &configFile, QIODevice::WriteOnly ) )
+		return false;
 
 	std::vector< IImporter::RoutingNode > inputNodes;
 	std::vector< IImporter::RoutingEdge > inputEdges;
@@ -89,7 +89,7 @@ bool GPSGrid::Preprocess( IImporter* importer )
 
 	std::vector< GridImportEdge > grid;
 
-	qDebug( "Distributing Edges" );
+	Timer time;
 	for ( std::vector< IImporter::RoutingEdge >::const_iterator i = inputEdges.begin(); i != inputEdges.end(); ++i ) {
 		if ( i->source == i->target )
 			continue;
@@ -126,16 +126,14 @@ bool GPSGrid::Preprocess( IImporter* importer )
 				grid.push_back( clippedEdge );
 			}
 		}
-
 	}
-	qDebug( "Overhead: %d Duplicated Edges", ( int ) ( grid.size() - inputEdges.size() ) );
-	qDebug( "Overhead: %d Percent Duplicated Edges", ( int ) ( ( grid.size() - inputEdges.size() ) * 100 / inputEdges.size() ) );
+	qDebug() << "GPS Grid: distributed edges:" << time.restart() << "s";
+	qDebug() << "GPS Grid: overhead:" << grid.size() - inputEdges.size() << "duplicated edges";
+	qDebug() << "GPS Grid: overhead:" << ( grid.size() - inputEdges.size() ) * 100 / inputEdges.size() << "% duplicated edges";;
 	std::vector< IImporter::RoutingEdge >().swap( inputEdges );
 
-	qDebug( "Sorting" );
 	std::sort( grid.begin(), grid.end() );
-
-	qDebug( "Writing File" );
+	qDebug() << "GPS Grid: sorted edges:" << time.restart() << "s";
 
 	std::vector< gg::GridIndex > tempIndex;
 	qint64 position = 0;
@@ -178,9 +176,10 @@ bool GPSGrid::Preprocess( IImporter* importer )
 		delete[] buffer;
 		position += size + sizeof( size );
 	}
+	qDebug() << "GPS Grid: wrote cells:" << time.restart() << "s";
 
-	qDebug() << "Creating Index";
 	gg::Index::Create( filename + "_index", tempIndex );
+	qDebug() << "GPS Grid: created index:" << time.restart() << "s";
 
 	return true;
 }

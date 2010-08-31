@@ -21,9 +21,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define COMPRESSEDGRAPHBUILDER_H
 
 #include "compressedgraph.h"
+#include "utils/qthelpers.h"
 #include <limits>
 #include <QHash>
-#include <QTime>
 #include <QtDebug>
 
 class CompressedGraphBuilder : public CompressedGraph {
@@ -574,8 +574,7 @@ private:
 	{
 		assert( m_nodes.size() == remap->size() );
 		qDebug() << "creating compressed graph with" << m_nodes.size() <<  "nodes and" << m_edges.size() << "edges";
-		QTime time;
-		time.start();
+		Timer time;
 
 		buildIndex();
 		m_nodeIDs.resize( m_nodes.size() );
@@ -607,19 +606,15 @@ private:
 
 		// unpack shortcuts
 		QFile pathFile( filename + "_paths" );
-		if ( !pathFile.open( QIODevice::WriteOnly ) ) {
-			qCritical() << "failed to open path file:" << pathFile.fileName();
+		if ( !openQFile( &pathFile, QIODevice::WriteOnly ) )
 			return false;
-		}
 		unpackShortcuts( &pathFile );
 		qDebug() << "unpacked shortcuts:" << time.restart() << "ms";
 
 		// recompute block settings and write
 		QFile blockFile( filename + "_edges" );
-		if ( !blockFile.open( QIODevice::WriteOnly ) ) {
-			qCritical() << "failed to open path file:" << blockFile.fileName();
+		if ( !openQFile( &blockFile, QIODevice::WriteOnly ) )
 			return false;
-		}
 		for ( unsigned block = 0, node = 0; block < blocks; block++ ) {
 			initBlock( block, node );
 			while ( node < m_nodes.size() && m_nodeIDs[node].block == block )
@@ -631,10 +626,8 @@ private:
 
 		// write config
 		QFile configFile( filename + "_config" );
-		if ( !configFile.open( QIODevice::WriteOnly ) ) {
-			qCritical() << "failed to open config file:" << configFile.fileName();
+		if ( !openQFile( &configFile, QIODevice::WriteOnly ) )
 			return false;
-		}
 		m_settings.write( configFile );
 
 		qDebug( "used Settings:" );

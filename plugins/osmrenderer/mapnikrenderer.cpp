@@ -18,6 +18,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "mapnikrenderer.h"
+#include "utils/qthelpers.h"
 
 #include <mapnik/map.hpp>
 #include <mapnik/datasource_cache.hpp>
@@ -26,15 +27,10 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <mapnik/image_util.hpp>
 #include <mapnik/load_map.hpp>
 #include <omp.h>
-#include <QDir>
 #include <QFile>
-#include <QDataStream>
-#include <QProgressDialog>
 #include <QTemporaryFile>
 #include <QProcess>
 #include <QtDebug>
-
-//#include <QLibrary>
 
 MapnikRenderer::MapnikRenderer()
 {
@@ -73,8 +69,7 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 {
 	if ( settingsDialog == NULL )
 		settingsDialog = new MRSettingsDialog();
-	QDir directory( outputDirectory );
-	QString filename = directory.filePath( "Mapnik Renderer" );
+	QString filename = fileInDirectory( outputDirectory, "Mapnik Renderer" );
 
 	try {
 		MRSettingsDialog::Settings settings;
@@ -87,28 +82,18 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 		std::vector< IImporter::RoutingNode > inputNodes;
 		if ( settings.deleteTiles ) {
 			if ( !importer->GetRoutingEdges( &inputEdges ) ) {
-				qCritical() << "Failed to read routing Edges";
+				qCritical() << "Mapnik Renderer: failed to read routing Edges";
 				return false;
 			}
 			if ( !importer->GetRoutingNodes( &inputNodes ) ) {
-				qCritical() << "Failed to read routing Nodes";
+				qCritical() << "Mapnik Renderer: failed to read routing Nodes";
 				return false;
 			}
 		}
 
-		qDebug( "Initialize Database Link" );
-
-		/*QDir pluginDir( settings.plugins );
-		foreach ( QString fileName, pluginDir.entryList( QDir::Files ) ) {
-			QLibrary* loader = new QLibrary( pluginDir.absoluteFilePath( fileName ) );
-			loader->load();
-			qDebug( "%s is libary: %i", pluginDir.absoluteFilePath( fileName ).toAscii().constData(), loader->isLoaded() );
-			if ( !loader->isLoaded() )
-				qDebug( "Reason: %s", loader->errorString().toAscii().constData() );
-		}*/
+		Timer time;
 
 		mapnik::datasource_cache::instance()->register_datasources( settings.plugins.toAscii().constData() );
-
 		QDir fonts( settings.fonts );
 		mapnik::projection projection;
 		projection = mapnik::projection( "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over" );
@@ -117,19 +102,22 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 		mapnik::freetype_engine::register_font( fonts.filePath( "DejaVuSans-Oblique.ttf" ).toAscii().constData() );
 		mapnik::freetype_engine::register_font( fonts.filePath( "DejaVuSans-BoldOblique.ttf" ).toAscii().constData() );
 
-		qDebug( "X: %u - %u", box.min.x, box.max.x );
-		qDebug( "Y: %u - %u", box.min.y, box.max.y );
+		qDebug() << "Mapnik Renderer: initialized mapnik connection:" << time.restart() << "s";
+
+		int numThreads = omp_get_max_threads();
+		qDebug() << "Mapnik Renderer: using" << numThreads << "threads";
+
+		qDebug() << "Mapnik Renderer: x: " << box.min.x << "-" << box.max.x;
+		qDebug() << "Mapnik Renderer: y: " << box.min.y << "-" << box.max.y;
 
 		MapnikConfig config;
 		config.maxZoom = settings.maxZoom;
 		config.tileSize = settings.tileSize;
-		QFile configFile( filename );
-		configFile.open( QIODevice::WriteOnly );
-		QDataStream configData( &configFile );
+		FileStream configData( filename );
+		if ( !configData.open( QIODevice::WriteOnly ) )
+			return false;
 
 		configData << quint32( config.tileSize ) << quint32( config.maxZoom );
-
-		int numThreads = omp_get_max_threads();
 
 		mapnik::Map* maps[numThreads];
 		mapnik::Image32* images[numThreads];
@@ -139,7 +127,8 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 			const int metaTileSize = settings.metaTileSize * settings.tileSize + 2 * settings.margin;
 			images[i] = new mapnik::Image32( metaTileSize, metaTileSize );
 		}
-		qDebug( "Using %d Threads", numThreads );
+
+		qDebug() << "Mapnik Renderer: initialized thread data:" << time.restart() << "s";
 
 		for ( int zoom = 0; zoom <= settings.maxZoom; zoom++ ) {
 
@@ -196,12 +185,13 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 
 			configData << quint32( minX ) << quint32( maxX ) << quint32( minY ) << quint32( maxY );
 
-			qDebug( "Zoom: %d; X: %d - %d; Y: %d - %d", zoom, minX, maxX, minY, maxY );
+			qDebug() << "Mapnik Renderer: zoom:" << zoom << "; x:" << minX << "-" << maxX << "; y:" << minY << "-" << maxY;
 			int numberOfTiles = ( maxX - minX ) * ( maxY - minY );
 			std::vector< MapnikIndexElement > index( numberOfTiles );
 			qint64 position = 0;
 			QFile tilesFile( filename + QString( "_%1_tiles" ).arg( zoom ) );
-			tilesFile.open( QIODevice::WriteOnly );
+			if ( !openQFile( &tilesFile, QIODevice::WriteOnly ) )
+				return false;
 
 			std::vector< MapnikMetaTile > tasks;
 			for ( int x = minX; x < maxX; x+= settings.metaTileSize ) {
@@ -254,8 +244,7 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 							else
 								result = mapnik::save_to_string( view, "png" );
 
-							if ( settings.pngcrush )
-							{
+							if ( settings.pngcrush ) {
 								QTemporaryFile tempOut;
 								tempOut.open();
 								tempOut.write( result.data(), result.size() );
@@ -286,7 +275,6 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 #pragma omp critical
 						{
 							tilesFile.write( result.data(), result.size() );
-							tilesRendered++;
 							index[indexNumber].start = position;
 							position += result.size();
 							index[indexNumber].end = position;
@@ -296,33 +284,36 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 #pragma omp critical
 				{
 					metaTilesRendered++;
-					qDebug( "Zoom: %d, Thread %d, Metatiles: %d, Tiles: %d / %d", zoom, threadID, metaTilesRendered, tilesRendered, ( maxX - minX ) * ( maxY - minY ) );
+					tilesRendered += metaTileSizeX * metaTileSizeY;
+					qDebug( "Mapnik Renderer: zoom: %d, thread %d, metatiles: %d, tiles: %d / %d", zoom, threadID, metaTilesRendered, tilesRendered, ( maxX - minX ) * ( maxY - minY ) );
 				}
 			}
-			qDebug( "Zoom %d: Removed %d of %d tiles", zoom, tilesSkipped, tilesRendered );
+			qDebug() << "Mapnik Renderer: zoom" << zoom << ": removed" << tilesSkipped << "of" << tilesRendered << "tiles";
 			if ( settings.pngcrush )
-				qDebug( "PNGcrush saved %lld KB -> %lld KB [%lld %%]", pngcrushSaved / 1024, position / 1024, 100 * pngcrushSaved / position );
+				qDebug() << "Mapnik Renderer: PNGcrush saved" << pngcrushSaved / 1024 << "KB ->" << position / 1024 << "KB" << "[" << 100 * pngcrushSaved / position << "%]";
 			QFile indexFile( filename + QString( "_%1_index" ).arg( zoom ) );
-			indexFile.open( QIODevice::WriteOnly );
+			if ( !openQFile( &indexFile, QIODevice::WriteOnly ) )
+				return false;
 			for ( int i = 0; i < ( int ) index.size(); i++ )
 			{
 				indexFile.write( ( const char* ) &index[i].start, sizeof( index[i].start ) );
 				indexFile.write( ( const char* ) &index[i].end, sizeof( index[i].end ) );
 			}
 		}
+		qDebug() << "Mapnik Renderer: rendering finished:" << time.restart() << "s";
 
 		for ( int i = 0; i < numThreads; i++ ) {
 			delete maps[i];
 			delete images[i];
 		}
 	} catch ( const mapnik::config_error & ex ) {
-		qCritical( "### Configuration error: %s", ex.what() );
+		qCritical( "Mapnik Renderer: ### Configuration error: %s", ex.what() );
 		return false;
 	} catch ( const std::exception & ex ) {
-		qCritical( "### STD error: %s", ex.what() );
+		qCritical( "Mapnik Renderer: ### STD error: %s", ex.what() );
 		return false;
 	} catch ( ... ) {
-		qCritical( "### Unknown error" );
+		qCritical( "Mapnik Renderer: ### Unknown error" );
 		return false;
 	}
 	return true;
