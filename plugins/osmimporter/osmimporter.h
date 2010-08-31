@@ -20,13 +20,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef OSMIMPORTER_H
 #define OSMIMPORTER_H
 
-#include <vector>
-#include <libxml/xmlreader.h>
-#include <QObject>
 #include "interfaces/iimporter.h"
 #include "oisettingsdialog.h"
 #include "statickdtree.h"
 #include "utils/intersection.h"
+#include <libxml/xmlreader.h>
+#include <QObject>
+#include <cstring>
 
 class OSMImporter : public QObject, public IImporter
 {
@@ -50,14 +50,8 @@ public:
 	virtual ~OSMImporter();
 
 protected:
-	QString outputDirectory;
-	OISettingsDialog* settingsDialog;
 
-	OISettingsDialog::Settings settings;
-	std::vector< const char* > kmhStrings;
-	std::vector< const char* > mphStrings;
-
-	struct {
+	struct Statistics{
 		NodeID numberOfNodes;
 		NodeID numberOfEdges;
 		NodeID numberOfWays;
@@ -67,26 +61,28 @@ protected:
 		NodeID numberOfZeroSpeed;
 		NodeID numberOfDefaultCitySpeed;
 		NodeID numberOfCityEdges;
-	} stats;
 
-	struct _Way {
+		Statistics() {
+			memset( this, 0, sizeof( Statistics ) );
+		}
+	};
+
+	struct Way {
 		std::vector< NodeID > path;
 		enum {
-			notSure = 0, oneway, bidirectional, opposite
-				  } direction;
+			NotSure = 0, Oneway, Bidirectional, Opposite
+		} direction;
 		double maximumSpeed;
 		bool usefull;
 		bool access;
 		int accessPriority;
 		xmlChar* name;
 		xmlChar* placeName;
-		enum {
-			none = 0, suburb, hamlet, village, town, city
-			   } placeType;
+		Place::Type placeType;
 		int type;
 	};
 
-	struct _Node {
+	struct Node {
 		double latitude;
 		double longitude;
 		unsigned id;
@@ -96,24 +92,24 @@ protected:
 		Place::Type type;
 	};
 
-	struct _NodeLocation {
+	struct NodeLocation {
 		// City / Town
 		NodeID place;
 		double distance;
 		bool isInPlace: 1;
 	};
 
-	struct _Place {
+	struct Location {
 		QString name;
 		Place::Type type;
 		GPSCoordinate coordinate;
 	};
 
-	struct _Outline {
+	struct Outline {
 		QString name;
 		std::vector< DoublePoint > way;
 
-		bool operator<( const _Outline& right ) const {
+		bool operator<( const Outline& right ) const {
 			return name < right.name;
 		}
 	};
@@ -152,14 +148,23 @@ protected:
 		}
 	};
 
-	bool _ReadXML( const QString& inputFilename, const QString& filename, std::vector< NodeID >& usedNodes, std::vector< NodeID >& outlineNodes, std::vector< NodeID >& signalNodes );
-	bool _PreprocessData( const QString& filename, const std::vector< NodeID >& usedNodes, const std::vector< NodeID >& outlineNodes, const std::vector< NodeID >& signalNodes );
-	_Way _ReadXMLWay( xmlTextReaderPtr& inputReader );
-	_Node _ReadXMLNode( xmlTextReaderPtr& inputReader );
-
-	xmlTextReaderPtr inputReader;
-
 	typedef KDTree::StaticKDTree< 2, double, NodeID, GPSMetric > GPSTree;
+
+	bool readXML( const QString& inputFilename, const QString& filename );
+	bool preprocessData( const QString& filename );
+	Way readXMLWay( xmlTextReaderPtr& inputReader );
+	Node readXMLNode( xmlTextReaderPtr& inputReader );
+
+	Statistics m_statistics;
+	QString m_outputDirectory;
+	OISettingsDialog* m_settingsDialog;
+
+	OISettingsDialog::Settings m_settings;
+	std::vector< const char* > m_kmhStrings;
+	std::vector< const char* > m_mphStrings;
+	std::vector< NodeID > m_usedNodes;
+	std::vector< NodeID > m_outlineNodes;
+	std::vector< NodeID > m_signalNodes;
 };
 
 #endif // OSMIMPORTER_H
