@@ -268,6 +268,29 @@ bool OSMImporter::readXML( const QString& inputFilename, const QString& filename
 				}
 			}
 
+			else if ( xmlStrEqual( currentName, ( const xmlChar* ) "bounds" ) == 1 ) {
+				xmlChar* minLat = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "minlat" );
+				xmlChar* maxLat = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "maxlat" );
+				xmlChar* minLon = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "minlon" );
+				xmlChar* maxLon = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "maxlon" );
+				if ( minLat != NULL && maxLat != NULL && minLon != NULL && maxLon != NULL ) {
+					double temp;
+					temp = atof( ( const char* ) minLat );
+					boundingBoxData << temp;
+					temp = atof( ( const char* ) minLon );
+					boundingBoxData << temp;
+					temp = atof( ( const char* ) maxLat );
+					boundingBoxData << temp;
+					temp = atof( ( const char* ) maxLon );
+					boundingBoxData << temp;
+				}
+				if ( minLat != NULL )
+					xmlFree( minLat );
+					xmlFree( maxLat );
+					xmlFree( minLon );
+					xmlFree( maxLon );
+			}
+
 			xmlFree( currentName );
 		}
 
