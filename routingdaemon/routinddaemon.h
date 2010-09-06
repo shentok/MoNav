@@ -39,6 +39,7 @@ public:
 	RoutingDaemon( int argc, char** argv ) : QtService< QCoreApplication >( argc, argv, "MoNav Routing Daemon" )
 	{
 		 setServiceDescription( "The MoNav Routing Daemon" );
+		 m_loaded = false;
 		 m_gpsLookup = NULL,
 		 m_router = NULL;
 		 m_server = new QLocalServer( this );
@@ -59,15 +60,16 @@ public slots:
 		RoutingDaemonCommand command;
 		RoutingDaemonResult result;
 
-		command.read( connection );
-		if ( command.type == RoutingDaemonCommand::LoadData ) {
+		if ( !command.read( connection ) )
+			return;
+
+		if ( !m_loaded || command.dataDirectory != m_dataDirectory ) {
 			unloadPlugins();
-			bool loaded = loadPlugins( command.dataDirectory );
-			if ( loaded )
-				result.type = RoutingDaemonResult::LoadSuccess;
-			else
-				result.type = RoutingDaemonResult::LoadFail;
-		} else if ( command.type == RoutingDaemonCommand::GetRoute ) {
+			m_loaded = loadPlugins( command.dataDirectory );
+			m_dataDirectory = command.dataDirectory;
+		}
+
+		if ( m_loaded ) {
 			QVector< UnsignedCoordinate > path;
 			double distance = 0;
 			bool success = true;
@@ -78,30 +80,32 @@ public slots:
 				GPSCoordinate source( command.waypoints[i - 1].latitude, command.waypoints[i - 1].longitude );
 				GPSCoordinate target( command.waypoints[i].latitude, command.waypoints[i].longitude );
 				path.clear();
-				if ( !computeRoute( &segmentDistance, &path, source, target ) ) {
+				if ( !computeRoute( &segmentDistance, &path, source, target, command.lookupRadius ) ) {
 					success = false;
 					break;
 				}
 				distance += segmentDistance;
 				for ( int j = 0; j < path.size(); j++ ) {
-					RoutingDaemonResult::Coordinate coordinate;
+					RoutingDaemonCoordinate coordinate;
 					GPSCoordinate gps = path[j].ToGPSCoordinate();
 					coordinate.latitude = gps.latitude;
 					coordinate.longitude = gps.longitude;
 					result.path.push_back( coordinate );
 				}
 			}
+			result.seconds = distance;
 
 			if ( success )
-				result.type = RoutingDaemonResult::RouteSuccess;
+				result.type = RoutingDaemonResult::Success;
 			else
 				result.type = RoutingDaemonResult::RouteFail;
-
-			result.seconds = distance;
 		} else {
-			qDebug() << "command not recognized:" << command.type;
-			return;
+			result.type = RoutingDaemonResult::LoadFail;
 		}
+
+		if ( connection->state() != QLocalSocket::ConnectedState )
+			return;
+
 		result.post( connection );
 		connection->flush();
 		connection->disconnectFromServer();
@@ -126,7 +130,7 @@ protected:
 		m_server->close();
 	}
 
-	bool computeRoute( double* resultDistance, QVector< UnsignedCoordinate >* resultPath, GPSCoordinate source, GPSCoordinate target )
+	bool computeRoute( double* resultDistance, QVector< UnsignedCoordinate >* resultPath, GPSCoordinate source, GPSCoordinate target, double lookupRadius )
 	{
 		if ( m_gpsLookup == NULL || m_router == NULL ) {
 			qCritical() << "tried to query route before setting valid data directory";
@@ -137,7 +141,7 @@ protected:
 		QVector< IGPSLookup::Result > gpsList;
 		QTime time;
 		time.start();
-		bool found = m_gpsLookup->GetNearEdges( &gpsList, sourceCoordinate, 100 );
+		bool found = m_gpsLookup->GetNearEdges( &gpsList, sourceCoordinate, lookupRadius );
 		qDebug() << "GPS Lookup:" << time.restart() << "ms";
 		if ( !found ) {
 			qDebug() << "no edge near source found";
@@ -145,7 +149,7 @@ protected:
 		}
 		IGPSLookup::Result sourcePosition = gpsList.first();
 		gpsList.clear();
-		found = m_gpsLookup->GetNearEdges( &gpsList, targetCoordinate, 100 );
+		found = m_gpsLookup->GetNearEdges( &gpsList, targetCoordinate, lookupRadius );
 		qDebug() << "GPS Lookup:" << time.restart() << "ms";
 		if ( !found ) {
 			qDebug() << "no edge near target found";
@@ -223,6 +227,8 @@ protected:
 		m_gpsLookup = NULL;
 	}
 
+	bool m_loaded;
+	QString m_dataDirectory;
 	IGPSLookup* m_gpsLookup;
 	IRouter* m_router;
 	QLocalServer* m_server;

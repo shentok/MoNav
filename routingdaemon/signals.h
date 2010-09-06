@@ -15,6 +15,10 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
+
+Alternatively, this file may be used under the terms of the GNU Lesser
+General Public License version 3 as published by the Free Software
+Foundation.
 */
 
 #ifndef SIGNALS_H
@@ -23,69 +27,73 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QIODevice>
 #include <QString>
 #include <QVector>
+#include <QDataStream>
+#include <QBuffer>
+#include <QLocalSocket>
+
+struct RoutingDaemonCoordinate {
+	double latitude;
+	double longitude;
+
+	friend QDataStream& operator<< ( QDataStream& out, const RoutingDaemonCoordinate& coordinate )
+	{
+		out << coordinate.latitude;
+		out << coordinate.longitude;
+		return out;
+	}
+
+	friend QDataStream& operator>> ( QDataStream& in, RoutingDaemonCoordinate& coordinate )
+	{
+		in >> coordinate.latitude;
+		in >> coordinate.longitude;
+		return in;
+	}
+};
 
 class RoutingDaemonCommand {
 
 public:
 
-	enum CommandType {
-		LoadData = 0, GetRoute = 1
-	} type;
-
-	struct Coordinate {
-		double latitude;
-		double longitude;
-	};
-
-	QVector< Coordinate > waypoints;
+	double lookupRadius;
 	QString dataDirectory;
+	QVector< RoutingDaemonCoordinate > waypoints;
 
 	void post( QIODevice* out )
 	{
-		qint32 temp = type;
-		out->write( ( const char* ) &temp, sizeof( qint32 ) );
-		if ( type == LoadData ) {
-			QByteArray data = dataDirectory.toUtf8();
-			temp = data.size();
-			out->write( ( const char* ) &temp, sizeof( qint32 ) );
-			out->write( data );
-		} else if ( type == GetRoute ) {
-			temp = waypoints.size();
-			out->write( ( const char* ) &temp, sizeof( qint32 ) );
-			for ( int i = 0; i < waypoints.size(); i++ ) {
-				out->write( ( const char* ) &waypoints[i].latitude, sizeof( double ) );
-				out->write( ( const char* ) &waypoints[i].longitude, sizeof( double ) );
-			}
-		}
+		QByteArray buffer;
+		QDataStream stream( &buffer, QIODevice::WriteOnly );
+		stream << lookupRadius;
+		stream << dataDirectory;
+		stream << waypoints;
+		qint32 size = buffer.size();
+		out->write( ( const char* ) &size, sizeof( qint32 ) );
+		out->write( buffer.data(), size );
 	}
 
-	void read( QIODevice* in )
+	bool read( QLocalSocket* in )
 	{
-		qint32 temp;
-		while ( in->bytesAvailable() < ( int ) sizeof( qint32 ) )
-			in->waitForReadyRead( 1000 );
-		in->read( ( char* ) &temp, sizeof( qint32 ) );
-		type = ( CommandType ) temp;
-		if ( type == LoadData ) {
-			while ( in->bytesAvailable() < ( int ) sizeof( qint32 ) )
-				in->waitForReadyRead( 1000 );
-			in->read( ( char* ) &temp, sizeof( qint32 ) );
-			while ( in->bytesAvailable() < temp )
-				in->waitForReadyRead( 1000 );
-			QByteArray data = in->read( temp ).data();
-			dataDirectory = QString::fromUtf8( data.data() );
-		} else if ( type == GetRoute ) {
-			while ( in->bytesAvailable() < ( int ) sizeof( qint32 ) )
-				in->waitForReadyRead( 1000 );
-			in->read( ( char* ) &temp, sizeof( qint32 ) );
-			waypoints.resize( temp );
-			while ( in->bytesAvailable() < temp * 2 * ( int ) sizeof( double ) )
-				in->waitForReadyRead( 1000 );
-			for ( int i = 0; i < waypoints.size(); i++ ) {
-				in->read( ( char* ) &waypoints[i].latitude, sizeof( double ) );
-				in->read( ( char* ) &waypoints[i].longitude, sizeof( double ) );
-			}
+		qint32 size;
+		while ( in->bytesAvailable() < ( int ) sizeof( qint32 ) ) {
+			if ( in->state() != QLocalSocket::ConnectedState )
+				return false;
+			in->waitForReadyRead( 100 );
 		}
+
+		in->read( ( char* ) &size, sizeof( quint32 ) );
+
+		while ( in->bytesAvailable() < size ) {
+			if ( in->state() != QLocalSocket::ConnectedState )
+				return false;
+			in->waitForReadyRead( 100 );
+		}
+
+		QByteArray buffer= in->read( size );
+		QDataStream stream( buffer );
+		stream >> lookupRadius;
+		stream >> dataDirectory;
+		stream >> waypoints;
+
+		return true;
 	}
 
 };
@@ -95,52 +103,50 @@ class RoutingDaemonResult {
 public:
 
 	enum ResultType {
-		LoadSuccess = 0, LoadFail = 1, RouteSuccess = 2, RouteFail = 3
+		LoadFail = 1, RouteFail = 2, Success = 3
 	} type;
 
-	struct Coordinate {
-		double latitude;
-		double longitude;
-	};
-
-	QVector< Coordinate > path;
 	double seconds;
+	QVector< RoutingDaemonCoordinate > path;
 
 	void post( QIODevice* out )
 	{
-		qint32 temp = type;
-		out->write( ( const char* ) &temp, sizeof( qint32 ) );
-		if ( type == RouteSuccess ) {
-			out->write( ( const char* ) &seconds, sizeof( double ) );
-			temp = path.size();
-			out->write( ( const char* ) &temp, sizeof( qint32 ) );
-			for ( int i = 0; i < path.size(); i++ ) {
-				out->write( ( const char* ) &path[i].latitude, sizeof( double ) );
-				out->write( ( const char* ) &path[i].longitude, sizeof( double ) );
-			}
-		}
+		QByteArray buffer;
+		QDataStream stream( &buffer, QIODevice::WriteOnly );
+		stream << qint32( type );
+		stream << seconds;
+		stream << path;
+		qint32 size = buffer.size();
+		out->write( ( const char* ) &size, sizeof( qint32 ) );
+		out->write( buffer.data(), size );
 	}
 
-	void read( QIODevice* in )
+	bool read( QLocalSocket* in )
 	{
-		qint32 temp;
-		while ( in->bytesAvailable() < ( int ) sizeof( qint32 ) )
-			in->waitForReadyRead( 1000 );
-		in->read( ( char* ) &temp, sizeof( qint32 ) );
-		type = ( ResultType ) temp;
-		if ( type == RouteSuccess ) {
-			while ( in->bytesAvailable() < ( int ) sizeof( double ) + ( int ) sizeof( qint32 ) )
-				in->waitForReadyRead( 1000 );
-			in->read( ( char* ) &seconds, sizeof( double ) );
-			in->read( ( char* ) &temp, sizeof( qint32 ) );
-			path.resize( temp );
-			while ( in->bytesAvailable() < temp * 2 * ( int ) sizeof( double ) )
-				in->waitForReadyRead( 1000 );
-			for ( int i = 0; i < path.size(); i++ ) {
-				in->read( ( char* ) &path[i].latitude, sizeof( double ) );
-				in->read( ( char* ) &path[i].longitude, sizeof( double ) );
-			}
+		qint32 size;
+		while ( in->bytesAvailable() < ( int ) sizeof( qint32 ) ) {
+			if ( in->state() != QLocalSocket::ConnectedState )
+				return false;
+			in->waitForReadyRead( 100 );
 		}
+
+		in->read( ( char* ) &size, sizeof( quint32 ) );
+
+		while ( in->bytesAvailable() < size ) {
+			if ( in->state() != QLocalSocket::ConnectedState )
+				return false;
+			in->waitForReadyRead( 100 );
+		}
+
+		QByteArray buffer= in->read( size );
+		QDataStream stream( buffer );
+		qint32 temp;
+		stream >> temp;
+		type = ( ResultType ) temp;
+		stream >> seconds;
+		stream >> path;
+
+		return true;
 	}
 
 };
