@@ -33,6 +33,13 @@ class BlockCache{
 
 public:
 
+	BlockCache()
+	{
+		m_cache = NULL;
+		m_LRU = NULL;
+		m_blocks = NULL;
+	}
+
 	bool load( const QString& filename, int cacheBlocks, unsigned blockSize )
 	{
 		m_cacheBlocks = cacheBlocks;
@@ -57,9 +64,16 @@ public:
 	void unload ( )
 	{
 		m_inputFile.close();
-		delete[] m_cache;
-		delete[] m_LRU;
-		delete[] m_blocks;
+		if ( m_cache != NULL )
+			delete[] m_cache;
+		if ( m_LRU != NULL )
+			delete[] m_LRU;
+		if ( m_blocks != NULL )
+			delete[] m_blocks;
+		m_cache = NULL;
+		m_LRU = NULL;
+		m_blocks = NULL;
+		m_index.clear();
 	}
 
 	const Block* getBlock( unsigned block )
