@@ -249,8 +249,8 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& source
 		pathNode = parent;
 	}
 
-	unsigned begin = path->size();
 	path->push_back( source.nearestPoint );
+	unsigned begin = path->size();
 	if ( pathNode == source1 ) {
 		for ( int pathID = source.previousWayCoordinates + 1; pathID < source.coordinates.size() - 1; pathID++ )
 			path->push_back( source.coordinates[pathID] );
