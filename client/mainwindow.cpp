@@ -19,15 +19,14 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "mapview.h"
+#include "bookmarksdialog.h"
+#include "utils/qthelpers.h"
 #include <QDir>
 #include <QSettings>
 #include <QFileDialog>
-#include <QMessageBox>
 #include <QtDebug>
-#include "mapview.h"
-#include "bookmarksdialog.h"
-#include <cstdlib>
-#include <QTime>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -272,10 +271,13 @@ void MainWindow::setSource( UnsignedCoordinate s, double h )
 	IGPSLookup::Result result;
 	QTime time;
 	time.start();
-	bool found = gpsLookup->GetNearestEdge( &result, source, 100, heading == 0 ? 0 : 10, heading );
+	bool found = gpsLookup->GetNearestEdge( &result, source, 300, heading == 0 ? 0 : 10, heading );
 	qDebug() << "GPS Lookup:" << time.elapsed() << "ms";
-	if ( !found )
+	if ( !found ) {
+		path.clear();
+		emit routeChanged( path );
 		return;
+	}
 	sourcePos = result;
 	sourceSet = true;
 	computeRoute();
@@ -291,10 +293,13 @@ void MainWindow::setTarget( UnsignedCoordinate t )
 	emit targetChanged( target );
 	QTime time;
 	time.start();
-	bool found = gpsLookup->GetNearestEdge( &result, target, 100 );
+	bool found = gpsLookup->GetNearestEdge( &result, target, 300 );
 	qDebug() << "GPS Lookup:" << time.elapsed() << "ms";
-	if ( !found )
+	if ( !found ) {
+		path.clear();
+		emit routeChanged( path );
 		return;
+	}
 	targetPos = result;
 	targetSet = true;
 	computeRoute();

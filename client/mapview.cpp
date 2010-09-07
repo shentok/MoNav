@@ -175,6 +175,14 @@ void MapView::setRoute( QVector< UnsignedCoordinate > path )
 
 void MapView::mouseClicked( ProjectedCoordinate clickPos )
 {
+	if ( mode == Source ) {
+		emit sourceChanged( UnsignedCoordinate( clickPos ), 0 );
+		return;
+	}
+	if ( mode == Target ) {
+		emit targetChanged( UnsignedCoordinate( clickPos ) );
+		return;
+	}
 	if ( gpsLookup == NULL )
 		return;
 	IGPSLookup::Result result;
@@ -189,12 +197,6 @@ void MapView::mouseClicked( ProjectedCoordinate clickPos )
 		selected = result.nearestPoint;
 		points.push_back( selected );
 		ui->paintArea->setPOIs( points );
-	}
-	if ( mode == Source ) {
-		setSource( result.nearestPoint, 0 );
-	}
-	if ( mode == Target ) {
-		setTarget( result.nearestPoint );
 	}
 }
 
