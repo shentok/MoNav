@@ -31,12 +31,16 @@ namespace Ui {
 }
 
 class PreprocessingWindow : public QMainWindow {
+
 	Q_OBJECT
+
 public:
+
 	PreprocessingWindow(QWidget *parent = 0);
 	~PreprocessingWindow();
 
 public slots:
+
 	void about();
 	void browse();
 	void importerSettings();
@@ -55,24 +59,24 @@ public slots:
 	void manual();
 
 protected:
+
 	void changeEvent(QEvent *e);
 	void connectSlots();
 	void loadPlugins();
 	bool testPlugin( QObject* plugin );
 	void unloadPlugins();
 
-	AboutDialog* aboutDialog;
+	AboutDialog* m_aboutDialog;
 
-	QList< IImporter* > importerPlugins;
-	QList< IPreprocessor* > rendererPlugins;
-	QList< IPreprocessor* > routerPlugins;
-	QList< IPreprocessor* > gpsLookupPlugins;
-	QList< IPreprocessor* > addressLookupPlugins;
+	QList< IImporter* > m_importerPlugins;
+	QList< IPreprocessor* > m_rendererPlugins;
+	QList< IPreprocessor* > m_routerPlugins;
+	QList< IPreprocessor* > m_gpsLookupPlugins;
+	QList< IPreprocessor* > m_addressLookupPlugins;
 
-	QList< QPluginLoader* > plugins;
+	QList< QPluginLoader* > m_plugins;
 
-private:
-    Ui::PreprocessingWindow *ui;
+	Ui::PreprocessingWindow* m_ui;
 };
 
 #endif // PREPROCESSINGWINDOW_H

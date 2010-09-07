@@ -23,20 +23,19 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QDialog>
 
 namespace Ui {
-    class AboutDialog;
+	class AboutDialog;
 }
 
 class AboutDialog : public QDialog {
-    Q_OBJECT
+	Q_OBJECT
 public:
-    AboutDialog(QWidget *parent = 0);
-    ~AboutDialog();
+	AboutDialog(QWidget *parent = 0);
+	~AboutDialog();
 
 protected:
-    void changeEvent(QEvent *e);
+	void changeEvent(QEvent *e);
 
-private:
-    Ui::AboutDialog *ui;
+	Ui::AboutDialog* m_ui;
 };
 
 #endif // ABOUTDIALOG_H
