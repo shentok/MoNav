@@ -22,7 +22,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QDialog>
 #include <QListWidget>
-#include <vector>
 #include "interfaces/iaddresslookup.h"
 #include "interfaces/irenderer.h"
 #include "interfaces/igpslookup.h"
@@ -41,13 +40,12 @@ public:
 
 	void setAddressLookup( IAddressLookup* al );
 	void setRenderer( IRenderer* r );
-	void setGPSLookup( IGPSLookup* g );
-	static bool getAddress( UnsignedCoordinate* result, IAddressLookup* addressLookup, IRenderer* renderer, IGPSLookup* gpsLookup, QWidget* p, bool cityOnly = false );
+	static bool getAddress( UnsignedCoordinate* result, IAddressLookup* addressLookup, IRenderer* renderer, QWidget* p, bool cityOnly = false );
 
 public slots:
 
-	void characterClicked( QListWidgetItem * item );
-	void suggestionClicked( QListWidgetItem * item );
+	void characterClicked( QListWidgetItem* item );
+	void suggestionClicked( QListWidgetItem* item );
 	void cityTextChanged( QString text );
 	void streetTextChanged( QString text );
 	void resetCity();
@@ -55,18 +53,17 @@ public slots:
 
 protected:
 	void connectSlots();
-	IAddressLookup* addressLookup;
-	IRenderer* renderer;
-	IGPSLookup* gpsLookup;
+
+	IAddressLookup* m_addressLookup;
+	IRenderer* m_renderer;
 	enum {
 		City = 0, Street = 1
-	} mode;
-	int placeID;
-	UnsignedCoordinate result;
-	bool skipStreetPosition;
+	} m_mode;
+	int m_placeID;
+	UnsignedCoordinate m_result;
+	bool m_skipStreetPosition;
 
-private:
-	Ui::AddressDialog *ui;
+	Ui::AddressDialog* m_ui;
 };
 
 #endif // ADDRESSDIALOG_H

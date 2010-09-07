@@ -24,37 +24,38 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QDialog>
 
 namespace Ui {
-    class BookmarksDialog;
+	class BookmarksDialog;
 }
 
 class BookmarksDialog : public QDialog
 {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    explicit BookmarksDialog(QWidget *parent = 0);
-    ~BookmarksDialog();
-	 UnsignedCoordinate getCoordinate();
+	explicit BookmarksDialog(QWidget *parent = 0);
+	~BookmarksDialog();
+	UnsignedCoordinate getCoordinate();
 
-	 static bool showBookmarks( UnsignedCoordinate* result, QWidget* p = NULL, UnsignedCoordinate source = UnsignedCoordinate(), UnsignedCoordinate target = UnsignedCoordinate() );
+	static bool showBookmarks( UnsignedCoordinate* result, QWidget* p = NULL, UnsignedCoordinate source = UnsignedCoordinate(), UnsignedCoordinate target = UnsignedCoordinate() );
 
 public slots:
 
-	 void deleteBookmark();
-	 void chooseBookmark();
-	 void addTargetBookmark();
-	 void addSourceBookmark();
+	void deleteBookmark();
+	void chooseBookmark();
+	void addTargetBookmark();
+	void addSourceBookmark();
+	void itemSelectionChanged();
 
 protected:
-	 void connectSlots();
-	 QStringList names;
-	 QVector< UnsignedCoordinate > coordinates;
-	 int chosen;
-	 UnsignedCoordinate target;
-	 UnsignedCoordinate source;
+	void connectSlots();
 
-private:
-    Ui::BookmarksDialog *ui;
+	QStringList m_names;
+	QVector< UnsignedCoordinate > m_coordinates;
+	int m_chosen;
+	UnsignedCoordinate m_target;
+	UnsignedCoordinate m_source;
+
+	Ui::BookmarksDialog *m_ui;
 };
 
 #endif // BOOKMARKSDIALOG_H

@@ -28,18 +28,20 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "interfaces/irouter.h"
 #include "addressdialog.h"
 
-#include <QGeoPositionInfoSource>
-QTM_USE_NAMESPACE
+#ifndef NOQTMOBILE
+	#include <QGeoPositionInfoSource>
+	QTM_USE_NAMESPACE
+#endif
 
-namespace Ui {
-    class MainWindow;
+		namespace Ui {
+	class MainWindow;
 }
 
 class MainWindow : public QMainWindow {
-    Q_OBJECT
+	Q_OBJECT
 public:
-    MainWindow(QWidget *parent = 0);
-    ~MainWindow();
+	MainWindow(QWidget *parent = 0);
+	~MainWindow();
 
 public slots:
 	void browseMap();
@@ -64,7 +66,9 @@ public slots:
 
 	void computeRoute();
 
+#ifndef NOQTMOBILE
 	void positionUpdated( const QGeoPositionInfo & update );
+#endif
 
 signals:
 	void routeChanged( QVector< UnsignedCoordinate > path );
@@ -77,32 +81,49 @@ protected:
 	bool testPlugin( QObject* plugin, QString rendererName, QString routerName, QString gpsLookupName, QString addressLookupName );
 	void unloadPlugins();
 
-	QString dataDirectory;
-	QList< QPluginLoader* > plugins;
-	IRenderer* renderer;
-	IAddressLookup* addressLookup;
-	IGPSLookup* gpsLookup;
-	IRouter* router;
+	// stores the current data directory
+	QString m_dataDirectory;
+	// stores pointers to all dynamically loaded plugins
+	QList< QPluginLoader* > m_plugins;
+	// stores a pointer to the current renderer plugin
+	IRenderer* m_renderer;
+	// stores a pointer to the current address lookup plugin
+	IAddressLookup* m_addressLookup;
+	// stores a pointer to the current GPS lookup plugin
+	IGPSLookup* m_gpsLookup;
+	// stores a pointer to the current router plugin
+	IRouter* m_router;
 
-	UnsignedCoordinate source;
-	double heading;
-	UnsignedCoordinate target;
-	QVector< UnsignedCoordinate > path;
-	IGPSLookup::Result sourcePos;
-	bool sourceSet;
-	IGPSLookup::Result targetPos;
-	bool targetSet;
+	// the current source and its heading
+	UnsignedCoordinate m_source;
+	double m_heading;
+	// the current target
+	UnsignedCoordinate m_target;
+	// the last computed route
+	QVector< UnsignedCoordinate > m_path;
+	// the result of the GPS lookup of source
+	IGPSLookup::Result m_sourcePos;
+	bool m_sourceSet;
+	// the result of the GPS lookup of target
+	IGPSLookup::Result m_targetPos;
+	bool m_targetSet;
 
+	// the current menu mode [ source selection, target selection ]
 	enum {
 		Source = 0, Target = 1
-	} mode;
+								} mode;
 
-	QGeoPositionInfoSource* gpsSource;
-	bool updateTarget;
-	bool updateSource;
+#ifndef NOQTMOBILE
+	// the current GPS source
+	QGeoPositionInfoSource* m_gpsSource;
+#endif
 
-private:
-    Ui::MainWindow *ui;
+	// target updated via GPS source?
+	bool m_updateTarget;
+	// source updated via GPS source?
+	bool m_updateSource;
+
+	Ui::MainWindow* m_ui;
 };
 
 #endif // MAINWINDOW_H

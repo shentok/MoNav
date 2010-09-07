@@ -19,199 +19,181 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "mapview.h"
 #include "ui_mapview.h"
-#include <QtDebug>
-#include <QInputDialog>
 #include "addressdialog.h"
 #include "bookmarksdialog.h"
+#include <QtDebug>
+#include <QInputDialog>
 #include <QSettings>
-#include <QTime>
 
 MapView::MapView( QWidget *parent ) :
 	 QDialog(parent, Qt::Window ),
-    ui(new Ui::MapView)
+	 m_ui(new Ui::MapView)
 {
-	renderer = NULL;
-	gpsLookup = NULL;
-	addressLookup = NULL;
-	menu = NoMenu;
-	mode = POI;
-	heading = 0;
-	fixed = false;
-	toMapview = false;
+	m_renderer = NULL;
+	m_addressLookup = NULL;
+	m_menu = NoMenu;
+	m_mode = POI;
+	m_heading = 0;
+	m_fixed = false;
+	m_toMapview = false;
 
-	ui->setupUi(this);
+	m_ui->setupUi(this);
 	setupMenu();
-	ui->headerWidget->hide();
-	ui->menuButton->hide();
-	ui->infoWidget->hide();
+	m_ui->headerWidget->hide();
+	m_ui->menuButton->hide();
+	m_ui->infoWidget->hide();
 
 	connectSlots();
 
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "MapView" );
-	virtualZoom = settings.value( "virtualZoom", 1 ).toInt();
+	m_virtualZoom = settings.value( "virtualZoom", 1 ).toInt();
 }
 
 MapView::~MapView()
 {
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "MapView" );
-	settings.setValue( "virtualZoom", virtualZoom );
-	delete ui;
+	settings.setValue( "virtualZoom", m_virtualZoom );
+	delete m_ui;
 }
 
 void MapView::connectSlots()
 {
-	connect( ui->zoomBar, SIGNAL(valueChanged(int)), ui->paintArea, SLOT(setZoom(int)) );
-	connect( ui->paintArea, SIGNAL(zoomChanged(int)), ui->zoomBar, SLOT(setValue(int)) );
-	connect( ui->paintArea, SIGNAL(mouseClicked(ProjectedCoordinate)), this, SLOT(mouseClicked(ProjectedCoordinate)) );
-	connect( ui->previousButton, SIGNAL(clicked()), this, SLOT(previousPlace()) );
-	connect( ui->nextButton, SIGNAL(clicked()), this, SLOT(nextPlace()) );
-	connect( ui->paintArea, SIGNAL(contextMenu(QPoint)), this, SLOT(showContextMenu(QPoint)) );
-	connect( ui->menuButton, SIGNAL(clicked()), this, SLOT(showContextMenu()) );
-	connect( ui->zoomIn, SIGNAL(clicked()), this, SLOT(addZoom()) );
-	connect( ui->zoomOut, SIGNAL(clicked()), this, SLOT(substractZoom()) );
+	connect( m_ui->zoomBar, SIGNAL(valueChanged(int)), m_ui->paintArea, SLOT(setZoom(int)) );
+	connect( m_ui->paintArea, SIGNAL(zoomChanged(int)), m_ui->zoomBar, SLOT(setValue(int)) );
+	connect( m_ui->paintArea, SIGNAL(mouseClicked(ProjectedCoordinate)), this, SLOT(mouseClicked(ProjectedCoordinate)) );
+	connect( m_ui->previousButton, SIGNAL(clicked()), this, SLOT(previousPlace()) );
+	connect( m_ui->nextButton, SIGNAL(clicked()), this, SLOT(nextPlace()) );
+	connect( m_ui->paintArea, SIGNAL(contextMenu(QPoint)), this, SLOT(showContextMenu(QPoint)) );
+	connect( m_ui->menuButton, SIGNAL(clicked()), this, SLOT(showContextMenu()) );
+	connect( m_ui->zoomIn, SIGNAL(clicked()), this, SLOT(addZoom()) );
+	connect( m_ui->zoomOut, SIGNAL(clicked()), this, SLOT(substractZoom()) );
 }
 
 void MapView::setupMenu()
 {
-	contextMenu = new QMenu( this );
-	gotoSourceAction = contextMenu->addAction( tr( "Goto Source" ), this, SLOT(gotoSource()) );
-	gotoGPSAction = contextMenu->addAction( tr( "Goto GPS" ), this, SLOT(gotoGPS()) );
-	gotoTargetAction = contextMenu->addAction( tr( "Goto Target" ), this, SLOT(gotoTarget()) );
-	gotoAddressAction = contextMenu->addAction( tr( "Goto Address" ), this, SLOT(gotoAddress()) );
-	contextMenu->addSeparator();
-	bookmarkAction = contextMenu->addAction( tr( "Bookmarks" ), this, SLOT(bookmarks()) );
-	contextMenu->addSeparator();
-	magnifyAction = contextMenu->addAction( tr( "Magnify" ), this, SLOT(magnify()) );
-	contextMenu->addSeparator();
-	modeGroup = new QActionGroup( this );
-	modeSourceAction = new QAction( tr( "Choose Source" ), modeGroup );
-	modeSourceAction->setCheckable( true );
-	modeTargetAction = new QAction( tr( "Choose Target" ), modeGroup );
-	modeTargetAction->setCheckable( true );
-	contextMenu->addActions( modeGroup->actions() );
+	m_contextMenu = new QMenu( this );
+	m_gotoSourceAction = m_contextMenu->addAction( tr( "Goto Source" ), this, SLOT(gotoSource()) );
+	m_gotoGPSAction = m_contextMenu->addAction( tr( "Goto GPS" ), this, SLOT(gotoGPS()) );
+	m_gotoTargetAction = m_contextMenu->addAction( tr( "Goto Target" ), this, SLOT(gotoTarget()) );
+	m_gotoAddressAction = m_contextMenu->addAction( tr( "Goto Address" ), this, SLOT(gotoAddress()) );
+	m_contextMenu->addSeparator();
+	m_bookmarkAction = m_contextMenu->addAction( tr( "Bookmarks" ), this, SLOT(bookmarks()) );
+	m_contextMenu->addSeparator();
+	m_magnifyAction = m_contextMenu->addAction( tr( "Magnify" ), this, SLOT(magnify()) );
+	m_contextMenu->addSeparator();
+	m_modeGroup = new QActionGroup( this );
+	m_modeSourceAction = new QAction( tr( "Choose Source" ), m_modeGroup );
+	m_modeSourceAction->setCheckable( true );
+	m_modeTargetAction = new QAction( tr( "Choose Target" ), m_modeGroup );
+	m_modeTargetAction->setCheckable( true );
+	m_contextMenu->addActions( m_modeGroup->actions() );
 
-	routeMenu = new QMenu( this );
-	routeMenu->insertAction( NULL, magnifyAction );
-	routeMenu->addAction( tr( "Goto Mapview" ), this, SLOT(gotoMapview()) );
+	m_routeMenu = new QMenu( this );
+	m_routeMenu->insertAction( NULL, m_magnifyAction );
+	m_routeMenu->addAction( tr( "Goto Mapview" ), this, SLOT(gotoMapview()) );
 }
 
 bool MapView::exitedToMapview()
 {
-	return toMapview;
+	return m_toMapview;
 }
 
 void MapView::setRender( IRenderer* r )
 {
-	renderer = r;
-	maxZoom = renderer->GetMaxZoom();
-	ui->zoomBar->setMaximum( maxZoom );
-	ui->zoomBar->setValue( maxZoom );
-	ui->paintArea->setRenderer( r );
-	ui->paintArea->setZoom( maxZoom );
-	ui->paintArea->setMaxZoom( maxZoom );
-	ui->paintArea->setVirtualZoom( virtualZoom );
-}
-
-void MapView::setGPSLookup( IGPSLookup*g )
-{
-	gpsLookup = g;
+	m_renderer = r;
+	m_maxZoom = m_renderer->GetMaxZoom();
+	m_ui->zoomBar->setMaximum( m_maxZoom );
+	m_ui->zoomBar->setValue( m_maxZoom );
+	m_ui->paintArea->setRenderer( r );
+	m_ui->paintArea->setZoom( m_maxZoom );
+	m_ui->paintArea->setMaxZoom( m_maxZoom );
+	m_ui->paintArea->setVirtualZoom( m_virtualZoom );
 }
 
 void MapView::setCenter( ProjectedCoordinate center )
 {
-	ui->paintArea->setCenter( center );
+	m_ui->paintArea->setCenter( center );
 }
 
 void MapView::setAddressLookup( IAddressLookup* al )
 {
-	addressLookup = al;
+	m_addressLookup = al;
 }
 
 void MapView::setSource( UnsignedCoordinate s, double h )
 {
-	if ( source.x == s.x && source.y == s.y && h == heading )
+	if ( m_source.x == s.x && m_source.y == s.y && h == m_heading )
 		return;
 
-	emit sourceChanged( s, heading );
-	source = s;
-	heading = h;
-	ui->paintArea->setPosition( source, heading );
+	emit sourceChanged( s, m_heading );
+	m_source = s;
+	m_heading = h;
+	m_ui->paintArea->setPosition( m_source, m_heading );
 }
 
 void MapView::setTarget( UnsignedCoordinate t )
 {
-	if ( target.x == t.x && target.y == t.y )
+	if ( m_target.x == t.x && m_target.y == t.y )
 		return;
 
 	emit targetChanged( t );
-	target = t;
-	ui->paintArea->setTarget( target );
+	m_target = t;
+	m_ui->paintArea->setTarget( m_target );
 }
 
 void MapView::setMenu( Menu m )
 {
-	menu = m;
-	ui->menuButton->setVisible( menu != NoMenu );
+	m_menu = m;
+	m_ui->menuButton->setVisible( m_menu != NoMenu );
 }
 
 void MapView::setMode( Mode m )
 {
-	mode = m;
-	modeSourceAction->setChecked( mode == Source );
-	modeTargetAction->setChecked( mode == Target );
+	m_mode = m;
+	m_modeSourceAction->setChecked( m_mode == Source );
+	m_modeTargetAction->setChecked( m_mode == Target );
 }
 
 void MapView::setFixed( bool fixed )
 {
-	ui->paintArea->setFixed( fixed );
+	m_ui->paintArea->setFixed( fixed );
 }
 
 void MapView::setRoute( QVector< UnsignedCoordinate > path )
 {
-	ui->paintArea->setRoute( path );
+	m_ui->paintArea->setRoute( path );
 }
 
 void MapView::mouseClicked( ProjectedCoordinate clickPos )
 {
-	if ( mode == Source ) {
-		emit sourceChanged( UnsignedCoordinate( clickPos ), 0 );
+	UnsignedCoordinate coordinate( clickPos );
+	if ( m_mode == Source ) {
+		emit sourceChanged( coordinate, 0 );
 		return;
 	}
-	if ( mode == Target ) {
-		emit targetChanged( UnsignedCoordinate( clickPos ) );
+	if ( m_mode == Target ) {
+		emit targetChanged( coordinate );
 		return;
 	}
-	if ( gpsLookup == NULL )
-		return;
-	IGPSLookup::Result result;
-	QTime time;
-	time.start();
-	bool found = gpsLookup->GetNearestEdge( &result, UnsignedCoordinate( clickPos ), 200 );
-	qDebug() << "GPS Lookup:" << time.elapsed() << "ms";
-	if ( !found )
-		return;
-	if ( mode == POI ) {
-		QVector< UnsignedCoordinate > points;
-		selected = result.nearestPoint;
-		points.push_back( selected );
-		ui->paintArea->setPOIs( points );
-	}
+
+	m_selected = coordinate;
+	m_ui->paintArea->setPOI( coordinate );
 }
 
 void MapView::nextPlace()
 {
-	place = ( place + 1 ) % places.size();
-	ui->headerLabel->setText( QString( tr( "Choose City (%1/%2)" ) ).arg( place + 1 ).arg( places.size() ) );
-	ui->paintArea->setCenter( places[place].ToProjectedCoordinate() );
+	m_place = ( m_place + 1 ) % m_places.size();
+	m_ui->headerLabel->setText( QString( tr( "Choose City (%1/%2)" ) ).arg( m_place + 1 ).arg( m_places.size() ) );
+	m_ui->paintArea->setCenter( m_places[m_place].ToProjectedCoordinate() );
 }
 
 void MapView::previousPlace()
 {
-	place = ( place + places.size() - 1 ) % places.size();
-	ui->headerLabel->setText( QString( tr( "Choose City (%1/%2)" ) ).arg( place + 1 ).arg( places.size() ) );
-	ui->paintArea->setCenter( places[place].ToProjectedCoordinate() );
+	m_place = ( m_place + m_places.size() - 1 ) % m_places.size();
+	m_ui->headerLabel->setText( QString( tr( "Choose City (%1/%2)" ) ).arg( m_place + 1 ).arg( m_places.size() ) );
+	m_ui->paintArea->setCenter( m_places[m_place].ToProjectedCoordinate() );
 }
 
 int MapView::selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* renderer, QWidget* p )
@@ -228,7 +210,7 @@ int MapView::selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* rend
 	int value = window->exec();
 	int id = -1;
 	if ( value == Accepted )
-		id = window->place;
+		id = window->m_place;
 	delete window;
 
 	return id;
@@ -236,17 +218,17 @@ int MapView::selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* rend
 
 void MapView::setPlaces( QVector< UnsignedCoordinate > p )
 {
-	places = p;
-	place = 0;
+	m_places = p;
+	m_place = 0;
 
-	ui->headerLabel->setText( QString( tr( "Choose City (%1/%2)" ) ).arg( 1 ).arg( p.size() ) );
-	ui->headerWidget->show();
+	m_ui->headerLabel->setText( QString( tr( "Choose City (%1/%2)" ) ).arg( 1 ).arg( p.size() ) );
+	m_ui->headerWidget->show();
 
-	ui->paintArea->setCenter( places.first().ToProjectedCoordinate() );
-	ui->paintArea->setPOIs( p );
+	m_ui->paintArea->setCenter( m_places.first().ToProjectedCoordinate() );
+	m_ui->paintArea->setPOIs( p );
 }
 
-bool MapView::selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, IRenderer* renderer, IGPSLookup* gpsLookup, QWidget* p )
+bool MapView::selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, IRenderer* renderer, QWidget* p )
 {
 	if ( result == NULL )
 		return false;
@@ -256,18 +238,15 @@ bool MapView::selectStreet( UnsignedCoordinate* result, QVector< int >segmentLen
 		return false;
 	if ( renderer == 0 )
 		return false;
-	if ( gpsLookup == 0 )
-		return false;
 
 	MapView* window = new MapView( p );
 	window->setRender( renderer );
-	window->setGPSLookup( gpsLookup );
 	window->setEdges( segmentLength, coordinates );
 
 	int value = window->exec();
 
 	if ( value == Accepted )
-		*result = window->selected;
+		*result = window->m_selected;
 	delete window;
 
 	return value == Accepted;
@@ -275,10 +254,10 @@ bool MapView::selectStreet( UnsignedCoordinate* result, QVector< int >segmentLen
 
 void MapView::setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinate > coordinates )
 {
-	ui->headerLabel->setText( tr( "Choose Coordinate" ) );
-	ui->headerWidget->show();
-	ui->nextButton->hide();
-	ui->previousButton->hide();
+	m_ui->headerLabel->setText( tr( "Choose Coordinate" ) );
+	m_ui->headerWidget->show();
+	m_ui->nextButton->hide();
+	m_ui->previousButton->hide();
 
 	ProjectedCoordinate center;
 	foreach( UnsignedCoordinate coordinate, coordinates ) {
@@ -289,41 +268,45 @@ void MapView::setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinat
 	center.x /= coordinates.size();
 	center.y /= coordinates.size();
 
-	ui->paintArea->setCenter( center );
-	ui->paintArea->setEdges( segmentLength, coordinates );
+	m_ui->paintArea->setCenter( center );
+	m_ui->paintArea->setEdges( segmentLength, coordinates );
+
+	UnsignedCoordinate centerPos( center );
+	m_selected = centerPos;
+	m_ui->paintArea->setPOI( centerPos );
 }
 
 void MapView::showContextMenu()
 {
-	showContextMenu( this->mapToGlobal( ui->menuButton->pos() ) );
+	showContextMenu( this->mapToGlobal( m_ui->menuButton->pos() ) );
 }
 
 void MapView::showContextMenu( QPoint globalPos )
 {
-	if ( menu == NoMenu )
+	if ( m_menu == NoMenu )
 		return;
-	if ( menu == ContextMenu ) {
-		gotoSourceAction->setEnabled( source.x != 0 || source.y != 0 );
-		gotoTargetAction->setEnabled( target.x != 0 || target.y != 0 );
-		gotoAddressAction->setEnabled( addressLookup != NULL );
+	if ( m_menu == ContextMenu ) {
+		m_gotoSourceAction->setEnabled( m_source.x != 0 || m_source.y != 0 );
+		m_gotoTargetAction->setEnabled( m_target.x != 0 || m_target.y != 0 );
+		m_gotoAddressAction->setEnabled( m_addressLookup != NULL );
 
-		contextMenu->exec( globalPos );
-		QAction* action = modeGroup->checkedAction();
-		if ( action == modeSourceAction )
-			mode = Source;
-		if ( action == modeTargetAction )
-			mode = Target;
+		m_contextMenu->exec( globalPos );
+		QAction* action = m_modeGroup->checkedAction();
+		if ( action == m_modeSourceAction )
+			m_mode = Source;
+		if ( action == m_modeTargetAction )
+			m_mode = Target;
 		return;
 	}
-	if ( menu == RouteMenu ) {
-		routeMenu->exec( globalPos );
+	if ( m_menu == RouteMenu ) {
+		m_routeMenu->exec( globalPos );
 	}
 }
 
 void MapView::gotoSource()
 {
-	ui->paintArea->setCenter( source.ToProjectedCoordinate() );
-	ui->paintArea->setZoom( maxZoom );
+	m_ui->paintArea->setCenter( m_source.ToProjectedCoordinate() );
+	m_ui->paintArea->setZoom( m_maxZoom );
 }
 
 void MapView::gotoGPS()
@@ -336,59 +319,59 @@ void MapView::gotoGPS()
 	if ( !ok )
 		return;
 	GPSCoordinate gps( latitude, longitude );
-	ui->paintArea->setCenter( ProjectedCoordinate( gps ) );
-	ui->paintArea->setZoom( maxZoom );
+	m_ui->paintArea->setCenter( ProjectedCoordinate( gps ) );
+	m_ui->paintArea->setZoom( m_maxZoom );
 }
 
 void MapView::gotoTarget()
 {
-	ui->paintArea->setCenter( target.ToProjectedCoordinate() );
-	ui->paintArea->setZoom( maxZoom );
+	m_ui->paintArea->setCenter( m_target.ToProjectedCoordinate() );
+	m_ui->paintArea->setZoom( m_maxZoom );
 }
 
 void MapView::gotoAddress()
 {
-	if ( addressLookup == NULL )
+	if ( m_addressLookup == NULL )
 		return;
 	UnsignedCoordinate result;
-	if ( !AddressDialog::getAddress( &result, addressLookup, renderer, gpsLookup, this, true ) )
+	if ( !AddressDialog::getAddress( &result, m_addressLookup, m_renderer, this, true ) )
 		return;
-	ui->paintArea->setCenter( result.ToProjectedCoordinate() );
-	ui->paintArea->setZoom( maxZoom );
+	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
+	m_ui->paintArea->setZoom( m_maxZoom );
 }
 
 void MapView::bookmarks()
 {
 	UnsignedCoordinate result;
-	if ( !BookmarksDialog::showBookmarks( &result, this, source, target ) )
+	if ( !BookmarksDialog::showBookmarks( &result, this, m_source, m_target ) )
 		return;
 
-	ui->paintArea->setCenter( result.ToProjectedCoordinate() );
+	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 }
 
 void MapView::addZoom()
 {
-	ui->zoomBar->triggerAction( QAbstractSlider::SliderSingleStepAdd );
+	m_ui->zoomBar->triggerAction( QAbstractSlider::SliderSingleStepAdd );
 }
 
 void MapView::substractZoom()
 {
-	ui->zoomBar->triggerAction( QAbstractSlider::SliderSingleStepSub );
+	m_ui->zoomBar->triggerAction( QAbstractSlider::SliderSingleStepSub );
 }
 
 void MapView::magnify()
 {
 	bool ok = false;
-	int result = QInputDialog::getInt( this, "Magnification", "Enter Factor", virtualZoom, 1, 10, 1, &ok );
+	int result = QInputDialog::getInt( this, "Magnification", "Enter Factor", m_virtualZoom, 1, 10, 1, &ok );
 	if ( !ok )
 		return;
-	virtualZoom = result;
-	ui->paintArea->setVirtualZoom( virtualZoom );
+	m_virtualZoom = result;
+	m_ui->paintArea->setVirtualZoom( m_virtualZoom );
 }
 
 void MapView::gotoMapview()
 {
-	toMapview = true;
+	m_toMapview = true;
 	accept();
 }
 

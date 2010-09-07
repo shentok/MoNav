@@ -46,7 +46,6 @@ public:
 	};
 
 	void setRender( IRenderer* r );
-	void setGPSLookup( IGPSLookup* g );
 	void setAddressLookup( IAddressLookup* al );
 	void setMenu( Menu m );
 	void setMode( Mode m );
@@ -55,7 +54,7 @@ public:
 	bool exitedToMapview();
 
 	static int selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* renderer, QWidget* p = NULL );
-	static bool selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, IRenderer* renderer, IGPSLookup* gpsLookup, QWidget* p = NULL );
+	static bool selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, IRenderer* renderer, QWidget* p = NULL );
 
 public slots:
 	void mouseClicked( ProjectedCoordinate clickPos );
@@ -88,40 +87,37 @@ protected:
 	void setPlaces( QVector< UnsignedCoordinate > p );
 	void setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinate > coordinates );
 
-private:
+	Ui::MapView *m_ui;
 
-	Ui::MapView *ui;
+	IRenderer* m_renderer;
+	IAddressLookup* m_addressLookup;
 
-	IRenderer* renderer;
-	IGPSLookup* gpsLookup;
-	IAddressLookup* addressLookup;
+	int m_maxZoom;
+	QVector< UnsignedCoordinate > m_places;
+	int m_place;
+	UnsignedCoordinate m_selected;
+	UnsignedCoordinate m_target;
+	UnsignedCoordinate m_source;
+	double m_heading;
+	int m_virtualZoom;
 
-	int maxZoom;
-	QVector< UnsignedCoordinate > places;
-	int place;
-	UnsignedCoordinate selected;
-	UnsignedCoordinate target;
-	UnsignedCoordinate source;
-	double heading;
-	int virtualZoom;
+	bool m_fixed;
+	bool m_toMapview;
 
-	bool fixed;
-	bool toMapview;
-
-	Menu menu;
-	Mode mode;
-	QMenu* contextMenu;
-	QMenu* routeMenu;
-	QActionGroup* modeGroup;
-	QAction* gotoSourceAction;
-	QAction* gotoTargetAction;
-	QAction* gotoGPSAction;
-	QAction* gotoAddressAction;
-	QAction* bookmarkAction;
-	QAction* magnifyAction;
-	QAction* modeSourceAction;
-	QAction* modeTargetAction;
-	QAction* mapViewAction;
+	Menu m_menu;
+	Mode m_mode;
+	QMenu* m_contextMenu;
+	QMenu* m_routeMenu;
+	QActionGroup* m_modeGroup;
+	QAction* m_gotoSourceAction;
+	QAction* m_gotoTargetAction;
+	QAction* m_gotoGPSAction;
+	QAction* m_gotoAddressAction;
+	QAction* m_bookmarkAction;
+	QAction* m_magnifyAction;
+	QAction* m_modeSourceAction;
+	QAction* m_modeTargetAction;
+	QAction* m_mapViewAction;
 };
 
 #endif // MAPVIEW_H

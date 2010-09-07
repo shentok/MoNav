@@ -24,14 +24,14 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "interfaces/irenderer.h"
 
 namespace Ui {
-    class PaintWidget;
+	class PaintWidget;
 }
 
 class PaintWidget : public QWidget {
-    Q_OBJECT
+	Q_OBJECT
 public:
-    PaintWidget(QWidget *parent = 0);
-    ~PaintWidget();
+	PaintWidget(QWidget *parent = 0);
+	~PaintWidget();
 
 public slots:
 
@@ -43,6 +43,7 @@ public slots:
 	void setPosition( const UnsignedCoordinate p, double heading );
 	void setTarget( const UnsignedCoordinate t );
 	void setPOIs( QVector< UnsignedCoordinate > p );
+	void setPOI( UnsignedCoordinate p );
 	void setRoute( QVector< UnsignedCoordinate > r );
 	void setEdges( QVector< int > edgeSegments, QVector< UnsignedCoordinate > edges );
 	void setVirtualZoom( int z );
@@ -61,20 +62,19 @@ protected:
 	void wheelEvent( QWheelEvent * event );
 	void contextMenuEvent( QContextMenuEvent *event) ;
 
-	IRenderer* renderer;
-	IRenderer::PaintRequest request;
+	IRenderer* m_renderer;
+	IRenderer::PaintRequest m_request;
 
-	int maxZoom;
-	int lastMouseX;
-	int lastMouseY;
-	int startMouseX;
-	int startMouseY;
-	bool drag;
-	int wheelDelta;
-	bool fixed;
+	int m_maxZoom;
+	int m_lastMouseX;
+	int m_lastMouseY;
+	int m_startMouseX;
+	int m_startMouseY;
+	bool m_drag;
+	int m_wheelDelta;
+	bool m_fixed;
 
-private:
-    Ui::PaintWidget *ui;
+	Ui::PaintWidget* m_ui;
 };
 
 #endif // PAINTWIDGET_H

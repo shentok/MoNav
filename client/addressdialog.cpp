@@ -20,182 +20,178 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "addressdialog.h"
 #include "ui_addressdialog.h"
 #include "mapview.h"
-#include <QTime>
+#include "utils/qthelpers.h"
 #include <QtDebug>
 
 AddressDialog::AddressDialog(QWidget *parent) :
 		QDialog(parent),
-		ui(new Ui::AddressDialog)
+		m_ui(new Ui::AddressDialog)
 {
-	ui->setupUi(this);
-	addressLookup = NULL;
-	renderer = NULL;
-	gpsLookup = NULL;
-	skipStreetPosition = false;
-	ui->suggestionList->setAlternatingRowColors( true );
-	ui->characterList->setAlternatingRowColors( true );
-	QFont font = ui->suggestionList->font();
+	m_ui->setupUi(this);
+	m_addressLookup = NULL;
+	m_renderer = NULL;
+	m_skipStreetPosition = false;
+	m_ui->suggestionList->setAlternatingRowColors( true );
+	m_ui->characterList->setAlternatingRowColors( true );
+	QFont font = m_ui->suggestionList->font();
 	font.setPointSize( font.pointSize() * 1.5 );
-	ui->suggestionList->setFont( font );
-	ui->characterList->setFont( font );
+	m_ui->suggestionList->setFont( font );
+	m_ui->characterList->setFont( font );
 	resetCity();
 	connectSlots();
 }
 
 AddressDialog::~AddressDialog()
 {
-	delete ui;
+	delete m_ui;
 }
 
 void AddressDialog::setAddressLookup( IAddressLookup* al )
 {
-	addressLookup = al;
+	m_addressLookup = al;
 	resetCity();
 }
 
 void AddressDialog::setRenderer( IRenderer* r )
 {
-	renderer = r;
-}
-
-void AddressDialog::setGPSLookup( IGPSLookup* g )
-{
-	gpsLookup = g;
+	m_renderer = r;
 }
 
 void AddressDialog::connectSlots()
 {
-	connect( ui->cityEdit, SIGNAL(textChanged(QString)), this, SLOT(cityTextChanged(QString)) );
-	connect( ui->streetEdit, SIGNAL(textChanged(QString)), this, SLOT(streetTextChanged(QString)) );
-	connect( ui->suggestionList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(suggestionClicked(QListWidgetItem*)) );
-	connect( ui->characterList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(characterClicked(QListWidgetItem*)) );
-	connect( ui->resetCity, SIGNAL(clicked()), this, SLOT(resetCity()) );
-	connect( ui->resetStreet, SIGNAL(clicked()), this, SLOT(resetStreet()) );
+	connect( m_ui->cityEdit, SIGNAL(textChanged(QString)), this, SLOT(cityTextChanged(QString)) );
+	connect( m_ui->streetEdit, SIGNAL(textChanged(QString)), this, SLOT(streetTextChanged(QString)) );
+	connect( m_ui->suggestionList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(suggestionClicked(QListWidgetItem*)) );
+	connect( m_ui->characterList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(characterClicked(QListWidgetItem*)) );
+	connect( m_ui->resetCity, SIGNAL(clicked()), this, SLOT(resetCity()) );
+	connect( m_ui->resetStreet, SIGNAL(clicked()), this, SLOT(resetStreet()) );
 }
 
 void AddressDialog::characterClicked( QListWidgetItem * item )
 {
 	QString text = item->text();
-	if ( mode == City ) {
-		ui->cityEdit->setText( text );
-		ui->cityEdit->setFocus( Qt::OtherFocusReason );
-	}
-	else if ( mode == Street ) {
-		ui->streetEdit->setText( text );
-		ui->streetEdit->setFocus( Qt::OtherFocusReason );
+	if ( m_mode == City ) {
+		m_ui->cityEdit->setText( text );
+		m_ui->cityEdit->setFocus( Qt::OtherFocusReason );
+	} else if ( m_mode == Street ) {
+		m_ui->streetEdit->setText( text );
+		m_ui->streetEdit->setFocus( Qt::OtherFocusReason );
 	}
 }
 
 void AddressDialog::suggestionClicked( QListWidgetItem * item )
 {
 	QString text = item->text();
-	if ( mode == City ) {
+	if ( m_mode == City ) {
 		QVector< int > placeIDs;
 		QVector< UnsignedCoordinate > placeCoordinates;
-		if ( !addressLookup->GetPlaceData( text, &placeIDs, &placeCoordinates ) )
+		if ( !m_addressLookup->GetPlaceData( text, &placeIDs, &placeCoordinates ) )
 			return;
 
-		placeID = placeIDs.front();
+		m_placeID = placeIDs.front();
 		if ( placeIDs.size() > 1 )
 		{
-			int id = MapView::selectPlaces( placeCoordinates, renderer, this );
+			int id = MapView::selectPlaces( placeCoordinates, m_renderer, this );
 			if ( id >= 0 && id < placeIDs.size() )
-				placeID = placeIDs[id];
+				m_placeID = placeIDs[id];
 			else
 				return;
 		}
-		ui->cityEdit->setText( text );
-		ui->cityEdit->setDisabled( true );
-		ui->streetEdit->setEnabled( true );
-		ui->resetStreet->setEnabled( true );
-		mode = Street;
-		addressLookup->SelectPlace( placeID );
-		streetTextChanged( ui->streetEdit->text() );
-	}
-	else {
+		m_ui->cityEdit->setText( text );
+		m_ui->cityEdit->setDisabled( true );
+		m_ui->streetEdit->setEnabled( true );
+		m_ui->resetStreet->setEnabled( true );
+		m_mode = Street;
+		m_addressLookup->SelectPlace( m_placeID );
+		streetTextChanged( m_ui->streetEdit->text() );
+	} else {
 		QVector< int > segmentLength;
 		QVector< UnsignedCoordinate > coordinates;
-		if ( !addressLookup->GetStreetData( text, &segmentLength, &coordinates ) )
+		if ( !m_addressLookup->GetStreetData( text, &segmentLength, &coordinates ) )
 			return;
 		if ( coordinates.size() == 0 )
 			return;
-		if ( skipStreetPosition ) {
-			result = coordinates.first();
+		if ( m_skipStreetPosition ) {
+			m_result = coordinates.first();
 			accept();
 			return;
 		}
-		if( !MapView::selectStreet( &result, segmentLength, coordinates, renderer, gpsLookup, this ) )
+		if( !MapView::selectStreet( &m_result, segmentLength, coordinates, m_renderer, this ) )
 			return;
-		ui->streetEdit->setText( text );
+		m_ui->streetEdit->setText( text );
 		accept();
 	}
 }
 
 void AddressDialog::cityTextChanged( QString text )
 {
-	if ( addressLookup == NULL )
+	if ( m_addressLookup == NULL )
 		return;
-	ui->suggestionList->clear();
-	ui->characterList->clear();
+
+	m_ui->suggestionList->clear();
+	m_ui->characterList->clear();
 	QStringList suggestions;
 	QStringList characters;
-	QTime time;
-	time.start();
-	bool found = addressLookup->GetPlaceSuggestions( text, 10, &suggestions, &characters );
+
+	Timer time;
+	bool found = m_addressLookup->GetPlaceSuggestions( text, 10, &suggestions, &characters );
 	qDebug() << "City Lookup:" << time.elapsed() << "ms";
+
 	if ( !found )
 		return;
-	ui->suggestionList->addItems( suggestions );
-	ui->characterList->addItems( characters );
+
+	m_ui->suggestionList->addItems( suggestions );
+	m_ui->characterList->addItems( characters );
 }
 
 void AddressDialog::streetTextChanged( QString text)
 {
-	if ( addressLookup == NULL )
+	if ( m_addressLookup == NULL )
 		return;
-	if ( mode != Street )
+	if ( m_mode != Street )
 		return;
-	ui->suggestionList->clear();
-	ui->characterList->clear();
+
+	m_ui->suggestionList->clear();
+	m_ui->characterList->clear();
 	QStringList suggestions;
 	QStringList characters;
-	QTime time;
-	time.start();
-	bool found = addressLookup->GetStreetSuggestions( text, 10, &suggestions, &characters );
+
+	Timer time;
+	bool found = m_addressLookup->GetStreetSuggestions( text, 10, &suggestions, &characters );
 	qDebug() << "Street Lookup:" << time.elapsed() << "ms";
+
 	if ( !found )
 		return;
-	ui->suggestionList->addItems( suggestions );
-	ui->characterList->addItems( characters );
+
+	m_ui->suggestionList->addItems( suggestions );
+	m_ui->characterList->addItems( characters );
 }
 
 void AddressDialog::resetCity()
 {
-	ui->cityEdit->setEnabled( true );
-	ui->resetCity->setEnabled( true );
-	ui->streetEdit->setDisabled( true );
-	ui->resetStreet->setDisabled( true );
-	ui->streetEdit->setText( "" );
-	ui->cityEdit->setText( "" );
-	mode = City;
+	m_ui->cityEdit->setEnabled( true );
+	m_ui->resetCity->setEnabled( true );
+	m_ui->streetEdit->setDisabled( true );
+	m_ui->resetStreet->setDisabled( true );
+	m_ui->streetEdit->setText( "" );
+	m_ui->cityEdit->setText( "" );
+	m_mode = City;
 	cityTextChanged( "" );
-	ui->cityEdit->setFocus( Qt::OtherFocusReason );
+	m_ui->cityEdit->setFocus( Qt::OtherFocusReason );
 }
 
 void AddressDialog::resetStreet()
 {
-	ui->streetEdit->setText( "" );
+	m_ui->streetEdit->setText( "" );
 	streetTextChanged( "" );
-	ui->streetEdit->setFocus( Qt::OtherFocusReason );
+	m_ui->streetEdit->setFocus( Qt::OtherFocusReason );
 }
 
-bool AddressDialog::getAddress( UnsignedCoordinate* result, IAddressLookup* addressLookup, IRenderer* renderer, IGPSLookup* gpsLookup, QWidget* p, bool cityOnly )
+bool AddressDialog::getAddress( UnsignedCoordinate* result, IAddressLookup* addressLookup, IRenderer* renderer, QWidget* p, bool cityOnly )
 {
 	if ( result == NULL )
 		return false;
 	if ( addressLookup == NULL )
-		return false;
-	if ( gpsLookup == NULL )
 		return false;
 	if ( renderer == NULL )
 		return false;
@@ -203,12 +199,11 @@ bool AddressDialog::getAddress( UnsignedCoordinate* result, IAddressLookup* addr
 	AddressDialog* window = new AddressDialog( p );
 	window->setAddressLookup( addressLookup );
 	window->setRenderer( renderer );
-	window->setGPSLookup( gpsLookup );
-	window->skipStreetPosition = cityOnly;
+	window->m_skipStreetPosition = cityOnly;
 
 	int value = window->exec();
 	if ( value == Accepted )
-		*result = window->result;
+		*result = window->m_result;
 
 	delete window;
 	return value == Accepted;

@@ -23,109 +23,132 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QInputDialog>
 
 BookmarksDialog::BookmarksDialog(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::BookmarksDialog)
+		QDialog( parent ),
+		m_ui( new Ui::BookmarksDialog )
 {
-    ui->setupUi(this);
-	 QSettings settings( "MoNavClient" );
-	 settings.beginGroup( "Bookmarks" );
-	 names = settings.value( "names" ).toStringList();
-	 ui->bookmarkList->addItems( names );
-	 for ( int i = 0; i < names.size(); i++ ) {
-		 UnsignedCoordinate pos;
-		 pos.x = settings.value( QString( "%1.coordinates.x" ).arg( i ), 0 ).toUInt();
-		 pos.y = settings.value( QString( "%1.coordinates.y" ).arg( i ), 0 ).toUInt();
-		 coordinates.push_back( pos );
-	 }
-	 connectSlots();
-	 chosen = -1;
+	m_ui->setupUi(this);
+
+	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "Bookmarks" );
+	m_names = settings.value( "names" ).toStringList();
+
+	m_ui->bookmarkList->addItems( m_names );
+	for ( int i = 0; i < m_names.size(); i++ ) {
+		UnsignedCoordinate pos;
+		pos.x = settings.value( QString( "%1.coordinates.x" ).arg( i ), 0 ).toUInt();
+		pos.y = settings.value( QString( "%1.coordinates.y" ).arg( i ), 0 ).toUInt();
+		m_coordinates.push_back( pos );
+	}
+
+	connectSlots();
+	itemSelectionChanged();
+	m_chosen = -1;
 }
 
 void BookmarksDialog::connectSlots()
 {
-	connect( ui->chooseButton, SIGNAL(clicked()), this, SLOT(chooseBookmark()) );
-	connect( ui->sourceButton, SIGNAL(clicked()), this, SLOT(addSourceBookmark()) );
-	connect( ui->targetButton, SIGNAL(clicked()), this, SLOT(addTargetBookmark()) );
-	connect( ui->deleteButton, SIGNAL(clicked()), this, SLOT(deleteBookmark()) );
+	connect( m_ui->chooseButton, SIGNAL(clicked()), this, SLOT(chooseBookmark()) );
+	connect( m_ui->sourceButton, SIGNAL(clicked()), this, SLOT(addSourceBookmark()) );
+	connect( m_ui->targetButton, SIGNAL(clicked()), this, SLOT(addTargetBookmark()) );
+	connect( m_ui->deleteButton, SIGNAL(clicked()), this, SLOT(deleteBookmark()) );
+	connect( m_ui->bookmarkList, SIGNAL(itemSelectionChanged()), this, SLOT(itemSelectionChanged()));
 }
 
 BookmarksDialog::~BookmarksDialog()
 {
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "Bookmarks" );
-	settings.setValue( "names", names );
-	for ( int i = 0; i < names.size(); i++ ) {
-		UnsignedCoordinate pos = coordinates[i];
+	settings.setValue( "names", m_names );
+	for ( int i = 0; i < m_names.size(); i++ ) {
+		UnsignedCoordinate pos = m_coordinates[i];
 		settings.setValue( QString( "%1.coordinates.x" ).arg( i ), pos.x );
 		settings.setValue( QString( "%1.coordinates.y" ).arg( i ), pos.y );
 	}
-	delete ui;
+	delete m_ui;
 }
 
 void BookmarksDialog::deleteBookmark()
 {
-	int index = ui->bookmarkList->currentRow();
+	int index = m_ui->bookmarkList->currentRow();
 	if ( index == -1 )
 		return;
-	QListWidgetItem* item = ui->bookmarkList->takeItem( index );
+	QListWidgetItem* item = m_ui->bookmarkList->takeItem( index );
 	if ( item != NULL )
 		delete item;
-	coordinates.remove( index );
-	names.removeAt( index );
+	m_coordinates.remove( index );
+	m_names.removeAt( index );
 }
 
 void BookmarksDialog::chooseBookmark()
 {
-	int index = ui->bookmarkList->currentRow();
+	int index = m_ui->bookmarkList->currentRow();
+
 	if ( index == -1 )
 		return;
-	chosen = index;
+
+	m_chosen = index;
 	accept();
 }
 
 void BookmarksDialog::addTargetBookmark()
 {
-	if ( target.x == 0 && target.x == 0 )
+	if ( m_target.x == 0 && m_target.x == 0 )
 		return;
+
 	bool ok = false;
 	QString name = QInputDialog::getText( this, "Enter Bookmark Name", "Bookmark Name", QLineEdit::Normal, "New Bookmark", &ok );
+
 	if ( !ok )
 		return;
-	ui->bookmarkList->addItem( name );
-	coordinates.push_back( target );
-	names.push_back( name );
+
+	m_ui->bookmarkList->addItem( name );
+	m_coordinates.push_back( m_target );
+	m_names.push_back( name );
 }
 
 void BookmarksDialog::addSourceBookmark()
 {
-	if ( source.x == 0 && source.x == 0 )
+	if ( m_source.x == 0 && m_source.x == 0 )
 		return;
+
 	bool ok = false;
 	QString name = QInputDialog::getText( this, "Enter Bookmark Name", "Bookmark Name", QLineEdit::Normal, "New Bookmark", &ok );
+
 	if ( !ok )
 		return;
-	ui->bookmarkList->addItem( name );
-	coordinates.push_back( source );
-	names.push_back( name );
+
+	m_ui->bookmarkList->addItem( name );
+	m_coordinates.push_back( m_source );
+	m_names.push_back( name );
+}
+
+void BookmarksDialog::itemSelectionChanged()
+{
+	bool none = m_ui->bookmarkList->selectedItems().size() == 0;
+	m_ui->chooseButton->setDisabled( none );
+	m_ui->deleteButton->setDisabled( none );
 }
 
 bool BookmarksDialog::showBookmarks( UnsignedCoordinate* result, QWidget* p, UnsignedCoordinate source, UnsignedCoordinate target )
 {
 	if ( result == NULL )
 		return false;
+
 	BookmarksDialog* window = new BookmarksDialog( p );
-	window->target = target;
+
+	window->m_target = target;
 	if ( target.x == 0 && target.y == 0 )
-		window->ui->targetButton->setDisabled( true );
-	window->source = source;
+		window->m_ui->targetButton->setDisabled( true );
+	window->m_source = source;
 	if ( source.x == 0 && source.y == 0 )
-		window->ui->sourceButton->setDisabled( true );
+		window->m_ui->sourceButton->setDisabled( true );
 
 	window->exec();
 
 	int value = window->result();
-	if ( window->chosen != -1 )
-		*result = window->coordinates[window->chosen];
+	if ( window->m_chosen != -1 )
+		*result = window->m_coordinates[window->m_chosen];
 	delete window;
+
 	return value == Accepted;
 }

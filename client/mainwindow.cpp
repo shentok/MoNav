@@ -29,46 +29,48 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow)
+		QMainWindow(parent),
+		m_ui(new Ui::MainWindow)
 {
-	renderer = NULL;
-	addressLookup = NULL;
-	gpsLookup = NULL;
-	router = NULL;
+	m_renderer = NULL;
+	m_addressLookup = NULL;
+	m_gpsLookup = NULL;
+	m_router = NULL;
 
-	heading = 0;
+	m_heading = 0;
 
-	sourceSet = false;
-	targetSet = false;
+	m_sourceSet = false;
+	m_targetSet = false;
 
-	ui->setupUi(this);
-	QSize maxSize = ui->mainMenuList->widget()->size();
-	maxSize = maxSize.expandedTo( ui->targetMenuList->widget()->size() );
-	maxSize = maxSize.expandedTo( ui->settingsMenuList->widget()->size() );
+	m_ui->setupUi(this);
+	QSize maxSize = m_ui->mainMenuList->widget()->size();
+	maxSize = maxSize.expandedTo( m_ui->targetMenuList->widget()->size() );
+	maxSize = maxSize.expandedTo( m_ui->settingsMenuList->widget()->size() );
 	maxSize += QSize( 2, 2 );
-	ui->mainMenuList->setMinimumSize( maxSize );
-	ui->targetMenuList->setMinimumSize( maxSize );
-	ui->settingsMenuList->setMinimumSize( maxSize );
-	ui->targetSourceWidget->hide();
-	ui->settingsWidget->hide();
+	m_ui->mainMenuList->setMinimumSize( maxSize );
+	m_ui->targetMenuList->setMinimumSize( maxSize );
+	m_ui->settingsMenuList->setMinimumSize( maxSize );
+	m_ui->targetSourceWidget->hide();
+	m_ui->settingsWidget->hide();
 	this->updateGeometry();
 
 	QSettings settings( "MoNavClient" );
-	dataDirectory = settings.value( "dataDirectory" ).toString();
-	source.x = settings.value( "source.x", 0 ).toUInt();
-	source.y = settings.value( "source.y", 0 ).toUInt();
+	m_dataDirectory = settings.value( "dataDirectory" ).toString();
+	m_source.x = settings.value( "source.x", 0 ).toUInt();
+	m_source.y = settings.value( "source.y", 0 ).toUInt();
 	mode = Source;
 
-	gpsSource = QGeoPositionInfoSource::createDefaultSource( this );
-	if ( gpsSource == 0 ) {
+#ifndef NOQTMOBILE
+	m_gpsSource = QGeoPositionInfoSource::createDefaultSource( this );
+	if ( m_gpsSource == 0 ) {
 		qCritical() << "No GPS Sensor found! GPS Updates are not available";
-		ui->gpsButton->setEnabled( false );
+		m_ui->gpsButton->setEnabled( false );
 	}
+#endif
 
 	connectSlots();
 
-	if ( dataDirectory.isEmpty() ) {
+	if ( m_dataDirectory.isEmpty() ) {
 		QMessageBox::information( this, "Data Directory", "Please specifiy a data directory" );
 		settingsDataDirectory();
 	} else {
@@ -76,55 +78,56 @@ MainWindow::MainWindow(QWidget *parent) :
 			settingsDataDirectory();
 	}
 
-	updateSource = true;
-	updateTarget = false;
+	m_updateSource = true;
+	m_updateTarget = false;
 
-	if ( gpsSource != NULL ) {
-		gpsSource->startUpdates();
-	}
+	if ( m_gpsSource != NULL )
+		m_gpsSource->startUpdates();
 }
 
 MainWindow::~MainWindow()
 {
 	unloadPlugins();
 	QSettings settings( "MoNavClient" );
-	settings.setValue( "dataDirectory", dataDirectory );
-	settings.setValue( "source.x", source.x );
-	settings.setValue( "source.y", source.y );
+	settings.setValue( "dataDirectory", m_dataDirectory );
+	settings.setValue( "source.x", m_source.x );
+	settings.setValue( "source.y", m_source.y );
 
 	//delete static plugins
-	foreach ( QObject *plugin, QPluginLoader::staticInstances() ) {
+	foreach ( QObject *plugin, QPluginLoader::staticInstances() )
 		delete plugin;
-	}
-	delete ui;
+
+	delete m_ui;
 }
 
 void MainWindow::connectSlots()
 {
-	connect( ui->sourceButton, SIGNAL(clicked()), this, SLOT(sourceMode()) );
-	connect( ui->targetButton, SIGNAL(clicked()), this, SLOT(targetMode()) );
-	connect( ui->routeButton, SIGNAL(clicked()), this, SLOT(routeView()) );
-	connect( ui->mapButton, SIGNAL(clicked()), this, SLOT(browseMap()) );
-	connect( ui->settingsButton, SIGNAL(clicked()), this, SLOT(settingsMenu()) );
+	connect( m_ui->sourceButton, SIGNAL(clicked()), this, SLOT(sourceMode()) );
+	connect( m_ui->targetButton, SIGNAL(clicked()), this, SLOT(targetMode()) );
+	connect( m_ui->routeButton, SIGNAL(clicked()), this, SLOT(routeView()) );
+	connect( m_ui->mapButton, SIGNAL(clicked()), this, SLOT(browseMap()) );
+	connect( m_ui->settingsButton, SIGNAL(clicked()), this, SLOT(settingsMenu()) );
 
-	connect( ui->addressButton, SIGNAL(clicked()), this, SLOT(targetAddress()) );
-	connect( ui->bookmarkButton, SIGNAL(clicked()), this, SLOT(targetBookmarks()) );
-	connect( ui->gpsButton, SIGNAL(clicked()), this, SLOT(targetGPS()) );
+	connect( m_ui->addressButton, SIGNAL(clicked()), this, SLOT(targetAddress()) );
+	connect( m_ui->bookmarkButton, SIGNAL(clicked()), this, SLOT(targetBookmarks()) );
+	connect( m_ui->gpsButton, SIGNAL(clicked()), this, SLOT(targetGPS()) );
 
-	connect( ui->settingsAddressLookupButton, SIGNAL(clicked()), this, SLOT(settingsAddressLookup()) );
-	connect( ui->settingsDataButton, SIGNAL(clicked()), this, SLOT(settingsDataDirectory()) );
-	connect( ui->settingsGPSButton, SIGNAL(clicked()), this, SLOT(settingsGPS()) );
-	connect( ui->settingsGPSLookupButton, SIGNAL(clicked()), this, SLOT(settingsGPSLookup()) );
-	connect( ui->settingsMapButton, SIGNAL(clicked()), this, SLOT(settingsRenderer()) );
-	connect( ui->settingsSystemButton, SIGNAL(clicked()), this, SLOT(settingsSystem()) );
+	connect( m_ui->settingsAddressLookupButton, SIGNAL(clicked()), this, SLOT(settingsAddressLookup()) );
+	connect( m_ui->settingsDataButton, SIGNAL(clicked()), this, SLOT(settingsDataDirectory()) );
+	connect( m_ui->settingsGPSButton, SIGNAL(clicked()), this, SLOT(settingsGPS()) );
+	connect( m_ui->settingsGPSLookupButton, SIGNAL(clicked()), this, SLOT(settingsGPSLookup()) );
+	connect( m_ui->settingsMapButton, SIGNAL(clicked()), this, SLOT(settingsRenderer()) );
+	connect( m_ui->settingsSystemButton, SIGNAL(clicked()), this, SLOT(settingsSystem()) );
 
-	if ( gpsSource != NULL)
-	connect( gpsSource, SIGNAL(positionUpdated(QGeoPositionInfo)), this, SLOT(positionUpdated(QGeoPositionInfo)) );
+#ifndef NOQTMOBILE
+	if ( m_gpsSource != NULL)
+		connect( m_gpsSource, SIGNAL(positionUpdated(QGeoPositionInfo)), this, SLOT(positionUpdated(QGeoPositionInfo)) );
+#endif
 }
 
 bool MainWindow::loadPlugins()
 {
-	QDir dir( dataDirectory );
+	QDir dir( m_dataDirectory );
 	QString configFilename = dir.filePath( "plugins.ini" );
 	if ( !QFile::exists( configFilename ) ) {
 		qCritical() << "Not a valid data directory: Missing plugins.ini";
@@ -143,7 +146,7 @@ bool MainWindow::loadPlugins()
 			if ( !loader->load() )
 				qDebug( "%s", loader->errorString().toAscii().constData() );
 			if ( testPlugin( loader->instance(), rendererName, routerName, gpsLookupName, addressLookupName ) )
-				plugins.append( loader );
+				m_plugins.append( loader );
 			else {
 				loader->unload();
 				delete loader;
@@ -157,42 +160,42 @@ bool MainWindow::loadPlugins()
 
 	try
 	{
-		if ( renderer == NULL ) {
+		if ( m_renderer == NULL ) {
 			qCritical() << "Renderer plugin not found: " << rendererName;
 			return false;
 		}
-		renderer->SetInputDirectory( dataDirectory );
-		if ( !renderer->LoadData() ) {
+		m_renderer->SetInputDirectory( m_dataDirectory );
+		if ( !m_renderer->LoadData() ) {
 			qCritical() << "Could not load renderer data";
 			return false;
 		}
 
-		if ( addressLookup == NULL ) {
+		if ( m_addressLookup == NULL ) {
 			qCritical() << "AddressLookup plugin not found: " << addressLookupName;
 			return false;
 		}
-		addressLookup->SetInputDirectory( dataDirectory );
-		if ( !addressLookup->LoadData() ) {
+		m_addressLookup->SetInputDirectory( m_dataDirectory );
+		if ( !m_addressLookup->LoadData() ) {
 			qCritical() << "Could not load address lookup data";
 			return false;
 		}
 
-		if ( gpsLookup == NULL ) {
+		if ( m_gpsLookup == NULL ) {
 			qCritical() << "GPSLookup plugin not found: " << gpsLookupName;
 			return false;
 		}
-		gpsLookup->SetInputDirectory( dataDirectory );
-		if ( !gpsLookup->LoadData() ) {
+		m_gpsLookup->SetInputDirectory( m_dataDirectory );
+		if ( !m_gpsLookup->LoadData() ) {
 			qCritical() << "Could not load gps lookup data";
 			return false;
 		}
 
-		if ( router == NULL ) {
+		if ( m_router == NULL ) {
 			qCritical() << "Router plugin not found: " << routerName;
 			return false;
 		}
-		router->SetInputDirectory( dataDirectory );
-		if ( !router->LoadData() ) {
+		m_router->SetInputDirectory( m_dataDirectory );
+		if ( !m_router->LoadData() ) {
 			qCritical() << "Could not load router data";
 			return false;
 		}
@@ -203,13 +206,13 @@ bool MainWindow::loadPlugins()
 		return false;
 	}
 
-	targetSet = false;
-	sourceSet = false;
-	UnsignedCoordinate oldSource = source;
-	UnsignedCoordinate oldTarget = target;
-	source = UnsignedCoordinate();
-	target = UnsignedCoordinate();
-	setSource( oldSource, heading );
+	m_targetSet = false;
+	m_sourceSet = false;
+	UnsignedCoordinate oldSource = m_source;
+	UnsignedCoordinate oldTarget = m_target;
+	m_source = UnsignedCoordinate();
+	m_target = UnsignedCoordinate();
+	setSource( oldSource, m_heading );
 	setTarget( oldTarget );
 
 	return true;
@@ -220,26 +223,26 @@ bool MainWindow::testPlugin( QObject* plugin, QString rendererName, QString rout
 	bool needed = false;
 	if ( IRenderer *interface = qobject_cast< IRenderer* >( plugin ) ) {
 		if ( interface->GetName() == rendererName ) {
-			renderer = interface;
+			m_renderer = interface;
 			needed = true;
 		}
 	}
 	if ( IAddressLookup *interface = qobject_cast< IAddressLookup* >( plugin ) ) {
 		if ( interface->GetName() == addressLookupName )
 		{
-			addressLookup = interface;
+			m_addressLookup = interface;
 			needed = true;
 		}
 	}
 	if ( IGPSLookup *interface = qobject_cast< IGPSLookup* >( plugin ) ) {
 		if ( interface->GetName() == gpsLookupName ) {
-			gpsLookup = interface;
+			m_gpsLookup = interface;
 			needed = true;
 		}
 	}
 	if ( IRouter *interface = qobject_cast< IRouter* >( plugin ) ) {
 		if ( interface->GetName() == routerName ) {
-			router = interface;
+			m_router = interface;
 			needed = true;
 		}
 	}
@@ -248,146 +251,157 @@ bool MainWindow::testPlugin( QObject* plugin, QString rendererName, QString rout
 
 void MainWindow::unloadPlugins()
 {
-	renderer = NULL;
-	router = NULL;
-	addressLookup = NULL;
-	gpsLookup = NULL;
-	foreach( QPluginLoader* pluginLoader, plugins )
+	m_renderer = NULL;
+	m_router = NULL;
+	m_addressLookup = NULL;
+	m_gpsLookup = NULL;
+	foreach( QPluginLoader* pluginLoader, m_plugins )
 	{
 		pluginLoader->unload();
 		delete pluginLoader;
 	}
-	plugins.clear();
+	m_plugins.clear();
 }
 
-void MainWindow::setSource( UnsignedCoordinate s, double h )
+void MainWindow::setSource( UnsignedCoordinate source, double heading )
 {
-	updateSource = false;
-	if ( source.x == s.x && source.y == s.y && heading == h )
+	m_updateSource = false;
+	if ( m_source == source && m_heading == heading )
 		return;
-	source = s;
-	heading = h;
-	emit sourceChanged( source, heading );
-	IGPSLookup::Result result;
-	QTime time;
-	time.start();
-	bool found = gpsLookup->GetNearestEdge( &result, source, 300, heading == 0 ? 0 : 10, heading );
+
+	m_source = source;
+	m_heading = heading;
+
+	emit sourceChanged( m_source, m_heading );
+
+	Timer time;
+	m_sourceSet = m_gpsLookup->GetNearestEdge( &m_sourcePos, m_source, 300, m_heading == 0 ? 0 : 10, m_heading );
 	qDebug() << "GPS Lookup:" << time.elapsed() << "ms";
-	if ( !found ) {
-		path.clear();
-		emit routeChanged( path );
+
+	if ( !m_sourceSet ) {
+		m_path.clear();
+		emit routeChanged( m_path );
 		return;
 	}
-	sourcePos = result;
-	sourceSet = true;
+
 	computeRoute();
 }
 
-void MainWindow::setTarget( UnsignedCoordinate t )
+void MainWindow::setTarget( UnsignedCoordinate target )
 {
-	updateTarget = false;
-	if ( target.x == t.x && target.y == t.y )
+	m_updateTarget = false;
+	if ( m_target == target )
 		return;
-	target = t;
-	IGPSLookup::Result result;
-	emit targetChanged( target );
-	QTime time;
-	time.start();
-	bool found = gpsLookup->GetNearestEdge( &result, target, 300 );
+
+	m_target = target;
+
+	emit targetChanged( m_target );
+
+	Timer time;
+	m_targetSet = m_gpsLookup->GetNearestEdge( &m_targetPos, m_target, 300 );
 	qDebug() << "GPS Lookup:" << time.elapsed() << "ms";
-	if ( !found ) {
-		path.clear();
-		emit routeChanged( path );
+
+	if ( !m_targetSet ) {
+		m_path.clear();
+		emit routeChanged( m_path );
 		return;
 	}
-	targetPos = result;
-	targetSet = true;
+
 	computeRoute();
 }
 
 void MainWindow::computeRoute()
 {
-	if ( !sourceSet || !targetSet )
+	if ( !m_sourceSet || !m_targetSet )
 		return;
+
 	double distance;
-	path.clear();
-	QTime time;
-	time.start();
-	bool found = router->GetRoute( &distance, &path, sourcePos, targetPos );
+	m_path.clear();
+
+	Timer time;
+	bool found = m_router->GetRoute( &distance, &m_path, m_sourcePos, m_targetPos );
 	qDebug() << "Routing:" << time.elapsed() << "ms";
+	qDebug() << "Distance: " << distance << "; Path Segments: " << m_path.size();
+
 	if ( !found )
-		path.clear();
-	qDebug() << "Distance: " << distance << "; Path Segments: " << path.size();
-	emit routeChanged( path );
+		m_path.clear();
+
+	emit routeChanged( m_path );
 }
 
 void MainWindow::browseMap()
 {
 	MapView* window = new MapView( this );
-	window->setRender( renderer );
-	window->setGPSLookup( gpsLookup );
-	window->setAddressLookup( addressLookup );
-	window->setCenter( source.ToProjectedCoordinate() );
-	window->setSource( source, heading );
-	window->setTarget( target );
-	window->setRoute( path );
+	window->setRender( m_renderer );
+	window->setAddressLookup( m_addressLookup );
+	window->setCenter( m_source.ToProjectedCoordinate() );
+	window->setSource( m_source, m_heading );
+	window->setTarget( m_target );
+	window->setRoute( m_path );
 	window->setMenu( MapView::ContextMenu );
 	window->setMode( MapView::Target );
+
 	connect( window, SIGNAL(sourceChanged(UnsignedCoordinate,double)), this, SLOT(setSource(UnsignedCoordinate,double)) );
 	connect( window, SIGNAL(targetChanged(UnsignedCoordinate)), this, SLOT(setTarget(UnsignedCoordinate)) );
 	connect( this, SIGNAL(routeChanged(QVector<UnsignedCoordinate>)), window, SLOT(setRoute(QVector<UnsignedCoordinate>)) );
 	connect( this, SIGNAL(sourceChanged(UnsignedCoordinate,double)), window, SLOT(setSource(UnsignedCoordinate,double)) );
 	connect( this, SIGNAL(targetChanged(UnsignedCoordinate)), window, SLOT(setTarget(UnsignedCoordinate)) );
+
 	window->exec();
+
 	delete window;
 }
 
 void MainWindow::sourceMode()
 {
 	mode = Source;
-	ui->mainMenuWidget->hide();
-	ui->targetSourceWidget->show();
-	ui->targetSourceMenuLabel->setText( tr( "Source Menu" ) );
+	m_ui->mainMenuWidget->hide();
+	m_ui->targetSourceWidget->show();
+	m_ui->targetSourceMenuLabel->setText( tr( "Source Menu" ) );
 }
 
 void MainWindow::targetMode()
 {
 	mode = Target;
-	ui->mainMenuWidget->hide();
-	ui->targetSourceWidget->show();
-	ui->targetSourceMenuLabel->setText( tr( "Target Menu" ) );
+	m_ui->mainMenuWidget->hide();
+	m_ui->targetSourceWidget->show();
+	m_ui->targetSourceMenuLabel->setText( tr( "Target Menu" ) );
 }
 
 void MainWindow::routeView()
 {
 	MapView* window = new MapView( this );
 	window->setFixed( true );
-	window->setRender( renderer );
-	window->setGPSLookup( gpsLookup );
+	window->setRender( m_renderer );
 	window->setMode( MapView::None );
-	window->setSource( source, heading );
-	window->setTarget( target );
-	window->setRoute( path );
+	window->setSource( m_source, m_heading );
+	window->setTarget( m_target );
+	window->setRoute( m_path );
 	window->setMenu( MapView::RouteMenu );
+
 	connect( this, SIGNAL(routeChanged(QVector<UnsignedCoordinate>)), window, SLOT(setRoute(QVector<UnsignedCoordinate>)) );
 	connect( this, SIGNAL(sourceChanged(UnsignedCoordinate,double)), window, SLOT(setSource(UnsignedCoordinate,double)) );
+
 	window->exec();
+
 	bool mapView = window->exitedToMapview();
+
 	delete window;
+
 	if ( mapView )
 		browseMap();
 }
 
 void MainWindow::settingsMenu()
 {
-	ui->settingsWidget->show();
-	ui->mainMenuWidget->hide();
+	m_ui->settingsWidget->show();
+	m_ui->mainMenuWidget->hide();
 }
 
 void MainWindow::targetBookmarks()
 {
 	UnsignedCoordinate result;
-	if ( !BookmarksDialog::showBookmarks( &result, this, source, target ) )
+	if ( !BookmarksDialog::showBookmarks( &result, this, m_source, m_target ) )
 		return;
 
 	if ( mode == Source )
@@ -395,13 +409,13 @@ void MainWindow::targetBookmarks()
 	else if ( mode == Target )
 		setTarget( result );
 
-	ui->backButton->click();
+	m_ui->backButton->click();
 }
 
 void MainWindow::targetAddress()
 {
 	UnsignedCoordinate result;
-	if ( !AddressDialog::getAddress( &result, addressLookup, renderer, gpsLookup, this ) )
+	if ( !AddressDialog::getAddress( &result, m_addressLookup, m_renderer, this ) )
 		return;
 
 	if ( mode == Source )
@@ -409,18 +423,18 @@ void MainWindow::targetAddress()
 	else if ( mode == Target )
 		setTarget( result );
 
-	ui->backButton->click();
+	m_ui->backButton->click();
 }
 
 void MainWindow::targetGPS()
 {
 	if ( mode == Target )
-		updateTarget = true;
+		m_updateTarget = true;
 	if ( mode == Source )
-		updateSource = true;
+		m_updateSource = true;
 	QMessageBox::information( this, "GPS", "Activated GPS source" );
 
-	ui->backButton->click();
+	m_ui->backButton->click();
 }
 
 
@@ -431,20 +445,20 @@ void MainWindow::settingsSystem()
 
 void MainWindow::settingsRenderer()
 {
-	if ( renderer != NULL )
-		renderer->ShowSettings();
+	if ( m_renderer != NULL )
+		m_renderer->ShowSettings();
 }
 
 void MainWindow::settingsGPSLookup()
 {
-	if( gpsLookup != NULL )
-		gpsLookup->ShowSettings();
+	if( m_gpsLookup != NULL )
+		m_gpsLookup->ShowSettings();
 }
 
 void MainWindow::settingsAddressLookup()
 {
-	if ( addressLookup != NULL )
-		addressLookup->ShowSettings();
+	if ( m_addressLookup != NULL )
+		m_addressLookup->ShowSettings();
 }
 
 void MainWindow::settingsGPS()
@@ -456,36 +470,37 @@ void MainWindow::settingsDataDirectory()
 {
 	while ( true )
 	{
-		QString input = QFileDialog::getExistingDirectory( this, "Enter Data Directory", dataDirectory );
-		if ( !input.isEmpty() )
-			dataDirectory = input;
-		if ( dataDirectory == "" ) {
+		QString input = QFileDialog::getExistingDirectory( this, "Enter Data Directory", m_dataDirectory );
+		if ( input.isEmpty() ) {
 			QMessageBox::information( NULL, "Data Directory", "No Data Directory Specified" );
 			exit( -1 );
 		}
+		m_dataDirectory = input;
 		unloadPlugins();
 		if ( loadPlugins() )
 			break;
 	}
 
-	ui->backButton->click();
+	m_ui->backButton->click();
 }
 
-void MainWindow::positionUpdated( const QGeoPositionInfo & update )
-{
-	GPSCoordinate gps;
-	gps.latitude = update.coordinate().latitude();
-	gps.longitude = update.coordinate().longitude();
-	UnsignedCoordinate pos( gps );
-	if ( updateSource ) {
-		if ( update.hasAttribute( QGeoPositionInfo::Direction ) )
-			heading = update.attribute( QGeoPositionInfo::Direction );
-		setSource( pos, heading );
-		updateSource = true;
+#ifndef NOQTMOBILE
+	void MainWindow::positionUpdated( const QGeoPositionInfo & update )
+	{
+		GPSCoordinate gps;
+		gps.latitude = update.coordinate().latitude();
+		gps.longitude = update.coordinate().longitude();
+		UnsignedCoordinate pos( gps );
+		if ( m_updateSource ) {
+			if ( update.hasAttribute( QGeoPositionInfo::Direction ) )
+				m_heading = update.attribute( QGeoPositionInfo::Direction );
+			setSource( pos, m_heading );
+			m_updateSource = true;
+		}
+		if ( m_updateTarget ) {
+			setTarget( pos );
+			m_updateTarget = true;
+		}
 	}
-	if ( updateTarget ) {
-		setTarget( pos );
-		updateTarget = true;
-	}
-}
+#endif
 
