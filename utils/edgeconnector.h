@@ -116,6 +116,8 @@ public:
 
 			segments->push_back( segmentDescriptions->size() - lastSize );
 		}
+
+		assert( segmentDescriptions->size() == edges.size() );
 	}
 
 protected:

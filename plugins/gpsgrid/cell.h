@@ -23,6 +23,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils/config.h"
 #include "utils/coordinates.h"
 #include "utils/bithelpers.h"
+#include "utils/edgeconnector.h"
 #include <vector>
 #include <algorithm>
 
@@ -85,6 +86,37 @@ namespace gg
 			unsigned short maxEdgeID = 0;
 			unsigned short maxPathLength = 0;
 
+			{
+				// build edge connector data structures
+				std::vector< EdgeConnector< unsigned >::Edge > connectorEdges;
+				std::vector< unsigned > resultSegments;
+				std::vector< unsigned > resultSegmentDescriptions;
+				std::vector< bool > resultReversed;
+
+				for ( unsigned i = 0; i < ( unsigned ) edges.size(); i++ ) {
+					EdgeConnector< unsigned >::Edge newEdge;
+					newEdge.source = edges[i].source;
+					newEdge.target = edges[i].target;
+					newEdge.reverseable = edges[i].bidirectional;
+					connectorEdges.push_back( newEdge );
+				}
+
+				EdgeConnector< unsigned >::run( &resultSegments, &resultSegmentDescriptions, &resultReversed, connectorEdges );
+
+				for ( unsigned i = 0; i < ( unsigned ) edges.size(); i++ ) {
+					if ( resultReversed[i] ) {
+						std::swap( edges[i].source, edges[i].target );
+						std::reverse( coordinates.begin() + edges[i].pathID, coordinates.begin() + edges[i].pathID + edges[i].pathLength );
+					}
+				}
+
+				std::vector< Edge > reorderedEdges;
+				for ( unsigned i = 0; i < ( unsigned ) resultSegmentDescriptions.size(); i++ )
+					reorderedEdges.push_back( edges[resultSegmentDescriptions[i]] );
+
+				edges.swap( reorderedEdges );
+			}
+
 			std::vector< NodeID > nodes;
 			for ( std::vector< Edge >::iterator i = edges.begin(), e = edges.end(); i != e; ++i ) {
 				minID = std::min( minID, i->source );
@@ -98,22 +130,6 @@ namespace gg
 
 				nodes.push_back( i->source );
 				nodes.push_back( i->target );
-
-				// find another edge that connects to this one
-				// currently quite slow for very large cells ( n^2 )
-				for ( std::vector< Edge >::iterator next = i + 1; next != e; ++next ) {
-					if ( next->source == i->target ) {
-						std::swap( *( i + 1 ), *next );
-						break;
-					}
-					// bidirectional edge can be inverted
-					if ( next->target == i->target && next->bidirectional ) {
-						std::swap( next->target, next->source );
-						std::reverse( coordinates.begin() + next->pathID, coordinates.begin() + next->pathID + next->pathLength );
-						std::swap( *( i + 1 ), *next );
-						break;
-					}
-				}
 			}
 
 			std::sort( nodes.begin(), nodes.end() );
