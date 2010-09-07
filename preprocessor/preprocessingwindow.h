@@ -60,7 +60,6 @@ public slots:
 
 protected:
 
-	void changeEvent(QEvent *e);
 	void connectSlots();
 	void loadPlugins();
 	bool testPlugin( QObject* plugin );
