@@ -16,9 +16,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
-Alternatively, this file may be used under the terms of the GNU Lesser
-General Public License version 2 as published by the Free Software
-Foundation.
+Alternatively, this file may be used under the terms of the GNU
+Library General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option)
+any later version.
 */
 
 #ifndef SIGNALS_H
