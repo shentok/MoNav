@@ -40,26 +40,22 @@ class Contractor {
 	private:
 
 		struct _EdgeData {
-			int distance;
+			unsigned distance;
 			unsigned originalEdges : 29;
 			bool shortcut : 1;
 			bool forward : 1;
 			bool backward : 1;
-			NodeID middle;
+			union {
+				NodeID middle; // shortcut
+				unsigned id; // original edge
+			};
 		} data;
 
 		struct _HeapData {
-			//short hops;
-			//_HeapData() {
-			//	hops = 0;
-			//}
-			//_HeapData( int h ) {
-			//	hops = h;
-			//}
 		};
 
 		typedef DynamicGraph< _EdgeData > _DynamicGraph;
-		typedef BinaryHeap< NodeID, NodeID, int, _HeapData > _Heap;
+		typedef BinaryHeap< NodeID, NodeID, unsigned, _HeapData > _Heap;
 		typedef _DynamicGraph::InputEdge _ImportEdge;
 
 		struct _ThreadData {
@@ -166,29 +162,34 @@ class Contractor {
 	public:
 
 		template< class InputEdge >
-		Contractor( int nodes, std::vector< InputEdge >& inputEdges ) {
+		Contractor( int nodes, const std::vector< InputEdge >& inputEdges ) {
 			std::vector< _ImportEdge > edges;
 			edges.reserve( 2 * inputEdges.size() );
 			int skippedLargeEdges = 0;
-			int skippedSmallEdges = 0;
 			for ( typename std::vector< InputEdge >::const_iterator i = inputEdges.begin(), e = inputEdges.end(); i != e; ++i ) {
 				_ImportEdge edge;
 				edge.source = i->source;
 				edge.target = i->target;
-				edge.data.distance = std::max( i->distance * 10, 1.0 );
+				edge.data.distance = std::max( i->distance * 10.0, 1.0 );
 				if ( edge.data.distance > 24 * 60 * 60 * 10 ) {
 					skippedLargeEdges++;
 					continue;
 				}
-				if ( edge.data.distance <= 0 ) {
-					skippedSmallEdges++;
-					continue;
-				}
 				edge.data.shortcut = false;
-				edge.data.middle = 0;
+				edge.data.id = i - inputEdges.begin();
 				edge.data.forward = true;
 				edge.data.backward = i->bidirectional;
 				edge.data.originalEdges = 1;
+
+				if ( edge.data.distance < 1 ) {
+					qDebug() << edge.source << edge.target << edge.data.forward << edge.data.backward << edge.data.distance << edge.data.id << i->distance;
+				}
+
+				if ( edge.source == edge.target ) {
+					_loops.push_back( edge );
+					continue;
+				}
+
 				edges.push_back( edge );
 				std::swap( edge.source, edge.target );
 				edge.data.forward = i->bidirectional;
@@ -196,57 +197,9 @@ class Contractor {
 				edges.push_back( edge );
 			}
 			if ( skippedLargeEdges != 0 )
-			{
 				qDebug( "Skipped %d edges with too large edge weight", skippedLargeEdges );
-			}
-			if ( skippedSmallEdges != 0 )
-			{
-				qDebug( "Skipped %d edges with too small edge weight", skippedSmallEdges );
-			}
-			std::vector< InputEdge >().swap( inputEdges ); //free memory
 			std::sort( edges.begin(), edges.end() );
 
-			NodeID edge = 0;
-			for ( NodeID i = 0; i < edges.size(); ) {
-				const NodeID source = edges[i].source;
-				const NodeID target = edges[i].target;
-				if ( source == target ) {
-					i++;
-					continue;
-				}
-				_ImportEdge forwardEdge;
-				_ImportEdge backwardEdge;
-				forwardEdge.source = backwardEdge.source = source;
-				forwardEdge.target = backwardEdge.target = target;
-				forwardEdge.data.forward = backwardEdge.data.backward = true;
-				forwardEdge.data.backward = backwardEdge.data.forward = false;
-				forwardEdge.data.middle = backwardEdge.data.middle = 0;
-				forwardEdge.data.shortcut = backwardEdge.data.shortcut = false;
-				forwardEdge.data.originalEdges = backwardEdge.data.originalEdges = 1;
-				forwardEdge.data.distance = backwardEdge.data.distance = std::numeric_limits< int >::max();
-				while ( i < edges.size() && edges[i].source == source && edges[i].target == target ) {
-					if ( edges[i].data.forward )
-						forwardEdge.data.distance = std::min( edges[i].data.distance, forwardEdge.data.distance );
-					if ( edges[i].data.backward )
-						backwardEdge.data.distance = std::min( edges[i].data.distance, backwardEdge.data.distance );
-					i++;
-				}
-				if ( forwardEdge.data.distance == backwardEdge.data.distance ) {
-					if ( forwardEdge.data.distance != std::numeric_limits< int >::max() ) {
-						forwardEdge.data.backward = true;
-						edges[edge++] = forwardEdge;
-					}
-				} else {
-					if ( forwardEdge.data.distance != std::numeric_limits< int >::max() ) {
-						edges[edge++] = forwardEdge;
-					}
-					if ( backwardEdge.data.distance != std::numeric_limits< int >::max() ) {
-						edges[edge++] = backwardEdge;
-					}
-				}
-			}
-			qDebug( "Removed %d edges of %d", ( int ) edges.size() - edge, ( int ) edges.size() );
-			edges.resize( edge );
 			_graph = new _DynamicGraph( nodes, edges );
 
 			std::vector< _ImportEdge >().swap( edges );
@@ -399,7 +352,7 @@ class Contractor {
 		}
 
 		template< class Edge >
-		void GetEdges( std::vector< Edge >& edges ) {
+		void GetEdges( std::vector< Edge >* edges ) {
 			NodeID numberOfNodes = _graph->GetNumberOfNodes();
 			for ( NodeID node = 0; node < numberOfNodes; ++node ) {
 				for ( _DynamicGraph::EdgeIterator edge = _graph->BeginEdges( node ), endEdges = _graph->EndEdges( node ); edge != endEdges; ++edge ) {
@@ -410,11 +363,29 @@ class Contractor {
 					newEdge.target = target;
 					newEdge.data.distance = data.distance;
 					newEdge.data.shortcut = data.shortcut;
-					newEdge.data.middle = data.middle;
+					if ( data.shortcut )
+						newEdge.data.middle = data.middle;
+					else
+						newEdge.data.id = data.id;
 					newEdge.data.forward = data.forward;
 					newEdge.data.backward = data.backward;
-					edges.push_back( newEdge );
+					edges->push_back( newEdge );
 				}
+			}
+		}
+
+		template< class Edge >
+		void GetLoops( std::vector< Edge >* edges ) {
+			for ( unsigned i = 0; i < _loops.size(); i++ ) {
+				Edge newEdge;
+				newEdge.source = _loops[i].source;
+				newEdge.target = _loops[i].target;
+				newEdge.data.distance = _loops[i].data.distance;
+				newEdge.data.shortcut = _loops[i].data.shortcut;
+				newEdge.data.id = _loops[i].data.id;
+				newEdge.data.forward = _loops[i].data.forward;
+				newEdge.data.backward = _loops[i].data.backward;
+				edges->push_back( newEdge );
 			}
 		}
 
@@ -431,19 +402,16 @@ class Contractor {
 
 		bool _ConstructCH( _DynamicGraph* _graph );
 
-		void _Dijkstra( const int maxDistance, const int maxNodes, _ThreadData* const data ){
+		void _Dijkstra( const unsigned maxDistance, const int maxNodes, _ThreadData* const data ){
 
 			_Heap& heap = data->heap;
 
 			int nodes = 0;
 			while ( heap.Size() > 0 ) {
 				const NodeID node = heap.DeleteMin();
-				const int distance = heap.GetKey( node );
-				//const int hops = heap.GetData( node ).hops;
+				const unsigned distance = heap.GetKey( node );
 				if ( nodes++ > maxNodes )
 					return;
-				//if ( hops >= 5 )
-				//	return;
 				//Destination settled?
 				if ( distance > maxDistance )
 					return;
@@ -454,7 +422,7 @@ class Contractor {
 					if ( !data.forward )
 						continue;
 					const NodeID to = _graph->GetTarget( edge );
-					const int toDistance = distance + data.distance;
+					const unsigned toDistance = distance + data.distance;
 
 					//New Node discovered -> Add to Heap + Node Info Storage
 					if ( !heap.WasInserted( to ) )
@@ -463,7 +431,6 @@ class Contractor {
 					//Found a shorter Path -> Update distance
 					else if ( toDistance < heap.GetKey( to ) ) {
 						heap.DecreaseKey( to, toDistance );
-						//heap.GetData( to ).hops = hops + 1;
 					}
 				}
 			}
@@ -476,9 +443,13 @@ class Contractor {
 			_Contract< true > ( data, node, &stats );
 
 			// Result will contain the priority
+			double result;
 			if ( stats.edgesDeleted == 0 || stats.originalEdgesDeleted == 0 )
-				return 1 * nodeData->depth;
-			return 2 * ((( double ) stats.edgesAdded ) / stats.edgesDeleted ) + 1 * ((( double ) stats.originalEdgesAdded ) / stats.originalEdgesDeleted ) + 1 * nodeData->depth;
+				result = 1 * nodeData->depth;
+			else
+				result =  2 * ((( double ) stats.edgesAdded ) / stats.edgesDeleted ) + 1 * ((( double ) stats.originalEdgesAdded ) / stats.originalEdgesDeleted ) + 1 * nodeData->depth;
+			assert( result >= 0 );
+			return result;
 		}
 
 
@@ -503,14 +474,14 @@ class Contractor {
 				heap.Insert( source, 0, _HeapData() );
 				if ( node != source )
 					heap.Insert( node, inData.distance, _HeapData() );
-				int maxDistance = 0;
+				unsigned maxDistance = 0;
 
 				for ( _DynamicGraph::EdgeIterator outEdge = _graph->BeginEdges( node ), endOutEdges = _graph->EndEdges( node ); outEdge != endOutEdges; ++outEdge ) {
 					const _EdgeData& outData = _graph->GetEdgeData( outEdge );
 					if ( !outData.forward )
 						continue;
 					const NodeID target = _graph->GetTarget( outEdge );
-					const int pathDistance = inData.distance + outData.distance;
+					const unsigned pathDistance = inData.distance + outData.distance;
 					maxDistance = std::max( maxDistance, pathDistance );
 					if ( !heap.WasInserted( target ) )
 						heap.Insert( target, pathDistance, _HeapData() );
@@ -606,12 +577,6 @@ class Contractor {
 
 			for ( int i = 0, e = ( int ) neighbours.size(); i < e; ++i ) {
 				const NodeID u = neighbours[i];
-				//_DynamicGraph::EdgeIterator edge = _graph->FindEdge( u, node );
-				//assert( edge != _graph->EndEdges( u ) );
-				//while ( edge != _graph->EndEdges( u ) ) {
-				//	_graph->DeleteEdge( u, edge );
-				//	edge = _graph->FindEdge( u, node );
-				//}
 				_graph->DeleteEdgesTo( u, node );
 			}
 
@@ -688,6 +653,7 @@ class Contractor {
 
 		_DynamicGraph* _graph;
 		std::vector< Witness > _witnessList;
+		std::vector< _ImportEdge > _loops;
 };
 
 #endif // CONTRACTOR_H_INCLUDED

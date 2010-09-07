@@ -153,34 +153,27 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 				maxY = std::min ( 1 << zoom, maxY + settings.tileMargin );
 			}
 
-			std::vector< std::vector< bool > > occupancy;
-			if ( settings.deleteTiles ) {
-				occupancy.resize( maxX - minX );
-				for ( int x = minX; x < maxX; ++x )
-					occupancy[x - minX].resize( maxY - minY, false );
-				for ( std::vector< IImporter::RoutingEdge >::const_iterator i = inputEdges.begin(), e = inputEdges.end(); i != e; ++i ) {
-					int sourceX = inputNodes[i->source].coordinate.GetTileX( zoom );
-					int sourceY = inputNodes[i->source].coordinate.GetTileY( zoom );
-					int targetX = inputNodes[i->target].coordinate.GetTileX( zoom );
-					int targetY = inputNodes[i->target].coordinate.GetTileY( zoom );
-					if ( sourceX > targetX )
-						std::swap( sourceX, targetX );
-					if ( sourceY > targetY )
-						std::swap( sourceY, targetY );
-					sourceX = std::max( sourceX, minX );
-					sourceX = std::min( sourceX, maxX - 1 );
-					sourceY = std::max( sourceY, minY );
-					sourceY = std::min( sourceY, maxY - 1 );
-					targetX = std::max( targetX, minX );
-					targetX = std::min( targetX, maxX - 1 );
-					targetY = std::max( targetY, minY );
-					targetY = std::min( targetY, maxY - 1 );
-					for ( int x = sourceX; x <= targetX; ++x ) {
-						for ( int y = sourceY; y <= targetY; ++y ) {
-							occupancy[x - minX][y - minY] = true;
-						}
-					}
-				}
+			std::vector< bool > occupancy( ( maxX - minX ) * ( maxY - minY ), false );
+			for ( std::vector< IImporter::RoutingEdge >::const_iterator i = inputEdges.begin(), e = inputEdges.end(); i != e; ++i ) {
+				int sourceX = inputNodes[i->source].coordinate.GetTileX( zoom );
+				int sourceY = inputNodes[i->source].coordinate.GetTileY( zoom );
+				int targetX = inputNodes[i->target].coordinate.GetTileX( zoom );
+				int targetY = inputNodes[i->target].coordinate.GetTileY( zoom );
+				if ( sourceX > targetX )
+					std::swap( sourceX, targetX );
+				if ( sourceY > targetY )
+					std::swap( sourceY, targetY );
+				sourceX = std::max( sourceX, minX );
+				sourceX = std::min( sourceX, maxX - 1 );
+				sourceY = std::max( sourceY, minY );
+				sourceY = std::min( sourceY, maxY - 1 );
+				targetX = std::max( targetX, minX );
+				targetX = std::min( targetX, maxX - 1 );
+				targetY = std::max( targetY, minY );
+				targetY = std::min( targetY, maxY - 1 );
+				for ( int x = sourceX; x <= targetX; ++x )
+					for ( int y = sourceY; y <= targetY; ++y )
+						occupancy[( x - minX ) + ( y - minY ) * ( maxX - minX )] = true;
 			}
 
 			configData << quint32( minX ) << quint32( maxX ) << quint32( minY ) << quint32( maxY );
@@ -238,7 +231,7 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 						int indexNumber = ( y + subY - minY ) * ( maxX - minX ) + x + subX - minX;
 						mapnik::image_view<mapnik::ImageData32> view = image.get_view( subX * settings.tileSize + settings.margin, subY * settings.tileSize + settings.margin, settings.tileSize, settings.tileSize );
 						std::string result;
-						if ( !settings.deleteTiles || occupancy[x + subX - minX][y + subY - minY] ) {
+						if ( !settings.deleteTiles || occupancy[( x + subX - minX ) + ( y + subY - minY ) * ( maxX - minX )] ) {
 							if ( settings.reduceColors )
 								result = mapnik::save_to_string( view, "png256" );
 							else

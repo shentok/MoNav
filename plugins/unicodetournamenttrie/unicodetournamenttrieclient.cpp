@@ -277,10 +277,10 @@ bool UnicodeTournamentTrieClient::GetStreetData( QString input, QVector< int >* 
 	element.Read( subTrieData + placeID + node );
 
 	for ( std::vector< utt::Data >::const_iterator i = element.dataList.begin(), e = element.dataList.end(); i != e; ++i ) {
-		unsigned* buffer = new unsigned[( i->end - i->start ) * 2];
+		unsigned* buffer = new unsigned[i->length * 2];
 		dataFile->seek( i->start * sizeof( unsigned ) * 2 );
-		dataFile->read( ( char* ) buffer, ( i->end - i->start ) * 2 * sizeof( unsigned ) );
-		for ( unsigned start = 0, end = i->end - i->start; start < end; ++start ) {
+		dataFile->read( ( char* ) buffer, i->length * 2 * sizeof( unsigned ) );
+		for ( unsigned start = 0; start < i->length; ++start ) {
 			UnsignedCoordinate temp;
 			temp.x = buffer[start * 2];
 			temp.y = buffer[start * 2 + 1];

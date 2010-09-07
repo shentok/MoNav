@@ -43,7 +43,7 @@ public:
 	virtual ProjectedCoordinate Move( int shiftX, int shiftY, const PaintRequest& request );
 	virtual ProjectedCoordinate PointToCoordinate( int shiftX, int shiftY, const PaintRequest& request );
 	virtual bool Paint( QPainter* painter, const PaintRequest& request );
-	virtual void setSlot( QObject* obj, const char* slot );
+	virtual void SetUpdateSlot( QObject* obj, const char* slot );
 
 signals:
 	void changed();

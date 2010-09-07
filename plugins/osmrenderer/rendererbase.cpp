@@ -110,7 +110,7 @@ ProjectedCoordinate RendererBase::PointToCoordinate( int shiftX, int shiftY, con
 	return Move( -shiftX, -shiftY, request );
 }
 
-void RendererBase::setSlot( QObject* obj, const char* slot )
+void RendererBase::SetUpdateSlot( QObject* obj, const char* slot )
 {
 	connect( this, SIGNAL(changed()), obj, slot );
 }

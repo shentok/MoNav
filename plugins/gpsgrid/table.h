@@ -53,11 +53,11 @@ namespace gg {
 
 		void SetIndex( int x, int y, T data )
 		{
-			assert( index[x + y *size] == -1 );
 			assert( x >= 0 );
 			assert( x < 32 );
 			assert( y >= 0 );
 			assert( y < 32 );
+			assert( index[x + y *size] == -1 );
 			index[x + y * size] = data;
 		}
 

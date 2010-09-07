@@ -83,7 +83,10 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer )
 	std::vector< IImporter::Place > inputPlaces;
 	std::vector< IImporter::Address > inputAddress;
 	std::vector< UnsignedCoordinate > inputWayBuffer;
+	std::vector< QString > inputWayNames;
 	if ( !importer->GetAddressData( &inputPlaces, &inputAddress, &inputWayBuffer ) )
+		return false;
+	if ( !importer->GetRoutingWayNames( &inputWayNames ) )
 		return false;
 
 	Timer time;
@@ -155,12 +158,13 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer )
 			QHash< QString, double > wayLength;
 			for ( std::vector< IImporter::Address >::const_iterator nextAddress = address; nextAddress != inputAddress.end() && nextAddress->nearPlace == i - inputPlaces.begin(); ++nextAddress ) {
 				double distance = 0;
-				for ( unsigned coord = address->wayStart; coord + 1 < address->wayEnd; ++coord )
+				for ( unsigned coord = address->pathID; coord + 1 < address->pathID + address->pathLength; ++coord )
 					distance += inputWayBuffer[coord].ToProjectedCoordinate().ToGPSCoordinate().ApproximateDistance( inputWayBuffer[coord + 1].ToProjectedCoordinate().ToGPSCoordinate() );
-				if ( !wayLength.contains( nextAddress->name ) )
-					wayLength[nextAddress->name] = distance;
+				QString name = inputWayNames[nextAddress->name];
+				if ( !wayLength.contains( name ) )
+					wayLength[name] = distance;
 				else
-					wayLength[nextAddress->name] += distance;
+					wayLength[name] += distance;
 			}
 
 			std::vector< WayImportance > wayImportanceOrder;
@@ -182,22 +186,23 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer )
 			std::vector< utt::Node > subTrie( 1 );
 			for ( ;address != inputAddress.end() && address->nearPlace == i - inputPlaces.begin(); ++address ) {
 				utt::Data subEntry;
-				subEntry.start = address->wayStart;
-				subEntry.end = address->wayEnd;
-				assert ( wayImportance.contains( address->name ) );
-				insert( &subTrie, wayImportance[address->name], address->name, subEntry );
+				subEntry.start = address->pathID;
+				subEntry.length = address->pathLength;
+				QString name = inputWayNames[address->name];
+				assert ( wayImportance.contains( name ) );
+				insert( &subTrie, wayImportance[name], name, subEntry );
 			}
 
 			utt::Data cityCenterData;
 			cityCenterData.start = inputWayBuffer.size();
 			inputWayBuffer.push_back( i->coordinate );
 			inputWayBuffer.push_back( i->coordinate );
-			cityCenterData.end = inputWayBuffer.size();
+			cityCenterData.length = 2;
 			insert( &subTrie, std::numeric_limits< unsigned >::max(), tr( "City Center" ), cityCenterData );
 
 			writeTrie( &subTrie, subTrieFile );
 
-			data.end = subTrieFile.pos();
+			data.length = subTrieFile.pos() - data.start;
 
 			assert( importance.contains( i->name ) );
 			insert( &trie, importance[i->name], i->name, data );

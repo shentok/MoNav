@@ -50,7 +50,7 @@ void PaintWidget::setFixed( bool f )
 void PaintWidget::setRenderer( IRenderer* r )
 {
 	renderer = r;
-	renderer->setSlot( this, SLOT(update()) );
+	renderer->SetUpdateSlot( this, SLOT(update()) );
 }
 
 void PaintWidget::setCenter( const ProjectedCoordinate c )

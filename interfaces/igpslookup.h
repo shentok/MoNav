@@ -30,15 +30,21 @@ class IGPSLookup
 public:
 
 	struct Result {
-		bool bidirectional;
+		// source + target + edgeID uniquely identify an edge
 		NodeID source;
 		NodeID target;
+		unsigned edgeID;
+		// the nearest point on the edge
 		UnsignedCoordinate nearestPoint;
-		double distance;
+		// the amount of way coordinates on the way before the nearest point
+		unsigned previousWayCoordinates;
+		// the position on the way
 		double percentage;
-		bool operator<( const Result& right ) const {
-			return distance < right.distance;
-		}
+		// the distance to the nearest point
+		double distance;
+		// way coordinates
+		QVector< UnsignedCoordinate > coordinates;
+
 	};
 
 	virtual ~IGPSLookup() {}
@@ -47,7 +53,8 @@ public:
 	virtual void SetInputDirectory( const QString& dir ) = 0;
 	virtual void ShowSettings() = 0;
 	virtual bool LoadData() = 0;
-	virtual bool GetNearEdges( QVector< Result >* result, const UnsignedCoordinate& coordinate, double radius, bool headingPenalty = 0, double heading = 0 ) = 0;
+	// gets the nearest routing edge; a heading penalty can be applied if the way's orientation differs greatly from the current heading.
+	virtual bool GetNearestEdge( Result* result, const UnsignedCoordinate& coordinate, double radius, bool headingPenalty = 0, double heading = 0 ) = 0;
 };
 
 Q_DECLARE_INTERFACE( IGPSLookup, "monav.IGPSLookup/1.1" )

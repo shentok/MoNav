@@ -100,7 +100,7 @@ bool GPSGridClient::LoadData()
 	return true;
 }
 
-bool GPSGridClient::GetNearEdges( QVector< Result >* result, const UnsignedCoordinate& coordinate, double radius, bool headingPenalty, double heading )
+bool GPSGridClient::GetNearestEdge( Result* result, const UnsignedCoordinate& coordinate, double radius, bool headingPenalty, double heading )
 {
 	const GPSCoordinate gps = coordinate.ToProjectedCoordinate().ToGPSCoordinate();
 	const GPSCoordinate gpsMoved( gps.latitude, gps.longitude + 1 );
@@ -116,30 +116,52 @@ bool GPSGridClient::GetNearEdges( QVector< Result >* result, const UnsignedCoord
 	NodeID yGrid = floor( position.y * width );
 	NodeID xGrid = floor( position.x * width );
 
-	checkCell( result, gridRadius, xGrid - 1, yGrid - 1, coordinate, heading, headingPenalty );
-	checkCell( result, gridRadius, xGrid - 1, yGrid, coordinate, heading, headingPenalty );
-	checkCell( result, gridRadius, xGrid - 1, yGrid + 1, coordinate, heading, headingPenalty );
+	result->distance = gridRadius;
 
-	checkCell( result, gridRadius, xGrid, yGrid - 1, coordinate, heading, headingPenalty );
-	checkCell( result, gridRadius, xGrid, yGrid, coordinate, heading, headingPenalty );
-	checkCell( result, gridRadius, xGrid, yGrid + 1, coordinate, heading, headingPenalty );
+	checkCell( result, xGrid - 1, yGrid - 1, coordinate, heading, headingPenalty );
+	checkCell( result, xGrid - 1, yGrid, coordinate, heading, headingPenalty );
+	checkCell( result, xGrid - 1, yGrid + 1, coordinate, heading, headingPenalty );
 
-	checkCell( result, gridRadius, xGrid + 1, yGrid - 1, coordinate, heading, headingPenalty );
-	checkCell( result, gridRadius, xGrid + 1, yGrid, coordinate, heading, headingPenalty );
-	checkCell( result, gridRadius, xGrid + 1, yGrid + 1, coordinate, heading, headingPenalty );
+	checkCell( result, xGrid, yGrid - 1, coordinate, heading, headingPenalty );
+	checkCell( result, xGrid, yGrid, coordinate, heading, headingPenalty );
+	checkCell( result, xGrid, yGrid + 1, coordinate, heading, headingPenalty );
 
-	std::sort( result->begin(), result->end() );
-	return result->size() != 0;
+	checkCell( result, xGrid + 1, yGrid - 1, coordinate, heading, headingPenalty );
+	checkCell( result, xGrid + 1, yGrid, coordinate, heading, headingPenalty );
+	checkCell( result, xGrid + 1, yGrid + 1, coordinate, heading, headingPenalty );
+
+	if ( result->coordinates.size() == 0 )
+		return false;
+
+	double length = 0;
+	double lengthToNearest = 0;
+	for ( int path = 1; path < result->coordinates.size(); path++ ) {
+		UnsignedCoordinate sourceCoord = result->coordinates[path - 1];
+		UnsignedCoordinate targetCoord = result->coordinates[path];
+		double xDiff = ( double ) sourceCoord.x - targetCoord.x;
+		double yDiff = ( double ) sourceCoord.y - targetCoord.y;
+
+		double distance = sqrt( xDiff * xDiff + yDiff * yDiff );
+		length += distance;
+		if ( path <= ( int ) result->previousWayCoordinates )
+			lengthToNearest += distance;
+		else if ( path == ( int ) result->previousWayCoordinates + 1 )
+			lengthToNearest += result->percentage * distance;
+	}
+	if ( length == 0 )
+		result->percentage = 0;
+	else
+		result->percentage = lengthToNearest / length;
+	return true;
 }
 
-bool GPSGridClient::checkCell( QVector< Result >* result, double radius, NodeID gridX, NodeID gridY, const UnsignedCoordinate& coordinate, double heading, double headingPenalty ) {
+bool GPSGridClient::checkCell( Result* result, NodeID gridX, NodeID gridY, const UnsignedCoordinate& coordinate, double heading, double headingPenalty ) {
 	static const int width = 32 * 32 * 32;
 	ProjectedCoordinate minPos( ( double ) gridX / width, ( double ) gridY / width );
 	ProjectedCoordinate maxPos( ( double ) ( gridX + 1 ) / width, ( double ) ( gridY + 1 ) / width );
 	UnsignedCoordinate min( minPos );
 	UnsignedCoordinate max( maxPos );
-	UnsignedCoordinate nearestPoint;
-	if ( distance( min, max, coordinate ) >= radius )
+	if ( distance( min, max, coordinate ) >= result->distance )
 		return false;
 
 	qint64 cellNumber = ( qint64( gridX ) << 32 ) + gridY;
@@ -162,43 +184,61 @@ bool GPSGridClient::checkCell( QVector< Result >* result, double radius, NodeID 
 	if ( cell == NULL )
 		return true;
 
+	UnsignedCoordinate nearestPoint;
 	for ( std::vector< gg::Cell::Edge >::const_iterator i = cell->edges.begin(), e = cell->edges.end(); i != e; ++i ) {
-		double percentage = 0;
+		bool found = false;
 
-		double d = distance( &nearestPoint, &percentage, *i, coordinate );
-		double xDiff = ( double ) i->targetCoord.x - i->sourceCoord.x;
-		double yDiff = ( double ) i->targetCoord.y - i->sourceCoord.y;
-		double direction = 0;
-		if ( xDiff != 0 || yDiff != 0 )
-			direction = fmod( atan2( yDiff, xDiff ), 2 * M_PI );
-		else
-			headingPenalty = 0;
-		double penalty = fabs( direction - heading );
-		if ( penalty > M_PI )
-			penalty = 2 * M_PI - penalty;
-		if ( i->bidirectional && penalty > M_PI / 2 )
-			penalty = M_PI - penalty;
-		penalty = penalty / M_PI * headingPenalty;
-		if ( d < radius ) {
-			Result resultEdge;
-			resultEdge.source = i->source;
-			resultEdge.target = i->target;
-			resultEdge.nearestPoint = nearestPoint;
-			resultEdge.percentage = percentage;
-			resultEdge.distance = d;
-			resultEdge.bidirectional = i->bidirectional;
-			result->push_back( resultEdge );
+		for ( int path = 1; path < i->pathLength; path++ ) {
+			UnsignedCoordinate sourceCoord = cell->coordinates[path + i->pathID - 1];
+			UnsignedCoordinate targetCoord = cell->coordinates[path + i->pathID];
+			double percentage = 0;
+
+			double d = distance( &nearestPoint, &percentage, sourceCoord, targetCoord, coordinate );
+			if ( d + headingPenalty > result->distance )
+				continue;
+
+			double xDiff = ( double ) targetCoord.x - sourceCoord.x;
+			double yDiff = ( double ) targetCoord.y - sourceCoord.y;
+			double direction = 0;
+			if ( xDiff != 0 || yDiff != 0 )
+				direction = fmod( atan2( yDiff, xDiff ), 2 * M_PI );
+			else
+				headingPenalty = 0;
+			double penalty = fabs( direction - heading );
+			if ( penalty > M_PI )
+				penalty = 2 * M_PI - penalty;
+			if ( i->bidirectional && penalty > M_PI / 2 )
+				penalty = M_PI - penalty;
+			penalty = penalty / M_PI * headingPenalty;
+			d += penalty;
+
+			if ( d < result->distance ) {
+				result->nearestPoint = nearestPoint;
+				result->distance = d;
+				result->previousWayCoordinates = path - 1;
+				result->percentage = percentage;
+				found = true;
+			}
+		}
+
+		if ( found ) {
+			result->source = i->source;
+			result->target = i->target;
+			result->edgeID = i->edgeID;
+			result->coordinates.clear();
+			for ( int path = 0; path < i->pathLength; path++ )
+				result->coordinates.push_back( cell->coordinates[path + i->pathID] );
 		}
 	}
 
 	return true;
 }
 
-double GPSGridClient::distance( UnsignedCoordinate* nearestPoint, double* percentage, const gg::Cell::Edge& edge, const UnsignedCoordinate& coordinate ) {
-	const double vY = ( double ) edge.targetCoord.y - edge.sourceCoord.y;
-	const double vX = ( double ) edge.targetCoord.x - edge.sourceCoord.x;
-	const double wY = ( double ) coordinate.y - edge.sourceCoord.y;
-	const double wX = ( double ) coordinate.x - edge.sourceCoord.x;
+double GPSGridClient::distance( UnsignedCoordinate* nearestPoint, double* percentage, const UnsignedCoordinate source, const UnsignedCoordinate target, const UnsignedCoordinate& coordinate ) {
+	const double vY = ( double ) target.y - source.y;
+	const double vX = ( double ) target.x - source.x;
+	const double wY = ( double ) coordinate.y - source.y;
+	const double wX = ( double ) coordinate.x - source.x;
 	const double vLengthSquared = vY * vY + vX * vX;
 
 	double r = 0;
@@ -207,19 +247,19 @@ double GPSGridClient::distance( UnsignedCoordinate* nearestPoint, double* percen
 	*percentage = r;
 
 	if ( r <= 0 ) {
-		*nearestPoint = edge.sourceCoord;
+		*nearestPoint = source;
 		*percentage = 0;
 		return wY * wY + wX * wX;
 	} else if ( r >= 1 ) {
-		*nearestPoint = edge.targetCoord;
+		*nearestPoint = target;
 		*percentage = 1;
-		const double dY = ( double ) coordinate.y - edge.targetCoord.y;
-		const double dX = ( double ) coordinate.x - edge.targetCoord.x;
+		const double dY = ( double ) coordinate.y - target.y;
+		const double dX = ( double ) coordinate.x - target.x;
 		return dY * dY + dX * dX;
 	}
 
-	nearestPoint->x = edge.sourceCoord.x + r * vX;
-	nearestPoint->y = edge.sourceCoord.y + r * vY;
+	nearestPoint->x = source.x + r * vX;
+	nearestPoint->y = source.y + r * vY;
 
 	const double dX = ( double ) nearestPoint->x - coordinate.x;
 	const double dY = ( double ) nearestPoint->y - coordinate.y;

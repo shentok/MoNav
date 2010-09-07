@@ -39,7 +39,7 @@ public:
 	virtual void SetInputDirectory( const QString& dir );
 	virtual void ShowSettings();
 	virtual bool LoadData();
-	virtual bool GetNearEdges( QVector< Result >* result, const UnsignedCoordinate& coordinate, double radius, bool headingPenalty, double heading );
+	virtual bool GetNearestEdge( Result* result, const UnsignedCoordinate& coordinate, double radius, bool headingPenalty, double heading );
 
 signals:
 
@@ -48,9 +48,9 @@ public slots:
 protected:
 
 	void unload();
-	double distance( UnsignedCoordinate* nearestPoint, double* percentage, const gg::Cell::Edge& edge, const UnsignedCoordinate& coordinate );
+	double distance( UnsignedCoordinate* nearestPoint, double* percentage, const UnsignedCoordinate source, const UnsignedCoordinate target, const UnsignedCoordinate& coordinate );
 	double distance( const UnsignedCoordinate& min, const UnsignedCoordinate& max, const UnsignedCoordinate& coordinate );
-	bool checkCell( QVector< Result >* result, double radius, NodeID gridX, NodeID gridY, const UnsignedCoordinate& coordinate, double heading, double headingPenalty );
+	bool checkCell( Result* result, NodeID gridX, NodeID gridY, const UnsignedCoordinate& coordinate, double heading, double headingPenalty );
 
 	long long cacheSize;
 	QString directory;

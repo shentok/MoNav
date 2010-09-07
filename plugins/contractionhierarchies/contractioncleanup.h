@@ -94,7 +94,10 @@ class ContractionCleanup {
 				bool shortcut : 1;
 				bool forward : 1;
 				bool backward : 1;
-				NodeID middle;
+				union {
+					NodeID middle;
+					unsigned id;
+				};
 			} data;
 
 			//sorts by source and other attributes
@@ -121,8 +124,9 @@ class ContractionCleanup {
 		};
 
 
-		ContractionCleanup( int numNodes, const std::vector< Edge >& edges, const std::vector< Contractor::Witness >& witnessList ) {
+		ContractionCleanup( int numNodes, const std::vector< Edge >& edges, const std::vector< Edge >& loops, const std::vector< Contractor::Witness >& witnessList ) {
 			_graph = edges;
+			_loops = loops;
 			_witnessList = witnessList;
 			_numNodes = numNodes;
 			_heapForward = new _Heap( numNodes );
@@ -148,29 +152,39 @@ class ContractionCleanup {
 		}
 
 		template< class OutputEdge >
-		void GetData( std::vector< OutputEdge >& edges, std::vector< NodeID >& map ) {
+		void GetData( std::vector< OutputEdge >* edges, std::vector< NodeID >* map ) {
 			std::sort( _remap.begin(), _remap.end(), _Node::CompareByID );
 
 			for ( NodeID node = 0; node < _numNodes; ++node )
-				map.push_back( _remap[node].mappedID );
+				map->push_back( _remap[node].mappedID );
 
-			for ( int edge = 0, endEdges = ( int ) _graph.size(); edge != endEdges; ++edge ) {
-				OutputEdge newEdge;
-				newEdge.source = _remap[_graph[edge].source].mappedID;
-				newEdge.target = _remap[_graph[edge].target].mappedID;
-				assert( newEdge.source > newEdge.target );
-				newEdge.data.distance = _graph[edge].data.distance;
-				newEdge.data.shortcut = _graph[edge].data.shortcut;
-				if ( newEdge.data.shortcut )
-					newEdge.data.middle = _remap[_graph[edge].data.middle].mappedID;
-				newEdge.data.forward = _graph[edge].data.forward;
-				newEdge.data.backward = _graph[edge].data.backward;
-				edges.push_back( newEdge );
-			}
-			std::sort( edges.begin(), edges.end() );
+			convertEdges( edges, _graph );
+			convertEdges( edges, _loops );
+
+			std::sort( edges->begin(), edges->end() );
 		}
 
 	private:
+
+		template< class OutputEdge >
+		void convertEdges( std::vector< OutputEdge >* to, const std::vector< Edge >& from )
+		{
+			for ( unsigned edge = 0, endEdges = from.size(); edge != endEdges; ++edge ) {
+				OutputEdge newEdge;
+				newEdge.source = _remap[from[edge].source].mappedID;
+				newEdge.target = _remap[from[edge].target].mappedID;
+				assert( newEdge.source >= newEdge.target );
+				newEdge.data.distance = from[edge].data.distance;
+				newEdge.data.shortcut = from[edge].data.shortcut;
+				if ( newEdge.data.shortcut )
+					newEdge.data.middle = _remap[from[edge].data.middle].mappedID;
+				else
+					newEdge.data.id = from[edge].data.id;
+				newEdge.data.forward = from[edge].data.forward;
+				newEdge.data.backward = from[edge].data.backward;
+				to->push_back( newEdge );
+			}
+		}
 
 		class AllowForwardEdge {
 			public:
@@ -238,6 +252,8 @@ class ContractionCleanup {
 					if ( _graph[edge].data.distance < _graph[i].data.distance )
 						continue;
 					if ( edge == i )
+						continue;
+					if ( !_graph[edge].data.shortcut )
 						continue;
 
 
@@ -638,6 +654,7 @@ class ContractionCleanup {
 
 		NodeID _numNodes;
 		std::vector< Edge > _graph;
+		std::vector< Edge > _loops;
 		std::vector< unsigned > _firstEdge;
 		std::vector< _Node > _remap;
 		std::vector< Contractor::Witness > _witnessList;

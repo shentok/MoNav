@@ -50,26 +50,26 @@ struct CityData {
 
 struct Data {
 	unsigned start;
-	unsigned end;
+	unsigned short length;
 
 	size_t GetSize() const {
-		return 2 * sizeof( unsigned );
+		return sizeof( unsigned ) + sizeof( unsigned short );
 	}
 
 	void Write( char* buffer ) const {
 		*( ( unsigned* ) buffer ) = start;
 		buffer += sizeof( unsigned );
-		*( ( unsigned* ) buffer ) = end;
+		*( ( unsigned short* ) buffer ) = length;
 	}
 
 	void Read( const char* buffer ) {
 		start = readUnaligned< unsigned >( buffer );
 		buffer += sizeof( unsigned );
-		end = readUnaligned< unsigned >( buffer );
+		length = readUnaligned< unsigned short >( buffer );
 	}
 
 	bool operator==( const Data& right ) const {
-		return start == right.start && end == right.end;
+		return start == right.start && length == right.length;
 	}
 };
 

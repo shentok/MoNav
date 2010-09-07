@@ -177,24 +177,24 @@ void MapView::mouseClicked( ProjectedCoordinate clickPos )
 {
 	if ( gpsLookup == NULL )
 		return;
-	QVector< IGPSLookup::Result > result;
+	IGPSLookup::Result result;
 	QTime time;
 	time.start();
-	gpsLookup->GetNearEdges( &result, UnsignedCoordinate( clickPos ), 100 );
+	bool found = gpsLookup->GetNearestEdge( &result, UnsignedCoordinate( clickPos ), 200 );
 	qDebug() << "GPS Lookup:" << time.elapsed() << "ms";
-	if ( result.size() == 0 )
+	if ( !found )
 		return;
 	if ( mode == POI ) {
 		QVector< UnsignedCoordinate > points;
-		selected = result.first().nearestPoint;
+		selected = result.nearestPoint;
 		points.push_back( selected );
 		ui->paintArea->setPOIs( points );
 	}
 	if ( mode == Source ) {
-		setSource( result.first().nearestPoint, 0 );
+		setSource( result.nearestPoint, 0 );
 	}
 	if ( mode == Target ) {
-		setTarget( result.first().nearestPoint );
+		setTarget( result.nearestPoint );
 	}
 }
 

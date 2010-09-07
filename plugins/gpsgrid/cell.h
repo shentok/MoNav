@@ -24,157 +24,150 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils/coordinates.h"
 #include "utils/bithelpers.h"
 #include <vector>
-#include <QHash>
+#include <algorithm>
 
 namespace gg
 {
 
-	struct Cell
-	{
+	class Cell {
+
+	public:
+
 		struct Edge {
-			UnsignedCoordinate sourceCoord;
-			UnsignedCoordinate targetCoord;
+			unsigned pathID;
+			unsigned short pathLength;
+			unsigned short edgeID;
 			NodeID source;
 			NodeID target;
 			bool bidirectional;
 			bool operator==( const Edge& right ) const {
-				return sourceCoord == right.sourceCoord && targetCoord == right.targetCoord && source == right.source && target == right.target;
+				if ( source != right.source )
+					return false;
+				if ( target != right.target )
+					return false;
+				if ( bidirectional != right.bidirectional )
+					return false;
+				if ( edgeID != right.edgeID )
+					return false;
+				if ( pathLength != right.pathLength )
+					return false;
+				return true;
 			}
 		};
+
 		std::vector< Edge > edges;
+		std::vector< UnsignedCoordinate > coordinates;
 
 		bool operator==( const Cell& right ) const
 		{
 			if ( edges.size() != right.edges.size() )
 				return false;
-			for ( int i = 0; i < ( int )edges.size(); i++ )
-			{
+			for ( int i = 0; i < ( int ) edges.size(); i++ ) {
 				if ( !( edges[i] == right.edges[i] ) )
 					return false;
+				for ( unsigned path = 0; path < edges[i].pathLength; path++ ) {
+					if ( coordinates[path + edges[i].pathID].x != right.coordinates[path + right.edges[i].pathID].x )
+						return false;
+					if ( coordinates[path + edges[i].pathID].y != right.coordinates[path + right.edges[i].pathID].y )
+						return false;
+				}
 			}
+
 			return true;
 		}
 
-		size_t write( unsigned char* buffer, UnsignedCoordinate min, UnsignedCoordinate max ) {
+		size_t write( unsigned char* buffer, UnsignedCoordinate min, UnsignedCoordinate max )
+		{
 			unsigned char* const oldBuffer = buffer;
 
 			NodeID minID = std::numeric_limits< NodeID >::max();
 			NodeID maxID = 0;
+			unsigned short maxEdgeID = 0;
+			unsigned short maxPathLength = 0;
 
-			unsigned numNodes = 2 * edges.size();
+			std::vector< NodeID > nodes;
 			for ( std::vector< Edge >::iterator i = edges.begin(), e = edges.end(); i != e; ++i ) {
-				if ( i->source < minID )
-					minID = i->source;
-				if ( i->target < minID )
-					minID = i->target;
-				if ( i->source > maxID )
-					maxID = i->source;
-				if ( i->target > maxID )
-					maxID = i->target;
+				minID = std::min( minID, i->source );
+				minID = std::min( minID, i->target );
+				maxID = std::max( maxID, i->source );
+				maxID = std::max( maxID, i->target );
+				maxID = std::max( maxID, i->target );
+				maxEdgeID = std::max( maxEdgeID, i->edgeID );
+				assert( i->pathLength > 1 );
+				maxPathLength = std::max( maxPathLength, ( unsigned short ) ( i->pathLength - 2 ) );
 
+				nodes.push_back( i->source );
+				nodes.push_back( i->target );
+
+				// find another edge that connects to this one
+				// currently quite slow for very large cells ( n^2 )
 				for ( std::vector< Edge >::iterator next = i + 1; next != e; ++next ) {
 					if ( next->source == i->target ) {
 						std::swap( *( i + 1 ), *next );
-						numNodes--;
 						break;
 					}
+					// bidirectional edge can be inverted
 					if ( next->target == i->target && next->bidirectional ) {
 						std::swap( next->target, next->source );
-						std::swap( next->targetCoord, next->sourceCoord );
+						std::reverse( coordinates.begin() + next->pathID, coordinates.begin() + next->pathID + next->pathLength );
 						std::swap( *( i + 1 ), *next );
-						numNodes--;
 						break;
 					}
 				}
 			}
 
-			const int xBits = log2_rounded( max.x - min.x + 1 );
-			const int yBits = log2_rounded( max.y - min.y + 1 );
-			const int idBits = log2_rounded( maxID - minID + 1 );
+			std::sort( nodes.begin(), nodes.end() );
+			nodes.resize( std::unique( nodes.begin(), nodes.end() ) - nodes.begin() );
+
+			const char xBits = bits_needed( max.x - min.x );
+			const char yBits = bits_needed( max.y - min.y );
+			const char idBits = bits_needed( maxID - minID );
+			const char edgeIDBits = bits_needed( maxEdgeID );
+			const char pathLengthBits = bits_needed( maxPathLength );
 
 			int offset = 0;
-			*(( unsigned* ) buffer ) = numNodes;
-			buffer += sizeof( unsigned );
-			*(( unsigned* ) buffer ) = minID;
-			buffer += sizeof( unsigned );
-			*buffer = xBits;
-			buffer++;
-			*buffer = yBits;
-			buffer++;
-			*buffer = idBits;
-			buffer++;
+			write_unaligned_unsigned( &buffer, edges.size(), 32, &offset );
+			write_unaligned_unsigned( &buffer, minID, 32, &offset );
+			write_unaligned_unsigned( &buffer, idBits, 6, &offset );
+			write_unaligned_unsigned( &buffer, edgeIDBits, 6, &offset );
+			write_unaligned_unsigned( &buffer, pathLengthBits, 6, &offset );
 
-			QHash< NodeID, unsigned > nodes;
-			for ( std::vector< Edge >::const_iterator i = edges.begin(), e = edges.end(); i != e; ) {
-				write_unaligned_unsigned( &buffer, 1, 1, &offset );
+			NodeID lastTarget = std::numeric_limits< NodeID >::max();
+			std::vector< UnsignedCoordinate > wayBuffer;
+			for ( std::vector< Edge >::const_iterator i = edges.begin(), e = edges.end(); i != e; i++ ) {
+				bool reuse = lastTarget == i->source;
 
-				if ( !nodes.contains( i->source ) ) {
-					write_unaligned_unsigned( &buffer, 1, 1, &offset );
+				write_unaligned_unsigned( &buffer, reuse ? 1 : 0, 1, &offset );
+				if ( !reuse )
 					write_unaligned_unsigned( &buffer, i->source - minID, idBits, &offset );
+				write_unaligned_unsigned( &buffer, i->target - minID, idBits, &offset );
+				write_unaligned_unsigned( &buffer, i->edgeID, edgeIDBits, &offset );
+				write_unaligned_unsigned( &buffer, i->bidirectional ? 1 : 0, 1, &offset );
+				write_unaligned_unsigned( &buffer, i->pathLength - 2, pathLengthBits, &offset );
 
-					if ( i->sourceCoord.x < min.x || i->sourceCoord.x > max.x ) {
-						write_unaligned_unsigned( &buffer, 1, 1, &offset );
-						write_unaligned_unsigned( &buffer, i->sourceCoord.x, 32, &offset );
-					}
-					else {
-						write_unaligned_unsigned( &buffer, 0, 1, &offset );
-						write_unaligned_unsigned( &buffer, i->sourceCoord.x - min.x, xBits, &offset );
-					}
+				assert( i->pathLength >= 2 );
+				for ( int pathID = 1; pathID < i->pathLength - 1; pathID++ )
+					wayBuffer.push_back( coordinates[pathID + i->pathID] );
 
-					if ( i->sourceCoord.y < min.y || i->sourceCoord.y > max.y ) {
-						write_unaligned_unsigned( &buffer, 1, 1, &offset );
-						write_unaligned_unsigned( &buffer, i->sourceCoord.y, 32, &offset );
-					}
-					else {
-						write_unaligned_unsigned( &buffer, 0, 1, &offset );
-						write_unaligned_unsigned( &buffer, i->sourceCoord.y - min.y, yBits, &offset );
-					}
+				lastTarget = i->target;
+			}
 
-					const unsigned num = nodes.size();
-					nodes[i->source] = num;
-				} else {
-					write_unaligned_unsigned( &buffer, 0, 1, &offset );
-					write_unaligned_unsigned( &buffer, nodes[i->source], log2_rounded( nodes.size() + 1 ), &offset );
-				}
+			std::vector< UnsignedCoordinate > nodeCoordinates( nodes.size() );
+			for ( std::vector< Edge >::iterator i = edges.begin(), e = edges.end(); i != e; ++i ) {
+				unsigned sourcePos = lower_bound( nodes.begin(), nodes.end(), i->source ) - nodes.begin();
+				unsigned targetPos = lower_bound( nodes.begin(), nodes.end(), i->target ) - nodes.begin();
+				nodeCoordinates[sourcePos] = coordinates[i->pathID];
+				nodeCoordinates[targetPos] = coordinates[i->pathID + i->pathLength - 1];
+			}
 
-				NodeID lastNode = i->target;
-				do {
-					write_unaligned_unsigned( &buffer, 0, 1, &offset );
+			for ( std::vector< UnsignedCoordinate >::const_iterator i = nodeCoordinates.begin(), iend = nodeCoordinates.end(); i != iend; i++ ) {
+				writeCoordinate( &buffer, &offset, i->x, min.x, max.x, xBits);
+				writeCoordinate( &buffer, &offset, i->y, min.y, max.y, yBits);
+			}
 
-					write_unaligned_unsigned( &buffer, i->bidirectional ? 1 : 0, 1, &offset );
-
-					if ( !nodes.contains( i->target ) ) {
-						write_unaligned_unsigned( &buffer, 1, 1, &offset );
-						write_unaligned_unsigned( &buffer, i->target - minID, idBits, &offset );
-
-						if ( i->targetCoord.x < min.x || i->targetCoord.x > max.x ) {
-							write_unaligned_unsigned( &buffer, 1, 1, &offset );
-							write_unaligned_unsigned( &buffer, i->targetCoord.x, 32, &offset );
-						}
-						else {
-							write_unaligned_unsigned( &buffer, 0, 1, &offset );
-							write_unaligned_unsigned( &buffer, i->targetCoord.x - min.x, xBits, &offset );
-						}
-
-						if ( i->targetCoord.y < min.y || i->targetCoord.y > max.y ) {
-							write_unaligned_unsigned( &buffer, 1, 1, &offset );
-							write_unaligned_unsigned( &buffer, i->targetCoord.y, 32, &offset );
-						}
-						else {
-							write_unaligned_unsigned( &buffer, 0, 1, &offset );
-							write_unaligned_unsigned( &buffer, i->targetCoord.y - min.y, yBits, &offset );
-						}
-
-						const unsigned num = nodes.size();
-						nodes[i->target] = num;
-					} else {
-						write_unaligned_unsigned( &buffer, 0, 1, &offset );
-						write_unaligned_unsigned( &buffer, nodes[i->target], log2_rounded( nodes.size() + 1 ), &offset );
-					}
-
-					lastNode = i->target;
-					i++;
-				} while ( i != e && i->source == lastNode );
+			for ( std::vector< UnsignedCoordinate >::const_iterator i = wayBuffer.begin(), iend = wayBuffer.end(); i != iend; i++ ) {
+				writeCoordinate( &buffer, &offset, i->x, min.x, max.x, xBits);
+				writeCoordinate( &buffer, &offset, i->y, min.y, max.y, yBits);
 			}
 
 			buffer += ( offset + 7 ) / 8;
@@ -182,67 +175,93 @@ namespace gg
 			return buffer - oldBuffer;
 		}
 
-		size_t  read( const unsigned char* buffer, UnsignedCoordinate min, UnsignedCoordinate /*max*/ ) {
+		size_t  read( const unsigned char* buffer, UnsignedCoordinate min, UnsignedCoordinate max ) {
 			const unsigned char* oldBuffer = buffer;
 
 			int offset = 0;
-			const unsigned numNodes = *(( unsigned* ) buffer );
-			buffer += sizeof( unsigned );
-			const NodeID minID = *(( unsigned* ) buffer );
-			buffer += sizeof( unsigned );
-			const int xBits = *buffer;
-			buffer++;
-			const int yBits = *buffer;
-			buffer++;
-			const int idBits = *buffer;
-			buffer++;
+
+			const char xBits = bits_needed( max.x - min.x );
+			const char yBits = bits_needed( max.y - min.y );
+
+			unsigned numEdges = read_unaligned_unsigned( &buffer, 32, &offset );
+			unsigned minID = read_unaligned_unsigned( &buffer, 32, &offset );
+			unsigned idBits = read_unaligned_unsigned( &buffer, 6, &offset );
+			unsigned edgeIDBits = read_unaligned_unsigned( &buffer, 6, &offset );
+			unsigned pathLengthBits = read_unaligned_unsigned( &buffer, 6, &offset );
 
 			std::vector< NodeID > nodes;
-			std::vector< UnsignedCoordinate > coordinates;
-			Edge edge;
-			edge.source = 666;
-			for ( unsigned i = 0; i < numNodes; ++i ) {
-				bool newWay = read_unaligned_unsigned( &buffer, 1, &offset ) == 1;
+			NodeID lastTarget = std::numeric_limits< NodeID >::max();
+			for ( unsigned i = 0; i < numEdges; i++ ) {
+				Edge edge;
+				bool reuse = read_unaligned_unsigned( &buffer, 1, &offset ) == 1;
+				if ( reuse )
+					edge.source = lastTarget;
+				else
+					edge.source = read_unaligned_unsigned( &buffer, idBits, &offset ) + minID;
+				edge.target = read_unaligned_unsigned( &buffer, idBits, &offset ) + minID;
+				edge.edgeID = read_unaligned_unsigned( &buffer, edgeIDBits, &offset );
+				edge.bidirectional = read_unaligned_unsigned( &buffer, 1, &offset ) == 1;
+				edge.pathLength = read_unaligned_unsigned( &buffer, pathLengthBits, &offset );
 
-				if ( !newWay )
-					edge.bidirectional = read_unaligned_unsigned( &buffer, 1, &offset ) == 1;
+				edges.push_back( edge );
 
-				bool newNode = read_unaligned_unsigned( &buffer, 1, &offset ) == 1;
+				nodes.push_back( edge.source );
+				nodes.push_back( edge.target );
 
-				if ( newNode ) {
-					edge.target = read_unaligned_unsigned( &buffer, idBits, &offset ) + minID;
+				lastTarget = edge.target;
+			}
+			assert( edges.size() != 0 );
 
-					bool xOutside = read_unaligned_unsigned( &buffer, 1, &offset ) == 1;
-					if ( xOutside )
-						edge.targetCoord.x = read_unaligned_unsigned( &buffer, 32, &offset );
-					else
-						edge.targetCoord.x = read_unaligned_unsigned( &buffer, xBits, &offset ) + min.x;
+			std::sort( nodes.begin(), nodes.end() );
+			nodes.resize( std::unique( nodes.begin(), nodes.end() ) - nodes.begin() );
 
-					bool yOutside = read_unaligned_unsigned( &buffer, 1, &offset ) == 1;
-					if ( yOutside )
-						edge.targetCoord.y = read_unaligned_unsigned( &buffer, 32, &offset );
-					else
-						edge.targetCoord.y = read_unaligned_unsigned( &buffer, yBits, &offset ) + min.y;
+			std::vector< UnsignedCoordinate > nodeCoordinates( nodes.size() );
+			for ( std::vector< UnsignedCoordinate >::iterator i = nodeCoordinates.begin(), iend = nodeCoordinates.end(); i != iend; i++ ) {
+				readCoordinate( &buffer, &offset, &i->x, min.x, max.x, xBits);
+				readCoordinate( &buffer, &offset, &i->y, min.y, max.y, yBits);
+			}
 
-					nodes.push_back( edge.target );
-					coordinates.push_back( edge.targetCoord );
-				} else {
-					const unsigned position = read_unaligned_unsigned( &buffer, log2_rounded( nodes.size() + 1 ), &offset );
-					edge.target = nodes[position];
-					edge.targetCoord = coordinates[position];
+			for ( std::vector< Edge >::iterator i = edges.begin(), iend = edges.end(); i != iend; i++ ) {
+				unsigned sourcePos = lower_bound( nodes.begin(), nodes.end(), i->source ) - nodes.begin();
+				unsigned targetPos = lower_bound( nodes.begin(), nodes.end(), i->target ) - nodes.begin();
+				if ( coordinates.size() == 0 || coordinates.back().x != nodeCoordinates[sourcePos].x || coordinates.back().y != nodeCoordinates[sourcePos].y )
+					coordinates.push_back( nodeCoordinates[sourcePos] );
+				i->pathID = coordinates.size() - 1;
+				for ( int path = 0; path < i->pathLength; path++ ) {
+					UnsignedCoordinate coordinate;
+					readCoordinate( &buffer, &offset, &coordinate.x, min.x, max.x, xBits);
+					readCoordinate( &buffer, &offset, &coordinate.y, min.y, max.y, yBits);
+					coordinates.push_back( coordinate );
 				}
+				coordinates.push_back( nodeCoordinates[targetPos] );
 
-				if ( !newWay )
-					edges.push_back( edge );
-
-				edge.source = edge.target;
-				edge.sourceCoord.x = edge.targetCoord.x;
-				edge.sourceCoord.y = edge.targetCoord.y;
+				i->pathLength += 2;
 			}
 
 			buffer += ( offset + 7 ) / 8;
 
 			return buffer - oldBuffer;
+		}
+
+	protected:
+
+		void writeCoordinate( unsigned char** buffer, int* offset, unsigned value, unsigned min, unsigned max, char bits )
+		{
+			bool inside = !( value < min || value > max );
+			write_unaligned_unsigned( buffer, inside ? 1 : 0, 1, offset );
+			if ( inside )
+				write_unaligned_unsigned( buffer, value - min, bits, offset );
+			else
+				write_unaligned_unsigned( buffer, value, 32, offset );
+		}
+
+		void readCoordinate( const unsigned char** buffer, int* offset, unsigned* value, unsigned min, unsigned /*max*/, char bits )
+		{
+			bool inside = read_unaligned_unsigned( buffer, 1, offset ) == 1;
+			if ( inside )
+				*value = read_unaligned_unsigned( buffer, bits, offset ) + min;
+			else
+				*value = read_unaligned_unsigned( buffer, 32, offset );
 		}
 
 	};

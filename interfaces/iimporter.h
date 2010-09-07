@@ -30,24 +30,27 @@ class IImporter
 {
 public:
 
-	struct BoundingBox
-	{
+	struct BoundingBox {
 		UnsignedCoordinate min;
 		UnsignedCoordinate max;
 	};
-	struct RoutingEdge
-	{
+
+	struct RoutingEdge {
 		NodeID source;
 		NodeID target;
-		double distance;
+		double distance; // travel time metric -> seconds
 		bool bidirectional;
+		unsigned nameID; // id of the way's name
+		unsigned pathID; // id of the way's path's description
+		unsigned short type; // id of the way's type's name
+		unsigned short pathLength; // length of the way's path's description
 	};
-	struct RoutingNode
-	{
+
+	struct RoutingNode {
 		UnsignedCoordinate coordinate;
 	};
-	struct Place
-	{
+
+	struct Place {
 		QString name;
 		int population;
 		UnsignedCoordinate coordinate;
@@ -63,12 +66,12 @@ public:
 			return population < right.population;
 		}
 	};
-	struct Address
-	{
-		QString name;
-		unsigned wayStart;
-		unsigned wayEnd;
-		unsigned nearPlace;
+
+	struct Address {
+		unsigned name;
+		unsigned pathID; // start of the address' description
+		unsigned pathLength; // length of the address' description
+		unsigned nearPlace; // id of the nearest place
 		bool operator<( const Address& right ) const {
 			if ( nearPlace != right.nearPlace )
 				return nearPlace < right.nearPlace;
@@ -80,14 +83,29 @@ public:
 	virtual void SetOutputDirectory( const QString& dir ) = 0;
 	virtual void ShowSettings() = 0;
 	virtual bool Preprocess() = 0;
+	// IRouter is allowed to remap node ids and must set the resulting id map
 	virtual bool SetIDMap( const std::vector< NodeID >& idMap ) = 0;
+	// IGPSLookup has to use to router's id map
 	virtual bool GetIDMap( std::vector< NodeID >* idMap ) = 0;
+	// IRouter is allowd to remap edge ids and must set the resulting id map
+	virtual bool SetEdgeIDMap( const std::vector< NodeID >& idMap ) = 0;
+	// IGPSLookup has to use the router's edge id map
+	virtual bool GetEdgeIDMap( std::vector< NodeID >* idMap ) = 0;
+	// get all routing edges
 	virtual bool GetRoutingEdges( std::vector< RoutingEdge >* data ) = 0;
+	// get all routing edges' path descriptions
+	virtual bool GetRoutingEdgePaths( std::vector< RoutingNode >* data ) = 0;
+	// get all routing nodes
 	virtual bool GetRoutingNodes( std::vector< RoutingNode >* data ) = 0;
+	// get all way names
+	virtual bool GetRoutingWayNames( std::vector< QString >* data ) = 0;
+	// get address data
 	virtual bool GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer ) = 0;
+	// get the bounding bos of all routing coordinates ( routing nodes + way descriptions )
 	virtual bool GetBoundingBox( BoundingBox* box ) = 0;
+	// delete preprocessed IImporter files
 	virtual void DeleteTemporaryFiles() = 0;
-	virtual ~IImporter() {};
+	virtual ~IImporter() {}
 };
 
 Q_DECLARE_INTERFACE( IImporter, "monav.IImporter/1.0" )

@@ -111,7 +111,10 @@ public:
 			bool backward : 1;
 			bool unpacked : 1;
 			bool reversed : 1;
-			NodeIterator middle;
+			union {
+				NodeIterator middle;
+				unsigned id;
+			};
 			unsigned path;
 		} data;
 
@@ -135,6 +138,10 @@ public:
 
 	public:
 
+		EdgeIterator()
+		{
+		}
+
 		bool hasEdgesLeft()
 		{
 			return m_position < m_end;
@@ -152,11 +159,11 @@ public:
 #endif
 
 		EdgeIterator( unsigned source, const Block& block, unsigned position, unsigned end ) :
-				m_block( block ), m_source( source ), m_position( position ), m_end( end )
+				m_block( &block ), m_source( source ), m_position( position ), m_end( end )
 		{
 		}
 
-		const Block& m_block;
+		const Block* m_block;
 		unsigned m_source;
 		unsigned m_position;
 		unsigned m_end;
@@ -202,30 +209,31 @@ public:
 		return unpackFirstEdges( *block, internal );
 	}
 
-	EdgeIterator findEdge( NodeIterator source, NodeIterator target )
+	EdgeIterator findEdge( NodeIterator source, NodeIterator target, unsigned id )
 	{
-		bool forward = true;
-		if ( source < target ) {
+		if ( source < target )
 			std::swap( source, target );
-			forward = false;
-		}
 		EdgeIterator e = edges( source );
-		for ( ; e.hasEdgesLeft(); ) {
+		while ( e.hasEdgesLeft() ) {
 			unpackNextEdge( &e );
 			if ( e.target() != target )
 				continue;
-			if ( forward && !e.forward() )
+			if ( e.shortcut() )
 				continue;
-			if ( !forward && !e.backward() )
+			if ( id != 0 ) {
+				id--;
 				continue;
+			}
+
 			return e;
 		}
 		assert( false );
+		return e;
 	}
 
 	void unpackNextEdge( EdgeIterator* edge )
 	{
-		const Block& block = edge->m_block;
+		const Block& block = *edge->m_block;
 		Edge& edgeData = edge->m_edge;
 		const unsigned char* buffer = block.buffer + ( edge->m_position >> 3 );
 		int offset = edge->m_position & 7;
@@ -243,7 +251,7 @@ public:
 		// target
 		bool internalTarget = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
 		if ( internalTarget ) {
-			unsigned target = read_unaligned_unsigned( &buffer, bits_needed( edge->m_source - 1 ), &offset );
+			unsigned target = read_unaligned_unsigned( &buffer, bits_needed( edge->m_source ), &offset );
 			edgeData.target = nodeFromDescriptor( block.id, target );
 		} else {
 			unsigned adjacentBlock = read_unaligned_unsigned( &buffer, block.adjacentBlockBits, &offset );
@@ -259,19 +267,23 @@ public:
 			longWeight = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
 		edgeData.data.distance = read_unaligned_unsigned( &buffer, longWeight ? block.settings.longWeightBits : block.settings.shortWeightBits, &offset );
 
+		// unpacked
+		edgeData.data.unpacked = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
+		if ( edgeData.data.unpacked ) {
+			if ( forwardAndBackward )
+				edgeData.data.reversed = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
+			else
+				edgeData.data.reversed = edgeData.data.backward;
+			edgeData.data.path = read_unaligned_unsigned( &buffer, m_settings.pathBits, &offset );
+		}
+
+
 		// shortcut
 		edgeData.data.shortcut = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
 		if ( edgeData.data.shortcut ) {
-			edgeData.data.unpacked = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
 			if ( !edgeData.data.unpacked ) {
 				unsigned middle = read_unaligned_unsigned( &buffer, block.internalBits, &offset );
 				edgeData.data.middle = nodeFromDescriptor( block.id, middle );
-			} else {
-				if ( forwardAndBackward )
-					edgeData.data.reversed = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
-				else
-					edgeData.data.reversed = edgeData.data.backward;
-				edgeData.data.path = read_unaligned_unsigned( &buffer, m_settings.pathBits, &offset );
 			}
 		}
 

@@ -20,6 +20,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef INTERSECTION_H
 #define INTERSECTION_H
 
+#include "utils/coordinates.h"
+
 struct DoublePoint {
 	DoublePoint(){
 		x = y = 0;

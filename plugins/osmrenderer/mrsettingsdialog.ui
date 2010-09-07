@@ -282,7 +282,7 @@
      <item>
       <widget class="QCheckBox" name="removeTiles">
        <property name="text">
-        <string>Remove Tile with no routable Edges</string>
+        <string>Remove Tiles with no routable Edges</string>
        </property>
       </widget>
      </item>

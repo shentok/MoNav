@@ -44,9 +44,7 @@ public:
 protected:
 
 	struct GridImportEdge {
-		NodeID source;
-		NodeID target;
-		bool bidirectional;
+		unsigned edge;
 		int x;
 		int y;
 		bool operator<( const GridImportEdge& right ) const {

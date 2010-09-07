@@ -83,17 +83,25 @@ bool ContractionHierarchiesClient::GetRoute( double* distance, QVector< Unsigned
 {
 	heapForward->Clear();
 	heapBackward->Clear();
-	if ( target.source == source.source && target.target == source.target && ( source.bidirectional || source.percentage < target.percentage ) ) {
-		path->push_back( source.nearestPoint );
-		path->push_back( target.nearestPoint );
-		if ( source.source != source.target ) {
-			EdgeIterator targetEdge = graph.findEdge( source.source, source.target );
-			const unsigned targetWeight = targetEdge.distance();
-			*distance = fabs( target.percentage - source.percentage ) * targetWeight;
+	if ( target.source == source.source && target.target == source.target && source.edgeID == target.edgeID ) {
+		EdgeIterator targetEdge = graph.findEdge( target.source, target.target, target.edgeID );
+		if ( ( targetEdge.forward() && targetEdge.backward() ) || source.percentage < target.percentage ) {
+			path->push_back( source.nearestPoint );
+
+			if ( target.previousWayCoordinates < source.previousWayCoordinates ) {
+				unsigned begin = path->size();
+				for ( unsigned pathID = target.previousWayCoordinates + 1; pathID <= source.previousWayCoordinates; pathID++ )
+					path->push_back( source.coordinates[pathID] );
+				std::reverse( path->begin() + begin, path->end() );
+			} else {
+				for ( unsigned pathID = source.previousWayCoordinates + 1; pathID <= target.previousWayCoordinates; pathID++ )
+					path->push_back( source.coordinates[pathID] );
+			}
+
+			path->push_back( target.nearestPoint );
+			*distance = fabs( target.percentage - source.percentage ) * targetEdge.distance();
+			return true;
 		}
-		else
-			*distance = 0;
-		return true;
 	}
 	*distance = computeRoute( source, target, path );
 	if ( *distance == std::numeric_limits< unsigned >::max() )
@@ -191,35 +199,21 @@ void ContractionHierarchiesClient::computeStep( _Heap* heapForward, _Heap* heapB
 	}
 }
 
-int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& inputSource, const IGPSLookup::Result& inputTarget, QVector< UnsignedCoordinate >* path ) {
-	struct {
-		Node source;
-		Node target;
-	} source, target;
-	source.source = inputSource.source;
-	source.target = inputSource.target;
-	target.source = inputTarget.source;
-	target.target = inputTarget.target;
+int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& source, const IGPSLookup::Result& target, QVector< UnsignedCoordinate >* path ) {
+	EdgeIterator sourceEdge = graph.findEdge( source.source, source.target, source.edgeID );
+	unsigned sourceWeight = sourceEdge.distance();
+	EdgeIterator targetEdge = graph.findEdge( target.source, target.target, target.edgeID );
+	unsigned targetWeight = targetEdge.distance();
 
 	//insert source into heap
-	unsigned sourceWeight = 0;
-	unsigned targetWeight = 0;
-	if ( source.source != source.target ) {
-		EdgeIterator sourceEdge = graph.findEdge( source.source, source.target );
-		sourceWeight = sourceEdge.distance();
-	}
-	if ( target.source != target.target ) {
-		EdgeIterator targetEdge = graph.findEdge( target.source, target.target );
-		targetWeight = targetEdge.distance();
-	}
+	heapForward->Insert( source.target, sourceWeight - sourceWeight * source.percentage, source.target );
+	if ( sourceEdge.backward() && sourceEdge.forward() )
+		heapForward->Insert( source.source, sourceWeight * source.percentage, source.source );
 
-	heapForward->Insert( source.target, sourceWeight - sourceWeight * inputSource.percentage, source.target );
-	if ( inputSource.bidirectional )
-		heapForward->Insert( source.source, sourceWeight * inputSource.percentage, source.source );
-
-	heapBackward->Insert( target.source, targetWeight * inputTarget.percentage, target.source );
-	if ( inputTarget.bidirectional )
-		heapBackward->Insert( target.target, targetWeight - targetWeight * inputTarget.percentage, target.target );
+	//insert target into heap
+	heapBackward->Insert( target.source, targetWeight * target.percentage, target.source );
+	if ( targetEdge.backward() && targetEdge.forward() )
+		heapBackward->Insert( target.target, targetWeight - targetWeight * target.percentage, target.target );
 
 	int targetDistance = std::numeric_limits< int >::max();
 	Node middle = ( Node ) 0;
@@ -244,7 +238,7 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& inputS
 	Node pathNode = middle;
 	Node source1 = source.target;
 	Node source2 = source.target;
-	if ( inputSource.bidirectional )
+	if ( sourceEdge.forward() && sourceEdge.forward() )
 		source2 = source.source;
 
 	std::stack< Node > stack;
@@ -254,8 +248,19 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& inputS
 		stack.push( pathNode );
 		pathNode = parent;
 	}
+
+	unsigned begin = path->size();
+	path->push_back( source.nearestPoint );
+	if ( pathNode == source1 ) {
+		for ( int pathID = source.previousWayCoordinates + 1; pathID < source.coordinates.size() - 1; pathID++ )
+			path->push_back( source.coordinates[pathID] );
+	} else {
+		for ( int pathID = 1; pathID <= ( int ) source.previousWayCoordinates; pathID++ )
+			path->push_back( source.coordinates[pathID] );
+		std::reverse( path->begin() + begin, path->end() );
+	}
+
 	stack.push( pathNode );
-	path->push_back( inputSource.nearestPoint );
 	path->push_back( graph.node( pathNode ).coordinate );
 
 	while ( stack.size() > 1 ) {
@@ -265,34 +270,55 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& inputS
 	}
 
 	pathNode = middle;
-	source1 = target.source;
-	source2 = target.source;
-	if ( inputTarget.bidirectional )
-		source2 = target.target;
-	while ( pathNode != source1 && pathNode != source2 ) {
+	Node target1 = target.source;
+	Node target2 = target.source;
+	if ( targetEdge.forward() && targetEdge.backward() )
+		target2 = target.target;
+
+	while ( pathNode != target1 && pathNode != target2 ) {
 		Node parent = heapBackward->GetData( pathNode ).parent;
 		unpackEdge( parent, pathNode, false, path );
 		pathNode = parent;
 	}
-	path->push_back( inputTarget.nearestPoint );
+
+	begin = path->size();
+	if ( pathNode == target1 ) {
+		for ( int pathID = 1; pathID <= ( int ) target.previousWayCoordinates; pathID++ )
+			path->push_back( target.coordinates[pathID] );
+	} else {
+		for ( int pathID = target.previousWayCoordinates + 1; pathID < target.coordinates.size() - 1; pathID++ )
+			path->push_back( target.coordinates[pathID] );
+		std::reverse( path->begin() + begin, path->end() );
+	}
+	path->push_back( target.nearestPoint );
 
 	return targetDistance / 10;
 }
 
 bool ContractionHierarchiesClient::unpackEdge( const Node source, const Node target, bool forward, QVector< UnsignedCoordinate >* path ) {
-	EdgeIterator edge = graph.edges( source );
+	EdgeIterator shortestEdge;
 
-	for ( ; edge.hasEdgesLeft(); ) {
+	unsigned distance = std::numeric_limits< unsigned >::max();
+	for ( EdgeIterator edge = graph.edges( source ); edge.hasEdgesLeft(); ) {
 		graph.unpackNextEdge( &edge );
-		if ( edge.target() == target ) {
-			if ( forward && edge.forward() )
-				break;
-			if ( ( !forward ) && edge.backward() )
-				break;
-		}
+		if ( edge.target() != target )
+			continue;
+		if ( forward && !edge.forward() )
+			continue;
+		if ( !forward && !edge.backward() )
+			continue;
+		if ( edge.distance() > distance )
+			continue;
+		distance = edge.distance();
+		shortestEdge = edge;
 	}
 
-	if ( !edge.shortcut() ) {
+	if ( shortestEdge.unpacked() ) {
+		graph.path( shortestEdge, path, forward );
+		return true;
+	}
+
+	if ( !shortestEdge.shortcut() ) {
 		if ( forward )
 			path->push_back( graph.node( target ).coordinate );
 		else
@@ -300,12 +326,7 @@ bool ContractionHierarchiesClient::unpackEdge( const Node source, const Node tar
 		return true;
 	}
 
-	if ( edge.unpacked() ) {
-		graph.path( edge, path, forward );
-		return true;
-	}
-
-	const Node middle = edge.middle();
+	const Node middle = shortestEdge.middle();
 
 	if ( forward ) {
 		unpackEdge( middle, source, false, path );

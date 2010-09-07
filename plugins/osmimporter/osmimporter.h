@@ -26,6 +26,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils/intersection.h"
 #include <libxml/xmlreader.h>
 #include <QObject>
+#include <QHash>
 #include <cstring>
 
 class OSMImporter : public QObject, public IImporter
@@ -42,8 +43,12 @@ public:
 	virtual bool Preprocess();
 	virtual bool SetIDMap( const std::vector< NodeID >& idMap );
 	virtual bool GetIDMap( std::vector< NodeID >* idMap );
+	virtual bool SetEdgeIDMap( const std::vector< NodeID >& idMap );
+	virtual bool GetEdgeIDMap( std::vector< NodeID >* idMap );
 	virtual bool GetRoutingEdges( std::vector< RoutingEdge >* data );
+	virtual bool GetRoutingEdgePaths( std::vector< RoutingNode >* data );
 	virtual bool GetRoutingNodes( std::vector< RoutingNode >* data );
+	virtual bool GetRoutingWayNames( std::vector< QString >* data );
 	virtual bool GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer );
 	virtual bool GetBoundingBox( BoundingBox* box );
 	virtual void DeleteTemporaryFiles();
@@ -68,7 +73,7 @@ protected:
 	};
 
 	struct Way {
-		std::vector< NodeID > path;
+		std::vector< unsigned > path;
 		enum {
 			NotSure = 0, Oneway, Bidirectional, Opposite
 		} direction;
@@ -79,7 +84,7 @@ protected:
 		xmlChar* name;
 		xmlChar* placeName;
 		Place::Type placeType;
-		int type;
+		unsigned type;
 	};
 
 	struct Node {
@@ -94,7 +99,7 @@ protected:
 
 	struct NodeLocation {
 		// City / Town
-		NodeID place;
+		unsigned place;
 		double distance;
 		bool isInPlace: 1;
 	};
@@ -148,12 +153,15 @@ protected:
 		}
 	};
 
-	typedef KDTree::StaticKDTree< 2, double, NodeID, GPSMetric > GPSTree;
+	typedef KDTree::StaticKDTree< 2, double, unsigned, GPSMetric > GPSTree;
 
 	bool readXML( const QString& inputFilename, const QString& filename );
 	bool preprocessData( const QString& filename );
+	bool computeInCityFlags( QString filename, std::vector< NodeLocation >* nodeLocation, const std::vector< GPSCoordinate >& nodeCoordinates, const std::vector< GPSCoordinate >& outlineCoordinates );
+	bool remapEdges( QString filename, const std::vector< GPSCoordinate >& nodeCoordinates, const std::vector< NodeLocation >& nodeLocation );
 	Way readXMLWay( xmlTextReaderPtr& inputReader );
 	Node readXMLNode( xmlTextReaderPtr& inputReader );
+	Place::Type parsePlaceType( const xmlChar* type );
 
 	Statistics m_statistics;
 	QString m_outputDirectory;
@@ -162,9 +170,11 @@ protected:
 	OISettingsDialog::Settings m_settings;
 	std::vector< const char* > m_kmhStrings;
 	std::vector< const char* > m_mphStrings;
-	std::vector< NodeID > m_usedNodes;
-	std::vector< NodeID > m_outlineNodes;
-	std::vector< NodeID > m_signalNodes;
+	std::vector< unsigned > m_usedNodes;
+	std::vector< unsigned > m_routingNodes;
+	std::vector< unsigned > m_outlineNodes;
+	std::vector< unsigned > m_signalNodes;
+	QHash< QString, unsigned > m_wayNames;
 };
 
 #endif // OSMIMPORTER_H

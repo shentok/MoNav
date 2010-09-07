@@ -20,6 +20,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef COMPRESSEDGRAPHBUILDER_H
 #define COMPRESSEDGRAPHBUILDER_H
 
+#include "interfaces/iimporter.h"
 #include "compressedgraph.h"
 #include "utils/qthelpers.h"
 #include <limits>
@@ -30,13 +31,17 @@ class CompressedGraphBuilder : public CompressedGraph {
 
 public:
 
-	CompressedGraphBuilder( unsigned blockSize, std::vector< Node >& inputNodes, std::vector< Edge >& inputEdges )
+	typedef IImporter::RoutingEdge OriginalEdge;
+
+	CompressedGraphBuilder( unsigned blockSize, std::vector< Node >& inputNodes, std::vector< Edge >& inputEdges, std::vector< OriginalEdge >& originalEdges, std::vector< Node >& edgePaths )
 	{
 		m_settings.blockSize = blockSize;
 		m_settings.numberOfNodes = inputNodes.size();
 		m_settings.numberOfEdges = inputEdges.size();
 		m_nodes.swap( inputNodes );
 		m_edges.swap( inputEdges );
+		m_originalEdges.swap( originalEdges );
+		m_edgePaths.swap( edgePaths );
 		m_blockBuffer = new unsigned char[blockSize];
 	}
 
@@ -68,7 +73,8 @@ private:
 		unsigned internalEdgeTargetSize;
 		unsigned edgeCount;
 		unsigned singleDirectionCount;
-		unsigned singleDirectionShortcutCount;
+		unsigned singleDirectionUnpackedCount;
+		unsigned unpackedEdgeCount;
 
 		std::vector< unsigned > weightDistribution;
 		QHash< unsigned, unsigned > internalShortcutTargets;
@@ -90,7 +96,7 @@ private:
 		long long externalMiddle;
 		long long reversed;
 		long long shortcuts;
-		long long directedShortcuts;
+		long long unpackedEdges;
 
 		long long xSize;
 		long long ySize;
@@ -98,7 +104,7 @@ private:
 
 		long long directionSize;
 		long long weightSize;
-		long long externalMiddleSize;
+		long long unpackedSize;
 		long long internalMiddleSize;
 		long long externalTargetSize;
 		long long internalTargetSize;
@@ -121,7 +127,7 @@ private:
 			qDebug() << "externalMiddle    :" << externalMiddle;
 			qDebug() << "reversed          :" << reversed;
 			qDebug() << "shortcuts         :" << shortcuts;
-			qDebug() << "directed shortcuts:" << directedShortcuts;
+			qDebug() << "unpacked edges    :" << unpackedEdges;
 
 			qDebug() << "xSize        :" << xSize / 8 / 1024 / 1024 << "MB /" << graph.m_nodes.size() * 32 / 8 / 1024 / 1024 << "MB";
 			qDebug() << "ySize        :" << ySize / 8 / 1024 / 1024 << "MB /" << graph.m_nodes.size() * 32 / 8 / 1024 / 1024 << "MB";
@@ -129,10 +135,10 @@ private:
 
 			qDebug() << "directionSize     :" << directionSize / 8 / 1024 / 1024 << "MB /" << graph.m_edges.size() * 2 / 8 / 1024 / 1024 << "MB";
 			qDebug() << "weightSize        :" << weightSize / 8 / 1024 / 1024 << "MB /" << graph.m_edges.size() * 32 / 8 / 1024 / 1024 << "MB";
-			qDebug() << "externalMiddleSize:" << externalMiddleSize / 8 / 1024 / 1024 << "MB /" << externalMiddle * 32 / 8 / 1024 / 1024 << "MB";
 			qDebug() << "internalMiddleSize:" << internalMiddleSize / 8 / 1024 / 1024 << "MB /" << ( shortcuts - externalMiddle ) * 32 / 8 / 1024 / 1024 << "MB";
 			qDebug() << "externalTargetSize:" << externalTargetSize / 8 / 1024 / 1024 << "MB /" << externalTarget * 32 / 8 / 1024 / 1024 << "MB";
 			qDebug() << "internalTargetSize:" << internalTargetSize / 8 / 1024 / 1024 << "MB /" << ( graph.m_edges.size() - externalTarget ) * 32 / 8 / 1024 / 1024 << "MB";
+			qDebug() << "unpackedSize      :" << unpackedSize / 8 / 1024 / 1024 << "MB /" << unpackedEdges * 32 / 8 / 1024 / 1024 << "MB";
 		}
 
 		void addBlock( const CompressedGraphBuilder& graph )
@@ -141,7 +147,6 @@ private:
 			adjacentBlocks += block.settings.adjacentBlockCount;
 			if ( block.settings.shortWeightBits == block.settings.longWeightBits )
 				noWeightSplit++;
-			directedShortcuts += block.singleDirectionShortcutCount;
 
 			xSize += block.settings.xBits * block.settings.nodeCount;
 			ySize += block.settings.yBits * block.settings.nodeCount;
@@ -152,10 +157,12 @@ private:
 			externalTargetSize += block.settings.adjacentBlockCount * block.settings.blockBits;
 			internalTargetSize += ( block.edgeCount - block.externalEdgeCount ) + block.internalEdgeTargetSize;
 			externalMiddle += block.shortcutCount - block.internalShortcutCount;
-			externalMiddleSize += ( block.shortcutCount - block.internalShortcutCount ) * ( 1 + 1 + graph.m_settings.pathBits ) - block.singleDirectionShortcutCount;
 			internalMiddleSize += block.internalShortcutCount * ( 1 + block.internalBits );
 			directionSize += block.edgeCount;
 			shortcuts += block.shortcutCount;
+			unpackedEdges += block.unpackedEdgeCount;
+			unpackedSize += block.edgeCount * 1;
+			unpackedSize += block.unpackedEdgeCount * (  1 + graph.m_settings.pathBits ) - block.singleDirectionUnpackedCount;
 
 			for ( int i = 0; i < block.settings.shortWeightBits; i++ )
 				weightSize += block.settings.shortWeightBits * block.weightDistribution[i];
@@ -216,7 +223,8 @@ private:
 		m_block.internalEdgeTargetSize = 0;
 		m_block.edgeCount = 0;
 		m_block.singleDirectionCount = 0;
-		m_block.singleDirectionShortcutCount = 0;
+		m_block.singleDirectionUnpackedCount = 0;
+		m_block.unpackedEdgeCount = 0;
 		m_block.weightDistribution.clear();
 		m_block.weightDistribution.resize( 33, 0 );
 		m_block.internalShortcutTargets.clear();
@@ -235,7 +243,7 @@ private:
 		m_block.settings.xBits = bits_needed( m_block.maxX - m_block.settings.minX );
 		m_block.settings.yBits = bits_needed( m_block.maxY - m_block.settings.minY );
 
-		unsigned internalTargetBits = bits_needed( node - m_block.firstNode - 1 ); // no loops, only previous nodes, (0 - 1) will never be used
+		unsigned internalTargetBits = bits_needed( node - m_block.firstNode ); // loops + previous nodes
 		for ( unsigned i = m_firstEdges[node]; i < m_firstEdges[node + 1]; i++ ) {
 			const Edge& edge = m_edges[i];
 
@@ -259,17 +267,25 @@ private:
 
 			if ( edge.data.shortcut ) {
 				m_block.shortcutCount++;
+				m_block.unpackedEdgeCount++;
 				m_block.internalShortcutTargets[edge.data.middle]++;
 				if ( !edge.data.forward || !edge.data.backward ) {
-					m_block.singleDirectionShortcutCount++;
+					m_block.singleDirectionUnpackedCount++;
 					m_block.internalDirectedShortcutTargets[edge.data.middle]++;
+				}
+			} else {
+				if ( mustUnpack( i ) ) {
+					m_block.unpackedEdgeCount++;
+					if ( !edge.data.forward || !edge.data.backward )
+						m_block.singleDirectionUnpackedCount++;
 				}
 			}
 		}
 
 		m_block.edgeCount += m_firstEdges[node + 1] - m_firstEdges[node];
 		m_block.internalShortcutCount += m_block.internalShortcutTargets[node];
-		m_block.singleDirectionShortcutCount -= m_block.internalDirectedShortcutTargets[node];
+		m_block.unpackedEdgeCount -= m_block.internalShortcutTargets[node];
+		m_block.singleDirectionUnpackedCount -= m_block.internalDirectedShortcutTargets[node];
 		m_block.settings.adjacentBlockCount = m_block.adjacentBlocks.size();
 
 		int size = 0;
@@ -277,9 +293,9 @@ private:
 		size += m_block.singleDirectionCount; // backward & forward takes up only 1 bit
 		size += m_block.externalEdgeCount * ( bits_needed( m_block.settings.adjacentBlockCount - 1 ) + m_block.settings.externalBits ); // external targets
 		size += m_block.internalEdgeTargetSize; // internal targets
-		size += m_block.shortcutCount * ( 1 ); // middle ( external vs internal ) flag
-		size += ( m_block.shortcutCount - m_block.internalShortcutCount ) * ( m_settings.pathBits + 1 ); // external middle => unpacked + reversed flag
-		size -= m_block.singleDirectionShortcutCount; // directed shortcuts do not need a reverse flag
+		size += m_block.edgeCount * ( 1 ); // unpacked flag
+		size += m_block.unpackedEdgeCount * ( m_settings.pathBits + 1 ); // unpacked + reversed flag
+		size -= m_block.singleDirectionUnpackedCount; // directed edges do not need a reverse flag
 		size += m_block.internalShortcutCount * bits_needed( node - m_block.firstNode ); // internal middle
 		unsigned shortWeightsCount = 0;
 		unsigned minimumWeightSize = std::numeric_limits< unsigned >::max();
@@ -387,7 +403,7 @@ private:
 				// target
 				if ( m_nodeIDs[node].block == m_nodeIDs[m_edges[edge].target].block ) {
 					write_unaligned_unsigned( &buffer, 1, 1, &offset );
-					write_unaligned_unsigned( &buffer, m_edges[edge].target - m_block.firstNode, bits_needed( i - 1 ), &offset );
+					write_unaligned_unsigned( &buffer, m_edges[edge].target - m_block.firstNode, bits_needed( i ), &offset );
 				} else {
 					write_unaligned_unsigned( &buffer, 0, 1, &offset );
 					unsigned targetBlock = m_nodeIDs[m_edges[edge].target].block;
@@ -401,19 +417,27 @@ private:
 					write_unaligned_unsigned( &buffer, longWeight ? 1 : 0, 1, &offset );
 				write_unaligned_unsigned( &buffer, m_edges[edge].data.distance, longWeight ? m_block.settings.longWeightBits : m_block.settings.shortWeightBits, &offset );
 
+				// unpacked
+				bool unpacked = false;
+				if ( m_edges[edge].data.shortcut ) {
+					if ( m_edges[edge].data.middle - m_block.firstNode >= m_block.settings.nodeCount )
+						unpacked = true;
+				} else {
+					unpacked = mustUnpack( edge );
+				}
+				write_unaligned_unsigned( &buffer, unpacked ? 1 : 0, 1, &offset );
+				if ( unpacked ) {
+					assert( m_edges[edge].data.unpacked );
+					if ( !directed )
+						write_unaligned_unsigned( &buffer, m_edges[edge].data.reversed ? 1 : 0, 1, &offset );
+					write_unaligned_unsigned( &buffer, m_edges[edge].data.path, m_settings.pathBits, &offset );
+				}
+
 				// shortcut
 				write_unaligned_unsigned( &buffer, m_edges[edge].data.shortcut ? 1 : 0, 1, &offset );
 				if ( m_edges[edge].data.shortcut ) {
-					bool internalMiddle = m_edges[edge].data.middle - m_block.firstNode < m_block.settings.nodeCount;
-					write_unaligned_unsigned( &buffer, internalMiddle ? 0 : 1, 1, &offset ); // write inverted => internalMiddle becomes !unpacked
-					if ( internalMiddle ) {
+					if ( !unpacked )
 						write_unaligned_unsigned( &buffer, m_edges[edge].data.middle - m_block.firstNode, m_block.internalBits, &offset );
-					} else {
-						assert( m_edges[edge].data.unpacked );
-						if ( !directed )
-							write_unaligned_unsigned( &buffer, m_edges[edge].data.reversed ? 1 : 0, 1, &offset );
-						write_unaligned_unsigned( &buffer, m_edges[edge].data.path, m_settings.pathBits, &offset );
-					}
 				}
 			}
 			firstEdges.push_back( ( buffer - edgesBegin ) * 8 + offset - edgesBeginOffset );
@@ -464,7 +488,7 @@ private:
 				assert( m_edges[e].data.backward == edge.backward() );
 				assert( m_edges[e].data.shortcut == edge.shortcut() );
 				if ( m_edges[e].data.shortcut ) {
-					assert ( ( m_nodeIDs[m_edges[e].data.middle].block != m_block.id ) == ( edge.unpacked() ) );
+					assert ( mustUnpack( e ) == ( edge.unpacked() ) );
 					if ( edge.unpacked() )
 						assert( m_edges[e].data.path == edge.m_edge.data.path );
 					else
@@ -489,26 +513,26 @@ private:
 	}
 
 	// unpack all external shortcuts
-	void unpackShortcuts( QFile* pathFile, bool pretend = false )
+	void unpackAllNecessary( QFile* pathFile, bool pretend = false )
 	{
 		for ( std::vector< Edge >::iterator i = m_edges.begin(), iend = m_edges.end(); i != iend; i++ )
 			i->data.unpacked = false;
 		m_unpackBuffer.clear();
 		m_unpackBufferOffset = 0;
 
-		unsigned numberOfShortcuts = 0;
+		unsigned numberOfUnpackable = 0;
 		unsigned numberOfUnpacked = 0;
 
 		qDebug( "Computing path data" );
 		for ( unsigned i = 0; i < m_edges.size(); i++ ) {
-			if ( !m_edges[i].data.shortcut )
-				continue;
-
-			numberOfShortcuts++;
 
 			//do not unpack internal shortcuts
-			if ( m_nodeIDs[m_edges[i].source].block == m_nodeIDs[m_edges[i].data.middle].block && !pretend )
+			if ( !pretend && !mustUnpack( i ) )
 				continue;
+			if ( pretend && !mustPretend( i ) )
+				continue;
+
+			numberOfUnpackable++;
 
 			//path already fully unpacked ( covered by some higher level shortcut )?
 			if ( m_edges[i].data.unpacked )
@@ -517,10 +541,10 @@ private:
 			//get unpacked path
 			if ( m_edges[i].data.forward ) {
 				m_unpackBuffer.push_back( m_nodes[m_edges[i].source] );
-				unpackPath ( m_edges[i].source, m_edges[i].target, true );
+				unpackPath ( m_edges[i].source, m_edges[i].target, true, i );
 			} else {
 				m_unpackBuffer.push_back( m_nodes[m_edges[i].target] );
-				unpackPath ( m_edges[i].source, m_edges[i].target, false );
+				unpackPath ( m_edges[i].source, m_edges[i].target, false, i );
 			}
 			numberOfUnpacked++;
 			if ( !pretend ) {
@@ -535,29 +559,58 @@ private:
 		if ( pretend )
 			qDebug() << "max path index:" << m_unpackBufferOffset;
 		else
-			qDebug( "unpacked total shortcuts: %lf %%", 100.0f * numberOfUnpacked / numberOfShortcuts );
+			qDebug( "unpacked edges: %lf %%", 100.0f * numberOfUnpacked / numberOfUnpackable );
 	}
 
 	// unpacks a shortcut and updates the pointers for all shortcuts encountered
-	void unpackPath( unsigned source, unsigned target, bool forward ) {
-		unsigned edge = m_firstEdges[source];
-		assert ( edge != m_firstEdges[source + 1] );
-		for ( ;m_edges[edge].target != target || ( forward && !m_edges[edge].data.forward ) || ( !forward && !m_edges[edge].data.backward ); edge++ )
-			assert ( edge <= m_firstEdges[source + 1] );
+	void unpackPath( unsigned source, unsigned target, bool forward, unsigned edgeID = std::numeric_limits< unsigned >::max() ) {
+		unsigned shortestEdgeID = edgeID;
+		if ( edgeID == std::numeric_limits< unsigned >::max() ) {
+			unsigned distance = std::numeric_limits< unsigned >::max();
+			for ( unsigned edgeID = m_firstEdges[source]; edgeID < m_firstEdges[source + 1]; edgeID++ ) {
+				const Edge& edge = m_edges[edgeID];
+				if ( edge.target != target )
+					continue;
+				if (  forward && !edge.data.forward )
+					continue;
+				if ( !forward && !edge.data.backward )
+					continue;
+				if ( edge.data.distance > distance )
+					continue;
+				distance = edge.data.distance;
+				shortestEdgeID = edgeID;
+			}
+		}
+		Edge& shortestEdge = m_edges[shortestEdgeID];
 
-		if ( !m_edges[edge].data.shortcut ) {
-			m_unpackBuffer.push_back ( m_nodes[forward ? target : source] );
+		shortestEdge.data.reversed = !forward;
+		shortestEdge.data.unpacked = true;
+
+		if ( !shortestEdge.data.shortcut ) {
+			const IImporter::RoutingEdge originalEdge = m_originalEdges[shortestEdge.data.id];
+			bool reversed = originalEdge.target != target;
+			if ( forward ) {
+				//point at first node between source and destination
+				shortestEdge.data.path = m_unpackBuffer.size() - 1 + m_unpackBufferOffset;
+
+				unpackEdge( originalEdge, reversed );
+				m_unpackBuffer.push_back ( m_nodes[target] );
+			} else {
+				unpackEdge( originalEdge, !reversed );
+				m_unpackBuffer.push_back ( m_nodes[source] );
+
+				//point at last node between source and destination
+				shortestEdge.data.path = m_unpackBuffer.size() - 1 + m_unpackBufferOffset;
+			}
 			return;
 		}
 
-		unsigned middle = m_edges[edge].data.middle;
-		m_edges[edge].data.reversed = !forward;
-		m_edges[edge].data.unpacked = true;
+		unsigned middle = shortestEdge.data.middle;
 
 		//unpack the nodes in the right order
 		if ( forward ) {
 			//point at first node between source and destination
-			m_edges[edge].data.path = m_unpackBuffer.size() - 1 + m_unpackBufferOffset;
+			shortestEdge.data.path = m_unpackBuffer.size() - 1 + m_unpackBufferOffset;
 
 			unpackPath ( middle, source, false );
 			unpackPath ( middle, target, true );
@@ -566,8 +619,45 @@ private:
 			unpackPath ( middle, source, true );
 
 			//point at last node between source and destination
-			m_edges[edge].data.path = m_unpackBuffer.size() - 1 + m_unpackBufferOffset;
+			shortestEdge.data.path = m_unpackBuffer.size() - 1 + m_unpackBufferOffset;
 		}
+	}
+
+	void unpackEdge( const IImporter::RoutingEdge& edge, bool reversed )
+	{
+		if ( edge.pathLength == 0 )
+			return;
+
+		unsigned end = edge.pathID + edge.pathLength;
+
+		if ( !reversed ) {
+			for ( unsigned i = edge.pathID; i < end; i++ )
+				m_unpackBuffer.push_back( m_edgePaths[i] );
+		} else {
+			for ( unsigned i = end - 1; i > edge.pathID; i-- )
+				m_unpackBuffer.push_back( m_edgePaths[i] );
+			m_unpackBuffer.push_back( m_edgePaths[edge.pathID] );
+		}
+	}
+
+	bool mustUnpack( unsigned edgeID )
+	{
+		const Edge& edge = m_edges[edgeID];
+		//do not unpack internal shortcuts
+		if ( edge.data.shortcut )
+			return m_nodeIDs[edge.source].block != m_nodeIDs[edge.data.middle].block;
+		const IImporter::RoutingEdge& originalEdge = m_originalEdges[edge.data.id];
+		return originalEdge.pathLength != 0;
+	}
+
+	bool mustPretend( unsigned edgeID )
+	{
+		const Edge& edge = m_edges[edgeID];
+		//do not unpack internal shortcuts
+		if ( edge.data.shortcut )
+			return true;
+		const IImporter::RoutingEdge& originalEdge = m_originalEdges[edge.data.id];
+		return originalEdge.pathLength != 0;
 	}
 
 	bool createGraph( QString filename, std::vector< unsigned >* remap )
@@ -580,7 +670,7 @@ private:
 		m_nodeIDs.resize( m_nodes.size() );
 		qDebug() << "build node index:" << time.restart() << "ms";
 
-		unpackShortcuts( NULL, true );
+		unpackAllNecessary( NULL, true );
 		qDebug() << "computed max path index:" << time.restart() << "ms";
 		m_settings.pathBits = bits_needed( m_unpackBufferOffset );
 
@@ -608,7 +698,7 @@ private:
 		QFile pathFile( filename + "_paths" );
 		if ( !openQFile( &pathFile, QIODevice::WriteOnly ) )
 			return false;
-		unpackShortcuts( &pathFile );
+		unpackAllNecessary( &pathFile );
 		qDebug() << "unpacked shortcuts:" << time.restart() << "ms";
 
 		// recompute block settings and write
@@ -653,6 +743,8 @@ private:
 	std::vector< unsigned > m_firstEdges;
 	std::vector< Edge > m_edges;
 	std::vector< nodeDescriptor > m_nodeIDs;
+	std::vector< OriginalEdge > m_originalEdges;
+	std::vector< Node > m_edgePaths;
 	std::vector< unsigned char > m_externalBits;
 	std::vector< Node > m_unpackBuffer;
 	unsigned m_unpackBufferOffset;

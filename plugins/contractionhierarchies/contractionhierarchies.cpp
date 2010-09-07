@@ -75,7 +75,10 @@ bool ContractionHierarchies::Preprocess( IImporter* importer )
 	if ( !importer->GetRoutingEdges( &inputEdges ) )
 		return false;
 
-	Contractor* contractor = new Contractor( inputNodes.size(), inputEdges );
+	unsigned numEdges = inputEdges.size();
+	unsigned numNodes = inputNodes.size();
+
+	Contractor* contractor = new Contractor( numNodes, inputEdges );
 	std::vector< IImporter::RoutingEdge >().swap( inputEdges );
 	contractor->Run();
 
@@ -83,27 +86,73 @@ bool ContractionHierarchies::Preprocess( IImporter* importer )
 	contractor->GetWitnessList( witnessList );
 
 	std::vector< ContractionCleanup::Edge > contractedEdges;
-	contractor->GetEdges( contractedEdges );
+	std::vector< ContractionCleanup::Edge > contractedLoops;
+	contractor->GetEdges( &contractedEdges );
+	contractor->GetLoops( &contractedLoops );
 	delete contractor;
 
-	ContractionCleanup* cleanup = new ContractionCleanup( inputNodes.size(), contractedEdges, witnessList );
+	ContractionCleanup* cleanup = new ContractionCleanup( inputNodes.size(), contractedEdges, contractedLoops, witnessList );
 	std::vector< ContractionCleanup::Edge >().swap( contractedEdges );
+	std::vector< ContractionCleanup::Edge >().swap( contractedLoops );
 	std::vector< Contractor::Witness >().swap( witnessList );
 	cleanup->Run();
 
 	std::vector< CompressedGraph::Edge > edges;
 	std::vector< NodeID > map;
-	cleanup->GetData( edges, map );
+	cleanup->GetData( &edges, &map );
 	delete cleanup;
 
-	std::vector< CompressedGraph::Node > nodes( inputNodes.size() );
+	{
+		std::vector< unsigned > edgeIDs( numEdges );
+		for ( unsigned edge = 0; edge < edges.size(); edge++ ) {
+			if ( edges[edge].data.shortcut )
+				continue;
+			unsigned id = 0;
+			unsigned otherEdge = edge;
+			while ( true ) {
+				if ( otherEdge == 0 )
+					break;
+				otherEdge--;
+				if ( edges[otherEdge].source != edges[edge].source )
+					break;
+				if ( edges[otherEdge].target != edges[edge].target )
+					continue;
+				if ( edges[otherEdge].data.shortcut )
+					continue;
+				id++;
+			}
+			edgeIDs[edges[edge].data.id] = id;
+		}
+		importer->SetEdgeIDMap( edgeIDs );
+	}
+
+	std::vector< CompressedGraph::Node > nodes( numNodes );
 	for ( std::vector< IImporter::RoutingNode >::const_iterator i = inputNodes.begin(), iend = inputNodes.end(); i != iend; i++ )
 		nodes[map[i - inputNodes.begin()]].coordinate = i->coordinate;
 	std::vector< IImporter::RoutingNode >().swap( inputNodes );
 
-	CompressedGraphBuilder builder( 1u << settings.blockSize, nodes, edges );
-	if ( !builder.run( filename, &map ) )
+	std::vector< CompressedGraph::Node > pathNodes;
+	{
+		std::vector< IImporter::RoutingNode > edgePaths;
+		if ( !importer->GetRoutingEdgePaths( &edgePaths ) )
+			return false;
+		pathNodes.resize( edgePaths.size() );
+		for ( unsigned i = 0; i < edgePaths.size(); i++ )
+			pathNodes[i].coordinate = edgePaths[i].coordinate;
+	}
+
+	if ( !importer->GetRoutingEdges( &inputEdges ) )
 		return false;
+
+	for ( std::vector< IImporter::RoutingEdge >::iterator i = inputEdges.begin(), iend = inputEdges.end(); i != iend; i++ ) {
+		i->source = map[i->source];
+		i->target = map[i->target];
+	}
+
+	CompressedGraphBuilder* builder = new CompressedGraphBuilder( 1u << settings.blockSize, nodes, edges, inputEdges, pathNodes );
+	if ( !builder->run( filename, &map ) )
+		return false;
+	delete builder;
 
 	importer->SetIDMap( map );
 

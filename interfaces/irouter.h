@@ -36,6 +36,7 @@ public:
 	virtual void SetInputDirectory( const QString& dir ) = 0;
 	virtual void ShowSettings() = 0;
 	virtual bool LoadData() = 0;
+	// computes the route between source and target and returns the distance in second
 	virtual bool GetRoute( double* distance, QVector< UnsignedCoordinate>* path, const IGPSLookup::Result& source, const IGPSLookup::Result& target ) = 0;
 };
 

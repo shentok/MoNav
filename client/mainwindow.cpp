@@ -269,14 +269,14 @@ void MainWindow::setSource( UnsignedCoordinate s, double h )
 	source = s;
 	heading = h;
 	emit sourceChanged( source, heading );
-	QVector< IGPSLookup::Result > result;
+	IGPSLookup::Result result;
 	QTime time;
 	time.start();
-	bool found = gpsLookup->GetNearEdges( &result, source, 100, heading == 0 ? 0 : 10, heading );
+	bool found = gpsLookup->GetNearestEdge( &result, source, 100, heading == 0 ? 0 : 10, heading );
 	qDebug() << "GPS Lookup:" << time.elapsed() << "ms";
 	if ( !found )
 		return;
-	sourcePos = result.first();
+	sourcePos = result;
 	sourceSet = true;
 	computeRoute();
 }
@@ -287,15 +287,15 @@ void MainWindow::setTarget( UnsignedCoordinate t )
 	if ( target.x == t.x && target.y == t.y )
 		return;
 	target = t;
-	QVector< IGPSLookup::Result > result;
+	IGPSLookup::Result result;
 	emit targetChanged( target );
 	QTime time;
 	time.start();
-	bool found = gpsLookup->GetNearEdges( &result, target, 100 );
+	bool found = gpsLookup->GetNearestEdge( &result, target, 100 );
 	qDebug() << "GPS Lookup:" << time.elapsed() << "ms";
 	if ( !found )
 		return;
-	targetPos = result.first();
+	targetPos = result;
 	targetSet = true;
 	computeRoute();
 }
