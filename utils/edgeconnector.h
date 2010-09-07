@@ -46,10 +46,14 @@ public:
 	{
 		// build node index
 		QMultiHash< Node, unsigned > nodes;
+		QMultiHash< Node, unsigned > backwardNodes;
 		for ( unsigned i = 0; i < edges.size(); i++ ) {
 			nodes.insert( edges[i].source, i );
-			if ( edges[i].reverseable )
+			backwardNodes.insert( edges[i].target, i );
+			if ( edges[i].reverseable ) {
 				nodes.insert( edges[i].target, i );
+				backwardNodes.insert( edges[i].source, i );
+			}
 		}
 
 		std::vector< bool > used( edges.size(), false );
@@ -63,9 +67,7 @@ public:
 			segmentDescriptions->push_back( i );
 
 			used[i] = true;
-			nodes.remove( edges[i].source, i );
-			if ( edges[i].reverseable )
-				nodes.remove( edges[i].target, i );
+			removeEdge( &nodes, &backwardNodes, edges[i], i );
 
 			// chain edges forward
 			Node lastNode = edges[i].target;
@@ -85,15 +87,47 @@ public:
 				segmentDescriptions->push_back( nextEdge );
 
 				used[nextEdge] = true;
-				nodes.remove( edges[nextEdge].source, nextEdge );
-				if ( edges[nextEdge].reverseable )
-					nodes.remove( edges[nextEdge].target, nextEdge );
-
+				removeEdge( &nodes, &backwardNodes, edges[nextEdge], nextEdge );
 			}
+
+			// chain edges backward
+			std::vector< unsigned > backwardsPath;
+			lastNode = edges[i].source;
+			while ( backwardNodes.contains( lastNode ) ) {
+				unsigned nextEdge = backwardNodes.value( lastNode );
+				assert( !used[nextEdge] );
+
+				if ( lastNode != edges[nextEdge].target ) {
+					assert( lastNode == edges[nextEdge].source );
+					assert( edges[nextEdge].reverseable );
+					( *reversed )[nextEdge] = true;
+					lastNode = edges[nextEdge].target;
+				} else {
+					lastNode = edges[nextEdge].source;
+				}
+
+				backwardsPath.push_back( nextEdge );
+
+				used[nextEdge] = true;
+				removeEdge( &nodes, &backwardNodes, edges[nextEdge], nextEdge );
+			}
+
+			segmentDescriptions->insert( segmentDescriptions->begin() + lastSize, backwardsPath.rbegin(), backwardsPath.rend() );
 
 			segments->push_back( segmentDescriptions->size() - lastSize );
 		}
 	}
+
+protected:
+
+	static void removeEdge( QMultiHash< Node, unsigned >* nodes, QMultiHash< Node, unsigned >* backwardsNodes, const Edge& edge, unsigned value )
+	{
+		nodes->remove( edge.source, value );
+		nodes->remove( edge.target, value );
+		backwardsNodes->remove( edge.target, value );
+		backwardsNodes->remove( edge.source, value );
+	}
+
 };
 
 #endif // EDGECONNECTOR_H
