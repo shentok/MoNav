@@ -112,6 +112,9 @@ class GPSCoordinate {
 		bool operator==( const GPSCoordinate& right ) const {
 			return latitude == right.latitude && longitude == right.longitude;
 		}
+		bool operator!=( const GPSCoordinate& right ) const {
+			return !( *this == right );
+		}
 		bool operator<( const GPSCoordinate& right ) const {
 			if ( latitude != right.latitude )
 				return latitude < right.latitude;
@@ -150,6 +153,9 @@ class ProjectedCoordinate {
 
 		bool operator==( const ProjectedCoordinate& right ) const {
 			return x == right.x && y == right.y;
+		}
+		bool operator!=( const ProjectedCoordinate& right ) const {
+			return !( *this == right );
 		}
 		bool operator<( const ProjectedCoordinate& right ) const {
 			if ( x != right.x )
@@ -215,6 +221,9 @@ class UnsignedCoordinate {
 		
 		bool operator==( const UnsignedCoordinate& right ) const {
 			return x == right.x && y == right.y;
+		}
+		bool operator!=( const UnsignedCoordinate& right ) const {
+			return !( *this == right );
 		}
 		bool operator<( const UnsignedCoordinate& right ) const {
 			if ( x != right.x )

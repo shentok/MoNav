@@ -59,16 +59,6 @@ protected:
 		}
 	};
 
-	struct WayImportance {
-		QString name;
-		double distance;
-		bool operator<( const WayImportance& right ) const {
-			if ( distance != right.distance )
-				return distance < right.distance;
-			return name > right.name;
-		}
-	};
-
 	QString outputDirectory;
 	UTTSettingsDialog* settingsDialog;
 };
