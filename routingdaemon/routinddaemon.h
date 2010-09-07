@@ -138,24 +138,22 @@ protected:
 		}
 		UnsignedCoordinate sourceCoordinate( source );
 		UnsignedCoordinate targetCoordinate( target );
-		QVector< IGPSLookup::Result > gpsList;
+		IGPSLookup::Result sourcePosition;
 		QTime time;
 		time.start();
-		bool found = m_gpsLookup->GetNearEdges( &gpsList, sourceCoordinate, lookupRadius );
+		bool found = m_gpsLookup->GetNearestEdge( &sourcePosition, sourceCoordinate, lookupRadius );
 		qDebug() << "GPS Lookup:" << time.restart() << "ms";
 		if ( !found ) {
 			qDebug() << "no edge near source found";
 			return false;
 		}
-		IGPSLookup::Result sourcePosition = gpsList.first();
-		gpsList.clear();
-		found = m_gpsLookup->GetNearEdges( &gpsList, targetCoordinate, lookupRadius );
+		IGPSLookup::Result targetPosition;
+		found = m_gpsLookup->GetNearestEdge( &targetPosition, targetCoordinate, lookupRadius );
 		qDebug() << "GPS Lookup:" << time.restart() << "ms";
 		if ( !found ) {
 			qDebug() << "no edge near target found";
 			return false;
 		}
-		IGPSLookup::Result targetPosition = gpsList.first();
 		found = m_router->GetRoute( resultDistance, resultPath, sourcePosition, targetPosition );
 		qDebug() << "Routing:" << time.restart() << "ms";
 		return found;
