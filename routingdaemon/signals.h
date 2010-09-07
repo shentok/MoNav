@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 Alternatively, this file may be used under the terms of the GNU Lesser
-General Public License version 3 as published by the Free Software
+General Public License version 2 as published by the Free Software
 Foundation.
 */
 
