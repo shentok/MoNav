@@ -1,5 +1,7 @@
 <RCC>
-    <qresource prefix="/speedprofiles">
-        <file>default.spp</file>
+    <qresource prefix="/">
+        <file>speed profiles/bicycle.spp</file>
+        <file>speed profiles/foot.spp</file>
+        <file>speed profiles/motorcar.spp</file>
     </qresource>
 </RCC>

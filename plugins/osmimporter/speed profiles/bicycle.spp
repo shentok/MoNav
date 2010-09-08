@@ -1,0 +1,21 @@
+[General]
+name=Bycicle
+trafficLightPenalty=5
+defaultCitySpeed=false
+ignoreOneway=false
+ignoreMaxspeed=true
+accessType=bicycle
+entries=13
+entry.0=trunk, 20, 20, 30
+entry.1=trunk_link, 20, 20, 30
+entry.2=primary, 20, 20, 70
+entry.3=primary_link, 20, 20, 70
+entry.4=secondary, 20, 20, 80
+entry.5=secondary_link, 20, 20, 80
+entry.6=tertiary, 20, 20, 90
+entry.7=unclassified, 20, 20, 90
+entry.8=residential, 20, 20, 90
+entry.9=service, 20, 20, 90
+entry.10=track, 20, 20, 90
+entry.11=cycleway, 20, 20, 100
+entry.12=path, 20, 20, 90

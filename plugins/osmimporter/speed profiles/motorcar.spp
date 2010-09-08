@@ -1,0 +1,20 @@
+[General]
+name=Motorcar
+trafficLightPenalty=5
+defaultCitySpeed=true
+ignoreOneway=false
+ignoreMaxspeed=false
+accessType=motorcar
+entries=12
+entry.0=motorway, 112, 112, 100
+entry.1=motorway_link, 80, 80, 100
+entry.2=trunk, 96, 50, 100
+entry.3=trunk_link, 80, 50, 100
+entry.4=primary, 96, 50, 90
+entry.5=primary_link, 80, 50, 90
+entry.6=secondary, 88, 50, 80
+entry.7=secondary_link, 80, 50, 80
+entry.8=tertiary, 80, 50, 70
+entry.9=unclassified, 64, 50, 60
+entry.10=residential, 48, 48, 50
+entry.11=service, 32, 32, 80

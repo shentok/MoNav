@@ -1,0 +1,22 @@
+[General]
+name=Foot
+trafficLightPenalty=5
+defaultCitySpeed=false
+ignoreOneway=true
+ignoreMaxspeed=true
+accessType=foot
+entries=14
+entry.0=trunk, 4, 4, 40
+entry.1=trunk_link, 4, 4, 40
+entry.2=primary, 4, 4, 50
+entry.3=primary_link, 4, 4, 50
+entry.4=secondary, 4, 4, 60
+entry.5=secondary_link, 4, 4, 60
+entry.6=tertiary, 4, 4, 70
+entry.7=unclassified, 4, 4, 80
+entry.8=residential, 4, 4, 90
+entry.9=service, 4, 4, 90
+entry.10=track, 4, 4, 95
+entry.11=cycleway, 4, 4, 95
+entry.12=path, 4, 4, 100
+entry.13=steps, 4, 4, 80

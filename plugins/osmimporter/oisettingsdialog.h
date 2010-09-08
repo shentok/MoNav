@@ -28,7 +28,7 @@ namespace Ui {
 }
 
 class OISettingsDialog : public QDialog {
-    Q_OBJECT
+	 Q_OBJECT
 public:
 	 OISettingsDialog(QWidget *parent = 0);
 	 ~OISettingsDialog();
@@ -51,21 +51,22 @@ public:
 	bool getSettings( Settings* settings );
 
 public slots:
-	void setDefaultSpeed();
 	void addSpeed();
 	void removeSpeed();
-	void saveSpeed();
-	void loadSpeed();
+	void save();
+	void load();
 	void browse();
+	void currentIndexChanged( int index );
 
 protected:
-    void changeEvent(QEvent *e);
+	 void changeEvent(QEvent *e);
 	void connectSlots();
-	void load( const QString& filename );
-	void save( const QString& filename );
+	QString load( const QString& filename, bool nameOnly = false );
+	void save( const QString& filename, QString name );
 
 	Ui::OISettingsDialog *m_ui;
 	QString m_lastFilename;
+	QStringList m_speedProfiles;
 };
 
 #endif // SETTINGSDIALOG_H
