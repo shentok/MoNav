@@ -55,6 +55,11 @@ class RoutingDaemonCommand {
 
 public:
 
+	RoutingDaemonCommand()
+	{
+		lookupRadius = 10000; // 10km should suffice for most applications
+	}
+
 	double lookupRadius;
 	QString dataDirectory;
 	QVector< RoutingDaemonCoordinate > waypoints;
