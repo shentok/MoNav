@@ -214,6 +214,7 @@ QString OISettingsDialog::load( const QString& filename, bool nameOnly)
 		m_ui->speedProfileChooser->addItem( "File: " + name, filename );
 		m_ui->speedProfileChooser->setCurrentIndex( m_ui->speedProfileChooser->findData( filename ) );
 	}
+	qDebug() << "OSM Importer:: loaded speed profile:" << name << "," << filename;
 	m_lastFilename = filename;
 	return name;
 }
