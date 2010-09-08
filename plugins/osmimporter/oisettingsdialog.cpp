@@ -176,7 +176,7 @@ QString OISettingsDialog::load( const QString& filename, bool nameOnly)
 	QString accessType = settings.value( "accessType" ).toString();
 	QList< QTreeWidgetItem* > items = m_ui->accessTree->findItems( accessType, Qt::MatchFixedString | Qt::MatchRecursive );
 
-	if ( items.size() < 0 ) {
+	if ( items.size() < 1 ) {
 		qCritical() << "invalid access type found:" << accessType;
 		return "";
 	}
