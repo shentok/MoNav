@@ -22,13 +22,14 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <vector>
 #include <algorithm>
+#include <limits>
 #include "utils/bithelpers.h"
 
 template< typename EdgeData>
 class DynamicGraph {
 	public:
-		typedef NodeID NodeIterator;
-		typedef NodeID EdgeIterator;
+		typedef unsigned NodeIterator;
+		typedef unsigned EdgeIterator;
 
 		class InputEdge {
 			public:
@@ -42,145 +43,190 @@ class DynamicGraph {
 				}
 		};
 
-		DynamicGraph( int nodes, const std::vector< InputEdge > &graph ) {
-			_numNodes = nodes;
-			_numEdges = ( EdgeIterator ) graph.size();
-			_nodes.resize( _numNodes );
+		DynamicGraph( int nodes, const std::vector< InputEdge > &graph )
+		{
+			m_numNodes = nodes;
+			m_numEdges = ( EdgeIterator ) graph.size();
+			m_nodes.reserve( m_numNodes );
+			m_nodes.resize( m_numNodes );
 			EdgeIterator edge = 0;
 			EdgeIterator position = 0;
-			for ( NodeIterator node = 0; node < _numNodes; ++node ) {
+			for ( NodeIterator node = 0; node < m_numNodes; ++node ) {
 				EdgeIterator lastEdge = edge;
-				while ( edge < _numEdges && graph[edge].source == node ) {
+				while ( edge < m_numEdges && graph[edge].source == node ) {
 					++edge;
 				}
-				_nodes[node].firstEdge = position;
-				_nodes[node].edges = edge - lastEdge;
-				_nodes[node].size = 1 << log2_rounded( edge - lastEdge );
-				position += _nodes[node].size;
+				m_nodes[node].firstEdge = position;
+				m_nodes[node].edges = edge - lastEdge;
+				position += m_nodes[node].edges;
 			}
-			_edges.resize( position );
+			m_edges.reserve( position * 1.2 );
+			m_edges.resize( position );
+			qDebug() << "Contraction Hiearchies: dynamic graph usage:" << m_numEdges << m_edges.size() << m_edges.capacity();
 			edge = 0;
-			for ( NodeIterator node = 0; node < _numNodes; ++node ) {
-				for ( EdgeIterator i = _nodes[node].firstEdge, e = _nodes[node].firstEdge + _nodes[node].edges; i != e; ++i ) {
-					_edges[i].target = graph[edge].target;
-					_edges[i].data = graph[edge].data;
+			for ( NodeIterator node = 0; node < m_numNodes; ++node ) {
+				for ( EdgeIterator i = m_nodes[node].firstEdge, e = m_nodes[node].firstEdge + m_nodes[node].edges; i != e; ++i ) {
+					m_edges[i].target = graph[edge].target;
+					m_edges[i].data = graph[edge].data;
 					edge++;
 				}
 			}
 		}
 
-		unsigned GetNumberOfNodes() const {
-			return _numNodes;
+		~DynamicGraph()
+		{
+			qDebug() << "Contraction Hiearchies: dynamic graph usage:" << m_numEdges << m_edges.size() << m_edges.capacity();
 		}
 
-		unsigned GetNumberOfEdges() const {
-			return _numEdges;
+		unsigned GetNumberOfNodes() const
+		{
+			return m_numNodes;
 		}
 
-		unsigned GetOutDegree( const NodeIterator &n ) const {
-			return _nodes[n].edges;
+		unsigned GetNumberOfEdges() const
+		{
+			return m_numEdges;
 		}
 
-		NodeIterator GetTarget( const EdgeIterator &e ) const {
-			return NodeIterator( _edges[e].target );
+		unsigned GetOutDegree( const NodeIterator &n ) const
+		{
+			return m_nodes[n].edges;
 		}
 
-		EdgeData &GetEdgeData( const EdgeIterator &e ) {
-			return _edges[e].data;
+		NodeIterator GetTarget( const EdgeIterator &e ) const
+		{
+			return NodeIterator( m_edges[e].target );
 		}
 
-		const EdgeData &GetEdgeData( const EdgeIterator &e ) const {
-			return _edges[e].data;
+		EdgeData &GetEdgeData( const EdgeIterator &e )
+		{
+			return m_edges[e].data;
 		}
 
-		EdgeIterator BeginEdges( const NodeIterator &n ) const {
+		const EdgeData &GetEdgeData( const EdgeIterator &e ) const
+		{
+			return m_edges[e].data;
+		}
+
+		EdgeIterator BeginEdges( const NodeIterator &n ) const
+		{
 			//assert( EndEdges( n ) - EdgeIterator( _nodes[n].firstEdge ) <= 100 );
-			return EdgeIterator( _nodes[n].firstEdge );
+			return EdgeIterator( m_nodes[n].firstEdge );
 		}
 
-		EdgeIterator EndEdges( const NodeIterator &n ) const {
-			return EdgeIterator( _nodes[n].firstEdge + _nodes[n].edges );
+		EdgeIterator EndEdges( const NodeIterator &n ) const
+		{
+			return EdgeIterator( m_nodes[n].firstEdge + m_nodes[n].edges );
 		}
 
 		//adds an edge. Invalidates edge iterators for the source node
-		EdgeIterator InsertEdge( const NodeIterator &from, const NodeIterator &to, const EdgeData &data ) {
-			_StrNode &node = _nodes[from];
-			if ( node.edges + 1 >= node.size ) {
-				node.size *= 2;
-				EdgeIterator newFirstEdge = ( EdgeIterator ) _edges.size();
-				_edges.resize( _edges.size() + node.size );
-				for ( unsigned i = 0; i < node.edges; ++i ) {
-					_edges[newFirstEdge + i ] = _edges[node.firstEdge + i];
+		EdgeIterator InsertEdge( const NodeIterator &from, const NodeIterator &to, const EdgeData &data )
+		{
+			Node &node = m_nodes[from];
+			EdgeIterator newFirstEdge = node.edges + node.firstEdge;
+			if ( newFirstEdge >= m_edges.size() || !isDummy( newFirstEdge ) ) {
+				if ( node.firstEdge != 0 && isDummy( node.firstEdge - 1 ) ) {
+					node.firstEdge--;
+					m_edges[node.firstEdge] = m_edges[node.firstEdge + node.edges];
+				} else {
+					EdgeIterator newFirstEdge = ( EdgeIterator ) m_edges.size();
+					unsigned newSize = node.edges * 1.2 + 2;
+					EdgeIterator requiredCapacity = newSize + m_edges.size();
+					EdgeIterator oldCapacity = m_edges.capacity();
+					if ( requiredCapacity >= oldCapacity ) {
+						m_edges.reserve( requiredCapacity * 1.1 );
+						qDebug() << "Contraction Hiearchies: increased graph size:" << m_edges.capacity();
+					}
+					m_edges.resize( m_edges.size() + newSize );
+					for ( EdgeIterator i = 0; i < node.edges; ++i ) {
+						m_edges[newFirstEdge + i ] = m_edges[node.firstEdge + i];
+						makeDummy( node.firstEdge + i );
+					}
+					for ( EdgeIterator i = node.edges + 1; i < newSize; i++ )
+						makeDummy( newFirstEdge + i );
+					node.firstEdge = newFirstEdge;
 				}
-				node.firstEdge = newFirstEdge;
 			}
-			_StrEdge &edge = _edges[node.firstEdge + node.edges];
+			Edge &edge = m_edges[node.firstEdge + node.edges];
 			edge.target = to;
 			edge.data = data;
-			_numEdges++;
+			m_numEdges++;
 			node.edges++;
 			return EdgeIterator( node.firstEdge + node.edges );
 		}
 
 		//removes an edge. Invalidates edge iterators for the source node
-		/*void DeleteEdge( const NodeIterator source, const EdgeIterator &e ) {
-			_StrNode &node = _nodes[source];
-			--_numEdges;
+		void DeleteEdge( const NodeIterator source, const EdgeIterator &e ) {
+			Node &node = m_nodes[source];
+			--m_numEdges;
 			--node.edges;
 			const unsigned last = node.firstEdge + node.edges;
 			//swap with last edge
-			_edges[e] = _edges[last];
-		}*/
+			m_edges[e] = m_edges[last];
+			makeDummy( last );
+		}
 
 		//removes all edges (source,target)
-		int DeleteEdgesTo( const NodeIterator source, const NodeIterator target ) {
+		int DeleteEdgesTo( const NodeIterator source, const NodeIterator target )
+		{
 			int deleted = 0;
 			for ( EdgeIterator i = BeginEdges( source ), iend = EndEdges( source ); i < iend - deleted; ++i ) {
-				if ( _edges[i].target == target ) {
+				if ( m_edges[i].target == target ) {
 					do {
 						deleted++;
-						_edges[i] = _edges[iend - deleted];
-					} while ( i < iend - deleted && _edges[i].target == target );
+						m_edges[i] = m_edges[iend - deleted];
+						makeDummy( iend - deleted );
+					} while ( i < iend - deleted && m_edges[i].target == target );
 				}
 			}
 
 			#pragma omp atomic
-			_numEdges -= deleted;
-			_nodes[source].edges -= deleted;
+			m_numEdges -= deleted;
+			m_nodes[source].edges -= deleted;
 
 			return deleted;
 		}
 
 		//searches for a specific edge
-		EdgeIterator FindEdge( const NodeIterator &from, const NodeIterator &to ) const {
+		EdgeIterator FindEdge( const NodeIterator &from, const NodeIterator &to ) const
+		{
 			for ( EdgeIterator i = BeginEdges( from ), iend = EndEdges( from ); i != iend; ++i ) {
-				if ( _edges[i].target == to ) {
+				if ( m_edges[i].target == to ) {
 					return i;
 				}
 			}
 			return EndEdges( from );
 		}
 
-	private:
+	protected:
 
-		struct _StrNode {
+		bool isDummy( EdgeIterator edge ) const
+		{
+			return m_edges[edge].target == std::numeric_limits< NodeIterator >::max();
+		}
+
+		void makeDummy( EdgeIterator edge )
+		{
+			m_edges[edge].target = std::numeric_limits< NodeIterator >::max();
+		}
+
+		struct Node {
 			//index of the first edge
 			EdgeIterator firstEdge;
 			//amount of edges
 			unsigned edges;
-			unsigned size;
 		};
 
-		struct _StrEdge {
+		struct Edge {
 			NodeIterator target;
 			EdgeData data;
 		};
 
-		NodeIterator _numNodes;
-		EdgeIterator _numEdges;
+		NodeIterator m_numNodes;
+		EdgeIterator m_numEdges;
 
-		std::vector< _StrNode > _nodes;
-		std::vector< _StrEdge > _edges;
+		std::vector< Node > m_nodes;
+		std::vector< Edge > m_edges;
 };
 
 #endif // DYNAMICGRAPH_H_INCLUDED
