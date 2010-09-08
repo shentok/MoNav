@@ -610,7 +610,7 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< GPSCoordinate
 				}
 				tempSpeed *= m_settings.speedProfile.averagePercentage[type] / 100.0;
 
-				seconds += distance * 36 / tempSpeed;
+				seconds += distance * 3.6 / tempSpeed;
 
 				if ( std::binary_search( m_signalNodes.begin(), m_signalNodes.end(), m_usedNodes[from] ) )
 					seconds += m_settings.trafficLightPenalty / 2.0;

@@ -85,22 +85,26 @@ bool ContractionHierarchiesClient::GetRoute( double* distance, QVector< Unsigned
 	heapBackward->Clear();
 	if ( target.source == source.source && target.target == source.target && source.edgeID == target.edgeID ) {
 		EdgeIterator targetEdge = graph.findEdge( target.source, target.target, target.edgeID );
-		if ( ( targetEdge.forward() && targetEdge.backward() ) || source.percentage < target.percentage ) {
-			path->push_back( source.nearestPoint );
+		// is it shorter to drive around the loop?
+		bool loopAround = targetEdge.forward() && targetEdge.backward() && target.source == target.target && fabs( target.percentage - source.percentage ) > 0.5;
+		if ( !loopAround ) {
+			if ( ( targetEdge.forward() && targetEdge.backward() ) || source.percentage < target.percentage ) {
+				path->push_back( source.nearestPoint );
 
-			if ( target.previousWayCoordinates < source.previousWayCoordinates ) {
-				unsigned begin = path->size();
-				for ( unsigned pathID = target.previousWayCoordinates + 1; pathID <= source.previousWayCoordinates; pathID++ )
-					path->push_back( source.coordinates[pathID] );
-				std::reverse( path->begin() + begin, path->end() );
-			} else {
-				for ( unsigned pathID = source.previousWayCoordinates + 1; pathID <= target.previousWayCoordinates; pathID++ )
-					path->push_back( source.coordinates[pathID] );
+				if ( target.previousWayCoordinates < source.previousWayCoordinates ) {
+					unsigned begin = path->size();
+					for ( unsigned pathID = target.previousWayCoordinates + 1; pathID <= source.previousWayCoordinates; pathID++ )
+						path->push_back( source.coordinates[pathID] );
+					std::reverse( path->begin() + begin, path->end() );
+				} else {
+					for ( unsigned pathID = source.previousWayCoordinates + 1; pathID <= target.previousWayCoordinates; pathID++ )
+						path->push_back( source.coordinates[pathID] );
+				}
+
+				path->push_back( target.nearestPoint );
+				*distance = fabs( target.percentage - source.percentage ) * targetEdge.distance() / 10;
+				return true;
 			}
-
-			path->push_back( target.nearestPoint );
-			*distance = fabs( target.percentage - source.percentage ) * targetEdge.distance();
-			return true;
 		}
 	}
 	*distance = computeRoute( source, target, path );
@@ -207,12 +211,12 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& source
 
 	//insert source into heap
 	heapForward->Insert( source.target, sourceWeight - sourceWeight * source.percentage, source.target );
-	if ( sourceEdge.backward() && sourceEdge.forward() )
+	if ( sourceEdge.backward() && sourceEdge.forward() && source.target != source.source )
 		heapForward->Insert( source.source, sourceWeight * source.percentage, source.source );
 
 	//insert target into heap
 	heapBackward->Insert( target.source, targetWeight * target.percentage, target.source );
-	if ( targetEdge.backward() && targetEdge.forward() )
+	if ( targetEdge.backward() && targetEdge.forward() && target.target != target.source )
 		heapBackward->Insert( target.target, targetWeight - targetWeight * target.percentage, target.target );
 
 	int targetDistance = std::numeric_limits< int >::max();
@@ -250,8 +254,11 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& source
 	}
 
 	path->push_back( source.nearestPoint );
+	bool reverseSourceDescription = pathNode != source1;
+	if ( source.source == source.target && sourceEdge.backward() && sourceEdge.forward() && source.percentage < 0.5 )
+		reverseSourceDescription = true;
 	unsigned begin = path->size();
-	if ( pathNode == source1 ) {
+	if ( !reverseSourceDescription ) {
 		for ( int pathID = source.previousWayCoordinates + 1; pathID < source.coordinates.size() - 1; pathID++ )
 			path->push_back( source.coordinates[pathID] );
 	} else {
@@ -281,8 +288,11 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& source
 		pathNode = parent;
 	}
 
+	bool reverseTargetDescription = pathNode != target1;
+	if ( target.source == target.target && targetEdge.backward() && targetEdge.forward() && target.percentage > 0.5 )
+		reverseTargetDescription = true;
 	begin = path->size();
-	if ( pathNode == target1 ) {
+	if ( !reverseTargetDescription ) {
 		for ( int pathID = 1; pathID <= ( int ) target.previousWayCoordinates; pathID++ )
 			path->push_back( target.coordinates[pathID] );
 	} else {
@@ -292,7 +302,7 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& source
 	}
 	path->push_back( target.nearestPoint );
 
-	return targetDistance / 10;
+	return targetDistance;
 }
 
 bool ContractionHierarchiesClient::unpackEdge( const Node source, const Node target, bool forward, QVector< UnsignedCoordinate >* path ) {
