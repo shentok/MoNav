@@ -44,7 +44,7 @@ int main( int argc, char *argv[] ) {
 		qDebug() << "\tcomputes a route using between the specified waypoints";
 		return 1;
 	}
-	command.lookupRadius = 200;
+	command.lookupRadius = 10000;
 
 	QLocalSocket connection;
 	connection.connectToServer( "MoNavD" );
