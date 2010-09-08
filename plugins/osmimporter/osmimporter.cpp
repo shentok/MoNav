@@ -100,11 +100,12 @@ bool OSMImporter::Preprocess()
 	}
 
 	std::sort( m_usedNodes.begin(), m_usedNodes.end() );
-	for ( unsigned i = 0; i < m_usedNodes.size(); i++ ) {
-		NodeID currentNode = m_usedNodes[i];
+	for ( unsigned i = 0; i < m_usedNodes.size(); ) {
+		unsigned currentNode = m_usedNodes[i];
 		int count = 1;
 		for ( i++; i < m_usedNodes.size() && currentNode == m_usedNodes[i]; i++ )
 			count++;
+
 		if ( count > 1 )
 			m_routingNodes.push_back( currentNode );
 	}
