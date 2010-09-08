@@ -117,6 +117,7 @@ bool GPSGridClient::GetNearestEdge( Result* result, const UnsignedCoordinate& co
 	NodeID xGrid = floor( position.x * width );
 
 	result->distance = gridRadius;
+	result->coordinates.clear();
 
 	checkCell( result, xGrid - 1, yGrid - 1, coordinate, heading, headingPenalty );
 	checkCell( result, xGrid - 1, yGrid, coordinate, heading, headingPenalty );
