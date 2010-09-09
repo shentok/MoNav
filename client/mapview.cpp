@@ -259,14 +259,7 @@ void MapView::setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinat
 	m_ui->nextButton->hide();
 	m_ui->previousButton->hide();
 
-	ProjectedCoordinate center;
-	foreach( UnsignedCoordinate coordinate, coordinates ) {
-		ProjectedCoordinate pos = coordinate.ToProjectedCoordinate();
-		center.x += pos.x;
-		center.y += pos.y;
-	}
-	center.x /= coordinates.size();
-	center.y /= coordinates.size();
+	ProjectedCoordinate center = coordinates[coordinates.size()/2].ToProjectedCoordinate();
 
 	m_ui->paintArea->setCenter( center );
 	m_ui->paintArea->setEdges( segmentLength, coordinates );
