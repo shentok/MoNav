@@ -108,7 +108,7 @@ bool ContractionHierarchiesClient::GetRoute( double* distance, QVector< Unsigned
 		}
 	}
 	*distance = computeRoute( source, target, path );
-	if ( *distance == std::numeric_limits< unsigned >::max() )
+	if ( *distance == std::numeric_limits< int >::max() )
 		return false;
 	*distance /= 10;
 	return true;
@@ -237,7 +237,7 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& source
 	}
 
 	if ( targetDistance == std::numeric_limits< int >::max() )
-		return std::numeric_limits< unsigned >::max();
+		return std::numeric_limits< int >::max();
 
 	Node pathNode = middle;
 	Node source1 = source.target;
