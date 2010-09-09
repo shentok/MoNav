@@ -591,16 +591,19 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< UnsignedCoord
 				GPSCoordinate toCoordinate = nodeCoordinates[to].ToGPSCoordinate();
 				double distance = fromCoordinate.Distance( toCoordinate );
 
-				double tempSpeed;
+				double segmentSpeed = speed;
 				if ( m_settings.defaultCitySpeed && ( nodeLocation[from].isInPlace || nodeLocation[to].isInPlace ) ) {
-					m_statistics.numberOfDefaultCitySpeed++;
-					tempSpeed = std::min( m_settings.speedProfile.speedInCity[type], speed );
-				} else {
-					tempSpeed = std::min( m_settings.speedProfile.speed[type], speed );
+					if ( segmentSpeed == std::numeric_limits< double >::max() ) {
+						segmentSpeed = m_settings.speedProfile.speedInCity[type];
+						m_statistics.numberOfDefaultCitySpeed++;
+					}
 				}
-				tempSpeed *= m_settings.speedProfile.averagePercentage[type] / 100.0;
 
-				seconds += distance * 3.6 / tempSpeed;
+				segmentSpeed = std::min( m_settings.speedProfile.speed[type], segmentSpeed );
+
+				segmentSpeed *= m_settings.speedProfile.averagePercentage[type] / 100.0;
+
+				seconds += distance * 3.6 / segmentSpeed;
 
 				if ( std::binary_search( m_signalNodes.begin(), m_signalNodes.end(), m_usedNodes[from] ) )
 					seconds += m_settings.trafficLightPenalty / 2.0;
