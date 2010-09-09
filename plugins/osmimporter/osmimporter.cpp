@@ -196,7 +196,9 @@ bool OSMImporter::readXML( const QString& inputFilename, const QString& filename
 				if ( node.trafficSignal )
 					m_signalNodes.push_back( node.id );
 
-				allNodesData << node.id << node.latitude << node.longitude;
+				GPSCoordinate gps( node.latitude, node.longitude );
+				UnsignedCoordinate coordinate( gps );
+				allNodesData << node.id << coordinate.x << coordinate.y;
 
 				if ( node.type != Place::None && node.name != NULL ) {
 					placesData << node.latitude << node.longitude << unsigned( node.type ) << node.population << QString::fromUtf8( ( const char* ) node.name );
@@ -323,9 +325,9 @@ bool OSMImporter::readXML( const QString& inputFilename, const QString& filename
 }
 
 bool OSMImporter::preprocessData( const QString& filename ) {
-	std::vector< GPSCoordinate > nodeCoordinates( m_usedNodes.size(), GPSCoordinate( -1, -1 ) );
-	std::vector< GPSCoordinate > outlineCoordinates( m_outlineNodes.size(), GPSCoordinate( -1, -1 ) );
-	std::vector< GPSCoordinate > routingCoordinates( m_routingNodes.size(), GPSCoordinate( -1, -1 ) );
+	std::vector< UnsignedCoordinate > nodeCoordinates( m_usedNodes.size() );
+	std::vector< UnsignedCoordinate > outlineCoordinates( m_outlineNodes.size() );
+	std::vector< UnsignedCoordinate > routingCoordinates( m_routingNodes.size() );
 
 	FileStream allNodesData( filename + "_all_nodes" );
 
@@ -341,30 +343,25 @@ bool OSMImporter::preprocessData( const QString& filename ) {
 
 	while ( true ) {
 		unsigned node;
-		GPSCoordinate gps;
-		allNodesData >> node >> gps.latitude >> gps.longitude;
+		UnsignedCoordinate coordinate;
+		allNodesData >> node >> coordinate.x >> coordinate.y;
 		if ( allNodesData.status() == QDataStream::ReadPastEnd )
 			break;
 		std::vector< NodeID >::const_iterator element = std::lower_bound( m_usedNodes.begin(), m_usedNodes.end(), node );
-		if ( element != m_usedNodes.end() && *element == node ) {
-			nodeCoordinates[element - m_usedNodes.begin()] = gps;
-		}
+		if ( element != m_usedNodes.end() && *element == node )
+			nodeCoordinates[element - m_usedNodes.begin()] = coordinate;
 		element = std::lower_bound( m_outlineNodes.begin(), m_outlineNodes.end(), node );
-		if ( element != m_outlineNodes.end() && *element == node ) {
-			outlineCoordinates[element - m_outlineNodes.begin()] = gps;
-		}
+		if ( element != m_outlineNodes.end() && *element == node )
+			outlineCoordinates[element - m_outlineNodes.begin()] = coordinate;
 		element = std::lower_bound( m_routingNodes.begin(), m_routingNodes.end(), node );
-		if ( element != m_routingNodes.end() && *element == node ) {
-			routingCoordinates[element - m_routingNodes.begin()] = gps;
-		}
+		if ( element != m_routingNodes.end() && *element == node )
+			routingCoordinates[element - m_routingNodes.begin()] = coordinate;
 	}
 
 	qDebug() << "OSM Importer: filtered node coordinates:" << time.restart() << "ms";
 
-	for ( std::vector< GPSCoordinate >::const_iterator i = routingCoordinates.begin(); i != routingCoordinates.end(); ++i ) {
-		UnsignedCoordinate coordinate( *i );
-		routingCoordinatesData << coordinate.x << coordinate.y;
-	}
+	for ( std::vector< UnsignedCoordinate >::const_iterator i = routingCoordinates.begin(); i != routingCoordinates.end(); ++i )
+		routingCoordinatesData << i->x << i->y;
 
 	qDebug() << "OSM Importer: wrote routing node coordinates:" << time.restart() << "ms";
 
@@ -372,7 +369,7 @@ bool OSMImporter::preprocessData( const QString& filename ) {
 
 	if ( !computeInCityFlags( filename, &nodeLocation, nodeCoordinates, outlineCoordinates ) )
 		return false;
-	std::vector< GPSCoordinate >().swap( outlineCoordinates );
+	std::vector< UnsignedCoordinate >().swap( outlineCoordinates );
 
 	if ( !remapEdges( filename, nodeCoordinates, nodeLocation ) )
 		return false;
@@ -380,7 +377,7 @@ bool OSMImporter::preprocessData( const QString& filename ) {
 	return true;
 }
 
-bool OSMImporter::computeInCityFlags( QString filename, std::vector< NodeLocation >* nodeLocation, const std::vector< GPSCoordinate >& nodeCoordinates, const std::vector< GPSCoordinate >& outlineCoordinates )
+bool OSMImporter::computeInCityFlags( QString filename, std::vector< NodeLocation >* nodeLocation, const std::vector< UnsignedCoordinate >& nodeCoordinates, const std::vector< UnsignedCoordinate >& outlineCoordinates )
 {
 	FileStream cityOutlinesData( filename + "_city_outlines" );
 	FileStream placesData( filename + "_places" );
@@ -405,12 +402,11 @@ bool OSMImporter::computeInCityFlags( QString filename, std::vector< NodeLocatio
 			unsigned node;
 			cityOutlinesData >> node;
 			NodeID mappedNode = std::lower_bound( m_outlineNodes.begin(), m_outlineNodes.end(), node ) - m_outlineNodes.begin();
-			UnsignedCoordinate coordinate( outlineCoordinates[mappedNode] );
-			if ( outlineCoordinates[mappedNode].latitude == -1 && outlineCoordinates[mappedNode].longitude == -1 ) {
+			if ( !outlineCoordinates[mappedNode].IsValid() ) {
 				qDebug( "OSM Importer: inconsistent OSM data: missing outline node coordinate %d", ( int ) mappedNode );
 				valid = false;
 			}
-			DoublePoint point( coordinate.x, coordinate.y );
+			DoublePoint point( outlineCoordinates[mappedNode].x, outlineCoordinates[mappedNode].y );
 			outline.way.push_back( point );
 		}
 		if ( valid )
@@ -439,24 +435,24 @@ bool OSMImporter::computeInCityFlags( QString filename, std::vector< NodeLocatio
 	typedef GPSTree::InputPoint InputPoint;
 	std::vector< InputPoint > kdPoints;
 	kdPoints.reserve( m_usedNodes.size() );
-	for ( std::vector< GPSCoordinate >::const_iterator node = nodeCoordinates.begin(), endNode = nodeCoordinates.end(); node != endNode; ++node ) {
+	for ( std::vector< UnsignedCoordinate >::const_iterator node = nodeCoordinates.begin(), endNode = nodeCoordinates.end(); node != endNode; ++node ) {
 		InputPoint point;
 		point.data = node - nodeCoordinates.begin();
-		point.coordinates[0] = node->latitude;
-		point.coordinates[1] = node->longitude;
+		point.coordinates[0] = node->x;
+		point.coordinates[1] = node->y;
 		kdPoints.push_back( point );
 		nodeLocation->at( point.data ).isInPlace = false;
 		nodeLocation->at( point.data ).distance = std::numeric_limits< double >::max();
 	}
 	GPSTree kdTree( kdPoints );
-	std::vector< InputPoint >().swap( kdPoints );
 
 	qDebug() << "OSM Importer: build kd-tree:" << time.restart() << "ms";
 
 	for ( std::vector< Location >::const_iterator place = places.begin(), endPlace = places.end(); place != endPlace; ++place ) {
 		InputPoint point;
-		point.coordinates[0] = place->coordinate.latitude;
-		point.coordinates[1] = place->coordinate.longitude;
+		UnsignedCoordinate placeCoordinate( place->coordinate );
+		point.coordinates[0] = placeCoordinate.x;
+		point.coordinates[1] = placeCoordinate.y;
 		std::vector< InputPoint > result;
 
 		const Outline* placeOutline = NULL;
@@ -469,9 +465,7 @@ bool OSMImporter::computeInCityFlags( QString filename, std::vector< NodeLocatio
 			if ( pointInPolygon( outline->way.size(), &outline->way[0], cityPoint ) ) {
 				placeOutline = &( *outline );
 				for ( std::vector< DoublePoint >::const_iterator way = outline->way.begin(), wayEnd = outline->way.end(); way != wayEnd; ++way ) {
-					UnsignedCoordinate coordinate;
-					coordinate.x = way->x;
-					coordinate.y = way->y;
+					UnsignedCoordinate coordinate( way->x, way->y );
 					double distance = coordinate.ToGPSCoordinate().ApproximateDistance( place->coordinate );
 					radius = std::max( radius, distance );
 				}
@@ -482,10 +476,7 @@ bool OSMImporter::computeInCityFlags( QString filename, std::vector< NodeLocatio
 		if ( placeOutline != NULL ) {
 			kdTree.NearNeighbors( &result, point, radius );
 			for ( std::vector< InputPoint >::const_iterator i = result.begin(), e = result.end(); i != e; ++i ) {
-				GPSCoordinate gps;
-				gps.latitude = i->coordinates[0];
-				gps.longitude = i->coordinates[1];
-				UnsignedCoordinate coordinate = UnsignedCoordinate( gps );
+				UnsignedCoordinate coordinate( i->coordinates[0], i->coordinates[1] );
 				DoublePoint nodePoint;
 				nodePoint.x = coordinate.x;
 				nodePoint.y = coordinate.y;
@@ -516,10 +507,8 @@ bool OSMImporter::computeInCityFlags( QString filename, std::vector< NodeLocatio
 			}
 
 			for ( std::vector< InputPoint >::const_iterator i = result.begin(), e = result.end(); i != e; ++i ) {
-				GPSCoordinate gps;
-				gps.latitude = i->coordinates[0];
-				gps.longitude = i->coordinates[1];
-				double distance =  gps.ApproximateDistance( place->coordinate );
+				UnsignedCoordinate coordinate( i->coordinates[0], i->coordinates[1] );
+				double distance =  coordinate.ToGPSCoordinate().ApproximateDistance( place->coordinate );
 				if ( distance >= nodeLocation->at( i->data ).distance )
 					continue;
 				nodeLocation->at( i->data ).isInPlace = true;
@@ -534,7 +523,7 @@ bool OSMImporter::computeInCityFlags( QString filename, std::vector< NodeLocatio
 	return true;
 }
 
-bool OSMImporter::remapEdges( QString filename, const std::vector< GPSCoordinate >& nodeCoordinates, const std::vector< NodeLocation >& nodeLocation )
+bool OSMImporter::remapEdges( QString filename, const std::vector< UnsignedCoordinate >& nodeCoordinates, const std::vector< NodeLocation >& nodeLocation )
 {
 	FileStream edgesData( filename + "_edges" );
 
@@ -579,7 +568,7 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< GPSCoordinate
 				continue;
 
 			NodeID mappedNode = std::lower_bound( m_usedNodes.begin(), m_usedNodes.end(), node ) - m_usedNodes.begin();
-			if ( nodeCoordinates[mappedNode].latitude == -1 && nodeCoordinates[mappedNode].longitude == -1 ) {
+			if ( !nodeCoordinates[mappedNode].IsValid() ) {
 				qDebug() << "OSM Importer: inconsistent OSM data: skipping way with missing node coordinate";
 				valid = false;
 			}
@@ -598,8 +587,8 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< GPSCoordinate
 			while ( true ) {
 				NodeID from = way[nextRoutingNode - 1];
 				NodeID to = way[nextRoutingNode];
-				GPSCoordinate fromCoordinate = nodeCoordinates[from];
-				GPSCoordinate toCoordinate = nodeCoordinates[to];
+				GPSCoordinate fromCoordinate = nodeCoordinates[from].ToGPSCoordinate();
+				GPSCoordinate toCoordinate = nodeCoordinates[to].ToGPSCoordinate();
 				double distance = fromCoordinate.Distance( toCoordinate );
 
 				double tempSpeed;
@@ -622,8 +611,7 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< GPSCoordinate
 				if ( target < m_routingNodes.size() && m_routingNodes[target] == m_usedNodes[to] )
 					break;
 
-				UnsignedCoordinate coordinate( nodeCoordinates[to] );
-				edgePathsData << coordinate.x << coordinate.y;
+				edgePathsData << nodeCoordinates[to].x << nodeCoordinates[to].y;
 
 				nextRoutingNode++;
 			}

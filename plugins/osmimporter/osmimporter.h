@@ -121,15 +121,15 @@ protected:
 
 	class GPSMetric {
 	public:
-		double operator() ( const double left[2], const double right[2] ) {
-			GPSCoordinate leftGPS( left[0], left[1] );
-			GPSCoordinate rightGPS( right[0], right[1] );
-			double result = leftGPS.ApproximateDistance( rightGPS );
+		double operator() ( const unsigned left[2], const unsigned right[2] ) {
+			UnsignedCoordinate leftGPS( left[0], left[1] );
+			UnsignedCoordinate rightGPS( right[0], right[1] );
+			double result = leftGPS.ToGPSCoordinate().ApproximateDistance( rightGPS.ToGPSCoordinate() );
 			return result * result;
 		}
 
-		double operator() ( const KDTree::BoundingBox< 2, double > &box, const double point[2] ) {
-			double nearest[2];
+		double operator() ( const KDTree::BoundingBox< 2, unsigned > &box, const unsigned point[2] ) {
+			unsigned nearest[2];
 			for ( unsigned dim = 0; dim < 2; ++dim ) {
 				if ( point[dim] < box.min[dim] )
 					nearest[dim] = box.min[dim];
@@ -141,8 +141,8 @@ protected:
 			return operator() ( point, nearest );
 		}
 
-		bool operator() ( const KDTree::BoundingBox< 2, double > &box, const double point[2], const double radiusSquared ) {
-			double farthest[2];
+		bool operator() ( const KDTree::BoundingBox< 2, unsigned > &box, const unsigned point[2], const double radiusSquared ) {
+			unsigned farthest[2];
 			for ( unsigned dim = 0; dim < 2; ++dim ) {
 				if ( point[dim] < ( box.min[dim] + box.max[dim] ) / 2 )
 					farthest[dim] = box.max[dim];
@@ -153,12 +153,12 @@ protected:
 		}
 	};
 
-	typedef KDTree::StaticKDTree< 2, double, unsigned, GPSMetric > GPSTree;
+	typedef KDTree::StaticKDTree< 2, unsigned, unsigned, GPSMetric > GPSTree;
 
 	bool readXML( const QString& inputFilename, const QString& filename );
 	bool preprocessData( const QString& filename );
-	bool computeInCityFlags( QString filename, std::vector< NodeLocation >* nodeLocation, const std::vector< GPSCoordinate >& nodeCoordinates, const std::vector< GPSCoordinate >& outlineCoordinates );
-	bool remapEdges( QString filename, const std::vector< GPSCoordinate >& nodeCoordinates, const std::vector< NodeLocation >& nodeLocation );
+	bool computeInCityFlags( QString filename, std::vector< NodeLocation >* nodeLocation, const std::vector< UnsignedCoordinate >& nodeCoordinates, const std::vector< UnsignedCoordinate >& outlineCoordinates );
+	bool remapEdges( QString filename, const std::vector< UnsignedCoordinate >& nodeCoordinates, const std::vector< NodeLocation >& nodeLocation );
 	Way readXMLWay( xmlTextReaderPtr& inputReader );
 	Node readXMLNode( xmlTextReaderPtr& inputReader );
 	Place::Type parsePlaceType( const xmlChar* type );

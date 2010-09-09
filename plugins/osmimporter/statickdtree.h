@@ -102,13 +102,12 @@ class StaticKDTree {
 			}
 		};
 
-		StaticKDTree( const std::vector< InputPoint >& points ){
+		StaticKDTree( std::vector< InputPoint >& points ){
 			assert( k > 0 );
 			assert ( points.size() > 0 );
 			size = points.size();
-			kdtree = new InputPoint[size];
+			kdtree.swap( points );
 			for ( Iterator i = 0; i != size; ++i ) {
-				kdtree[i] = points[i];
 				for ( unsigned dim = 0; dim < k; ++dim ) {
 					if ( kdtree[i].coordinates[dim] < boundingBox.min[dim] )
 						boundingBox.min[dim] = kdtree[i].coordinates[dim];
@@ -126,14 +125,13 @@ class StaticKDTree {
 					continue;
 					
 				Iterator middle = tree.left + ( tree.right - tree.left ) / 2;
-				std::nth_element( kdtree + tree.left, kdtree + middle, kdtree + tree.right, Less( tree.dimension ) );
+				std::nth_element( kdtree.begin() + tree.left, kdtree.begin() + middle, kdtree.begin() + tree.right, Less( tree.dimension ) );
 				s.push( Tree( tree.left, middle, ( tree.dimension + 1 ) % k ) );
 				s.push( Tree( middle + 1, tree.right, ( tree.dimension + 1 ) % k ) );
 			}
 		}
 		
 		~StaticKDTree(){
-			delete[] kdtree;
 		}
 		
 		bool Find ( const InputPoint& point ){
@@ -313,7 +311,7 @@ class StaticKDTree {
 		};
 
 		BoundingBox< k, T > boundingBox;
-		InputPoint* kdtree;
+		std::vector< InputPoint > kdtree;
 		Iterator size;
 };
 
