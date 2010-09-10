@@ -280,15 +280,14 @@ void UnicodeTournamentTrie::insert( std::vector< utt::Node >* trie, unsigned imp
 		bool found = false;
 		for ( int c = 0; c < ( int ) trie->at( node ).labelList.size(); c++ ) {
 			utt::Label& label = (*trie)[node].labelList[c];
-			if ( label.string[0] == lowerName[position] )
-			{
+			if ( label.string[0] == lowerName[position] ) {
 				int diffPos = 0;
-				for ( ; diffPos < label.string.length(); diffPos++ )
+				int minLength = std::min( label.string.length(), lowerName.length() - position );
+				for ( ; diffPos < minLength; diffPos++ )
 					if ( label.string[diffPos] != lowerName[position + diffPos] )
 						break;
 
-				if ( diffPos != label.string.length() )
-				{
+				if ( diffPos != label.string.length() ) {
 					utt::Label newEdge;
 					newEdge.importance = label.importance;
 					newEdge.index = label.index;
@@ -303,9 +302,7 @@ void UnicodeTournamentTrie::insert( std::vector< utt::Node >* trie, unsigned imp
 
 					trie->push_back( utt::Node() ); //invalidates label reference!!!
 					trie->back().labelList.push_back( newEdge );
-				}
-				else
-				{
+				} else {
 					node = label.index;
 					if ( label.importance < importance )
 						label.importance = importance;
