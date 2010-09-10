@@ -314,6 +314,9 @@ void UnicodeTournamentTrie::insert( std::vector< utt::Node >* trie, unsigned imp
 			}
 		}
 
+		if ( position == lowerName.length() )
+			found = true;
+
 		if ( !found ) {
 			utt::Label label;
 			label.string = lowerName.mid( position );
