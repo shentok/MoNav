@@ -1,5 +1,5 @@
 [General]
-name=Bycicle
+name=Bicycle
 trafficLightPenalty=5
 defaultCitySpeed=false
 ignoreOneway=false
