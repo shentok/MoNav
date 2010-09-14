@@ -72,19 +72,28 @@ bool OSMImporter::Preprocess()
 {
 	if ( m_settingsDialog == NULL )
 		m_settingsDialog = new OISettingsDialog();
+
 	if ( !m_settingsDialog->getSettings( &m_settings ) )
 		return false;
+
 	if ( m_settings.speedProfile.names.size() == 0 ) {
 		qCritical( "no speed profile specified" );
 		return false;
 	}
+
+	QString filename = fileInDirectory( m_outputDirectory, "OSM Importer" );
+	FileStream typeData( filename + "_way_types" );
+	if ( !typeData.open( QIODevice::WriteOnly ) )
+		return false;
+
+	for ( int type = 0; type < m_settings.speedProfile.names.size(); type++ )
+		typeData << m_settings.speedProfile.names[type];
 
 	std::vector< unsigned >().swap( m_usedNodes );
 	std::vector< unsigned >().swap( m_outlineNodes );
 	std::vector< unsigned >().swap( m_signalNodes );
 	std::vector< unsigned >().swap( m_routingNodes );
 	m_wayNames.clear();
-	QString filename = fileInDirectory( m_outputDirectory, "OSM Importer" );
 
 	m_statistics = Statistics();
 
@@ -1040,6 +1049,23 @@ bool OSMImporter::GetRoutingWayNames( std::vector< QString >* data )
 		if ( wayNamesData.status() == QDataStream::ReadPastEnd )
 			break;
 		data->push_back( name );
+	}
+	return true;
+}
+
+bool OSMImporter::GetRoutingWayTypes( std::vector< QString >* data )
+{
+	FileStream wayTypesData( fileInDirectory( m_outputDirectory, "OSM Importer" ) + "_way_types" );
+
+	if ( !wayTypesData.open( QIODevice::ReadOnly ) )
+		return false;
+
+	while ( true ) {
+		QString type;
+		wayTypesData >> type;
+		if ( wayTypesData.status() == QDataStream::ReadPastEnd )
+			break;
+		data->push_back( type );
 	}
 	return true;
 }

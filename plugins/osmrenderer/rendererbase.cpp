@@ -222,7 +222,7 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 	if ( request.route.size() > 0 ) {
 		QVector< ProjectedCoordinate > line;
 		for ( int i = 0; i < request.route.size(); i++ ){
-			ProjectedCoordinate pos = request.route[i].ToProjectedCoordinate();
+			ProjectedCoordinate pos = request.route[i].coordinate.ToProjectedCoordinate();
 			line.push_back( ProjectedCoordinate( ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor ) );
 		}
 		drawPolyline( painter, boundingBox, line, QColor( 0, 0, 128, 128 ) );

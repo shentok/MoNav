@@ -21,7 +21,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "contractionhierarchiesclient.h"
-#include <QDir>
+#include "utils/qthelpers.h"
 #include <QtDebug>
 #include <stack>
 #ifndef NOGUI
@@ -30,8 +30,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 ContractionHierarchiesClient::ContractionHierarchiesClient()
 {
-	heapForward = NULL;
-	heapBackward = NULL;
+	m_heapForward = NULL;
+	m_heapBackward = NULL;
 }
 
 ContractionHierarchiesClient::~ContractionHierarchiesClient()
@@ -47,7 +47,7 @@ QString ContractionHierarchiesClient::GetName()
 
 void ContractionHierarchiesClient::SetInputDirectory( const QString& dir )
 {
-	directory = dir;
+	m_directory = dir;
 }
 
 void ContractionHierarchiesClient::ShowSettings()
@@ -59,65 +59,120 @@ void ContractionHierarchiesClient::ShowSettings()
 
 void ContractionHierarchiesClient::unload()
 {
-	if ( heapForward != NULL )
-		delete heapForward;
-	heapForward = NULL;
-	if ( heapBackward != NULL )
-		delete heapBackward;
-	heapBackward = NULL;
+	if ( m_heapForward != NULL )
+		delete m_heapForward;
+	m_heapForward = NULL;
+	if ( m_heapBackward != NULL )
+		delete m_heapBackward;
+	m_heapBackward = NULL;
+	m_types.clear();
 }
 
 bool ContractionHierarchiesClient::LoadData()
 {
+	QString filename = fileInDirectory( m_directory,"Contraction Hierarchies" );
 	unload();
-	QDir dir( directory );
-	QString filename = dir.filePath( "Contraction Hierarchies" );
-	if ( !graph.loadGraph( filename, 1024 * 1024 * 4 ) )
+
+	if ( !m_graph.loadGraph( filename, 1024 * 1024 * 4 ) )
 		return false;
-	heapForward = new _Heap( graph.numberOfNodes() );
-	heapBackward = new _Heap( graph.numberOfNodes() );
+
+	m_namesFile.setFileName( filename + "_names" );
+	if ( !openQFile( &m_namesFile, QIODevice::ReadOnly ) )
+		return false;
+	m_names = ( const char* ) m_namesFile.map( 0, m_namesFile.size() );
+	if ( m_names == NULL )
+		return false;
+	m_namesFile.close();
+
+	m_heapForward = new Heap( m_graph.numberOfNodes() );
+	m_heapBackward = new Heap( m_graph.numberOfNodes() );
+
+	QFile typeFile( filename + "_types" );
+	if ( !openQFile( &typeFile, QIODevice::ReadOnly ) )
+		return false;
+
+	QByteArray buffer = typeFile.readAll();
+	QString types = QString::fromUtf8( buffer.constData() );
+	m_types = types.split( ';' );
+
 	return true;
 }
 
-bool ContractionHierarchiesClient::GetRoute( double* distance, QVector< UnsignedCoordinate>* path, const IGPSLookup::Result& source, const IGPSLookup::Result& target )
+bool ContractionHierarchiesClient::GetRoute( double* distance, QVector< Node>* pathNodes, QVector< Edge >* pathEdges, const IGPSLookup::Result& source, const IGPSLookup::Result& target )
 {
-	heapForward->Clear();
-	heapBackward->Clear();
+	m_heapForward->Clear();
+	m_heapBackward->Clear();
+
+	*distance = computeRoute( source, target, pathNodes, pathEdges );
+	if ( *distance == std::numeric_limits< int >::max() )
+		return false;
+
+	// is it shorter to drive along the edge?
 	if ( target.source == source.source && target.target == source.target && source.edgeID == target.edgeID ) {
-		EdgeIterator targetEdge = graph.findEdge( target.source, target.target, target.edgeID );
-		// is it shorter to drive around the loop?
-		bool loopAround = targetEdge.forward() && targetEdge.backward() && target.source == target.target && fabs( target.percentage - source.percentage ) > 0.5;
-		if ( !loopAround ) {
+		EdgeIterator targetEdge = m_graph.findEdge( target.source, target.target, target.edgeID );
+		double onEdgeDistance = fabs( target.percentage - source.percentage ) * targetEdge.distance();
+		if ( onEdgeDistance < *distance ) {
 			if ( ( targetEdge.forward() && targetEdge.backward() ) || source.percentage < target.percentage ) {
-				path->push_back( source.nearestPoint );
+				pathNodes->clear();
+				pathEdges->clear();
+				pathNodes->push_back( source.nearestPoint );
+
+				QVector< Node > tempNodes;
+				if ( targetEdge.unpacked() )
+					m_graph.path( targetEdge, &tempNodes, pathEdges, target.target == targetEdge.target() );
 
 				if ( target.previousWayCoordinates < source.previousWayCoordinates ) {
-					unsigned begin = path->size();
-					for ( unsigned pathID = target.previousWayCoordinates + 1; pathID <= source.previousWayCoordinates; pathID++ )
-						path->push_back( source.coordinates[pathID] );
-					std::reverse( path->begin() + begin, path->end() );
+					for ( unsigned pathID = target.previousWayCoordinates; pathID < source.previousWayCoordinates; pathID++ )
+						pathNodes->push_back( tempNodes[pathID - 1] );
+					std::reverse( pathNodes->begin() + 1, pathNodes->end() );
 				} else {
-					for ( unsigned pathID = source.previousWayCoordinates + 1; pathID <= target.previousWayCoordinates; pathID++ )
-						path->push_back( source.coordinates[pathID] );
+					for ( unsigned pathID = source.previousWayCoordinates; pathID < target.previousWayCoordinates; pathID++ )
+						pathNodes->push_back( tempNodes[pathID - 1] );
 				}
 
-				path->push_back( target.nearestPoint );
-				*distance = fabs( target.percentage - source.percentage ) * targetEdge.distance() / 10;
-				return true;
+				pathNodes->push_back( target.nearestPoint );
+				pathEdges->front().length = pathNodes->size() - 1;
+				*distance = onEdgeDistance;
 			}
 		}
 	}
-	*distance = computeRoute( source, target, path );
-	if ( *distance == std::numeric_limits< int >::max() )
-		return false;
+
 	*distance /= 10;
 	return true;
 }
 
-template< class EdgeAllowed, class StallEdgeAllowed >
-void ContractionHierarchiesClient::computeStep( _Heap* heapForward, _Heap* heapBackward, const EdgeAllowed& edgeAllowed, const StallEdgeAllowed& stallEdgeAllowed, Node* middle, int* targetDistance ) {
+bool ContractionHierarchiesClient::GetName( QString* result, unsigned name )
+{
+	*result =  QString::fromUtf8( m_names + name );
+	return true;
+}
 
-	const Node node = heapForward->DeleteMin();
+bool ContractionHierarchiesClient::GetNames( QVector< QString >* result, QVector< unsigned > names )
+{
+	result->resize( names.size() );
+	for ( int i = 0; i < names.size(); i++ )
+		( *result )[i] = QString::fromUtf8( m_names + names[i] );
+	return true;
+}
+
+bool ContractionHierarchiesClient::GetType( QString* result, unsigned type )
+{
+	*result = m_types[type];
+	return true;
+}
+
+bool ContractionHierarchiesClient::GetTypes( QVector< QString >* result, QVector< unsigned > types )
+{
+	result->resize( types.size() );
+	for ( int i = 0; i < types.size(); i++ )
+		( *result )[i] = m_types[types[i]];
+	return true;
+}
+
+template< class EdgeAllowed, class StallEdgeAllowed >
+void ContractionHierarchiesClient::computeStep( Heap* heapForward, Heap* heapBackward, const EdgeAllowed& edgeAllowed, const StallEdgeAllowed& stallEdgeAllowed, NodeIterator* middle, int* targetDistance ) {
+
+	const NodeIterator node = heapForward->DeleteMin();
 	const int distance = heapForward->GetKey( node );
 
 	if ( heapForward->GetData( node ).stalled )
@@ -135,9 +190,9 @@ void ContractionHierarchiesClient::computeStep( _Heap* heapForward, _Heap* heapB
 		heapForward->DeleteAll();
 		return;
 	}
-	for ( EdgeIterator edge = graph.edges( node ); edge.hasEdgesLeft(); ) {
-		graph.unpackNextEdge( &edge );
-		const Node to = edge.target();
+	for ( EdgeIterator edge = m_graph.edges( node ); edge.hasEdgesLeft(); ) {
+		m_graph.unpackNextEdge( &edge );
+		const NodeIterator to = edge.target();
 		const int edgeWeight = edge.distance();
 		assert( edgeWeight > 0 );
 		const int toDistance = distance + edgeWeight;
@@ -150,21 +205,21 @@ void ContractionHierarchiesClient::computeStep( _Heap* heapForward, _Heap* heapB
 				//insert node into the stall queue
 				heapForward->GetKey( node ) = shorterDistance;
 				heapForward->GetData( node ).stalled = true;
-				stallQueue.push( node );
+				m_stallQueue.push( node );
 
-				while ( !stallQueue.empty() ) {
+				while ( !m_stallQueue.empty() ) {
 					//get node from the queue
-					const Node stallNode = stallQueue.front();
-					stallQueue.pop();
+					const NodeIterator stallNode = m_stallQueue.front();
+					m_stallQueue.pop();
 					const int stallDistance = heapForward->GetKey( stallNode );
 
 					//iterate over outgoing edges
-					for ( EdgeIterator stallEdge = graph.edges( stallNode ); stallEdge.hasEdgesLeft(); ) {
-						graph.unpackNextEdge( &stallEdge );
+					for ( EdgeIterator stallEdge = m_graph.edges( stallNode ); stallEdge.hasEdgesLeft(); ) {
+						m_graph.unpackNextEdge( &stallEdge );
 						//is edge outgoing/reached/stalled?
 						if ( !edgeAllowed( stallEdge.forward(), stallEdge.backward() ) )
 							continue;
-						const Node stallTo = stallEdge.target();
+						const NodeIterator stallTo = stallEdge.target();
 						if ( !heapForward->WasInserted( stallTo ) )
 							continue;
 						if ( heapForward->GetData( stallTo ).stalled == true )
@@ -178,7 +233,7 @@ void ContractionHierarchiesClient::computeStep( _Heap* heapForward, _Heap* heapB
 							else
 								heapForward->DecreaseKey( stallTo, stallToDistance );
 
-							stallQueue.push( stallTo );
+							m_stallQueue.push( stallTo );
 							heapForward->GetData( stallTo ).stalled = true;
 						}
 					}
@@ -203,114 +258,110 @@ void ContractionHierarchiesClient::computeStep( _Heap* heapForward, _Heap* heapB
 	}
 }
 
-int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& source, const IGPSLookup::Result& target, QVector< UnsignedCoordinate >* path ) {
-	EdgeIterator sourceEdge = graph.findEdge( source.source, source.target, source.edgeID );
+int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& source, const IGPSLookup::Result& target, QVector< Node>* pathNodes, QVector< Edge >* pathEdges ) {
+	EdgeIterator sourceEdge = m_graph.findEdge( source.source, source.target, source.edgeID );
 	unsigned sourceWeight = sourceEdge.distance();
-	EdgeIterator targetEdge = graph.findEdge( target.source, target.target, target.edgeID );
+	EdgeIterator targetEdge = m_graph.findEdge( target.source, target.target, target.edgeID );
 	unsigned targetWeight = targetEdge.distance();
 
 	//insert source into heap
-	heapForward->Insert( source.target, sourceWeight - sourceWeight * source.percentage, source.target );
+	m_heapForward->Insert( source.target, sourceWeight - sourceWeight * source.percentage, source.target );
 	if ( sourceEdge.backward() && sourceEdge.forward() && source.target != source.source )
-		heapForward->Insert( source.source, sourceWeight * source.percentage, source.source );
+		m_heapForward->Insert( source.source, sourceWeight * source.percentage, source.source );
 
 	//insert target into heap
-	heapBackward->Insert( target.source, targetWeight * target.percentage, target.source );
+	m_heapBackward->Insert( target.source, targetWeight * target.percentage, target.source );
 	if ( targetEdge.backward() && targetEdge.forward() && target.target != target.source )
-		heapBackward->Insert( target.target, targetWeight - targetWeight * target.percentage, target.target );
+		m_heapBackward->Insert( target.target, targetWeight - targetWeight * target.percentage, target.target );
 
 	int targetDistance = std::numeric_limits< int >::max();
-	Node middle = ( Node ) 0;
+	NodeIterator middle = ( NodeIterator ) 0;
 	AllowForwardEdge forward;
 	AllowBackwardEdge backward;
 
-	while ( heapForward->Size() + heapBackward->Size() > 0 ) {
+	while ( m_heapForward->Size() + m_heapBackward->Size() > 0 ) {
 
-		if ( heapForward->Size() > 0 ) {
-			computeStep( heapForward, heapBackward, forward, backward, &middle, &targetDistance );
-		}
+		if ( m_heapForward->Size() > 0 )
+			computeStep( m_heapForward, m_heapBackward, forward, backward, &middle, &targetDistance );
 
-		if ( heapBackward->Size() > 0 ) {
-			computeStep( heapBackward, heapForward, backward, forward, &middle, &targetDistance );
-		}
+		if ( m_heapBackward->Size() > 0 )
+			computeStep( m_heapBackward, m_heapForward, backward, forward, &middle, &targetDistance );
 
 	}
 
 	if ( targetDistance == std::numeric_limits< int >::max() )
 		return std::numeric_limits< int >::max();
 
-	Node pathNode = middle;
-	Node source1 = source.target;
-	Node source2 = source.target;
-	if ( sourceEdge.forward() && sourceEdge.forward() )
-		source2 = source.source;
-
-	std::stack< Node > stack;
-
-	while ( pathNode != source1 && pathNode != source2 ) {
-		Node parent = heapForward->GetData( pathNode ).parent;
+	std::stack< NodeIterator > stack;
+	NodeIterator pathNode = middle;
+	while ( true ) {
+		NodeIterator parent = m_heapForward->GetData( pathNode ).parent;
 		stack.push( pathNode );
+		if ( parent == pathNode )
+			break;
 		pathNode = parent;
 	}
 
-	path->push_back( source.nearestPoint );
-	bool reverseSourceDescription = pathNode != source1;
+	pathNodes->push_back( source.nearestPoint );
+	bool reverseSourceDescription = pathNode != source.target;
 	if ( source.source == source.target && sourceEdge.backward() && sourceEdge.forward() && source.percentage < 0.5 )
-		reverseSourceDescription = true;
-	unsigned begin = path->size();
-	if ( !reverseSourceDescription ) {
-		for ( int pathID = source.previousWayCoordinates + 1; pathID < source.coordinates.size() - 1; pathID++ )
-			path->push_back( source.coordinates[pathID] );
+		reverseSourceDescription = !reverseSourceDescription;
+	if ( sourceEdge.unpacked() ) {
+		bool unpackSourceForward = source.target != sourceEdge.target() ? reverseSourceDescription : !reverseSourceDescription;
+		m_graph.path( sourceEdge, pathNodes, pathEdges, unpackSourceForward );
+		if ( reverseSourceDescription ) {
+			pathNodes->remove( 1, pathNodes->size() - 1 - source.previousWayCoordinates );
+		} else {
+			pathNodes->remove( 1, source.previousWayCoordinates - 1 );
+		}
 	} else {
-		for ( int pathID = 1; pathID <= ( int ) source.previousWayCoordinates; pathID++ )
-			path->push_back( source.coordinates[pathID] );
-		std::reverse( path->begin() + begin, path->end() );
+		pathNodes->push_back( m_graph.node( pathNode ) );
+		pathEdges->push_back( sourceEdge.description() );
 	}
-
-	stack.push( pathNode );
-	path->push_back( graph.node( pathNode ).coordinate );
+	pathEdges->front().length = pathNodes->size() - 1;
 
 	while ( stack.size() > 1 ) {
-		const Node node = stack.top();
+		const NodeIterator node = stack.top();
 		stack.pop();
-		unpackEdge( node, stack.top(), true, path );
+		unpackEdge( node, stack.top(), true, pathNodes, pathEdges );
 	}
 
 	pathNode = middle;
-	Node target1 = target.source;
-	Node target2 = target.source;
-	if ( targetEdge.forward() && targetEdge.backward() )
-		target2 = target.target;
-
-	while ( pathNode != target1 && pathNode != target2 ) {
-		Node parent = heapBackward->GetData( pathNode ).parent;
-		unpackEdge( parent, pathNode, false, path );
+	while ( true ) {
+		NodeIterator parent = m_heapBackward->GetData( pathNode ).parent;
+		if ( parent == pathNode )
+			break;
+		unpackEdge( parent, pathNode, false, pathNodes, pathEdges );
 		pathNode = parent;
 	}
 
-	bool reverseTargetDescription = pathNode != target1;
+	int begin = pathNodes->size();
+	bool reverseTargetDescription = pathNode != target.source;
 	if ( target.source == target.target && targetEdge.backward() && targetEdge.forward() && target.percentage > 0.5 )
-		reverseTargetDescription = true;
-	begin = path->size();
-	if ( !reverseTargetDescription ) {
-		for ( int pathID = 1; pathID <= ( int ) target.previousWayCoordinates; pathID++ )
-			path->push_back( target.coordinates[pathID] );
+		reverseSourceDescription = !reverseSourceDescription;
+	if ( targetEdge.unpacked() ) {
+		bool unpackTargetForward = target.target != targetEdge.target() ? reverseTargetDescription : !reverseTargetDescription;
+		m_graph.path( targetEdge, pathNodes, pathEdges, unpackTargetForward );
+		if ( reverseTargetDescription ) {
+			pathNodes->resize( pathNodes->size() - target.previousWayCoordinates );
+		} else {
+			pathNodes->resize( begin + target.previousWayCoordinates - 1 );
+		}
 	} else {
-		for ( int pathID = target.previousWayCoordinates + 1; pathID < target.coordinates.size() - 1; pathID++ )
-			path->push_back( target.coordinates[pathID] );
-		std::reverse( path->begin() + begin, path->end() );
+		pathEdges->push_back( targetEdge.description() );
 	}
-	path->push_back( target.nearestPoint );
+	pathNodes->push_back( target.nearestPoint );
+	pathEdges->back().length = pathNodes->size() - begin;
 
 	return targetDistance;
 }
 
-bool ContractionHierarchiesClient::unpackEdge( const Node source, const Node target, bool forward, QVector< UnsignedCoordinate >* path ) {
+bool ContractionHierarchiesClient::unpackEdge( const NodeIterator source, const NodeIterator target, bool forward, QVector< Node >* pathNodes, QVector< Edge >* pathEdges ) {
 	EdgeIterator shortestEdge;
 
 	unsigned distance = std::numeric_limits< unsigned >::max();
-	for ( EdgeIterator edge = graph.edges( source ); edge.hasEdgesLeft(); ) {
-		graph.unpackNextEdge( &edge );
+	for ( EdgeIterator edge = m_graph.edges( source ); edge.hasEdgesLeft(); ) {
+		m_graph.unpackNextEdge( &edge );
 		if ( edge.target() != target )
 			continue;
 		if ( forward && !edge.forward() )
@@ -324,27 +375,28 @@ bool ContractionHierarchiesClient::unpackEdge( const Node source, const Node tar
 	}
 
 	if ( shortestEdge.unpacked() ) {
-		graph.path( shortestEdge, path, forward );
+		m_graph.path( shortestEdge, pathNodes, pathEdges, forward );
 		return true;
 	}
 
 	if ( !shortestEdge.shortcut() ) {
+		pathEdges->push_back( shortestEdge.description() );
 		if ( forward )
-			path->push_back( graph.node( target ).coordinate );
+			pathNodes->push_back( m_graph.node( target ).coordinate );
 		else
-			path->push_back( graph.node( source ).coordinate );
+			pathNodes->push_back( m_graph.node( source ).coordinate );
 		return true;
 	}
 
-	const Node middle = shortestEdge.middle();
+	const NodeIterator middle = shortestEdge.middle();
 
 	if ( forward ) {
-		unpackEdge( middle, source, false, path );
-		unpackEdge( middle, target, true, path );
+		unpackEdge( middle, source, false, pathNodes, pathEdges );
+		unpackEdge( middle, target, true, pathNodes, pathEdges );
 		return true;
 	} else {
-		unpackEdge( middle, target, false, path );
-		unpackEdge( middle, source, true, path );
+		unpackEdge( middle, target, false, pathNodes, pathEdges );
+		unpackEdge( middle, source, true, pathNodes, pathEdges );
 		return true;
 	}
 }

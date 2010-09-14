@@ -69,7 +69,7 @@ public slots:
 	void gotoGPS();
 	void gotoTarget();
 	void gotoAddress();
-	void setRoute( QVector< UnsignedCoordinate > path );
+	void setRoute( QVector< IRouter::Node > pathNodes );
 	void addZoom();
 	void substractZoom();
 	void bookmarks();

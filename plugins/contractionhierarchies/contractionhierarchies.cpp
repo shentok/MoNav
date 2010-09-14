@@ -126,12 +126,12 @@ bool ContractionHierarchies::Preprocess( IImporter* importer )
 		importer->SetEdgeIDMap( edgeIDs );
 	}
 
-	std::vector< CompressedGraph::Node > nodes( numNodes );
+	std::vector< IRouter::Node > nodes( numNodes );
 	for ( std::vector< IImporter::RoutingNode >::const_iterator i = inputNodes.begin(), iend = inputNodes.end(); i != iend; i++ )
 		nodes[map[i - inputNodes.begin()]].coordinate = i->coordinate;
 	std::vector< IImporter::RoutingNode >().swap( inputNodes );
 
-	std::vector< CompressedGraph::Node > pathNodes;
+	std::vector< IRouter::Node > pathNodes;
 	{
 		std::vector< IImporter::RoutingNode > edgePaths;
 		if ( !importer->GetRoutingEdgePaths( &edgePaths ) )
@@ -143,6 +143,51 @@ bool ContractionHierarchies::Preprocess( IImporter* importer )
 
 	if ( !importer->GetRoutingEdges( &inputEdges ) )
 		return false;
+
+	{
+		std::vector< QString > inputNames;
+		if ( !importer->GetRoutingWayNames( &inputNames ) )
+			return false;
+
+		QFile nameFile( filename + "_names" );
+		if ( !openQFile( &nameFile, QIODevice::WriteOnly ) )
+			return false;
+
+		std::vector< unsigned > nameMap( inputNames.size() );
+		for ( unsigned name = 0; name < inputNames.size(); name++ ) {
+			nameMap[name] = nameFile.pos();
+			QByteArray buffer = inputNames[name].toUtf8();
+			buffer.push_back( ( char ) 0 );
+			nameFile.write( buffer );
+		}
+
+		nameFile.close();
+		nameFile.open( QIODevice::ReadOnly );
+		const char* test = ( const char* ) nameFile.map( 0, nameFile.size() );
+		for ( unsigned name = 0; name < inputNames.size(); name++ ) {
+			QString testName = QString::fromUtf8( test + nameMap[name] );
+			assert( testName == inputNames[name] );
+		}
+
+		for ( unsigned edge = 0; edge < numEdges; edge++ )
+			inputEdges[edge].nameID = nameMap[inputEdges[edge].nameID];
+	}
+
+	{
+		std::vector< QString > inputTypes;
+		if ( !importer->GetRoutingWayTypes( &inputTypes ) )
+			return false;
+
+		QFile typeFile( filename + "_types" );
+		if ( !openQFile( &typeFile, QIODevice::WriteOnly ) )
+			return false;
+
+		QStringList typeList;
+		for ( unsigned type = 0; type < inputTypes.size(); type++ )
+			typeList.push_back( inputTypes[type] );
+
+		typeFile.write( typeList.join( ";" ).toUtf8() );
+	}
 
 	for ( std::vector< IImporter::RoutingEdge >::iterator i = inputEdges.begin(), iend = inputEdges.end(); i != iend; i++ ) {
 		i->source = map[i->source];

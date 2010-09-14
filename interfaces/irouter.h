@@ -30,6 +30,29 @@ class IRouter
 {
 public:
 
+	struct Node {
+		Node(){}
+		Node( UnsignedCoordinate coord )
+		{
+			coordinate = coord;
+		}
+
+		UnsignedCoordinate coordinate;
+	};
+
+	struct Edge {
+		Edge(){}
+		Edge( unsigned n, unsigned char t, unsigned short l )
+		{
+			name = n;
+			type = t;
+			length = l;
+		}
+		unsigned name; // name ID of the edge
+		unsigned char type; // type ID of the edge
+		unsigned short length; // the amount of path nodes - 1 == amount of edges
+	};
+
 	virtual ~IRouter() {}
 
 	virtual QString GetName() = 0;
@@ -37,7 +60,15 @@ public:
 	virtual void ShowSettings() = 0;
 	virtual bool LoadData() = 0;
 	// computes the route between source and target and returns the distance in second
-	virtual bool GetRoute( double* distance, QVector< UnsignedCoordinate>* path, const IGPSLookup::Result& source, const IGPSLookup::Result& target ) = 0;
+	virtual bool GetRoute( double* distance, QVector< Node>* pathNodes, QVector< Edge >* pathEdges, const IGPSLookup::Result& source, const IGPSLookup::Result& target ) = 0;
+	// translate a name ID into the corresponding string
+	virtual bool GetName( QString* result, unsigned name ) = 0;
+	// translate a list of name IDs into the corresponding strings
+	virtual bool GetNames( QVector< QString >* result, QVector< unsigned > names ) = 0;
+	// translate a type ID into the corresponding description
+	virtual bool GetType( QString* result, unsigned type ) = 0;
+	// translate a list of type IDs into the corresponding descriptions
+	virtual bool GetTypes( QVector< QString >* result, QVector< unsigned > types ) = 0;
 };
 
 Q_DECLARE_INTERFACE( IRouter, "monav.IRouter/1.1" )

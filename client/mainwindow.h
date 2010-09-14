@@ -71,7 +71,7 @@ public slots:
 #endif
 
 signals:
-	void routeChanged( QVector< UnsignedCoordinate > path );
+	void routeChanged( QVector< IRouter::Node > path );
 	void sourceChanged( UnsignedCoordinate source, double heading );
 	void targetChanged( UnsignedCoordinate target );
 
@@ -100,7 +100,8 @@ protected:
 	// the current target
 	UnsignedCoordinate m_target;
 	// the last computed route
-	QVector< UnsignedCoordinate > m_path;
+	QVector< IRouter::Node > m_pathNodes;
+	QVector< IRouter::Edge > m_pathEdges;
 	// the result of the GPS lookup of source
 	IGPSLookup::Result m_sourcePos;
 	bool m_sourceSet;

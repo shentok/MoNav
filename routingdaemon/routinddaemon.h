@@ -70,7 +70,8 @@ public slots:
 		}
 
 		if ( m_loaded ) {
-			QVector< UnsignedCoordinate > path;
+			QVector< IRouter::Node > pathNodes;
+			QVector< IRouter::Edge > pathEdges;
 			double distance = 0;
 			bool success = true;
 			for ( int i = 1; i < command.waypoints.size(); i++ ) {
@@ -79,15 +80,16 @@ public slots:
 				double segmentDistance;
 				GPSCoordinate source( command.waypoints[i - 1].latitude, command.waypoints[i - 1].longitude );
 				GPSCoordinate target( command.waypoints[i].latitude, command.waypoints[i].longitude );
-				path.clear();
-				if ( !computeRoute( &segmentDistance, &path, source, target, command.lookupRadius ) ) {
+				pathNodes.clear();
+				pathEdges.clear();
+				if ( !computeRoute( &segmentDistance, &pathNodes, &pathEdges, source, target, command.lookupRadius ) ) {
 					success = false;
 					break;
 				}
 				distance += segmentDistance;
-				for ( int j = 0; j < path.size(); j++ ) {
+				for ( int j = 0; j < pathNodes.size(); j++ ) {
 					RoutingDaemonCoordinate coordinate;
-					GPSCoordinate gps = path[j].ToGPSCoordinate();
+					GPSCoordinate gps = pathNodes[j].coordinate.ToGPSCoordinate();
 					coordinate.latitude = gps.latitude;
 					coordinate.longitude = gps.longitude;
 					result.path.push_back( coordinate );
@@ -130,7 +132,7 @@ protected:
 		m_server->close();
 	}
 
-	bool computeRoute( double* resultDistance, QVector< UnsignedCoordinate >* resultPath, GPSCoordinate source, GPSCoordinate target, double lookupRadius )
+	bool computeRoute( double* resultDistance, QVector< IRouter::Node >* resultNodes, QVector< IRouter::Edge >* resultEdge, GPSCoordinate source, GPSCoordinate target, double lookupRadius )
 	{
 		if ( m_gpsLookup == NULL || m_router == NULL ) {
 			qCritical() << "tried to query route before setting valid data directory";
@@ -154,7 +156,7 @@ protected:
 			qDebug() << "no edge near target found";
 			return false;
 		}
-		found = m_router->GetRoute( resultDistance, resultPath, sourcePosition, targetPosition );
+		found = m_router->GetRoute( resultDistance, resultNodes, resultEdge, sourcePosition, targetPosition );
 		qDebug() << "Routing:" << time.restart() << "ms";
 		return found;
 	}

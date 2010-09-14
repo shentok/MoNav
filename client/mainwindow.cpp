@@ -279,8 +279,8 @@ void MainWindow::setSource( UnsignedCoordinate source, double heading )
 	qDebug() << "GPS Lookup:" << time.elapsed() << "ms";
 
 	if ( !m_sourceSet ) {
-		m_path.clear();
-		emit routeChanged( m_path );
+		m_pathNodes.clear();
+		emit routeChanged( m_pathNodes );
 		return;
 	}
 
@@ -302,8 +302,8 @@ void MainWindow::setTarget( UnsignedCoordinate target )
 	qDebug() << "GPS Lookup:" << time.elapsed() << "ms";
 
 	if ( !m_targetSet ) {
-		m_path.clear();
-		emit routeChanged( m_path );
+		m_pathNodes.clear();
+		emit routeChanged( m_pathNodes );
 		return;
 	}
 
@@ -316,17 +316,41 @@ void MainWindow::computeRoute()
 		return;
 
 	double distance;
-	m_path.clear();
+	m_pathNodes.clear();
+	m_pathEdges.clear();
 
 	Timer time;
-	bool found = m_router->GetRoute( &distance, &m_path, m_sourcePos, m_targetPos );
-	qDebug() << "Routing:" << time.elapsed() << "ms";
-	qDebug() << "Distance: " << distance << "; Path Segments: " << m_path.size();
+	bool found = m_router->GetRoute( &distance, &m_pathNodes, &m_pathEdges, m_sourcePos, m_targetPos );
+	qDebug() << "routing:" << time.elapsed() << "ms";
+	qDebug() << "distance: " << distance << "; nodes:" << m_pathNodes.size() << "; edges:" << m_pathEdges.size();
+	unsigned lastNameID = std::numeric_limits< unsigned >::max();
+	QString lastName;
+	unsigned lastTypeID = std::numeric_limits< unsigned >::max();
+	QString lastType;
+	int length = 0;
+	for ( int i = 0; i < m_pathEdges.size(); i++ ) {
+		length += m_pathEdges[i].length;
+		if ( lastNameID != m_pathEdges[i].name ) {
+			lastNameID = m_pathEdges[i].name;
+			bool nameAvailable = m_router->GetName( &lastName, lastNameID );
+			assert( nameAvailable );
+		}
+		if ( lastTypeID != m_pathEdges[i].type ) {
+			lastTypeID = m_pathEdges[i].type;
+			bool typeAvailable = m_router->GetType( &lastType, lastTypeID );
+			assert( typeAvailable );
+		}
 
-	if ( !found )
-		m_path.clear();
+		qDebug() << m_pathEdges[i].length << lastType << lastName;
+	}
+	assert( length == m_pathNodes.size() - 1 );
 
-	emit routeChanged( m_path );
+	if ( !found ) {
+		m_pathNodes.clear();
+		m_pathEdges.clear();
+	}
+
+	emit routeChanged( m_pathNodes );
 }
 
 void MainWindow::browseMap()
@@ -337,13 +361,13 @@ void MainWindow::browseMap()
 	window->setCenter( m_source.ToProjectedCoordinate() );
 	window->setSource( m_source, m_heading );
 	window->setTarget( m_target );
-	window->setRoute( m_path );
+	window->setRoute( m_pathNodes );
 	window->setMenu( MapView::ContextMenu );
 	window->setMode( MapView::Target );
 
 	connect( window, SIGNAL(sourceChanged(UnsignedCoordinate,double)), this, SLOT(setSource(UnsignedCoordinate,double)) );
 	connect( window, SIGNAL(targetChanged(UnsignedCoordinate)), this, SLOT(setTarget(UnsignedCoordinate)) );
-	connect( this, SIGNAL(routeChanged(QVector<UnsignedCoordinate>)), window, SLOT(setRoute(QVector<UnsignedCoordinate>)) );
+	connect( this, SIGNAL(routeChanged(QVector<IRouter::Node>)), window, SLOT(setRoute(QVector<IRouter::Node>)) );
 	connect( this, SIGNAL(sourceChanged(UnsignedCoordinate,double)), window, SLOT(setSource(UnsignedCoordinate,double)) );
 	connect( this, SIGNAL(targetChanged(UnsignedCoordinate)), window, SLOT(setTarget(UnsignedCoordinate)) );
 
@@ -376,10 +400,10 @@ void MainWindow::routeView()
 	window->setMode( MapView::None );
 	window->setSource( m_source, m_heading );
 	window->setTarget( m_target );
-	window->setRoute( m_path );
+	window->setRoute( m_pathNodes );
 	window->setMenu( MapView::RouteMenu );
 
-	connect( this, SIGNAL(routeChanged(QVector<UnsignedCoordinate>)), window, SLOT(setRoute(QVector<UnsignedCoordinate>)) );
+	connect( this, SIGNAL(routeChanged(QVector<IRouter::Node>)), window, SLOT(setRoute(QVector<IRouter::Node>)) );
 	connect( this, SIGNAL(sourceChanged(UnsignedCoordinate,double)), window, SLOT(setSource(UnsignedCoordinate,double)) );
 
 	window->exec();

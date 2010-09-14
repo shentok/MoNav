@@ -100,7 +100,7 @@ void PaintWidget::setPOI( UnsignedCoordinate p )
 		update();
 }
 
-void PaintWidget::setRoute( QVector< UnsignedCoordinate > r )
+void PaintWidget::setRoute( QVector< IRouter::Node > r )
 {
 	m_request.route = r;
 	if ( isVisible() )

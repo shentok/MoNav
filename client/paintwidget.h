@@ -44,7 +44,7 @@ public slots:
 	void setTarget( const UnsignedCoordinate t );
 	void setPOIs( QVector< UnsignedCoordinate > p );
 	void setPOI( UnsignedCoordinate p );
-	void setRoute( QVector< UnsignedCoordinate > r );
+	void setRoute( QVector< IRouter::Node > pathNodes );
 	void setEdges( QVector< int > edgeSegments, QVector< UnsignedCoordinate > edges );
 	void setVirtualZoom( int z );
 

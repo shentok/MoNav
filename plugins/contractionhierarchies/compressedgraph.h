@@ -20,6 +20,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef COMPRESSEDGRAPH_H
 #define COMPRESSEDGRAPH_H
 
+#include "interfaces/irouter.h"
 #include "utils/coordinates.h"
 #include "utils/bithelpers.h"
 #include "blockcache.h"
@@ -29,6 +30,10 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 
 class CompressedGraph {
+
+public :
+
+		typedef unsigned NodeIterator;
 
 protected:
 
@@ -82,6 +87,56 @@ protected:
 	};
 
 	struct PathBlock {
+
+		struct DataItem {
+			unsigned a;
+			unsigned b;
+
+			DataItem()
+			{
+				a = b = 0;
+			}
+
+			DataItem( const IRouter::Node& node )
+			{
+				assert( bits_needed( node.coordinate.x ) < 32 );
+				a = node.coordinate.x << 1;
+				a |= 1;
+				b = node.coordinate.y;
+			}
+
+			DataItem( const IRouter::Edge& description )
+			{
+				a = description.type;
+				a <<= 16;
+				a |= description.length;
+				a <<= 1;
+				b = description.name;
+			}
+
+			bool isNode() const
+			{
+				return ( a & 1 ) == 1;
+			}
+
+			bool isEdge() const
+			{
+				return ( a & 1 ) == 0;
+			}
+
+			IRouter::Node toNode()
+			{
+				IRouter::Node node;
+				node.coordinate = UnsignedCoordinate( a >> 1, b );
+				return node;
+			}
+
+			IRouter::Edge toEdge()
+			{
+				return IRouter::Edge( b, a >> 17, a >> 1 );
+			}
+		};
+
 		unsigned id;
 		const unsigned char* buffer;
 
@@ -94,12 +149,6 @@ protected:
 public:
 
 	// TYPES
-
-	typedef unsigned NodeIterator;
-
-	struct Node {
-		UnsignedCoordinate coordinate;
-	};
 
 	struct Edge {
 		NodeIterator source;
@@ -147,13 +196,14 @@ public:
 			return m_position < m_end;
 		}
 
-		NodeIterator target() const { return m_edge.target; }
-		bool forward() const { return m_edge.data.forward; }
-		bool backward() const { return m_edge.data.backward; }
-		bool shortcut() const { return m_edge.data.shortcut; }
-		bool unpacked() const { return m_edge.data.unpacked; }
-		NodeIterator middle() const { return m_edge.data.middle; }
-		unsigned distance() const { return m_edge.data.distance; }
+		NodeIterator target() const { return m_target; }
+		bool forward() const { return m_data.forward; }
+		bool backward() const { return m_data.backward; }
+		bool shortcut() const { return m_data.shortcut; }
+		bool unpacked() const { return m_data.unpacked; }
+		NodeIterator middle() const { return m_data.middle; }
+		unsigned distance() const { return m_data.distance; }
+		IRouter::Edge description() const { return IRouter::Edge( m_data.description.nameID, m_data.description.type, 1 ); }
 #ifdef NDEBUG
 	private:
 #endif
@@ -164,10 +214,26 @@ public:
 		}
 
 		const Block* m_block;
-		unsigned m_source;
+		NodeIterator m_target;
+		NodeIterator m_source;
 		unsigned m_position;
 		unsigned m_end;
-		Edge m_edge;
+		struct EdgeData {
+			unsigned distance;
+			bool shortcut : 1;
+			bool forward : 1;
+			bool backward : 1;
+			bool unpacked : 1;
+			bool reversed : 1;
+			union {
+				NodeIterator middle;
+				struct {
+					unsigned nameID;
+					unsigned type;
+				} description;
+			};
+			unsigned path;
+		} m_data;
 	};
 
 	// FUNCTIONS
@@ -234,69 +300,74 @@ public:
 	void unpackNextEdge( EdgeIterator* edge )
 	{
 		const Block& block = *edge->m_block;
-		Edge& edgeData = edge->m_edge;
+		EdgeIterator::EdgeData& edgeData = edge->m_data;
 		const unsigned char* buffer = block.buffer + ( edge->m_position >> 3 );
 		int offset = edge->m_position & 7;
 
 		// forward + backward flag
 		bool forwardAndBackward = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
 		if ( forwardAndBackward ) {
-			edgeData.data.forward = true;
-			edgeData.data.backward = true;
+			edgeData.forward = true;
+			edgeData.backward = true;
 		} else {
-			edgeData.data.forward = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
-			edgeData.data.backward = !edgeData.data.forward;
+			edgeData.forward = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
+			edgeData.backward = !edgeData.forward;
 		}
 
 		// target
 		bool internalTarget = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
 		if ( internalTarget ) {
 			unsigned target = read_unaligned_unsigned( &buffer, bits_needed( edge->m_source ), &offset );
-			edgeData.target = nodeFromDescriptor( block.id, target );
+			edge->m_target = nodeFromDescriptor( block.id, target );
 		} else {
 			unsigned adjacentBlock = read_unaligned_unsigned( &buffer, block.adjacentBlockBits, &offset );
 			unsigned target = read_unaligned_unsigned( &buffer, block.settings.externalBits, &offset );
 			unsigned adjacentBlockPosition = block.adjacentBlocks + adjacentBlock * block.settings.blockBits;
 			unsigned targetBlock = read_unaligned_unsigned( block.buffer + ( adjacentBlockPosition >> 3 ), block.settings.blockBits, adjacentBlockPosition & 7 );
-			edgeData.target = nodeFromDescriptor( targetBlock, target );
+			edge->m_target = nodeFromDescriptor( targetBlock, target );
 		}
 
 		// weight
 		bool longWeight = block.settings.shortWeightBits == block.settings.longWeightBits;
 		if ( !longWeight )
 			longWeight = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
-		edgeData.data.distance = read_unaligned_unsigned( &buffer, longWeight ? block.settings.longWeightBits : block.settings.shortWeightBits, &offset );
+		edgeData.distance = read_unaligned_unsigned( &buffer, longWeight ? block.settings.longWeightBits : block.settings.shortWeightBits, &offset );
 
 		// unpacked
-		edgeData.data.unpacked = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
-		if ( edgeData.data.unpacked ) {
+		edgeData.unpacked = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
+		if ( edgeData.unpacked ) {
 			if ( forwardAndBackward )
-				edgeData.data.reversed = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
+				edgeData.reversed = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
 			else
-				edgeData.data.reversed = edgeData.data.backward;
-			edgeData.data.path = read_unaligned_unsigned( &buffer, m_settings.pathBits, &offset );
+				edgeData.reversed = edgeData.backward;
+			edgeData.path = read_unaligned_unsigned( &buffer, m_settings.pathBits, &offset );
 		}
 
-
 		// shortcut
-		edgeData.data.shortcut = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
-		if ( edgeData.data.shortcut ) {
-			if ( !edgeData.data.unpacked ) {
+		edgeData.shortcut = read_unaligned_unsigned( &buffer, 1, &offset ) != 0;
+		if ( edgeData.shortcut ) {
+			if ( !edgeData.unpacked ) {
 				unsigned middle = read_unaligned_unsigned( &buffer, block.internalBits, &offset );
-				edgeData.data.middle = nodeFromDescriptor( block.id, middle );
+				edgeData.middle = nodeFromDescriptor( block.id, middle );
 			}
+		}
+
+		// edge description
+		if ( !edgeData.shortcut && !edgeData.unpacked ) {
+			edgeData.description.type = read_unaligned_unsigned( &buffer, m_settings.typeBits, &offset );
+			edgeData.description.nameID = read_unaligned_unsigned( &buffer, m_settings.nameBits, &offset );
 		}
 
 		edge->m_position = ( buffer - block.buffer ) * 8 + offset;
 	}
 
-	Node node( NodeIterator node )
+	IRouter::Node node( NodeIterator node )
 	{
 		unsigned blockID = nodeToBlock( node );
 		unsigned internal = nodeToInternal( node );
 		const Block* block = getBlock( blockID );
-		Node result;
-		unpackCoordinates( *block, internal, &result );
+		IRouter::Node result;
+		unpackCoordinates( *block, internal, &result.coordinate );
 		return result;
 	}
 
@@ -310,31 +381,48 @@ public:
 		return m_settings.numberOfEdges;
 	}
 
-	template< class T >
-	void path( const EdgeIterator& edge, T path, bool forward )
+	template< class T, class S >
+	void path( const EdgeIterator& edge, T path, S edges, bool forward )
 	{
-		unsigned begin = path->size();
-		int increase = edge.m_edge.data.reversed ? -1 : 1;
+		assert( edge.unpacked() );
+		unsigned pathBegin = path->size();
+		unsigned edgesBegin = edges->size();
+		int increase = edge.m_data.reversed ? -1 : 1;
 
-		Node targetCoordinate = node( edge.target() );
-		unsigned pathID = edge.m_edge.data.path;
+		IRouter::Node targetNode = node( edge.target() );
+		unsigned pathID = edge.m_data.path;
 
-		if ( !forward )
-			path->push_back( unpackPath( pathID ).coordinate );
+		if ( !forward ) {
+			PathBlock::DataItem data = unpackPath( pathID );
+			assert( data.isNode() );
+			path->push_back( data.toNode().coordinate );
+		}
 
 		pathID += increase;
 
-		Node node = unpackPath( pathID );
-		while( node.coordinate.x != targetCoordinate.coordinate.x || node.coordinate.y != targetCoordinate.coordinate.y ) {
+		while( true ) {
+			PathBlock::DataItem data = unpackPath( pathID );
+			if ( data.isEdge() ) {
+				edges->push_back( data.toEdge() );
+				pathID += increase;
+				continue;
+			}
+			assert( data.isNode() );
+			IRouter::Node node = data.toNode();
+			if ( node.coordinate.x == targetNode.coordinate.x && node.coordinate.y == targetNode.coordinate.y )
+				break;
 			path->push_back( node.coordinate );
 			pathID += increase;
-			node = unpackPath( pathID );
 		}
 
-		if ( forward )
-			path->push_back( targetCoordinate.coordinate );
-		else
-			std::reverse( path->begin() + begin, path->end() );
+		if ( forward ) {
+			path->push_back( targetNode.coordinate );
+		} else {
+			std::reverse( path->begin() + pathBegin, path->end() );
+			std::reverse( edges->begin() + edgesBegin, edges->end() );
+		}
+
+		assert( edges->size() != ( int ) edgesBegin ); // at least one edge description has to be present
 	}
 
 protected:
@@ -345,6 +433,8 @@ protected:
 		unsigned blockSize;
 		unsigned char internalBits;
 		unsigned char pathBits;
+		unsigned char typeBits;
+		unsigned char nameBits;
 		unsigned numberOfNodes;
 		unsigned numberOfEdges;
 
@@ -353,6 +443,8 @@ protected:
 			in.read( ( char* ) &blockSize, sizeof( blockSize ) );
 			in.read( ( char* ) &internalBits, sizeof( internalBits ) );
 			in.read( ( char* ) &pathBits, sizeof( pathBits ) );
+			in.read( ( char* ) &typeBits, sizeof( typeBits ) );
+			in.read( ( char* ) &nameBits, sizeof( nameBits ) );
 			in.read( ( char* ) &numberOfNodes, sizeof( numberOfNodes ) );
 			in.read( ( char* ) &numberOfEdges, sizeof( numberOfEdges ) );
 		}
@@ -362,6 +454,8 @@ protected:
 			out.write( ( const char* ) &blockSize, sizeof( blockSize ) );
 			out.write( ( const char* ) &internalBits, sizeof( internalBits ) );
 			out.write( ( const char* ) &pathBits, sizeof( pathBits ) );
+			out.write( ( const char* ) &typeBits, sizeof( typeBits ) );
+			out.write( ( const char* ) &nameBits, sizeof( nameBits ) );
 			out.write( ( const char* ) &numberOfNodes, sizeof( numberOfNodes ) );
 			out.write( ( const char* ) &numberOfEdges, sizeof( numberOfEdges ) );
 		}
@@ -374,23 +468,23 @@ protected:
 
 	// FUNCTIONS
 
-	Node unpackPath( unsigned position ) {
+	PathBlock::DataItem unpackPath( unsigned position ) {
 		unsigned blockID = position / ( m_settings.blockSize / 8 );
 		unsigned internal = ( position % ( m_settings.blockSize / 8 ) ) * 8;
 		const PathBlock* block = getPathBlock( blockID );
-		Node node;
-		node.coordinate.x = *( ( unsigned* ) ( block->buffer + internal ) );
-		node.coordinate.y = *( ( unsigned* ) ( block->buffer + internal + 4 ) );
-		return node;
+		PathBlock::DataItem data;
+		data.a = *( ( unsigned* ) ( block->buffer + internal ) );
+		data.b = *( ( unsigned* ) ( block->buffer + internal + 4 ) );
+		return data;
 	}
 
-	void unpackCoordinates( const Block& block, unsigned node, Node* result )
+	void unpackCoordinates( const Block& block, unsigned node, UnsignedCoordinate* result )
 	{
 		unsigned position = block.nodeCoordinates + ( block.settings.xBits + block.settings.yBits ) * node;
 		const unsigned char* buffer = block.buffer + ( position >> 3 );
 		int offset = position & 7;
-		result->coordinate.x = read_unaligned_unsigned( &buffer, block.settings.xBits, &offset ) + block.settings.minX;
-		result->coordinate.y = read_unaligned_unsigned( buffer, block.settings.yBits, offset ) + block.settings.minY;
+		result->x = read_unaligned_unsigned( &buffer, block.settings.xBits, &offset ) + block.settings.minX;
+		result->y = read_unaligned_unsigned( buffer, block.settings.yBits, offset ) + block.settings.minY;
 	}
 
 	EdgeIterator unpackFirstEdges( const Block& block, unsigned node )

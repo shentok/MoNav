@@ -161,9 +161,9 @@ void MapView::setFixed( bool fixed )
 	m_ui->paintArea->setFixed( fixed );
 }
 
-void MapView::setRoute( QVector< UnsignedCoordinate > path )
+void MapView::setRoute( QVector< IRouter::Node > pathNodes )
 {
-	m_ui->paintArea->setRoute( path );
+	m_ui->paintArea->setRoute( pathNodes );
 }
 
 void MapView::mouseClicked( ProjectedCoordinate clickPos )

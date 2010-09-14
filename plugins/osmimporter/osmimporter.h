@@ -49,6 +49,7 @@ public:
 	virtual bool GetRoutingEdgePaths( std::vector< RoutingNode >* data );
 	virtual bool GetRoutingNodes( std::vector< RoutingNode >* data );
 	virtual bool GetRoutingWayNames( std::vector< QString >* data );
+	virtual bool GetRoutingWayTypes( std::vector< QString >* data );
 	virtual bool GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer );
 	virtual bool GetBoundingBox( BoundingBox* box );
 	virtual void DeleteTemporaryFiles();

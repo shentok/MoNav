@@ -2,6 +2,7 @@
 #define IRENDERER_H
 
 #include "utils/coordinates.h"
+#include "interfaces/irouter.h"
 #include <QtPlugin>
 #include <QPainter>
 
@@ -20,7 +21,7 @@ public:
 		QVector< UnsignedCoordinate > POIs; // a list of points of interest to highlight
 		QVector< int > edgeSegments; // a list of edge segments to draw; each segment only stores the length of the segment
 		QVector< UnsignedCoordinate > edges; // the sorted list of the edge segments' paths
-		QVector< UnsignedCoordinate > route; // the current route
+		QVector< IRouter::Node > route; // the current route
 
 		PaintRequest() {
 			zoom = 0;

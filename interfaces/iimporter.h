@@ -99,6 +99,8 @@ public:
 	virtual bool GetRoutingNodes( std::vector< RoutingNode >* data ) = 0;
 	// get all way names
 	virtual bool GetRoutingWayNames( std::vector< QString >* data ) = 0;
+	// get all way names
+	virtual bool GetRoutingWayTypes( std::vector< QString >* data ) = 0;
 	// get address data
 	virtual bool GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer ) = 0;
 	// get the bounding bos of all routing coordinates ( routing nodes + way descriptions )

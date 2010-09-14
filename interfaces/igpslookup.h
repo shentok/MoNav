@@ -42,8 +42,6 @@ public:
 		double percentage;
 		// the distance to the nearest point
 		double distance;
-		// way coordinates
-		QVector< UnsignedCoordinate > coordinates;
 
 	};
 

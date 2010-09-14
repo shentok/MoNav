@@ -33,7 +33,7 @@ public:
 
 	typedef IImporter::RoutingEdge OriginalEdge;
 
-	CompressedGraphBuilder( unsigned blockSize, std::vector< Node >& inputNodes, std::vector< Edge >& inputEdges, std::vector< OriginalEdge >& originalEdges, std::vector< Node >& edgePaths )
+	CompressedGraphBuilder( unsigned blockSize, std::vector< IRouter::Node >& inputNodes, std::vector< Edge >& inputEdges, std::vector< OriginalEdge >& originalEdges, std::vector< IRouter::Node >& edgePaths )
 	{
 		m_settings.blockSize = blockSize;
 		m_settings.numberOfNodes = inputNodes.size();
@@ -80,10 +80,6 @@ private:
 		QHash< unsigned, unsigned > internalShortcutTargets;
 		QHash< unsigned, unsigned > internalDirectedShortcutTargets;
 		QHash< unsigned, unsigned > adjacentBlocks;
-	};
-
-	struct PathBlockBuilder: public PathBlock {
-
 	};
 
 	struct Statistics {
@@ -133,12 +129,13 @@ private:
 			qDebug() << "ySize        :" << ySize / 8 / 1024 / 1024 << "MB /" << graph.m_nodes.size() * 32 / 8 / 1024 / 1024 << "MB";
 			qDebug() << "firstEdgeSize:" << firstEdgeSize / 8 / 1024 / 1024 << "MB /" << graph.m_nodes.size() * 32 / 8 / 1024 / 1024 << "MB";
 
-			qDebug() << "directionSize     :" << directionSize / 8 / 1024 / 1024 << "MB /" << graph.m_edges.size() * 2 / 8 / 1024 / 1024 << "MB";
-			qDebug() << "weightSize        :" << weightSize / 8 / 1024 / 1024 << "MB /" << graph.m_edges.size() * 32 / 8 / 1024 / 1024 << "MB";
-			qDebug() << "internalMiddleSize:" << internalMiddleSize / 8 / 1024 / 1024 << "MB /" << ( shortcuts - externalMiddle ) * 32 / 8 / 1024 / 1024 << "MB";
-			qDebug() << "externalTargetSize:" << externalTargetSize / 8 / 1024 / 1024 << "MB /" << externalTarget * 32 / 8 / 1024 / 1024 << "MB";
-			qDebug() << "internalTargetSize:" << internalTargetSize / 8 / 1024 / 1024 << "MB /" << ( graph.m_edges.size() - externalTarget ) * 32 / 8 / 1024 / 1024 << "MB";
-			qDebug() << "unpackedSize      :" << unpackedSize / 8 / 1024 / 1024 << "MB /" << unpackedEdges * 32 / 8 / 1024 / 1024 << "MB";
+			qDebug() << "directionSize      :" << directionSize / 8 / 1024 / 1024 << "MB /" << graph.m_edges.size() * 2 / 8 / 1024 / 1024 << "MB";
+			qDebug() << "weightSize         :" << weightSize / 8 / 1024 / 1024 << "MB /" << graph.m_edges.size() * 32 / 8 / 1024 / 1024 << "MB";
+			qDebug() << "internalMiddleSize :" << internalMiddleSize / 8 / 1024 / 1024 << "MB /" << ( shortcuts - externalMiddle ) * 32 / 8 / 1024 / 1024 << "MB";
+			qDebug() << "externalTargetSize :" << externalTargetSize / 8 / 1024 / 1024 << "MB /" << externalTarget * 32 / 8 / 1024 / 1024 << "MB";
+			qDebug() << "internalTargetSize :" << internalTargetSize / 8 / 1024 / 1024 << "MB /" << ( graph.m_edges.size() - externalTarget ) * 32 / 8 / 1024 / 1024 << "MB";
+			qDebug() << "unpackedSize       :" << unpackedSize / 8 / 1024 / 1024 << "MB /" << unpackedEdges * 32 / 8 / 1024 / 1024 << "MB";
+			qDebug() << "edgeDescriptionSize:" << ( graph.m_edges.size() - shortcuts - unpackedEdges) * ( graph.m_settings.typeBits + graph.m_settings.nameBits ) / 8 / 1024 / 1024 << "MB /" << graph.m_edges.size() * ( 32 + 32 ) / 8 / 1024 / 1024 << "MB";
 		}
 
 		void addBlock( const CompressedGraphBuilder& graph )
@@ -310,6 +307,7 @@ private:
 			}
 		}
 		size += minimumWeightSize;
+		size += ( m_block.edgeCount - m_block.internalShortcutCount - m_block.unpackedEdgeCount ) * ( m_settings.typeBits + m_settings.nameBits );
 		// size == edge block size => compute firstEdgeBits
 		m_block.settings.firstEdgeBits = bits_needed( size );
 		size += m_block.settings.xBits * m_block.settings.nodeCount; // x coordinate
@@ -439,6 +437,13 @@ private:
 					if ( !unpacked )
 						write_unaligned_unsigned( &buffer, m_edges[edge].data.middle - m_block.firstNode, m_block.internalBits, &offset );
 				}
+
+				// edge description
+				if ( !m_edges[edge].data.shortcut && !unpacked ) {
+					unsigned originalID = m_edges[edge].data.id;
+					write_unaligned_unsigned( &buffer, m_originalEdges[originalID].type, m_settings.typeBits, &offset );
+					write_unaligned_unsigned( &buffer, m_originalEdges[originalID].nameID, m_settings.nameBits, &offset );
+				}
 			}
 			firstEdges.push_back( ( buffer - edgesBegin ) * 8 + offset - edgesBeginOffset );
 		}
@@ -464,10 +469,10 @@ private:
 
 		// check coordinates
 		for ( unsigned i = 0; i < m_block.settings.nodeCount; i++ ) {
-			Node node;
-			unpackCoordinates( block, i, &node );
-			assert( node.coordinate.x == m_nodes[i + m_block.firstNode].coordinate.x );
-			assert( node.coordinate.y == m_nodes[i + m_block.firstNode].coordinate.y );
+			UnsignedCoordinate coordinate;
+			unpackCoordinates( block, i, &coordinate );
+			assert( coordinate.x == m_nodes[i + m_block.firstNode].coordinate.x );
+			assert( coordinate.y == m_nodes[i + m_block.firstNode].coordinate.y );
 		}
 
 		// check first edges
@@ -490,9 +495,16 @@ private:
 				if ( m_edges[e].data.shortcut ) {
 					assert ( mustUnpack( e ) == ( edge.unpacked() ) );
 					if ( edge.unpacked() )
-						assert( m_edges[e].data.path == edge.m_edge.data.path );
+						assert( m_edges[e].data.path == edge.m_data.path );
 					else
 						assert( nodeFromDescriptor( m_nodeIDs[m_edges[e].data.middle] ) == edge.middle() );
+				}
+				if ( !edge.shortcut() && !edge.unpacked() ) {
+					unsigned originalID = m_edges[e].data.id;
+					IRouter::Edge description = edge.description();
+					assert( description.type == m_originalEdges[originalID].type );
+					assert( description.name == m_originalEdges[originalID].nameID );
+					assert( description.length == 1 );
 				}
 				assert( m_edges[e].data.distance == edge.distance() );
 			}
@@ -549,8 +561,8 @@ private:
 			numberOfUnpacked++;
 			if ( !pretend ) {
 				for ( unsigned i = 0; i < m_unpackBuffer.size(); i++ ) {
-					pathFile->write( ( const char* ) &m_unpackBuffer[i].coordinate.x, sizeof( unsigned ) );
-					pathFile->write( ( const char* ) &m_unpackBuffer[i].coordinate.y, sizeof( unsigned ) );
+					pathFile->write( ( const char* ) &m_unpackBuffer[i].a, sizeof( unsigned ) );
+					pathFile->write( ( const char* ) &m_unpackBuffer[i].b, sizeof( unsigned ) );
 				}
 			}
 			m_unpackBufferOffset += m_unpackBuffer.size();
@@ -590,7 +602,7 @@ private:
 			const IImporter::RoutingEdge originalEdge = m_originalEdges[shortestEdge.data.id];
 			bool reversed = originalEdge.target != target;
 			if ( forward ) {
-				//point at first node between source and destination
+				//point at source node
 				shortestEdge.data.path = m_unpackBuffer.size() - 1 + m_unpackBufferOffset;
 
 				unpackEdge( originalEdge, reversed );
@@ -599,7 +611,7 @@ private:
 				unpackEdge( originalEdge, !reversed );
 				m_unpackBuffer.push_back ( m_nodes[source] );
 
-				//point at last node between source and destination
+				//point at target
 				shortestEdge.data.path = m_unpackBuffer.size() - 1 + m_unpackBufferOffset;
 			}
 			return;
@@ -609,7 +621,7 @@ private:
 
 		//unpack the nodes in the right order
 		if ( forward ) {
-			//point at first node between source and destination
+			//point at source
 			shortestEdge.data.path = m_unpackBuffer.size() - 1 + m_unpackBufferOffset;
 
 			unpackPath ( middle, source, false );
@@ -618,13 +630,15 @@ private:
 			unpackPath ( middle, target, false );
 			unpackPath ( middle, source, true );
 
-			//point at last node between source and destination
+			//point at target
 			shortestEdge.data.path = m_unpackBuffer.size() - 1 + m_unpackBufferOffset;
 		}
 	}
 
 	void unpackEdge( const IImporter::RoutingEdge& edge, bool reversed )
 	{
+		m_unpackBuffer.push_back( PathBlock::DataItem( IRouter::Edge( edge.nameID, edge.type, edge.pathLength + 1 ) ) );
+
 		if ( edge.pathLength == 0 )
 			return;
 
@@ -673,6 +687,15 @@ private:
 		unpackAllNecessary( NULL, true );
 		qDebug() << "computed max path index:" << time.restart() << "ms";
 		m_settings.pathBits = bits_needed( m_unpackBufferOffset );
+
+		unsigned short maxType = 0;
+		unsigned maxName = 0;
+		for ( unsigned edge = 0; edge < m_originalEdges.size(); edge++ ) {
+			maxType = std::max( maxType, m_originalEdges[edge].type );
+			maxName = std::max( maxName, m_originalEdges[edge].nameID );
+		}
+		m_settings.typeBits = bits_needed( maxType );
+		m_settings.nameBits = bits_needed( maxName );
 
 		// compute mapping nodes -> blocks
 		unsigned blocks = 0;
@@ -739,16 +762,15 @@ private:
 	}
 
 	//VARIABLES
-	std::vector< Node > m_nodes;
+	std::vector< IRouter::Node > m_nodes;
 	std::vector< unsigned > m_firstEdges;
 	std::vector< Edge > m_edges;
 	std::vector< nodeDescriptor > m_nodeIDs;
 	std::vector< OriginalEdge > m_originalEdges;
-	std::vector< Node > m_edgePaths;
+	std::vector< IRouter::Node > m_edgePaths;
 	std::vector< unsigned char > m_externalBits;
-	std::vector< Node > m_unpackBuffer;
+	std::vector< PathBlock::DataItem > m_unpackBuffer;
 	unsigned m_unpackBufferOffset;
-	std::vector< PathBlockBuilder > m_pathBlocks;
 	BlockBuilder m_block;
 	unsigned char* m_blockBuffer;
 
