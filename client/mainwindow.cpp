@@ -323,7 +323,7 @@ void MainWindow::computeRoute()
 	bool found = m_router->GetRoute( &distance, &m_pathNodes, &m_pathEdges, m_sourcePos, m_targetPos );
 	qDebug() << "routing:" << time.elapsed() << "ms";
 	qDebug() << "distance: " << distance << "; nodes:" << m_pathNodes.size() << "; edges:" << m_pathEdges.size();
-	unsigned lastNameID = std::numeric_limits< unsigned >::max();
+	/*unsigned lastNameID = std::numeric_limits< unsigned >::max();
 	QString lastName;
 	unsigned lastTypeID = std::numeric_limits< unsigned >::max();
 	QString lastType;
@@ -343,7 +343,7 @@ void MainWindow::computeRoute()
 
 		qDebug() << m_pathEdges[i].length << lastType << lastName;
 	}
-	assert( length == m_pathNodes.size() - 1 );
+	assert( length == m_pathNodes.size() - 1 );*/
 
 	if ( !found ) {
 		m_pathNodes.clear();
