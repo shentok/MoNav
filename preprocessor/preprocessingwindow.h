@@ -39,7 +39,7 @@ public:
 	PreprocessingWindow(QWidget *parent = 0);
 	~PreprocessingWindow();
 
-public slots:
+protected slots:
 
 	void about();
 	void browse();

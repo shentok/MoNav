@@ -40,6 +40,31 @@ PreprocessingWindow::PreprocessingWindow(QWidget *parent) :
 	QSettings settings( "MoNav" );
 	settings.beginGroup( "Preprocessing" );
 	m_ui->outputEdit->setText( settings.value( "Output Directory" ).toString() );
+	QString importerName = settings.value( "importer", m_ui->importerComboBox->currentText() ).toString();
+	QString routerName = settings.value( "router", m_ui->routerComboBox->currentText() ).toString();
+	QString rendererName = settings.value( "renderer", m_ui->rendererComboBox->currentText() ).toString();
+	QString gpsLookupName = settings.value( "gpsLookup", m_ui->gpsLookupComboBox->currentText() ).toString();
+	QString addressLookupName = settings.value( "addressLookup", m_ui->addressLookupComboBox->currentText() ).toString();
+
+	m_ui->importerComboBox->setCurrentIndex( m_ui->importerComboBox->findText( importerName ) );
+	m_ui->routerComboBox->setCurrentIndex( m_ui->routerComboBox->findText( routerName ) );
+	m_ui->rendererComboBox->setCurrentIndex( m_ui->rendererComboBox->findText( rendererName ) );
+	m_ui->gpsLookupComboBox->setCurrentIndex( m_ui->gpsLookupComboBox->findText( gpsLookupName ) );
+	m_ui->addressLookupComboBox->setCurrentIndex( m_ui->addressLookupComboBox->findText( addressLookupName ) );
+}
+
+PreprocessingWindow::~PreprocessingWindow()
+{
+	QSettings settings( "MoNav" );
+	settings.beginGroup( "Preprocessing" );
+	settings.setValue( "Output Directory", m_ui->outputEdit->text() );
+	settings.setValue( "importer", m_ui->importerComboBox->currentText() );
+	settings.setValue( "router", m_ui->routerComboBox->currentText() );
+	settings.setValue( "renderer", m_ui->rendererComboBox->currentText() );
+	settings.setValue( "gpsLookup", m_ui->gpsLookupComboBox->currentText() );
+	settings.setValue( "addressLookup", m_ui->addressLookupComboBox->currentText() );
+	unloadPlugins();
+	delete m_ui;
 }
 
 void PreprocessingWindow::connectSlots()
@@ -159,15 +184,6 @@ void PreprocessingWindow::unloadPlugins()
 	}
 	foreach ( QObject *plugin, QPluginLoader::staticInstances() )
 		delete plugin;
-}
-
-PreprocessingWindow::~PreprocessingWindow()
-{
-	QSettings settings( "MoNav" );
-	settings.beginGroup( "Preprocessing" );
-	settings.setValue( "Output Directory", m_ui->outputEdit->text() );
-	unloadPlugins();
-	delete m_ui;
 }
 
 void PreprocessingWindow::about()
