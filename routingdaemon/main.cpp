@@ -19,7 +19,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QtDebug>
 #
-#include "routinddaemon.h"
+#include "routindaemon.h"
 
 Q_IMPORT_PLUGIN( contractionhierarchiesclient );
 Q_IMPORT_PLUGIN( gpsgridclient );
