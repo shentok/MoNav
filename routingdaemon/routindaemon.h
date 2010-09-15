@@ -63,6 +63,8 @@ public slots:
 		if ( !command.read( connection ) )
 			return;
 
+		result.type = RoutingDaemonResult::Success;
+
 		if ( !m_loaded || command.dataDirectory != m_dataDirectory ) {
 			unloadPlugins();
 			m_loaded = loadPlugins( command.dataDirectory );
@@ -76,7 +78,7 @@ public slots:
 			bool success = true;
 			for ( int i = 1; i < command.waypoints.size(); i++ ) {
 				if ( i != 1 )
-					result.path.pop_back();
+					result.pathNodes.pop_back();
 				double segmentDistance;
 				GPSCoordinate source( command.waypoints[i - 1].latitude, command.waypoints[i - 1].longitude );
 				GPSCoordinate target( command.waypoints[i].latitude, command.waypoints[i].longitude );
@@ -87,22 +89,55 @@ public slots:
 					break;
 				}
 				distance += segmentDistance;
+
 				for ( int j = 0; j < pathNodes.size(); j++ ) {
-					RoutingDaemonCoordinate coordinate;
+					RoutingDaemonNode node;
 					GPSCoordinate gps = pathNodes[j].coordinate.ToGPSCoordinate();
-					coordinate.latitude = gps.latitude;
-					coordinate.longitude = gps.longitude;
-					result.path.push_back( coordinate );
+					node.latitude = gps.latitude;
+					node.longitude = gps.longitude;
+					result.pathNodes.push_back( node );
+				}
+
+				for ( int j = 0; j < pathEdges.size(); j++ ) {
+					RoutingDaemonEdge edge;
+					edge.length = pathEdges[j].length;
+					edge.name = pathEdges[j].name;
+					edge.type = pathEdges[j].type;
+					result.pathEdges.push_back( edge );
 				}
 			}
 			result.seconds = distance;
 
-			if ( success )
-				result.type = RoutingDaemonResult::Success;
-			else
-				result.type = RoutingDaemonResult::RouteFail;
+			if ( success ) {
+				if ( command.lookupStrings ) {
+					unsigned lastNameID = std::numeric_limits< unsigned >::max();
+					QString lastName;
+					unsigned lastTypeID = std::numeric_limits< unsigned >::max();
+					QString lastType;
+					for ( int j = 0; j < result.pathEdges.size(); j++ ) {
+						if ( lastNameID != result.pathEdges[j].name ) {
+							lastNameID = result.pathEdges[j].name;
+							if ( !m_router->GetName( &lastName, lastNameID ) )
+								result.type = RoutingDaemonResult::NameLookupFailed;
+							result.nameStrings.push_back( lastName );
+						}
+
+						if ( lastTypeID != result.pathEdges[j].type ) {
+							lastTypeID = result.pathEdges[j].type;
+							if ( !m_router->GetType( &lastType, lastTypeID ) )
+								result.type = RoutingDaemonResult::TypeLookupFailed;
+							result.typeStrings.push_back( lastType );
+						}
+
+						result.pathEdges[j].name = result.nameStrings.size() - 1;
+						result.pathEdges[j].type = result.typeStrings.size() - 1;
+					}
+				}
+			} else {
+				result.type = RoutingDaemonResult::RouteFailed;
+			}
 		} else {
-			result.type = RoutingDaemonResult::LoadFail;
+			result.type = RoutingDaemonResult::LoadFailed;
 		}
 
 		if ( connection->state() != QLocalSocket::ConnectedState )

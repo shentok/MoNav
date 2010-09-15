@@ -25,7 +25,7 @@ bool processArguments( RoutingDaemonCommand* command, int argc, char** argv ) {
 	command->dataDirectory = argv[1];
 	for ( int i = 2; i < argc; i+=2 ) {
 		bool ok;
-		RoutingDaemonCoordinate coordinate;
+		RoutingDaemonNode coordinate;
 		coordinate.latitude = QString( argv[i] ).toDouble( &ok );
 		if ( !ok )
 			return false;
@@ -44,7 +44,7 @@ int main( int argc, char *argv[] ) {
 		qDebug() << "\tcomputes a route using between the specified waypoints";
 		return 1;
 	}
-	command.lookupRadius = 10000;
+	command.lookupStrings = true;
 
 	QLocalSocket connection;
 	connection.connectToServer( "MoNavD" );
@@ -59,21 +59,36 @@ int main( int argc, char *argv[] ) {
 	reply.read( &connection );
 	qDebug() << connection.state();
 
-	if ( reply.type == RoutingDaemonResult::LoadFail ) {
+	if ( reply.type == RoutingDaemonResult::LoadFailed ) {
 		qDebug() << "failed to load data directory";
 		return 3;
-	} else if ( reply.type == RoutingDaemonResult::RouteFail ) {
+	} else if ( reply.type == RoutingDaemonResult::RouteFailed ) {
 		qDebug() << "failed to compute route";
-		return 4;
-	} else if ( reply.type == RoutingDaemonResult::Success ) {
+		return 3;
+	} else if ( reply.type == RoutingDaemonResult::NameLookupFailed ) {
+		qDebug() << "failed to compute route";
+		return 3;
+	} else if ( reply.type == RoutingDaemonResult::TypeLookupFailed ) {
+		qDebug() << "failed to compute route";
+		return 3;
+	}else if ( reply.type == RoutingDaemonResult::Success ) {
 		int seconds = reply.seconds;
 		qDebug() << "distance:" << seconds / 60 / 60 << "h" << ( seconds / 60 ) % 60 << "m" << seconds % 60 << "s";
-		qDebug() << "nodes:" << reply.path.size();
-		for ( int i = 0; i < reply.path.size(); i++ ) {
-			QString latitude, longitude;
-			latitude.setNum( reply.path[i].latitude, 'g', 10 );
-			longitude.setNum( reply.path[i].longitude, 'g', 10 );
-			qDebug() << latitude.toLatin1().data() << longitude.toLatin1().data();
+		qDebug() << "nodes:" << reply.pathNodes.size();
+		qDebug() << "edges:" << reply.pathEdges.size();
+
+		unsigned node = 0;
+		for ( int i = 0; i < reply.pathEdges.size(); i++ ) {
+			QString name = reply.nameStrings[reply.pathEdges[i].name];
+			QString type = reply.typeStrings[reply.pathEdges[i].type];
+			qDebug() << "name:" << name.toUtf8() << "type:" << type << "nodes:" << reply.pathEdges[i].length + 1;
+			for ( unsigned j = 0; j <= reply.pathEdges[i].length; j++ ) {
+				QString latitude, longitude;
+				latitude.setNum( reply.pathNodes[j + node].latitude, 'g', 10 );
+				longitude.setNum( reply.pathNodes[j + node].longitude, 'g', 10 );
+				qDebug() << latitude.toLatin1().data() << longitude.toLatin1().data();
+			}
+			node += reply.pathEdges[i].length;
 		}
 	} else {
 		qDebug() << "return value not recognized";

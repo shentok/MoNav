@@ -12,3 +12,6 @@ unix {
 }
 SOURCES += \
     test.cpp
+
+HEADERS += \
+    signals.h

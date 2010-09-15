@@ -15,10 +15,10 @@ unix {
 LIBS += -L../bin/plugins_client -lcontractionhierarchiesclient -lgpsgridclient
 
 SOURCES += \
-    main.cpp
+	 main.cpp
 
 HEADERS += \
-    signals.h \
-    routinddaemon.h
+	 signals.h \
+	 routindaemon.h
 
 include(qtservice-2.6_1-opensource/src/qtservice.pri)
