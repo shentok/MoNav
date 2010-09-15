@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/images">
+    <qresource prefix="/">
         <file>images/address.bmp</file>
         <file>images/back.bmp</file>
         <file>images/bookmark.bmp</file>
@@ -9,5 +9,12 @@
         <file>images/viewmap.bmp</file>
         <file>images/source.bmp</file>
         <file>images/placeholder.png</file>
+        <file>images/directions/forward.png</file>
+        <file>images/directions/left.png</file>
+        <file>images/directions/right.png</file>
+        <file>images/directions/sharplyleft.png</file>
+        <file>images/directions/sharplyright.png</file>
+        <file>images/directions/slightlyleft.png</file>
+        <file>images/directions/slightlyright.png</file>
     </qresource>
 </RCC>

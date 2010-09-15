@@ -8,7 +8,8 @@ SOURCES += main.cpp \
     mapview.cpp \
     paintwidget.cpp \
     addressdialog.cpp \
-    bookmarksdialog.cpp
+    bookmarksdialog.cpp \
+    routedescriptiondialog.cpp
 HEADERS += mainwindow.h \
     mapview.h \
     paintwidget.h \
@@ -19,12 +20,15 @@ HEADERS += mainwindow.h \
     addressdialog.h \
     interfaces/igpslookup.h \
     interfaces/irouter.h \
-    bookmarksdialog.h
+    bookmarksdialog.h \
+    routedescriptiondialog.h \
+    descriptiongenerator.h
 FORMS += mainwindow.ui \
     mapview.ui \
     paintwidget.ui \
     addressdialog.ui \
-    bookmarksdialog.ui
+    bookmarksdialog.ui \
+    routedescriptiondialog.ui
 DESTDIR = ../bin
 TARGET = MoNavC
 unix {

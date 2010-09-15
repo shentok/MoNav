@@ -44,6 +44,24 @@ public:
 	~MainWindow();
 
 public slots:
+	void setSource( UnsignedCoordinate source, double heading );
+	void setTarget( UnsignedCoordinate target );
+
+	void computeRoute();
+
+#ifndef NOQTMOBILE
+	void positionUpdated( const QGeoPositionInfo & update );
+#endif
+
+signals:
+	void routeChanged( QVector< IRouter::Node > path, QStringList icon, QStringList label );
+	void sourceChanged( UnsignedCoordinate source, double heading );
+	void targetChanged( UnsignedCoordinate target );
+
+protected slots:
+
+	void routeDescription();
+
 	void browseMap();
 	void sourceMode();
 	void targetMode();
@@ -60,20 +78,6 @@ public slots:
 	void settingsAddressLookup();
 	void settingsGPS();
 	void settingsDataDirectory();
-
-	void setSource( UnsignedCoordinate source, double heading );
-	void setTarget( UnsignedCoordinate target );
-
-	void computeRoute();
-
-#ifndef NOQTMOBILE
-	void positionUpdated( const QGeoPositionInfo & update );
-#endif
-
-signals:
-	void routeChanged( QVector< IRouter::Node > path );
-	void sourceChanged( UnsignedCoordinate source, double heading );
-	void targetChanged( UnsignedCoordinate target );
 
 protected:
 	void connectSlots();
@@ -102,6 +106,8 @@ protected:
 	// the last computed route
 	QVector< IRouter::Node > m_pathNodes;
 	QVector< IRouter::Edge > m_pathEdges;
+	QStringList m_descriptionIcons;
+	QStringList m_descriptionLabels;
 	// the result of the GPS lookup of source
 	IGPSLookup::Result m_sourcePos;
 	bool m_sourceSet;
@@ -111,8 +117,8 @@ protected:
 
 	// the current menu mode [ source selection, target selection ]
 	enum {
-		Source = 0, Target = 1
-								} mode;
+		Source = 0, Target = 1, Map, Route, Address
+	} mode;
 
 #ifndef NOQTMOBILE
 	// the current GPS source

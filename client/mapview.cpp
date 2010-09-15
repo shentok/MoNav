@@ -69,6 +69,7 @@ void MapView::connectSlots()
 	connect( m_ui->menuButton, SIGNAL(clicked()), this, SLOT(showContextMenu()) );
 	connect( m_ui->zoomIn, SIGNAL(clicked()), this, SLOT(addZoom()) );
 	connect( m_ui->zoomOut, SIGNAL(clicked()), this, SLOT(substractZoom()) );
+	connect( m_ui->infoButton, SIGNAL(clicked()), this, SIGNAL(infoClicked()) );
 }
 
 void MapView::setupMenu()
@@ -161,9 +162,25 @@ void MapView::setFixed( bool fixed )
 	m_ui->paintArea->setFixed( fixed );
 }
 
-void MapView::setRoute( QVector< IRouter::Node > pathNodes )
+void MapView::setRoute( QVector< IRouter::Node > pathNodes, QStringList icon, QStringList label )
 {
 	m_ui->paintArea->setRoute( pathNodes );
+	m_ui->infoWidget->setHidden( label.isEmpty() );
+
+	if ( label.isEmpty() )
+		return;
+
+	m_ui->infoLabel1->setText( label[0] );
+	m_ui->infoIcon1->setPixmap( QPixmap( icon[0] ) );
+
+	m_ui->infoIcon2->setHidden( label.size() == 1 );
+	m_ui->infoLabel2->setHidden( label.size() == 1 );
+
+	if ( label.size() == 1 )
+		return;
+
+	m_ui->infoLabel2->setText( label[1] );
+	m_ui->infoIcon2->setPixmap( QPixmap( icon[1] ) );
 }
 
 void MapView::mouseClicked( ProjectedCoordinate clickPos )

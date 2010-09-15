@@ -87,7 +87,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/images/address.bmp</normaloff>:/images/images/address.bmp</iconset>
+                 <normaloff>:/images/address.bmp</normaloff>:/images/address.bmp</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -116,7 +116,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/images/bookmark.bmp</normaloff>:/images/images/bookmark.bmp</iconset>
+                 <normaloff>:/images/bookmark.bmp</normaloff>:/images/bookmark.bmp</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -145,7 +145,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/images/placeholder.png</normaloff>:/images/images/placeholder.png</iconset>
+                 <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -260,7 +260,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/images/placeholder.png</normaloff>:/images/images/placeholder.png</iconset>
+                 <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -289,7 +289,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/images/placeholder.png</normaloff>:/images/images/placeholder.png</iconset>
+                 <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -318,7 +318,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/images/placeholder.png</normaloff>:/images/images/placeholder.png</iconset>
+                 <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -347,7 +347,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/images/placeholder.png</normaloff>:/images/images/placeholder.png</iconset>
+                 <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -379,7 +379,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/images/placeholder.png</normaloff>:/images/images/placeholder.png</iconset>
+                 <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -408,7 +408,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/images/placeholder.png</normaloff>:/images/images/placeholder.png</iconset>
+                 <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -521,7 +521,7 @@
              </property>
              <property name="icon">
               <iconset resource="images.qrc">
-               <normaloff>:/images/images/source.bmp</normaloff>:/images/images/source.bmp</iconset>
+               <normaloff>:/images/source.bmp</normaloff>:/images/source.bmp</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -550,7 +550,7 @@
              </property>
              <property name="icon">
               <iconset resource="images.qrc">
-               <normaloff>:/images/images/choosetarget.bmp</normaloff>:/images/images/choosetarget.bmp</iconset>
+               <normaloff>:/images/choosetarget.bmp</normaloff>:/images/choosetarget.bmp</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -579,7 +579,7 @@
              </property>
              <property name="icon">
               <iconset resource="images.qrc">
-               <normaloff>:/images/images/placeholder.png</normaloff>:/images/images/placeholder.png</iconset>
+               <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -608,7 +608,7 @@
              </property>
              <property name="icon">
               <iconset resource="images.qrc">
-               <normaloff>:/images/images/viewmap.bmp</normaloff>:/images/images/viewmap.bmp</iconset>
+               <normaloff>:/images/viewmap.bmp</normaloff>:/images/viewmap.bmp</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -637,7 +637,7 @@
              </property>
              <property name="icon">
               <iconset resource="images.qrc">
-               <normaloff>:/images/images/settings.bmp</normaloff>:/images/images/settings.bmp</iconset>
+               <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
              </property>
              <property name="iconSize">
               <size>

@@ -28,7 +28,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "interfaces/irouter.h"
 
 namespace Ui {
-    class MapView;
+	 class MapView;
 }
 
 class MapView : public QDialog {
@@ -57,10 +57,20 @@ public:
 	static bool selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, IRenderer* renderer, QWidget* p = NULL );
 
 public slots:
-	void mouseClicked( ProjectedCoordinate clickPos );
+
 	void setCenter( ProjectedCoordinate center );
 	void setSource( UnsignedCoordinate source, double heading );
 	void setTarget( UnsignedCoordinate target );
+	void setRoute( QVector< IRouter::Node > path, QStringList icon, QStringList label );
+	void magnify();
+
+signals:
+	void sourceChanged( UnsignedCoordinate pos, double heading );
+	void targetChanged( UnsignedCoordinate pos );
+	void infoClicked();
+
+protected slots:
+	void mouseClicked( ProjectedCoordinate clickPos );
 	void nextPlace();
 	void previousPlace();
 	void showContextMenu( QPoint globalPos );
@@ -69,17 +79,10 @@ public slots:
 	void gotoGPS();
 	void gotoTarget();
 	void gotoAddress();
-	void setRoute( QVector< IRouter::Node > pathNodes );
+	void gotoMapview();
 	void addZoom();
 	void substractZoom();
 	void bookmarks();
-	void magnify();
-	void gotoMapview();
-
-signals:
-	void coordinateChosen( UnsignedCoordinate coordinate );
-	void sourceChanged( UnsignedCoordinate pos, double heading );
-	void targetChanged( UnsignedCoordinate pos );
 
 protected:
 	void connectSlots();
