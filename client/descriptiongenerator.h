@@ -162,9 +162,9 @@ protected:
 		double y2 = ( double ) third.y - second.y;
 		int angle = ( atan2( y1, x1 ) - atan2( y2, x2 ) ) * 180 / M_PI + 720;
 		angle %= 360;
-		static const int forward = 20;
+		static const int forward = 10;
 		static const int sharp = 45;
-		static const int slightly = 30;
+		static const int slightly = 10;
 		if ( angle > 180 ) {
 			if ( angle > 360 - forward - slightly ) {
 				if ( angle > 360 - forward )
@@ -175,7 +175,7 @@ protected:
 				if ( angle > 180 + sharp )
 					return 2;
 				else
-					return 1;
+					return 3;
 			}
 		} else {
 			if ( angle > forward + slightly ) {
