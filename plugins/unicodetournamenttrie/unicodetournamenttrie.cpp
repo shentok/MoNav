@@ -83,9 +83,7 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer )
 	std::vector< IImporter::Address > inputAddress;
 	std::vector< UnsignedCoordinate > inputWayBuffer;
 	std::vector< QString > inputWayNames;
-	if ( !importer->GetAddressData( &inputPlaces, &inputAddress, &inputWayBuffer ) )
-		return false;
-	if ( !importer->GetRoutingWayNames( &inputWayNames ) )
+	if ( !importer->GetAddressData( &inputPlaces, &inputAddress, &inputWayBuffer, &inputWayNames ) )
 		return false;
 
 	Timer time;

@@ -1093,7 +1093,7 @@ bool OSMImporter::GetRoutingWayTypes( std::vector< QString >* data )
 	return true;
 }
 
-bool OSMImporter::GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer )
+bool OSMImporter::GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer, std::vector< QString >* addressNames )
 {
 	QString filename = fileInDirectory( m_outputDirectory, "OSM Importer" );
 
@@ -1180,7 +1180,7 @@ bool OSMImporter::GetAddressData( std::vector< Place >* dataPlaces, std::vector<
 			continue;
 
 		Address newAddress;
-		newAddress.name = refID;
+		newAddress.name = nameID;
 		newAddress.pathID = dataWayBuffer->size();
 
 		dataWayBuffer->push_back( coordinates[source] );
@@ -1198,6 +1198,19 @@ bool OSMImporter::GetAddressData( std::vector< Place >* dataPlaces, std::vector<
 			numberOfAddressPlaces++;
 		}
 
+	}
+
+	FileStream wayNamesData( fileInDirectory( m_outputDirectory, "OSM Importer" ) + "_way_names" );
+
+	if ( !wayNamesData.open( QIODevice::ReadOnly ) )
+		return false;
+
+	while ( true ) {
+		QString name;
+		wayNamesData >> name;
+		if ( wayNamesData.status() == QDataStream::ReadPastEnd )
+			break;
+		addressNames->push_back( name );
 	}
 
 	qDebug() << "OSM Importer: edges:" << numberOfEdges;

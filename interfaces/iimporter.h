@@ -102,7 +102,7 @@ public:
 	// get all way names
 	virtual bool GetRoutingWayTypes( std::vector< QString >* data ) = 0;
 	// get address data
-	virtual bool GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer ) = 0;
+	virtual bool GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer, std::vector< QString >* addressNames ) = 0;
 	// get the bounding bos of all routing coordinates ( routing nodes + way descriptions )
 	virtual bool GetBoundingBox( BoundingBox* box ) = 0;
 	// delete preprocessed IImporter files
