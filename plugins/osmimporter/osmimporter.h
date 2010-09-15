@@ -83,6 +83,7 @@ protected:
 		bool access;
 		int accessPriority;
 		xmlChar* name;
+		xmlChar* ref;
 		xmlChar* placeName;
 		Place::Type placeType;
 		unsigned type;
@@ -176,6 +177,7 @@ protected:
 	std::vector< unsigned > m_outlineNodes;
 	std::vector< unsigned > m_signalNodes;
 	QHash< QString, unsigned > m_wayNames;
+	QHash< QString, unsigned > m_wayRefs;
 };
 
 #endif // OSMIMPORTER_H

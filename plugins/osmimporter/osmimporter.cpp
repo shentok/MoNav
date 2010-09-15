@@ -94,6 +94,7 @@ bool OSMImporter::Preprocess()
 	std::vector< unsigned >().swap( m_signalNodes );
 	std::vector< unsigned >().swap( m_routingNodes );
 	m_wayNames.clear();
+	m_wayRefs.clear();
 
 	m_statistics = Statistics();
 
@@ -142,12 +143,14 @@ bool OSMImporter::Preprocess()
 	qDebug() << "OSM Importer: zero speed ways:" << m_statistics.numberOfZeroSpeed;
 	qDebug() << "OSM Importer: default city speed:" << m_statistics.numberOfDefaultCitySpeed;
 	qDebug() << "OSM Importer: distinct way names:" << m_wayNames.size();
+	qDebug() << "OSM Importer: distinct way refs:" << m_wayRefs.size();
 
 	std::vector< unsigned >().swap( m_usedNodes );
 	std::vector< unsigned >().swap( m_outlineNodes );
 	std::vector< unsigned >().swap( m_signalNodes );
 	std::vector< unsigned >().swap( m_routingNodes );
 	m_wayNames.clear();
+	m_wayRefs.clear();
 	return true;
 }
 
@@ -158,6 +161,7 @@ bool OSMImporter::readXML( const QString& inputFilename, const QString& filename
 	FileStream allNodesData( filename + "_all_nodes" );
 	FileStream cityOutlineData( filename + "_city_outlines" );
 	FileStream wayNamesData( filename + "_way_names" );
+	FileStream wayRefsData( filename + "_way_refs" );
 
 	if ( !edgesData.open( QIODevice::WriteOnly ) )
 		return false;
@@ -171,9 +175,13 @@ bool OSMImporter::readXML( const QString& inputFilename, const QString& filename
 		return false;
 	if ( !wayNamesData.open( QIODevice::WriteOnly ) )
 		return false;
+	if ( !wayRefsData.open( QIODevice::WriteOnly ) )
+		return false;
 
 	m_wayNames[QString()] = 0;
 	wayNamesData << QString();
+	m_wayRefs[QString()] = 0;
+	wayRefsData << QString();
 
 	xmlTextReaderPtr inputReader;
 	if ( inputFilename.endsWith( ".bz2" ) )
@@ -238,6 +246,16 @@ bool OSMImporter::readXML( const QString& inputFilename, const QString& filename
 					}
 					edgesData << m_wayNames[name];
 
+					QString ref = name; // fallback to name
+					if ( way.ref != NULL )
+						ref = QString::fromUtf8( ( const char* ) way.ref ).simplified();
+					if ( !m_wayRefs.contains( ref ) ) {
+						wayRefsData << ref;
+						int id = m_wayRefs.size();
+						m_wayRefs[ref] = id;
+					}
+					edgesData << m_wayRefs[ref];
+
 					if ( m_settings.ignoreOneway )
 						way.direction = Way::Bidirectional;
 					if ( m_settings.ignoreMaxspeed )
@@ -272,6 +290,8 @@ bool OSMImporter::readXML( const QString& inputFilename, const QString& filename
 
 				if ( way.name != NULL )
 					xmlFree( way.name );
+				if ( way.ref != NULL )
+					xmlFree( way.ref );
 				if ( way.placeName != NULL )
 					xmlFree( way.placeName );
 			}
@@ -556,11 +576,11 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< UnsignedCoord
 	unsigned addressID = 0;
 	while ( true ) {
 		double speed;
-		unsigned numberOfPathNodes, type, nameID;
+		unsigned numberOfPathNodes, type, nameID, refID;
 		bool bidirectional;
 		std::vector< unsigned > way;
 
-		edgesData >> nameID >> type >> speed >> bidirectional >> numberOfPathNodes;
+		edgesData >> nameID >> refID >> type >> speed >> bidirectional >> numberOfPathNodes;
 		if ( edgesData.status() == QDataStream::ReadPastEnd )
 			break;
 
@@ -639,7 +659,7 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< UnsignedCoord
 				edgeAddressData << wayPlaces[i];
 
 			mappedEdgesData << source << target << bidirectional << seconds;
-			mappedEdgesData << nameID << type;
+			mappedEdgesData << nameID << refID << type;
 			mappedEdgesData << pathID << nextRoutingNode - pathNode - 1;
 			mappedEdgesData << addressID << unsigned( wayPlaces.size() );
 
@@ -662,6 +682,7 @@ OSMImporter::Way OSMImporter::readXMLWay( xmlTextReaderPtr& inputReader ) {
 	way.maximumSpeed = -1;
 	way.type = -1;
 	way.name = NULL;
+	way.ref = NULL;
 	way.placeType = Place::None;
 	way.placeName = NULL;
 	way.usefull = false;
@@ -728,6 +749,8 @@ OSMImporter::Way OSMImporter::readXMLWay( xmlTextReaderPtr& inputReader ) {
 						}
 					} else if ( xmlStrEqual( k, ( const xmlChar* ) "name" ) == 1 ) {
 						way.name = xmlStrdup( value );
+					} else if ( xmlStrEqual( k, ( const xmlChar* ) "ref" ) == 1 ) {
+						way.ref = xmlStrdup( value );
 					} else if ( xmlStrEqual( k, ( const xmlChar* ) "place_name" ) ) {
 						way.placeName = xmlStrdup( value );
 					} else if ( xmlStrEqual( k, ( const xmlChar* ) "place" ) ) {
@@ -967,14 +990,14 @@ bool OSMImporter::GetRoutingEdges( std::vector< RoutingEdge >* data )
 
 	std::vector< NodeID > way;
 	while ( true ) {
-		unsigned source, target, nameID, type;
+		unsigned source, target, nameID, refID, type;
 		unsigned pathID, pathLength;
 		unsigned addressID, addressLength;
 		bool bidirectional;
 		double seconds;
 
 		mappedEdgesData >> source >> target >> bidirectional >> seconds;
-		mappedEdgesData >> nameID >> type;
+		mappedEdgesData >> nameID >> refID >> type;
 		mappedEdgesData >> pathID >> pathLength;
 		mappedEdgesData >> addressID >> addressLength;
 
@@ -986,7 +1009,7 @@ bool OSMImporter::GetRoutingEdges( std::vector< RoutingEdge >* data )
 		edge.target = target;
 		edge.bidirectional = bidirectional;
 		edge.distance = seconds;
-		edge.nameID = nameID;
+		edge.nameID = refID;
 		edge.type = type;
 		edge.pathID = pathID;
 		edge.pathLength = pathLength;
@@ -1038,17 +1061,17 @@ bool OSMImporter::GetRoutingEdgePaths( std::vector< RoutingNode >* data )
 
 bool OSMImporter::GetRoutingWayNames( std::vector< QString >* data )
 {
-	FileStream wayNamesData( fileInDirectory( m_outputDirectory, "OSM Importer" ) + "_way_names" );
+	FileStream wayRefsData( fileInDirectory( m_outputDirectory, "OSM Importer" ) + "_way_refs" );
 
-	if ( !wayNamesData.open( QIODevice::ReadOnly ) )
+	if ( !wayRefsData.open( QIODevice::ReadOnly ) )
 		return false;
 
 	while ( true ) {
-		QString name;
-		wayNamesData >> name;
-		if ( wayNamesData.status() == QDataStream::ReadPastEnd )
+		QString ref;
+		wayRefsData >> ref;
+		if ( wayRefsData.status() == QDataStream::ReadPastEnd )
 			break;
-		data->push_back( name );
+		data->push_back( ref );
 	}
 	return true;
 }
@@ -1140,14 +1163,14 @@ bool OSMImporter::GetAddressData( std::vector< Place >* dataPlaces, std::vector<
 	long long numberOfAddressPlaces = 0;
 
 	while ( true ) {
-		unsigned source, target, nameID, type;
+		unsigned source, target, nameID, refID, type;
 		unsigned pathID, pathLength;
 		unsigned addressID, addressLength;
 		bool bidirectional;
 		double seconds;
 
 		mappedEdgesData >> source >> target >> bidirectional >> seconds;
-		mappedEdgesData >> nameID >> type;
+		mappedEdgesData >> nameID >> refID >> type;
 		mappedEdgesData >> pathID >> pathLength;
 		mappedEdgesData >> addressID >> addressLength;
 		if ( mappedEdgesData.status() == QDataStream::ReadPastEnd )
@@ -1157,7 +1180,7 @@ bool OSMImporter::GetAddressData( std::vector< Place >* dataPlaces, std::vector<
 			continue;
 
 		Address newAddress;
-		newAddress.name = nameID;
+		newAddress.name = refID;
 		newAddress.pathID = dataWayBuffer->size();
 
 		dataWayBuffer->push_back( coordinates[source] );
@@ -1213,15 +1236,20 @@ bool OSMImporter::GetBoundingBox( BoundingBox* box )
 void OSMImporter::DeleteTemporaryFiles()
 {
 	QString filename = fileInDirectory( m_outputDirectory, "OSM Importer" );
+	QFile::remove( filename + "_address" );
 	QFile::remove( filename + "_all_nodes" );
 	QFile::remove( filename + "_bounding_box" );
 	QFile::remove( filename + "_city_outlines" );
+	QFile::remove( filename + "_edge_id_map" );
 	QFile::remove( filename + "_edges" );
 	QFile::remove( filename + "_id_map" );
-	QFile::remove( filename + "_location" );
 	QFile::remove( filename + "_mapped_edges" );
-	QFile::remove( filename + "_node_coordinates" );
+	QFile::remove( filename + "_paths" );
 	QFile::remove( filename + "_places" );
+	QFile::remove( filename + "_routing_coordinates" );
+	QFile::remove( filename + "_way_names" );
+	QFile::remove( filename + "_way_refs" );
+	QFile::remove( filename + "_way_types" );
 }
 
 Q_EXPORT_PLUGIN2( osmimporter, OSMImporter )
