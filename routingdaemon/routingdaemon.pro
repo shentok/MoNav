@@ -19,6 +19,6 @@ SOURCES += \
 
 HEADERS += \
 	 signals.h \
-	 routindaemon.h
+	 routingdaemon.h
 
 include(qtservice-2.6_1-opensource/src/qtservice.pri)
