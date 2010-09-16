@@ -41,11 +41,13 @@ public:
 			QVector< double > averagePercentage;
 		} speedProfile;
 		QStringList accessList;
-		QString input;
 		bool defaultCitySpeed;
 		bool ignoreOneway;
 		int trafficLightPenalty;
 		bool ignoreMaxspeed;
+
+		QStringList languageSettings;
+		QString input;
 	};
 
 	bool getSettings( Settings* settings );
@@ -57,9 +59,12 @@ public slots:
 	void load();
 	void browse();
 	void currentIndexChanged( int index );
+	void currentLanguageChanged ( int currentRow );
+	void currentWayTypeChanged( int currentRow, int currentCol, int lastRow, int lastCol );
+	void addLanguage();
+	void deleteLanguage();
 
 protected:
-	 void changeEvent(QEvent *e);
 	void connectSlots();
 	QString load( const QString& filename, bool nameOnly = false );
 	void save( const QString& filename, QString name );

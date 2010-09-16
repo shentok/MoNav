@@ -682,6 +682,7 @@ OSMImporter::Way OSMImporter::readXMLWay( xmlTextReaderPtr& inputReader ) {
 	way.maximumSpeed = -1;
 	way.type = -1;
 	way.name = NULL;
+	way.namePriority = m_settings.languageSettings.size();
 	way.ref = NULL;
 	way.placeType = Place::None;
 	way.placeName = NULL;
@@ -747,7 +748,15 @@ OSMImporter::Way OSMImporter::readXMLWay( xmlTextReaderPtr& inputReader ) {
 								}
 							}
 						}
-					} else if ( xmlStrEqual( k, ( const xmlChar* ) "name" ) == 1 ) {
+					} else if ( xmlStrncmp( k, ( const xmlChar* ) "name", 4 ) == 0 ) {
+						QString tag = QString::fromUtf8( ( const char* ) k );
+						int index = m_settings.languageSettings.indexOf( tag );
+						if ( index != -1 && index < way.namePriority ) {
+							way.namePriority = index;
+							if ( way.name != NULL )
+								xmlFree( way.name );
+							way.name = k;
+						}
 						way.name = xmlStrdup( value );
 					} else if ( xmlStrEqual( k, ( const xmlChar* ) "ref" ) == 1 ) {
 						way.ref = xmlStrdup( value );

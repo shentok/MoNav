@@ -83,6 +83,7 @@ protected:
 		bool access;
 		int accessPriority;
 		xmlChar* name;
+		int namePriority;
 		xmlChar* ref;
 		xmlChar* placeName;
 		Place::Type placeType;

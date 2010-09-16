@@ -33,12 +33,20 @@ OISettingsDialog::OISettingsDialog(QWidget *parent) :
 {
 	m_ui->setupUi(this);
 	m_ui->speedTable->resizeColumnsToContents();
+	m_ui->toolBox->widget( 2 )->setEnabled( false );
+	m_ui->toolBox->widget( 3 )->setEnabled( false );
+	m_ui->toolBox->widget( 4 )->setEnabled( false );
 
 	QSettings settings( "MoNav" );
 	settings.beginGroup( "OSM Importer" );
 	m_ui->inputEdit->setText( settings.value( "inputFile" ).toString() );
 	m_lastFilename = settings.value( "lastProfile" ).toString();
 	m_speedProfiles = settings.value( "SpeedProfiles" ).toStringList();
+	QStringList languageSettings = settings.value( "languageSettings", QStringList( "name:en" ) + QStringList( "name" ) ).toStringList();
+	for ( int language = 0; language < languageSettings.size(); language++ ) {
+		QListWidgetItem* item = new QListWidgetItem( languageSettings[language], m_ui->languagePriorities, 0 );
+		item->setFlags( item->flags () | Qt::ItemIsEditable );
+	}
 
 	QDir speedProfilesDir( ":/speed profiles" );
 	QStringList includedSpeedProfiles = speedProfilesDir.entryList();
@@ -73,11 +81,18 @@ OISettingsDialog::OISettingsDialog(QWidget *parent) :
 void OISettingsDialog::connectSlots()
 {
 	connect( m_ui->browseButton, SIGNAL(clicked()), this, SLOT(browse()) );
-	connect( m_ui->addRowButton, SIGNAL(clicked()), this, SLOT(addSpeed()) );
-	connect( m_ui->deleteEntryButton, SIGNAL(clicked()), this, SLOT(removeSpeed()) );
+	connect( m_ui->addWayType, SIGNAL(clicked()), this, SLOT(addSpeed()) );
+	connect( m_ui->deleteWayType, SIGNAL(clicked()), this, SLOT(removeSpeed()) );
 	connect( m_ui->saveButton, SIGNAL(clicked()), this, SLOT(save()) );
 	connect( m_ui->loadButton, SIGNAL(clicked()), this, SLOT(load()) );
 	connect( m_ui->speedProfileChooser, SIGNAL(currentIndexChanged(int)), this, SLOT(currentIndexChanged(int)) );
+	connect( m_ui->customProfile, SIGNAL(toggled(bool)), m_ui->toolBox->widget( 2 ), SLOT(setEnabled(bool)) );
+	connect( m_ui->customProfile, SIGNAL(toggled(bool)), m_ui->toolBox->widget( 3 ), SLOT(setEnabled(bool)) );
+	connect( m_ui->customProfile, SIGNAL(toggled(bool)), m_ui->toolBox->widget( 4 ), SLOT(setEnabled(bool)) );
+	connect( m_ui->languagePriorities, SIGNAL(currentRowChanged(int)), this, SLOT(currentLanguageChanged(int)) );
+	connect( m_ui->speedTable, SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(currentWayTypeChanged(int,int,int,int)) );
+	connect( m_ui->addLanguage, SIGNAL(clicked()), this, SLOT(addLanguage()) );
+	connect( m_ui->deleteLanguage, SIGNAL(clicked()), this, SLOT(deleteLanguage()) );
 }
 
 OISettingsDialog::~OISettingsDialog()
@@ -87,27 +102,42 @@ OISettingsDialog::~OISettingsDialog()
 	settings.setValue( "inputFile", m_ui->inputEdit->text()  );
 	settings.setValue( "lastProfile", m_lastFilename );
 	settings.setValue( "SpeedProfiles", m_speedProfiles );
+	QStringList languageSettings;
+	for ( int item = 0; item < m_ui->languagePriorities->count(); item++ )
+		languageSettings.append( m_ui->languagePriorities->item( item )->text() );
+	settings.setValue( "languageSettings", languageSettings );
 	delete m_ui;
 }
 
-void OISettingsDialog::changeEvent(QEvent *e)
+void OISettingsDialog::currentLanguageChanged ( int currentRow )
 {
-	 QDialog::changeEvent(e);
-	 switch (e->type()) {
-	 case QEvent::LanguageChange:
-		  m_ui->retranslateUi(this);
-		  break;
-	 default:
-		  break;
-	 }
+	m_ui->deleteLanguage->setEnabled( currentRow != -1 );
 }
 
-void OISettingsDialog::addSpeed() {
+void OISettingsDialog::addLanguage()
+{
+	QListWidgetItem* item = new QListWidgetItem( "name", m_ui->languagePriorities, 0 );
+	item->setFlags( item->flags () | Qt::ItemIsEditable );
+}
+
+void OISettingsDialog::deleteLanguage()
+{
+	delete m_ui->languagePriorities->takeItem( m_ui->languagePriorities->currentRow() );
+}
+
+void OISettingsDialog::currentWayTypeChanged( int currentRow, int currentCol, int lastRow, int lastCol )
+{
+	m_ui->deleteWayType->setEnabled( currentRow != -1 );
+}
+
+void OISettingsDialog::addSpeed()
+{
 	int rows = m_ui->speedTable->rowCount();
 	m_ui->speedTable->setRowCount( rows + 1 );
 }
 
-void OISettingsDialog::removeSpeed() {
+void OISettingsDialog::removeSpeed()
+{
 	if ( m_ui->speedTable->rowCount() == 0 )
 		return;
 
@@ -313,6 +343,9 @@ bool OISettingsDialog::getSettings( Settings* settings )
 		settings->accessList.push_back( item->text( 0 ) );
 		item = item->parent();
 	} while ( item != NULL );
+
+	for ( int item = 0; item < m_ui->languagePriorities->count(); item++ )
+		settings->languageSettings.append( m_ui->languagePriorities->item( item )->text() );
 
 	return true;
 }
