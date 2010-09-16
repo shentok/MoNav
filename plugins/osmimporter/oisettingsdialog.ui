@@ -60,7 +60,7 @@
       <bool>true</bool>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="page_4">
       <property name="geometry">
@@ -72,7 +72,7 @@
        </rect>
       </property>
       <attribute name="label">
-       <string>General Options</string>
+       <string>Options</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_5">
        <item>
@@ -236,7 +236,7 @@
         <x>0</x>
         <y>0</y>
         <width>437</width>
-        <height>235</height>
+        <height>164</height>
        </rect>
       </property>
       <attribute name="label">
@@ -358,8 +358,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>303</width>
-        <height>250</height>
+        <width>100</width>
+        <height>131</height>
        </rect>
       </property>
       <attribute name="label">
@@ -437,8 +437,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>303</width>
-        <height>250</height>
+        <width>100</width>
+        <height>100</height>
        </rect>
       </property>
       <attribute name="label">

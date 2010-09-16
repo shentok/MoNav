@@ -344,8 +344,10 @@ bool OISettingsDialog::getSettings( Settings* settings )
 		item = item->parent();
 	} while ( item != NULL );
 
-	for ( int item = 0; item < m_ui->languagePriorities->count(); item++ )
+	for ( int item = 0; item < m_ui->languagePriorities->count(); item++ ) {
+		qDebug() << "OSM Importer: language list:" << settings->languageSettings.size() << ":" << m_ui->languagePriorities->item( item )->text();
 		settings->languageSettings.append( m_ui->languagePriorities->item( item )->text() );
+	}
 
 	return true;
 }
