@@ -755,9 +755,8 @@ OSMImporter::Way OSMImporter::readXMLWay( xmlTextReaderPtr& inputReader ) {
 							way.namePriority = index;
 							if ( way.name != NULL )
 								xmlFree( way.name );
-							way.name = k;
+							way.name = xmlStrdup( value );
 						}
-						way.name = xmlStrdup( value );
 					} else if ( xmlStrEqual( k, ( const xmlChar* ) "ref" ) == 1 ) {
 						way.ref = xmlStrdup( value );
 					} else if ( xmlStrEqual( k, ( const xmlChar* ) "place_name" ) ) {
@@ -831,6 +830,7 @@ OSMImporter::Way OSMImporter::readXMLWay( xmlTextReaderPtr& inputReader ) {
 OSMImporter::Node OSMImporter::readXMLNode( xmlTextReaderPtr& inputReader ) {
 	Node node;
 	node.name = NULL;
+	node.namePriority = m_settings.languageSettings.size();
 	node.type = Place::None;
 	node.population = -1;
 	node.trafficSignal = false;
@@ -878,8 +878,15 @@ OSMImporter::Node OSMImporter::readXMLNode( xmlTextReaderPtr& inputReader ) {
 				if ( k != NULL && value != NULL ) {
 					if ( xmlStrEqual( k, ( const xmlChar* ) "place" ) == 1 ) {
 						node.type = parsePlaceType( value );
-					} else if ( xmlStrEqual( k, ( const xmlChar* ) "name" ) == 1 ) {
-						node.name = xmlStrdup( value );
+					} else if ( xmlStrncmp( k, ( const xmlChar* ) "name", 4 ) == 0 ) {
+						QString tag = QString::fromUtf8( ( const char* ) k );
+						int index = m_settings.languageSettings.indexOf( tag );
+						if ( index != -1 && index < node.namePriority ) {
+							node.namePriority = index;
+							if ( node.name != NULL )
+								xmlFree( node.name );
+							node.name = xmlStrdup( value );
+						}
 					} else if ( xmlStrEqual( k, ( const xmlChar* ) "population" ) == 1 ) {
 						node.population = atoi(( const char* ) value );
 					} else if ( xmlStrEqual( k, ( const xmlChar* ) "highway" ) == 1 ) {

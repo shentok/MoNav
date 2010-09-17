@@ -95,6 +95,7 @@ protected:
 		double longitude;
 		unsigned id;
 		xmlChar* name;
+		int namePriority;
 		unsigned population;
 		bool trafficSignal;
 		Place::Type type;
