@@ -136,7 +136,7 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer )
 	std::vector< PlaceImportance >().swap( importanceOrder );
 
 	std::sort( inputAddress.begin(), inputAddress.end() );
-	qDebug() << "Unicode Tournament Trie: sorted addresses by importance:" << time.restart() << "s";
+	qDebug() << "Unicode Tournament Trie: sorted addresses by importance:" << time.restart() << "ms";
 
 	std::vector< UnsignedCoordinate > wayBuffer;
 	std::vector< utt::Node > trie( 1 );
@@ -255,16 +255,16 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer )
 		insert( &trie, importance[inputPlaces[place].name], inputPlaces[place].name, data );
 	}
 	assert( address == inputAddress.size() );
-	qDebug() << "Unicode Tournament Trie: build tries and tournament trees:" << time.restart() << "s";
+	qDebug() << "Unicode Tournament Trie: build tries and tournament trees:" << time.restart() << "ms";
 
 	writeTrie( &trie, mainTrieFile );
-	qDebug() << "Unicode Tournament Trie: wrote tries:" << time.restart() << "s";
+	qDebug() << "Unicode Tournament Trie: wrote tries:" << time.restart() << "ms";
 
 	for ( std::vector< UnsignedCoordinate >::const_iterator i = wayBuffer.begin(), e = wayBuffer.end(); i != e; ++i ) {
 		wayFile.write( ( char* ) &i->x, sizeof( i->x ) );
 		wayFile.write( ( char* ) &i->y, sizeof( i->y ) );
 	}
-	qDebug() << "Unicode Tournament Trie: wrote ways:" << time.restart() << "s";
+	qDebug() << "Unicode Tournament Trie: wrote ways:" << time.restart() << "ms";
 
 	return true;
 }
