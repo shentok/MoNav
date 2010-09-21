@@ -21,6 +21,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define MAPNIKRENDERER_H
 
 #include <QObject>
+#include <QFile>
 #include "interfaces/ipreprocessor.h"
 #include "mrsettingsdialog.h"
 
@@ -52,6 +53,14 @@ protected:
 	struct IndexElement {
 		qint64 start;
 		int size;
+	};
+	struct ZoomInfo {
+		int minX;
+		int maxX;
+		int minY;
+		int maxY;
+		std::vector< IndexElement > index;
+		QFile* tilesFile;
 	};
 
 	MRSettingsDialog* settingsDialog;
