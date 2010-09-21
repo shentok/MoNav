@@ -39,7 +39,8 @@ public:
 		NodeID source;
 		NodeID target;
 		double distance; // travel time metric -> seconds
-		bool bidirectional;
+		bool bidirectional : 1; // can the edge be traversed in both directions?
+		bool branchingPossible : 1; // is there more than one subsequent edge to traverse ( turing around and traversing this edge in the opposite direction does not count )
 		unsigned nameID; // id of the way's name
 		unsigned pathID; // id of the way's path's description
 		unsigned short type; // id of the way's type's name

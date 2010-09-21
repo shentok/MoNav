@@ -120,6 +120,8 @@ bool ContractionHierarchiesClient::GetRoute( double* distance, QVector< Node>* p
 				QVector< Node > tempNodes;
 				if ( targetEdge.unpacked() )
 					m_graph.path( targetEdge, &tempNodes, pathEdges, target.target == targetEdge.target() );
+				else
+					pathEdges->push_back( targetEdge.description() );
 
 				if ( target.previousWayCoordinates < source.previousWayCoordinates ) {
 					for ( unsigned pathID = target.previousWayCoordinates; pathID < source.previousWayCoordinates; pathID++ )

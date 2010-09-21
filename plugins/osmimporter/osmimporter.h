@@ -88,6 +88,7 @@ protected:
 		xmlChar* placeName;
 		Place::Type placeType;
 		unsigned type;
+		bool roundabout;
 	};
 
 	struct Node {

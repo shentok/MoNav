@@ -56,6 +56,8 @@ void OSMRenderer::ShowSettings()
 
 bool OSMRenderer::Preprocess( IImporter* )
 {
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new ORSettingsDialog;
 	ORSettingsDialog::Settings settings;
 	if ( !m_settingsDialog->getSettings( &settings ) )
 		return false;

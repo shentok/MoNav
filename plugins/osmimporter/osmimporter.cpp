@@ -88,6 +88,7 @@ bool OSMImporter::Preprocess()
 
 	for ( int type = 0; type < m_settings.speedProfile.names.size(); type++ )
 		typeData << m_settings.speedProfile.names[type];
+	typeData << QString( "roundabout" );
 
 	std::vector< unsigned >().swap( m_usedNodes );
 	std::vector< unsigned >().swap( m_outlineNodes );
@@ -262,6 +263,7 @@ bool OSMImporter::readXML( const QString& inputFilename, const QString& filename
 						way.maximumSpeed = -1;
 
 					edgesData << way.type;
+					edgesData << way.roundabout;
 					edgesData << way.maximumSpeed;
 					edgesData << !( way.direction == Way::Oneway || way.direction == Way::Opposite );
 					edgesData << unsigned( way.path.size() );
@@ -577,10 +579,10 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< UnsignedCoord
 	while ( true ) {
 		double speed;
 		unsigned numberOfPathNodes, type, nameID, refID;
-		bool bidirectional;
+		bool bidirectional, roundabout;
 		std::vector< unsigned > way;
 
-		edgesData >> nameID >> refID >> type >> speed >> bidirectional >> numberOfPathNodes;
+		edgesData >> nameID >> refID >> type >> roundabout >> speed >> bidirectional >> numberOfPathNodes;
 		if ( edgesData.status() == QDataStream::ReadPastEnd )
 			break;
 
@@ -659,7 +661,11 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< UnsignedCoord
 				edgeAddressData << wayPlaces[i];
 
 			mappedEdgesData << source << target << bidirectional << seconds;
-			mappedEdgesData << nameID << refID << type;
+			mappedEdgesData << nameID << refID;
+			if ( roundabout )
+				mappedEdgesData << unsigned( m_settings.speedProfile.names.size() );
+			else
+				mappedEdgesData << type;
 			mappedEdgesData << pathID << nextRoutingNode - pathNode - 1;
 			mappedEdgesData << addressID << unsigned( wayPlaces.size() );
 
@@ -681,6 +687,7 @@ OSMImporter::Way OSMImporter::readXMLWay( xmlTextReaderPtr& inputReader ) {
 	way.direction = Way::NotSure;
 	way.maximumSpeed = -1;
 	way.type = -1;
+	way.roundabout = false;
 	way.name = NULL;
 	way.namePriority = m_settings.languageSettings.size();
 	way.ref = NULL;
@@ -725,8 +732,8 @@ OSMImporter::Way OSMImporter::readXMLWay( xmlTextReaderPtr& inputReader ) {
 						if ( xmlStrEqual( value, ( const xmlChar* ) "roundabout" ) == 1 ) {
 							if ( way.direction == Way::NotSure ) {
 								way.direction = Way::Oneway;
+								way.roundabout = true;
 							}
-
 						}
 					} else if ( xmlStrEqual( k, ( const xmlChar* ) "highway" ) == 1 ) {
 						if ( xmlStrEqual( value, ( const xmlChar* ) "motorway" ) == 1 ) {
@@ -1004,7 +1011,7 @@ bool OSMImporter::GetRoutingEdges( std::vector< RoutingEdge >* data )
 	if ( !mappedEdgesData.open( QIODevice::ReadOnly ) )
 		return false;
 
-	std::vector< NodeID > way;
+	std::vector< int > nodeOutDegree;
 	while ( true ) {
 		unsigned source, target, nameID, refID, type;
 		unsigned pathID, pathLength;
@@ -1031,6 +1038,20 @@ bool OSMImporter::GetRoutingEdges( std::vector< RoutingEdge >* data )
 		edge.pathLength = pathLength;
 
 		data->push_back( edge );
+
+		if ( source >= nodeOutDegree.size() )
+			nodeOutDegree.resize( source + 1, 0 );
+		if ( target >= nodeOutDegree.size() )
+			nodeOutDegree.resize( target + 1, 0 );
+		nodeOutDegree[source]++;
+		if ( bidirectional )
+			nodeOutDegree[target]++;
+	}
+
+	for ( unsigned edge = 0; edge < data->size(); edge++ ) {
+		int branches = nodeOutDegree[data->at( edge ).target];
+		branches -= data->at( edge ).bidirectional ? 1 : 0;
+		( *data )[edge].branchingPossible = branches > 1;
 	}
 
 	return true;

@@ -111,7 +111,8 @@ protected:
 				a <<= 16;
 				a |= description.length;
 				a <<= 1;
-				b = description.name;
+				b = description.name << 1;
+				b |= description.branchingPossible ? 1 : 0;
 			}
 
 			bool isNode() const
@@ -133,7 +134,7 @@ protected:
 
 			IRouter::Edge toEdge()
 			{
-				return IRouter::Edge( b, a >> 17, a >> 1 );
+				return IRouter::Edge( b >> 1, ( b & 1 ) == 1, a >> 17, a >> 1 );
 			}
 		};
 
@@ -203,7 +204,7 @@ public:
 		bool unpacked() const { return m_data.unpacked; }
 		NodeIterator middle() const { return m_data.middle; }
 		unsigned distance() const { return m_data.distance; }
-		IRouter::Edge description() const { return IRouter::Edge( m_data.description.nameID, m_data.description.type, 1 ); }
+		IRouter::Edge description() const { return IRouter::Edge( m_data.description.nameID, m_data.description.branchingPossible, m_data.description.type, 1 ); }
 #ifdef NDEBUG
 	private:
 #endif
@@ -218,6 +219,7 @@ public:
 		NodeIterator m_source;
 		unsigned m_position;
 		unsigned m_end;
+
 		struct EdgeData {
 			unsigned distance;
 			bool shortcut : 1;
@@ -228,7 +230,8 @@ public:
 			union {
 				NodeIterator middle;
 				struct {
-					unsigned nameID;
+					unsigned nameID : 30;
+					bool branchingPossible : 1;
 					unsigned type;
 				} description;
 			};
@@ -356,6 +359,7 @@ public:
 		if ( !edgeData.shortcut && !edgeData.unpacked ) {
 			edgeData.description.type = read_unaligned_unsigned( &buffer, m_settings.typeBits, &offset );
 			edgeData.description.nameID = read_unaligned_unsigned( &buffer, m_settings.nameBits, &offset );
+			edgeData.description.branchingPossible = read_unaligned_unsigned( &buffer, 1, &offset );
 		}
 
 		edge->m_position = ( buffer - block.buffer ) * 8 + offset;

@@ -125,7 +125,7 @@ void OISettingsDialog::deleteLanguage()
 	delete m_ui->languagePriorities->takeItem( m_ui->languagePriorities->currentRow() );
 }
 
-void OISettingsDialog::currentWayTypeChanged( int currentRow, int currentCol, int lastRow, int lastCol )
+void OISettingsDialog::currentWayTypeChanged( int currentRow, int /*currentCol*/, int /*lastRow*/, int /*lastCol*/ )
 {
 	m_ui->deleteWayType->setEnabled( currentRow != -1 );
 }

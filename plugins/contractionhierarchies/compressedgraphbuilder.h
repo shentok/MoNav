@@ -135,7 +135,8 @@ private:
 			qDebug() << "externalTargetSize :" << externalTargetSize / 8 / 1024 / 1024 << "MB /" << externalTarget * 32 / 8 / 1024 / 1024 << "MB";
 			qDebug() << "internalTargetSize :" << internalTargetSize / 8 / 1024 / 1024 << "MB /" << ( graph.m_edges.size() - externalTarget ) * 32 / 8 / 1024 / 1024 << "MB";
 			qDebug() << "unpackedSize       :" << unpackedSize / 8 / 1024 / 1024 << "MB /" << unpackedEdges * 32 / 8 / 1024 / 1024 << "MB";
-			qDebug() << "edgeDescriptionSize:" << ( graph.m_edges.size() - shortcuts - unpackedEdges) * ( graph.m_settings.typeBits + graph.m_settings.nameBits ) / 8 / 1024 / 1024 << "MB /" << graph.m_edges.size() * ( 32 + 32 ) / 8 / 1024 / 1024 << "MB";
+			qDebug() << "edgeDescriptionSize:" << ( graph.m_edges.size() - shortcuts - unpackedEdges ) * ( graph.m_settings.typeBits + graph.m_settings.nameBits + 1 ) / 8 / 1024 / 1024
+					<< "MB /" << ( graph.m_edges.size() - shortcuts - unpackedEdges ) * ( 32 + 32 + 32 ) / 8 / 1024 / 1024 << "MB";
 		}
 
 		void addBlock( const CompressedGraphBuilder& graph )
@@ -307,7 +308,7 @@ private:
 			}
 		}
 		size += minimumWeightSize;
-		size += ( m_block.edgeCount - m_block.internalShortcutCount - m_block.unpackedEdgeCount ) * ( m_settings.typeBits + m_settings.nameBits );
+		size += ( m_block.edgeCount - m_block.internalShortcutCount - m_block.unpackedEdgeCount ) * ( m_settings.typeBits + m_settings.nameBits + 1 );
 		// size == edge block size => compute firstEdgeBits
 		m_block.settings.firstEdgeBits = bits_needed( size );
 		size += m_block.settings.xBits * m_block.settings.nodeCount; // x coordinate
@@ -443,6 +444,7 @@ private:
 					unsigned originalID = m_edges[edge].data.id;
 					write_unaligned_unsigned( &buffer, m_originalEdges[originalID].type, m_settings.typeBits, &offset );
 					write_unaligned_unsigned( &buffer, m_originalEdges[originalID].nameID, m_settings.nameBits, &offset );
+					write_unaligned_unsigned( &buffer, m_originalEdges[originalID].branchingPossible ? 1 : 0, 1, &offset );
 				}
 			}
 			firstEdges.push_back( ( buffer - edgesBegin ) * 8 + offset - edgesBeginOffset );
@@ -637,7 +639,7 @@ private:
 
 	void unpackEdge( const IImporter::RoutingEdge& edge, bool reversed )
 	{
-		m_unpackBuffer.push_back( PathBlock::DataItem( IRouter::Edge( edge.nameID, edge.type, edge.pathLength + 1 ) ) );
+		m_unpackBuffer.push_back( PathBlock::DataItem( IRouter::Edge( edge.nameID, edge.branchingPossible, edge.type, edge.pathLength + 1 ) ) );
 
 		if ( edge.pathLength == 0 )
 			return;
