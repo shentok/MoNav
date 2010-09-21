@@ -23,9 +23,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 MapnikRendererClient::MapnikRendererClient()
 {
-	fileZoom = -1;
-	indexFile = NULL;
-	tileFile = NULL;
+	m_fileZoom = -1;
+	m_indexFile = NULL;
+	m_tileFile = NULL;
 }
 
 MapnikRendererClient::~MapnikRendererClient()
@@ -34,13 +34,13 @@ MapnikRendererClient::~MapnikRendererClient()
 
 void MapnikRendererClient::unload()
 {
-	boxes.clear();
-	if ( indexFile != NULL )
-		delete indexFile;
-	if ( tileFile != NULL )
-		delete tileFile;
-	indexFile = NULL;
-	tileFile = NULL;
+	m_boxes.clear();
+	if ( m_indexFile != NULL )
+		delete m_indexFile;
+	if ( m_tileFile != NULL )
+		delete m_tileFile;
+	m_indexFile = NULL;
+	m_tileFile = NULL;
 }
 
 QString MapnikRendererClient::GetName()
@@ -50,19 +50,18 @@ QString MapnikRendererClient::GetName()
 
 bool MapnikRendererClient::load()
 {
-	QString filename = fileInDirectory( directory, "Mapnik Renderer" );
+	QString filename = fileInDirectory( m_directory, "Mapnik Renderer" );
 	FileStream configData( filename );
 	if ( !configData.open( QIODevice::ReadOnly ) )
 		return false;
 
-	quint32 zoom, size;
-	configData >> size >> zoom;
-	maxZoom = zoom;
-	tileSize = size;
-	for ( int i = 0; i <= maxZoom; i++ )
+	quint32 zoomLevels, size;
+	configData >> size >> zoomLevels;
+	m_tileSize = size;
+	for ( int i = 0; i < ( int ) zoomLevels; i++ )
 	{
-		quint32 minX, maxX, minY, maxY;
-		configData >> minX >> maxX >> minY >> maxY;
+		quint32 zoom, minX, maxX, minY, maxY;
+		configData >> zoom >> minX >> maxX >> minY >> maxY;
 		if ( configData.status() == QDataStream::ReadPastEnd )
 			return false;
 		Box box;
@@ -70,58 +69,54 @@ bool MapnikRendererClient::load()
 		box.maxX = maxX;
 		box.minY = minY;
 		box.maxY = maxY;
-		boxes.push_back( box );
+		m_boxes.resize( zoom + 1 );
+		m_boxes[zoom] = box;
+		m_zoomLevels.push_back( zoom );
 	}
 
-	fileZoom = -1;
-	indexFile = new QFile( this );
-	tileFile = new QFile( this );
+	m_fileZoom = -1;
+	m_indexFile = new QFile( this );
+	m_tileFile = new QFile( this );
 
 	return true;
 }
 
-int MapnikRendererClient::GetMaxZoom()
-{
-	if ( !loaded )
-		return -1;
-	return maxZoom;
-}
-
 bool MapnikRendererClient::loadTile( int x, int y, int zoom, QPixmap** tile )
 {
-	const Box& box = boxes[zoom];
+	const Box& box = m_boxes[zoom];
 	if ( x < box.minX || x >= box.maxX )
 		return false;
 	if ( y < box.minY || y >= box.maxY )
 		return false;
 
-	if ( fileZoom != zoom ) {
-		indexFile->close();
-		tileFile->close();
+	if ( m_fileZoom != zoom ) {
+		m_indexFile->close();
+		m_tileFile->close();
 
-		QString filename = fileInDirectory( directory, "Mapnik Renderer" );
-		indexFile->setFileName( filename + QString( "_%1_index" ).arg( zoom ) );
-		if ( !openQFile( indexFile, QIODevice::ReadOnly ) )
+		QString filename = fileInDirectory( m_directory, "Mapnik Renderer" );
+		m_indexFile->setFileName( filename + QString( "_%1_index" ).arg( zoom ) );
+		if ( !openQFile( m_indexFile, QIODevice::ReadOnly ) )
 			return false;
-		tileFile->setFileName( filename + QString( "_%1_tiles" ).arg( zoom ) );
-		if ( !openQFile( tileFile, QIODevice::ReadOnly ) )
+		m_tileFile->setFileName( filename + QString( "_%1_tiles" ).arg( zoom ) );
+		if ( !openQFile( m_tileFile, QIODevice::ReadOnly ) )
 			return false;
-		fileZoom = zoom;
+		m_fileZoom = zoom;
 	}
 
 	qint64 indexPosition = qint64( y - box.minY ) * ( box.maxX - box.minX ) + ( x - box.minX );
-	indexFile->seek( indexPosition * 2 * sizeof( qint64 ) );
-	qint64 start, end;
-	indexFile->read( ( char* ) &start, sizeof( start ) );
-	indexFile->read( ( char* ) &end, sizeof( end ) );
-	if ( start == end )
+	m_indexFile->seek( indexPosition * ( sizeof( qint64 ) + sizeof( int ) ) );
+	qint64 start;
+	int size;
+	m_indexFile->read( ( char* ) &start, sizeof( start ) );
+	m_indexFile->read( ( char* ) &size, sizeof( size ) );
+	if ( size == 0 )
 		return false;
 
-	tileFile->seek( start );
-	QByteArray data = tileFile->read( end - start );
-	*tile = new QPixmap( tileSize, tileSize );
+	m_tileFile->seek( start );
+	QByteArray data = m_tileFile->read( size );
+	*tile = new QPixmap( m_tileSize, m_tileSize );
 	if ( !( *tile )->loadFromData( data, "PNG" ) ) {
-		qDebug() << "Failed to load picture:" << x << y << zoom << " data: (" << start << "-" << end << ")";
+		qDebug() << "Failed to load picture:" << x << y << zoom << " data: (" << start << "-" << start + size << ")";
 		delete *tile;
 		return false;
 	}

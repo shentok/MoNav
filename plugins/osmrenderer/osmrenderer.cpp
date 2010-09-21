@@ -18,16 +18,18 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "osmrenderer.h"
+#include "utils/qthelpers.h"
+#include <QFile>
 
 OSMRenderer::OSMRenderer()
 {
-	settingsDialog = NULL;
+	m_settingsDialog = NULL;
 }
 
 OSMRenderer::~OSMRenderer()
 {
-	if ( settingsDialog != NULL )
-		delete settingsDialog;
+	if ( m_settingsDialog != NULL )
+		delete m_settingsDialog;
 }
 
 QString OSMRenderer::GetName()
@@ -40,19 +42,32 @@ OSMRenderer::Type OSMRenderer::GetType()
 	return Renderer;
 }
 
-void OSMRenderer::SetOutputDirectory( const QString& )
+void OSMRenderer::SetOutputDirectory( const QString& directory )
 {
+	m_directory = directory;
 }
 
 void OSMRenderer::ShowSettings()
 {
-	if ( settingsDialog == NULL )
-		settingsDialog = new ORSettingsDialog();
-	settingsDialog->exec();
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new ORSettingsDialog();
+	m_settingsDialog->exec();
 }
 
 bool OSMRenderer::Preprocess( IImporter* )
 {
+	ORSettingsDialog::Settings settings;
+	if ( !m_settingsDialog->getSettings( &settings ) )
+		return false;
+
+	QFile settingsFile( fileInDirectory( m_directory, "OSM Renderer" ) + "_settings" );
+	if ( !openQFile( &settingsFile, QIODevice::WriteOnly ) )
+		return false;
+
+	for ( int zoom = 0; zoom < ( int ) settings.zoomLevels.size(); zoom ++ ) {
+		int zoomLevel = settings.zoomLevels[zoom];
+		settingsFile.write( ( const char* ) &zoomLevel, sizeof( zoomLevel ) );
+	}
 	return true;
 }
 

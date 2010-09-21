@@ -30,7 +30,7 @@ class MapnikRenderer : public QObject, public IPreprocessor
 	Q_INTERFACES( IPreprocessor )
 
 public:
-    MapnikRenderer();
+	 MapnikRenderer();
 	virtual QString GetName();
 	virtual Type GetType();
 	virtual void SetOutputDirectory( const QString& dir );
@@ -42,19 +42,16 @@ signals:
 	void changed();
 
 protected:
-	struct MapnikConfig {
-		int tileSize;
-		int maxZoom;
-	};
-	struct MapnikMetaTile {
+	struct MetaTile {
+		int zoom;
 		int x;
 		int y;
 		int metaTileSizeX;
 		int metaTileSizeY;
 	};
-	struct MapnikIndexElement {
+	struct IndexElement {
 		qint64 start;
-		qint64 end;
+		int size;
 	};
 
 	MRSettingsDialog* settingsDialog;

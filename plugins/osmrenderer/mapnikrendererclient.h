@@ -33,7 +33,6 @@ public:
 	MapnikRendererClient();
 	virtual ~MapnikRendererClient();
 	virtual QString GetName();
-	virtual int GetMaxZoom();
 
 protected:
 
@@ -49,11 +48,10 @@ protected:
 		int maxY;
 	};
 
-	int maxZoom;
-	QVector< Box > boxes;
-	QFile* indexFile;
-	QFile* tileFile;
-	int fileZoom;
+	QVector< Box > m_boxes;
+	QFile* m_indexFile;
+	QFile* m_tileFile;
+	int m_fileZoom;
 };
 
 #endif // MAPNIKRENDERER_H

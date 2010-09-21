@@ -32,7 +32,6 @@ public:
 	OSMRendererClient();
 	virtual ~OSMRendererClient();
 	virtual QString GetName();
-	virtual int GetMaxZoom();
 
 public slots:
 	void finished( QNetworkReply* reply );

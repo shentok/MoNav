@@ -20,13 +20,16 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "mrsettingsdialog.h"
 #include "ui_mrsettingsdialog.h"
 #include <QFileDialog>
+#include <QFile>
+#include <cassert>
+#include <QtDebug>
 #include <QSettings>
 
 MRSettingsDialog::MRSettingsDialog(QWidget *parent) :
-    QDialog(parent),
+	 QDialog(parent),
 	 ui(new Ui::MRSettingsDialog)
 {
-    ui->setupUi(this);
+	 ui->setupUi(this);
 	connectSlots();
 
 	QSettings settings( "MoNav" );
@@ -36,13 +39,20 @@ MRSettingsDialog::MRSettingsDialog(QWidget *parent) :
 	ui->modulesEdit->setText( settings.value( "pluginDirectory" ).toString() );
 	ui->tileSize->setValue( settings.value( "tileSize", 256 ).toInt() );
 	ui->metaTileSize->setValue( settings.value( "metaTileSize", 8 ).toInt() );
-	ui->maxZoom->setValue( settings.value( "maxZoom", 15 ).toInt() );
 	ui->minZoom->setValue( settings.value( "minZoom", 6 ).toInt() );
 	ui->margin->setValue( settings.value( "margin", 128 ).toInt() );
 	ui->tileMargin->setValue( settings.value( "tileMargin", 1 ).toInt() );
 	ui->colorReduction->setChecked( settings.value( "colorReduction", true ).toBool() );
 	ui->removeTiles->setChecked( settings.value( "removeTiles", false ).toBool() );
 	ui->pngcrush->setChecked( settings.value( "pngcrush", false ).toBool() );
+
+	for ( int zoom = 0; zoom < 19; zoom++ ) {
+		QString name = QString( "zoom%1" ).arg( zoom );
+		QCheckBox* checkbox = findChild< QCheckBox* >( name );
+		assert( checkbox != NULL );
+		checkbox->setChecked( settings.value( name, true ).toBool() );
+	}
+	setGeometry( settings.value( "Geometry", geometry() ).toRect() );
 }
 
 MRSettingsDialog::~MRSettingsDialog()
@@ -54,7 +64,6 @@ MRSettingsDialog::~MRSettingsDialog()
 	settings.setValue( "pluginDirectory", ui->modulesEdit->text() );
 	settings.setValue( "tileSize", ui->tileSize->value() );
 	settings.setValue( "metaTileSize", ui->metaTileSize->value() );
-	settings.setValue( "maxZoom", ui->maxZoom->value() );
 	settings.setValue( "minZoom", ui->minZoom->value() );
 	settings.setValue( "margin", ui->margin->value() );
 	settings.setValue( "tileMargin", ui->tileMargin->value() );
@@ -62,7 +71,15 @@ MRSettingsDialog::~MRSettingsDialog()
 	settings.setValue( "removeTiles", ui->removeTiles->isChecked() );
 	settings.setValue( "pngcrush", ui->pngcrush->isChecked() );
 
-    delete ui;
+	for ( int zoom = 0; zoom < 19; zoom++ ) {
+		QString name = QString( "zoom%1" ).arg( zoom );
+		QCheckBox* checkbox = findChild< QCheckBox* >( name );
+		assert( checkbox != NULL );
+		settings.setValue( name, checkbox->isChecked() );
+	}
+	settings.setValue( "geometry", geometry() );
+
+	 delete ui;
 }
 
 void MRSettingsDialog::connectSlots()
@@ -74,14 +91,14 @@ void MRSettingsDialog::connectSlots()
 
 void MRSettingsDialog::changeEvent(QEvent *e)
 {
-    QDialog::changeEvent(e);
-    switch (e->type()) {
-    case QEvent::LanguageChange:
-        ui->retranslateUi(this);
-        break;
-    default:
-        break;
-    }
+	 QDialog::changeEvent(e);
+	 switch (e->type()) {
+	 case QEvent::LanguageChange:
+		  ui->retranslateUi(this);
+		  break;
+	 default:
+		  break;
+	 }
 }
 
 void MRSettingsDialog::browseFont()
@@ -114,12 +131,23 @@ bool MRSettingsDialog::getSettings( Settings* settings ) {
 	settings->plugins = ui->modulesEdit->text();
 	settings->tileSize = ui->tileSize->value();
 	settings->metaTileSize = ui->metaTileSize->value();
-	settings->maxZoom = ui->maxZoom->value();
-	settings->minZoom = ui->minZoom->value();
+	settings->fullZoom = ui->minZoom->value();
 	settings->margin = ui->margin->value();
 	settings->tileMargin = ui->tileMargin->value();
 	settings->reduceColors = ui->colorReduction->isChecked();
 	settings->deleteTiles = ui->removeTiles->isChecked();
 	settings->pngcrush = ui->pngcrush->isChecked();
+
+	for ( int zoom = 0; zoom < 19; zoom++ ) {
+		QString name = QString( "zoom%1" ).arg( zoom );
+		QCheckBox* checkbox = findChild< QCheckBox* >( name );
+		assert( checkbox != NULL );
+		if ( checkbox->isChecked() )
+			settings->zoomLevels.push_back( zoom );
+	}
+	if ( settings->zoomLevels.size() == 0 ) {
+		qCritical() << "No Zoom Level Selected";
+		return false;
+	}
 	return true;
 }

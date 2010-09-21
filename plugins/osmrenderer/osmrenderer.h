@@ -29,15 +29,19 @@ class OSMRenderer : public QObject, public IPreprocessor
 	Q_INTERFACES( IPreprocessor )
 
 public:
+
 	OSMRenderer();
 	virtual QString GetName();
 	virtual Type GetType();
-	virtual void SetOutputDirectory( const QString& dir );
+	virtual void SetOutputDirectory( const QString& directory );
 	virtual void ShowSettings();
 	virtual bool Preprocess( IImporter* importer );
 	virtual ~OSMRenderer();
+
 protected:
-	ORSettingsDialog* settingsDialog;
+
+	QString m_directory;
+	ORSettingsDialog* m_settingsDialog;
 };
 
 #endif // OSMRENDERER_H

@@ -102,7 +102,7 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 		mapnik::freetype_engine::register_font( fonts.filePath( "DejaVuSans-Oblique.ttf" ).toAscii().constData() );
 		mapnik::freetype_engine::register_font( fonts.filePath( "DejaVuSans-BoldOblique.ttf" ).toAscii().constData() );
 
-		qDebug() << "Mapnik Renderer: initialized mapnik connection:" << time.restart() << "s";
+		qDebug() << "Mapnik Renderer: initialized mapnik connection:" << time.restart() << "ms";
 
 		int numThreads = omp_get_max_threads();
 		qDebug() << "Mapnik Renderer: using" << numThreads << "threads";
@@ -110,14 +110,11 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 		qDebug() << "Mapnik Renderer: x: " << box.min.x << "-" << box.max.x;
 		qDebug() << "Mapnik Renderer: y: " << box.min.y << "-" << box.max.y;
 
-		MapnikConfig config;
-		config.maxZoom = settings.maxZoom;
-		config.tileSize = settings.tileSize;
 		FileStream configData( filename );
 		if ( !configData.open( QIODevice::WriteOnly ) )
 			return false;
 
-		configData << quint32( config.tileSize ) << quint32( config.maxZoom );
+		configData << quint32( settings.tileSize ) << quint32( settings.zoomLevels.size() );
 
 		mapnik::Map* maps[numThreads];
 		mapnik::Image32* images[numThreads];
@@ -128,9 +125,10 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 			images[i] = new mapnik::Image32( metaTileSize, metaTileSize );
 		}
 
-		qDebug() << "Mapnik Renderer: initialized thread data:" << time.restart() << "s";
+		qDebug() << "Mapnik Renderer: initialized thread data:" << time.restart() << "ms";
 
-		for ( int zoom = 0; zoom <= settings.maxZoom; zoom++ ) {
+		for ( int zoomLevel = 0; zoomLevel < ( int ) settings.zoomLevels.size(); zoomLevel++ ) {
+			int zoom = settings.zoomLevels[zoomLevel];
 
 			int tilesRendered = 0;
 			int tilesSkipped = 0;
@@ -142,7 +140,7 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 			int minY = box.min.GetTileY( zoom );
 			int maxY = box.max.GetTileY( zoom ) + 1;
 
-			if ( zoom <= settings.minZoom ) {
+			if ( zoom <= settings.fullZoom ) {
 				minX = minY = 0;
 				maxX = maxY = 1 << zoom;
 			}
@@ -176,22 +174,22 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 						occupancy[( x - minX ) + ( y - minY ) * ( maxX - minX )] = true;
 			}
 
-			configData << quint32( minX ) << quint32( maxX ) << quint32( minY ) << quint32( maxY );
+			configData << quint32( zoom ) << quint32( minX ) << quint32( maxX ) << quint32( minY ) << quint32( maxY );
 
-			qDebug() << "Mapnik Renderer: zoom:" << zoom << "; x:" << minX << "-" << maxX << "; y:" << minY << "-" << maxY;
+			qDebug() << "Mapnik Renderer: [" << zoom << "] x:" << minX << "-" << maxX << "; y:" << minY << "-" << maxY;
 			int numberOfTiles = ( maxX - minX ) * ( maxY - minY );
-			std::vector< MapnikIndexElement > index( numberOfTiles );
+			std::vector< IndexElement > index( numberOfTiles );
 			qint64 position = 0;
 			QFile tilesFile( filename + QString( "_%1_tiles" ).arg( zoom ) );
 			if ( !openQFile( &tilesFile, QIODevice::WriteOnly ) )
 				return false;
 
-			std::vector< MapnikMetaTile > tasks;
+			std::vector< MetaTile > tasks;
 			for ( int x = minX; x < maxX; x+= settings.metaTileSize ) {
 				int metaTileSizeX = std::min( settings.metaTileSize, maxX - x );
 				for ( int y = minY; y < maxY; y+= settings.metaTileSize ) {
 					int metaTileSizeY = std::min( settings.metaTileSize, maxY - y );
-					MapnikMetaTile tile;
+					MetaTile tile;
 					tile.x = x;
 					tile.y = y;
 					tile.metaTileSizeX = metaTileSizeX;
@@ -270,7 +268,7 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 							tilesFile.write( result.data(), result.size() );
 							index[indexNumber].start = position;
 							position += result.size();
-							index[indexNumber].end = position;
+							index[indexNumber].size = result.size();
 						}
 					}
 				}
@@ -278,22 +276,23 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 				{
 					metaTilesRendered++;
 					tilesRendered += metaTileSizeX * metaTileSizeY;
-					qDebug( "Mapnik Renderer: zoom: %d, thread %d, metatiles: %d, tiles: %d / %d", zoom, threadID, metaTilesRendered, tilesRendered, ( maxX - minX ) * ( maxY - minY ) );
+					qDebug() << "Mapnik Renderer: [" << zoom << "], thread" << threadID << ", metatiles:" << metaTilesRendered << ", tiles:" << tilesRendered << "/" << ( maxX - minX ) * ( maxY - minY );
 				}
 			}
-			qDebug() << "Mapnik Renderer: zoom" << zoom << ": removed" << tilesSkipped << "of" << tilesRendered << "tiles";
+
+			qDebug() << "Mapnik Renderer: [" << zoom << "] removed" << tilesSkipped << "of" << tilesRendered << "tiles";
 			if ( settings.pngcrush )
-				qDebug() << "Mapnik Renderer: PNGcrush saved" << pngcrushSaved / 1024 << "KB ->" << position / 1024 << "KB" << "[" << 100 * pngcrushSaved / position << "%]";
+				qDebug() << "Mapnik Renderer: [" << zoom << "] PNGcrush saved" << pngcrushSaved / 1024 << "KB ->" << position / 1024 << "KB" << "[" << 100 * pngcrushSaved / position << "%]";
 			QFile indexFile( filename + QString( "_%1_index" ).arg( zoom ) );
 			if ( !openQFile( &indexFile, QIODevice::WriteOnly ) )
 				return false;
 			for ( int i = 0; i < ( int ) index.size(); i++ )
 			{
 				indexFile.write( ( const char* ) &index[i].start, sizeof( index[i].start ) );
-				indexFile.write( ( const char* ) &index[i].end, sizeof( index[i].end ) );
+				indexFile.write( ( const char* ) &index[i].size, sizeof( index[i].size ) );
 			}
+			qDebug() << "Mapnik Renderer: [" << zoom << "] finished:" << time.restart() << "ms";
 		}
-		qDebug() << "Mapnik Renderer: rendering finished:" << time.restart() << "s";
 
 		for ( int i = 0; i < numThreads; i++ ) {
 			delete maps[i];

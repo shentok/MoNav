@@ -19,15 +19,54 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "orsettingsdialog.h"
 #include "ui_orsettingsdialog.h"
+#include <cassert>
+#include <QSettings>
+#include <QtDebug>
 
 ORSettingsDialog::ORSettingsDialog(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::ORSettingsDialog)
+		QDialog(parent),
+		m_ui(new Ui::ORSettingsDialog)
 {
-    ui->setupUi(this);
+	m_ui->setupUi(this);
+	QSettings settings( "MoNav" );
+	settings.beginGroup( "OSMRenderer" );
+	for ( int zoom = 0; zoom < 19; zoom++ ) {
+		QString name = QString( "zoom%1" ).arg( zoom );
+		QCheckBox* checkbox = findChild< QCheckBox* >( name );
+		assert( checkbox != NULL );
+		checkbox->setChecked( settings.value( name, true ).toBool() );
+	}
+	setGeometry( settings.value( "Geometry", geometry() ).toRect() );
 }
 
 ORSettingsDialog::~ORSettingsDialog()
 {
-    delete ui;
+	QSettings settings( "MoNav" );
+	settings.beginGroup( "OSMRenderer" );
+	for ( int zoom = 0; zoom < 19; zoom++ ) {
+		QString name = QString( "zoom%1" ).arg( zoom );
+		QCheckBox* checkbox = findChild< QCheckBox* >( name );
+		assert( checkbox != NULL );
+		settings.setValue( name, checkbox->isChecked() );
+	}
+	settings.setValue( "geometry", geometry() );
+	delete m_ui;
+}
+
+bool ORSettingsDialog::getSettings( Settings* settings )
+{
+	if ( settings == NULL )
+		return false;
+	for ( int zoom = 0; zoom < 19; zoom++ ) {
+		QString name = QString( "zoom%1" ).arg( zoom );
+		QCheckBox* checkbox = findChild< QCheckBox* >( name );
+		assert( checkbox != NULL );
+		if ( checkbox->isChecked() )
+			settings->zoomLevels.push_back( zoom );
+	}
+	if ( settings->zoomLevels.size() == 0 ) {
+		qCritical() << "No Zoom Level Selected";
+		return false;
+	}
+	return true;
 }

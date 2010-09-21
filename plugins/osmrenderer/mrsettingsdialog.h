@@ -27,7 +27,7 @@ namespace Ui {
 }
 
 class MRSettingsDialog : public QDialog {
-    Q_OBJECT
+	 Q_OBJECT
 public:
 	 MRSettingsDialog(QWidget *parent = 0);
 	 ~MRSettingsDialog();
@@ -36,8 +36,7 @@ public:
 		QString plugins;
 		QString fonts;
 		QString theme;
-		int minZoom;
-		int maxZoom;
+		int fullZoom;
 		int tileSize;
 		int metaTileSize;
 		int margin;
@@ -45,6 +44,8 @@ public:
 		bool reduceColors;
 		bool deleteTiles;
 		bool pngcrush;
+
+		std::vector< int > zoomLevels;
 	};
 
 	bool getSettings( Settings* settings );
@@ -55,7 +56,7 @@ public slots:
 	void browsePlugins();
 
 protected:
-    void changeEvent(QEvent *e);
+	 void changeEvent(QEvent *e);
 	void connectSlots();
 
 private:

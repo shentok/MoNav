@@ -39,7 +39,7 @@ public:
 	virtual void SetInputDirectory( const QString& dir );
 	virtual void ShowSettings();
 	virtual bool LoadData();
-	virtual int GetMaxZoom() = 0;
+	virtual int GetMaxZoom();
 	virtual ProjectedCoordinate Move( int shiftX, int shiftY, const PaintRequest& request );
 	virtual ProjectedCoordinate PointToCoordinate( int shiftX, int shiftY, const PaintRequest& request );
 	virtual bool Paint( QPainter* painter, const PaintRequest& request );
@@ -61,15 +61,16 @@ protected:
 	void drawIndicator( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, int virtualZoom, QColor outer, QColor inner );
 	void drawPolyline( QPainter* painter, const QRect& boundingBox, QVector< ProjectedCoordinate > line, QColor color );
 
-	QString directory;
-	QCache< long long, QPixmap > cache;
-	bool loaded;
-	int tileSize;
-	QPolygonF arrow;
+	int m_tileSize;
+	std::vector< int > m_zoomLevels;
 
-private:
-	BRSettingsDialog::Settings settings;
-	BRSettingsDialog* settingsDialog;
+	QString m_directory;
+	QCache< long long, QPixmap > m_cache;
+	bool m_loaded;
+	QPolygonF m_arrow;
+
+	BRSettingsDialog::Settings m_settings;
+	BRSettingsDialog* m_settingsDialog;
 };
 
 #endif // RENDERERBASE_H

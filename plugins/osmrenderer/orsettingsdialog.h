@@ -23,19 +23,27 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QDialog>
 
 namespace Ui {
-    class ORSettingsDialog;
+	class ORSettingsDialog;
 }
 
 class ORSettingsDialog : public QDialog
 {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    explicit ORSettingsDialog(QWidget *parent = 0);
-    ~ORSettingsDialog();
 
-private:
-    Ui::ORSettingsDialog *ui;
+	struct Settings {
+		std::vector< int > zoomLevels;
+	};
+
+	explicit ORSettingsDialog(QWidget *parent = 0);
+	~ORSettingsDialog();
+
+	bool getSettings( Settings* settings );
+
+protected:
+
+	Ui::ORSettingsDialog* m_ui;
 };
 
 #endif // ORSETTINGSDIALOG_H

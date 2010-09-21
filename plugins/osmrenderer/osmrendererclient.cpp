@@ -17,10 +17,11 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <QDir>
+#include "utils/qthelpers.h"
 #include <QNetworkReply>
 #include <QtDebug>
 #include <QDesktopServices>
+#include <QFile>
 
 #include "osmrendererclient.h"
 
@@ -64,30 +65,37 @@ bool OSMRendererClient::load()
 	network->setCache( diskCache );
 	connect( network, SIGNAL(finished(QNetworkReply*)), this, SLOT(finished(QNetworkReply*)) );
 	tileSize = 256;
-	return true;
-}
 
-int OSMRendererClient::GetMaxZoom()
-{
-	return 18;
+	QFile settingsFile( fileInDirectory( m_directory, "OSM Renderer" ) + "_settings" );
+	if ( !openQFile( &settingsFile, QIODevice::ReadOnly ) )
+		return false;
+
+	while ( true ) {
+		int zoomLevel;
+		if ( settingsFile.read( ( char* ) &zoomLevel, sizeof( zoomLevel ) ) != sizeof( zoomLevel ) )
+			break;
+		m_zoomLevels.push_back( zoomLevel );
+	}
+
+	return true;
 }
 
 void OSMRendererClient::finished( QNetworkReply* reply ) {
 	long long id = reply->request().attribute( QNetworkRequest::User ).toLongLong();
 	if ( reply->error() ) {
-		cache.remove( id );
+		m_cache.remove( id );
 		qDebug() << "failed to get: " << reply->url();
 		return;
 	}
 
 	QImage image;
 	if ( !image.load( reply, 0 ) ) {
-		cache.remove( id );
+		m_cache.remove( id );
 		qDebug() << "failed to load image: " << id;
 		return;
 	}
 	QPixmap* tile = new QPixmap( QPixmap::fromImage( image ) );
-	cache.insert( id, tile , tileSize * tileSize * tile->depth() / 8 );
+	m_cache.insert( id, tile , tileSize * tileSize * tile->depth() / 8 );
 	reply->deleteLater();
 	emit changed();
 }
@@ -103,7 +111,7 @@ bool OSMRendererClient::loadTile( int x, int y, int zoom, QPixmap** tile )
 	if ( cacheItem != NULL ) {
 		QImage image;
 		if ( !image.load( cacheItem, 0 ) ) {
-			cache.remove( id );
+			m_cache.remove( id );
 			qDebug() << "failed to load image from cache: " << id;
 			return false;
 		}
