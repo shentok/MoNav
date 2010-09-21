@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>MRSettingsDialog</class>
  <widget class="QDialog" name="MRSettingsDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>513</width>
+    <height>581</height>
+   </rect>
+  </property>
   <property name="sizePolicy">
    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
     <horstretch>0</horstretch>
@@ -49,15 +57,15 @@
    <item>
     <widget class="QToolBox" name="toolBox">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="page_2">
       <property name="geometry">
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>296</width>
-        <height>117</height>
+        <width>495</width>
+        <height>301</height>
        </rect>
       </property>
       <attribute name="label">
@@ -399,8 +407,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>782</width>
-        <height>327</height>
+        <width>381</width>
+        <height>113</height>
        </rect>
       </property>
       <attribute name="label">
