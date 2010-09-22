@@ -118,11 +118,14 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 
 		mapnik::Map* maps[numThreads];
 		mapnik::Image32* images[numThreads];
-		for ( int i = 0; i < numThreads; i++ ) {
-			maps[i] = new mapnik::Map;
-			mapnik::load_map( *maps[i], settings.theme.toLocal8Bit().constData() );
+#pragma omp parallel
+		{
+			int threadID = omp_get_thread_num();
+
+			maps[threadID] = new mapnik::Map;
+			mapnik::load_map( *maps[threadID], settings.theme.toLocal8Bit().constData() );
 			const int metaTileSize = settings.metaTileSize * settings.tileSize + 2 * settings.margin;
-			images[i] = new mapnik::Image32( metaTileSize, metaTileSize );
+			images[threadID] = new mapnik::Image32( metaTileSize, metaTileSize );
 		}
 
 		qDebug() << "Mapnik Renderer: initialized thread data:" << time.restart() << "ms";
