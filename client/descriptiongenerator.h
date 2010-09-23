@@ -75,6 +75,16 @@ public:
 			bool typeAvailable = router->GetType( &type, pathEdges[edge + 1].type );
 			assert( typeAvailable );
 
+			if ( type == "motorway_link" && m_lastType != "motorway_link" ) {
+				for ( int nextEdge = edge + 2; nextEdge < pathEdges.size(); nextEdge++ ) {
+					if ( pathEdges[nextEdge].type != pathEdges[edge + 1].type ) {
+						for ( int otherEdge = edge + 1; otherEdge < nextEdge; otherEdge++ )
+							pathEdges[otherEdge].name = pathEdges[nextEdge].name;
+						break;
+					}
+				}
+			}
+
 			if ( ( type == "roundabout" ) != ( m_lastType == "roundabout" ) ) {
 				breakDescription = true;
 				if ( type != "roundabout" )
@@ -83,9 +93,9 @@ public:
 				if ( m_branchingPossible ) {
 					if ( abs( direction ) > 1 )
 						breakDescription = true;
-					else if ( m_lastNameID != pathEdges[edge + 1].name )
-						breakDescription = true;
 				}
+				if ( m_lastNameID != pathEdges[edge + 1].name )
+					breakDescription = true;
 			}
 
 			if ( breakDescription ) {
@@ -112,7 +122,7 @@ protected:
 		angle %= 360;
 		static const int forward = 10;
 		static const int sharp = 45;
-		static const int slightly = 10;
+		static const int slightly = 20;
 		if ( angle > 180 ) {
 			if ( angle > 360 - forward - slightly ) {
 				if ( angle > 360 - forward )
@@ -152,52 +162,65 @@ protected:
 		}
 
 		QString name = m_lastName;
+		bool turnInstruction = true;
 
-		switch ( m_direction ) {
-		case 0:
-			break;
-		case 1:
-			{
-				icons->push_back( ":/images/directions/slightlyright.png" );
-				labels->push_back( "Keep slightly right" );
-				break;
-			}
-		case 2:
-			{
-				icons->push_back( ":/images/directions/right.png" );
-				labels->push_back( "Turn right" );
-				break;
-			}
-		case 3:
-			{
-				icons->push_back( ":/images/directions/sharplyright.png" );
-				labels->push_back( "Turn sharply right" );
-				break;
-			}
-		case -1:
-			{
-				icons->push_back( ":/images/directions/slightlyleft.png" );
-				labels->push_back( "Keep slightly left" );
-				break;
-			}
-		case -2:
-			{
-				icons->push_back( ":/images/directions/left.png" );
-				labels->push_back( "Turn left" );
-				break;
-			}
-		case -3:
-			{
-				icons->push_back( ":/images/directions/sharplyleft.png" );
-				labels->push_back( "Turn sharply left" );
-				break;
-			}
-		}
-		if ( m_direction != 0 ) {
+		if ( m_lastType == "motorway_link" ) {
+			icons->push_back( ":/images/directions/motorway_exit.png" );
 			if ( !name.isEmpty() )
-				labels->back() += " into " + name + ".";
+				labels->push_back( "Take the ramp towards " + name + "." );
 			else
-				labels->back() += ".";
+				labels->push_back( "Take the ramp." );
+
+			turnInstruction = false;
+		}
+
+		if ( turnInstruction ) {
+			switch ( m_direction ) {
+			case 0:
+				break;
+			case 1:
+				{
+					icons->push_back( ":/images/directions/slightlyright.png" );
+					labels->push_back( "Keep slightly right" );
+					break;
+				}
+			case 2:
+				{
+					icons->push_back( ":/images/directions/right.png" );
+					labels->push_back( "Turn right" );
+					break;
+				}
+			case 3:
+				{
+					icons->push_back( ":/images/directions/sharplyright.png" );
+					labels->push_back( "Turn sharply right" );
+					break;
+				}
+			case -1:
+				{
+					icons->push_back( ":/images/directions/slightlyleft.png" );
+					labels->push_back( "Keep slightly left" );
+					break;
+				}
+			case -2:
+				{
+					icons->push_back( ":/images/directions/left.png" );
+					labels->push_back( "Turn left" );
+					break;
+				}
+			case -3:
+				{
+					icons->push_back( ":/images/directions/sharplyleft.png" );
+					labels->push_back( "Turn sharply left" );
+					break;
+				}
+			}
+			if ( m_direction != 0 ) {
+				if ( !name.isEmpty() )
+					labels->back() += " into " + name + ".";
+				else
+					labels->back() += ".";
+			}
 		}
 
 		if ( m_distance > 20 ) {
