@@ -337,7 +337,8 @@ void MainWindow::computeRoute()
 		m_descriptionLabels.clear();
 	}
 
-	DescriptionGenerator::descriptions( &m_descriptionIcons, &m_descriptionLabels, m_router, m_pathNodes, m_pathEdges, 2 );
+	DescriptionGenerator generator;
+	generator.descriptions( &m_descriptionIcons, &m_descriptionLabels, m_router, m_pathNodes, m_pathEdges, 2 );
 
 	emit routeChanged( m_pathNodes, m_descriptionIcons, m_descriptionLabels );
 }
@@ -345,7 +346,8 @@ void MainWindow::computeRoute()
 void MainWindow::routeDescription()
 {
 	RouteDescriptionDialog* window = new RouteDescriptionDialog();
-	DescriptionGenerator::descriptions( &m_descriptionIcons, &m_descriptionLabels, m_router, m_pathNodes, m_pathEdges );
+	DescriptionGenerator generator;
+	generator.descriptions( &m_descriptionIcons, &m_descriptionLabels, m_router, m_pathNodes, m_pathEdges );
 	window->setDescriptions( m_descriptionIcons, m_descriptionLabels );
 	window->exec();
 	delete window;

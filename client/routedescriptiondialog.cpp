@@ -20,6 +20,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "routedescriptiondialog.h"
 #include "ui_routedescriptiondialog.h"
 #include <cassert>
+#include <QtDebug>
 
 RouteDescriptionDialog::RouteDescriptionDialog( QWidget *parent ) :
 		QDialog( parent ),
@@ -37,6 +38,8 @@ void RouteDescriptionDialog::setDescriptions( QStringList icons, QStringList lab
 {
 	m_ui->descriptionList->clear();
 	assert( icons.size() == labels.size() );
-	for ( int entry = 0; entry < icons.size(); entry++ )
+	for ( int entry = 0; entry < icons.size(); entry++ ) {
 		new QListWidgetItem( QIcon( icons[entry] ), labels[entry], m_ui->descriptionList );
+		qDebug() << "Route Description:" << labels[entry];
+	}
 }
