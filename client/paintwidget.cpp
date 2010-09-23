@@ -27,9 +27,11 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 PaintWidget::PaintWidget(QWidget *parent) :
 	QWidget( parent ),
-	m_ui(new Ui::PaintWidget)
+	m_ui( new Ui::PaintWidget )
 {
-	m_ui->setupUi(this);
+	m_ui->setupUi( this );
+	setAttribute( Qt::WA_OpaquePaintEvent, true );
+	setAttribute( Qt::WA_NoSystemBackground, true );
 	m_lastMouseX = 0;
 	m_lastMouseY = 0;
 	m_wheelDelta = 0;
