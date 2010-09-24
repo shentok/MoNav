@@ -338,7 +338,7 @@ void MainWindow::computeRoute()
 	}
 
 	DescriptionGenerator generator;
-	generator.descriptions( &m_descriptionIcons, &m_descriptionLabels, m_router, m_pathNodes, m_pathEdges, 2 );
+	generator.descriptions( &m_descriptionIcons, &m_descriptionLabels, m_router, m_pathNodes, m_pathEdges, 60 );
 
 	emit routeChanged( m_pathNodes, m_descriptionIcons, m_descriptionLabels );
 }

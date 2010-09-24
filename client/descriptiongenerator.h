@@ -40,7 +40,7 @@ public:
 		m_lastTypeID = std::numeric_limits< unsigned >::max();
 	}
 
-	void descriptions( QStringList* icons, QStringList* labels, IRouter* router, QVector< IRouter::Node > pathNodes, QVector< IRouter::Edge > pathEdges, int maxDescriptions = std::numeric_limits< int >::max() )
+	void descriptions( QStringList* icons, QStringList* labels, IRouter* router, QVector< IRouter::Node > pathNodes, QVector< IRouter::Edge > pathEdges, int maxSeconds = std::numeric_limits< int >::max() )
 	{
 		icons->clear();
 		labels->clear();
@@ -52,6 +52,7 @@ public:
 		}
 
 		newDescription( router, pathEdges.first() );
+		int seconds = 0;
 
 		int node = 0;
 		GPSCoordinate gps = pathNodes.first().coordinate.ToGPSCoordinate();
@@ -61,6 +62,7 @@ public:
 			m_distance += gps.ApproximateDistance( nextGPS );
 			gps = nextGPS;
 			m_branchingPossible = pathEdges[edge].branchingPossible;
+			seconds += pathEdges[edge].seconds;
 
 			if ( m_lastType == "roundabout" && pathEdges[edge + 1].type == m_lastTypeID ) {
 				if ( m_branchingPossible )
@@ -99,16 +101,17 @@ public:
 			}
 
 			if ( breakDescription ) {
-				if ( icons->size() + 1 >= maxDescriptions )
-					break;
 				describe( icons, labels);
+				if ( seconds >= maxSeconds )
+					break;
 				newDescription( router, pathEdges[edge + 1] );
 				m_direction = direction;
 			}
 		}
 		GPSCoordinate nextGPS = pathNodes.back().coordinate.ToGPSCoordinate();
 		m_distance += gps.ApproximateDistance( nextGPS );
-		describe( icons, labels );
+		if ( seconds < maxSeconds )
+			describe( icons, labels );
 	}
 
 protected:
