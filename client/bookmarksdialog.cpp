@@ -137,11 +137,9 @@ bool BookmarksDialog::showBookmarks( UnsignedCoordinate* result, QWidget* p, Uns
 	BookmarksDialog* window = new BookmarksDialog( p );
 
 	window->m_target = target;
-	if ( target.x == 0 && target.y == 0 )
-		window->m_ui->targetButton->setDisabled( true );
+	window->m_ui->targetButton->setDisabled( !target.IsValid() );
 	window->m_source = source;
-	if ( source.x == 0 && source.y == 0 )
-		window->m_ui->sourceButton->setDisabled( true );
+	window->m_ui->sourceButton->setDisabled( !source.IsValid() );
 
 	window->exec();
 
