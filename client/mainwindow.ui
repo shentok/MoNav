@@ -87,7 +87,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/address.bmp</normaloff>:/images/address.bmp</iconset>
+                 <normaloff>:/images/address.png</normaloff>:/images/address.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -116,7 +116,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/bookmark.bmp</normaloff>:/images/bookmark.bmp</iconset>
+                 <normaloff>:/images/bookmark.png</normaloff>:/images/bookmark.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -521,7 +521,7 @@
              </property>
              <property name="icon">
               <iconset resource="images.qrc">
-               <normaloff>:/images/source.bmp</normaloff>:/images/source.bmp</iconset>
+               <normaloff>:/images/source.png</normaloff>:/images/source.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -550,7 +550,7 @@
              </property>
              <property name="icon">
               <iconset resource="images.qrc">
-               <normaloff>:/images/choosetarget.bmp</normaloff>:/images/choosetarget.bmp</iconset>
+               <normaloff>:/images/target.png</normaloff>:/images/target.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -579,7 +579,7 @@
              </property>
              <property name="icon">
               <iconset resource="images.qrc">
-               <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
+               <normaloff>:/images/route.png</normaloff>:/images/route.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -608,7 +608,7 @@
              </property>
              <property name="icon">
               <iconset resource="images.qrc">
-               <normaloff>:/images/viewmap.bmp</normaloff>:/images/viewmap.bmp</iconset>
+               <normaloff>:/images/map.png</normaloff>:/images/map.png</iconset>
              </property>
              <property name="iconSize">
               <size>

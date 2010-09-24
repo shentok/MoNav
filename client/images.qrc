@@ -1,13 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>images/address.bmp</file>
-        <file>images/back.bmp</file>
-        <file>images/bookmark.bmp</file>
-        <file>images/choosetarget.bmp</file>
-        <file>images/citycenter.bmp</file>
-        <file>images/settings.bmp</file>
-        <file>images/viewmap.bmp</file>
-        <file>images/source.bmp</file>
         <file>images/placeholder.png</file>
         <file>images/directions/forward.png</file>
         <file>images/directions/left.png</file>
@@ -16,5 +8,11 @@
         <file>images/directions/sharplyright.png</file>
         <file>images/directions/slightlyleft.png</file>
         <file>images/directions/slightlyright.png</file>
+        <file>images/map.png</file>
+        <file>images/route.png</file>
+        <file>images/source.png</file>
+        <file>images/target.png</file>
+        <file>images/address.png</file>
+        <file>images/bookmark.png</file>
     </qresource>
 </RCC>
