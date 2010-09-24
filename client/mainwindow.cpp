@@ -65,7 +65,7 @@ MainWindow::MainWindow(QWidget *parent) :
 #ifndef NOQTMOBILE
 	m_gpsSource = QGeoPositionInfoSource::createDefaultSource( this );
 	if ( m_gpsSource == 0 ) {
-		qCritical() << "No GPS Sensor found! GPS Updates are not available";
+		qWarning() << "No GPS Sensor found! GPS Updates are not available";
 		m_ui->gpsButton->setEnabled( false );
 	}
 #endif
