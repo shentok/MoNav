@@ -81,7 +81,7 @@ int main( int argc, char *argv[] ) {
 		for ( int i = 0; i < reply.pathEdges.size(); i++ ) {
 			QString name = reply.nameStrings[reply.pathEdges[i].name];
 			QString type = reply.typeStrings[reply.pathEdges[i].type];
-			qDebug() << "name:" << name.toUtf8() << "type:" << type << "nodes:" << reply.pathEdges[i].length + 1;
+			qDebug() << "name:" << name.toUtf8() << "type:" << type << "nodes:" << reply.pathEdges[i].length + 1 << "seconds:" << reply.pathEdges[i].seconds << "branching possible:" << reply.pathEdges[i].branchingPossible;
 			for ( unsigned j = 0; j <= reply.pathEdges[i].length; j++ ) {
 				QString latitude, longitude;
 				latitude.setNum( reply.pathNodes[j + node].latitude, 'g', 10 );

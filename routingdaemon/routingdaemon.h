@@ -103,6 +103,8 @@ public slots:
 					edge.length = pathEdges[j].length;
 					edge.name = pathEdges[j].name;
 					edge.type = pathEdges[j].type;
+					edge.seconds = pathEdges[j].seconds;
+					edge.branchingPossible = pathEdges[j].branchingPossible;
 					result.pathEdges.push_back( edge );
 				}
 			}
