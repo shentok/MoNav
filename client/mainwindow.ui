@@ -145,7 +145,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
+                 <normaloff>:/images/oxygen/network-wireless.png</normaloff>:/images/oxygen/network-wireless.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -232,7 +232,7 @@
             <property name="geometry">
              <rect>
               <x>0</x>
-              <y>0</y>
+              <y>-19</y>
               <width>179</width>
               <height>432</height>
              </rect>
@@ -260,7 +260,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
+                 <normaloff>:/images/oxygen/preferences-system.png</normaloff>:/images/oxygen/preferences-system.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -289,7 +289,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
+                 <normaloff>:/images/map.png</normaloff>:/images/map.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -318,7 +318,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
+                 <normaloff>:/images/oxygen/network-wireless.png</normaloff>:/images/oxygen/network-wireless.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -347,7 +347,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
+                 <normaloff>:/images/address.png</normaloff>:/images/address.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -379,7 +379,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
+                 <normaloff>:/images/oxygen/hwinfo.png</normaloff>:/images/oxygen/hwinfo.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -408,7 +408,7 @@
                </property>
                <property name="icon">
                 <iconset resource="images.qrc">
-                 <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
+                 <normaloff>:/images/oxygen/folder-tar.png</normaloff>:/images/oxygen/folder-tar.png</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -637,7 +637,7 @@
              </property>
              <property name="icon">
               <iconset resource="images.qrc">
-               <normaloff>:/images/placeholder.png</normaloff>:/images/placeholder.png</iconset>
+               <normaloff>:/images/oxygen/configure.png</normaloff>:/images/oxygen/configure.png</iconset>
              </property>
              <property name="iconSize">
               <size>

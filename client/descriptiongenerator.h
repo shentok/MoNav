@@ -158,7 +158,7 @@ protected:
 		if ( m_exitNumber != 0 ) {
 			icons->push_back( QString( ":/images/directions/roundabout.png" ) );
 			labels->push_back( QString( "Enter the roundabout." ) );
-			icons->push_back( QString( ":/images/directions/exit%1.png" ).arg( m_exitNumber ) );
+			icons->push_back( QString( ":/images/directions/roundabout_exit%1.png" ).arg( m_exitNumber ) );
 			labels->push_back( QString( "Take the %1. exit." ).arg( m_exitNumber ) );
 			m_exitNumber = 0;
 			return;
@@ -183,7 +183,7 @@ protected:
 				break;
 			case 1:
 				{
-					icons->push_back( ":/images/directions/slightlyright.png" );
+					icons->push_back( ":/images/directions/slightly_right.png" );
 					labels->push_back( "Keep slightly right" );
 					break;
 				}
@@ -195,13 +195,13 @@ protected:
 				}
 			case 3:
 				{
-					icons->push_back( ":/images/directions/sharplyright.png" );
+					icons->push_back( ":/images/directions/sharply_right.png" );
 					labels->push_back( "Turn sharply right" );
 					break;
 				}
 			case -1:
 				{
-					icons->push_back( ":/images/directions/slightlyleft.png" );
+					icons->push_back( ":/images/directions/slightly_left.png" );
 					labels->push_back( "Keep slightly left" );
 					break;
 				}
@@ -213,7 +213,7 @@ protected:
 				}
 			case -3:
 				{
-					icons->push_back( ":/images/directions/sharplyleft.png" );
+					icons->push_back( ":/images/directions/sharply_left.png" );
 					labels->push_back( "Turn sharply left" );
 					break;
 				}
