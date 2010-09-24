@@ -24,7 +24,8 @@ HEADERS += contractionhierarchies.h \
     compressedgraph.h \
     compressedgraphbuilder.h \
     utils/bithelpers.h \
-    utils/qthelpers.h
+    utils/qthelpers.h \
+    interfaces/irouter.h
 SOURCES += contractionhierarchies.cpp \
     chsettingsdialog.cpp
 FORMS += chsettingsdialog.ui

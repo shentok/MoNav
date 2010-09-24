@@ -170,7 +170,7 @@ class Contractor {
 				_ImportEdge edge;
 				edge.source = i->source;
 				edge.target = i->target;
-				edge.data.distance = std::max( i->distance * 10.0, 1.0 );
+				edge.data.distance = std::max( i->distance * 10.0 + 0.5, 1.0 );
 				if ( edge.data.distance > 24 * 60 * 60 * 10 ) {
 					skippedLargeEdges++;
 					continue;

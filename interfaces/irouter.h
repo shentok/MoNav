@@ -42,17 +42,19 @@ public:
 
 	struct Edge {
 		Edge(){}
-		Edge( unsigned n, bool b, unsigned char t, unsigned short l )
+		Edge( unsigned name_, bool branchingPossible_, unsigned char type_, unsigned short length_, unsigned seconds_ )
 		{
-			name = n;
-			branchingPossible = b;
-			type = t;
-			length = l;
+			name = name_;
+			branchingPossible = branchingPossible_;
+			type = type_;
+			length = length_;
+			seconds = seconds_;
 		}
 		unsigned name : 30; // name ID of the edge
 		bool branchingPossible : 1; // is there more than one subsequent edge to traverse ( turing around and traversing this edge in the opposite direction does not count )
 		unsigned char type; // type ID of the edge
 		unsigned short length; // the amount of path nodes - 1 == amount of edges
+		unsigned seconds;
 	};
 
 	virtual ~IRouter() {}

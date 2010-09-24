@@ -107,12 +107,15 @@ protected:
 
 			DataItem( const IRouter::Edge& description )
 			{
-				a = description.type;
-				a <<= 16;
-				a |= description.length;
+				a = description.name;
 				a <<= 1;
-				b = description.name << 1;
-				b |= description.branchingPossible ? 1 : 0;
+				a |= description.branchingPossible ? 1 : 0;
+				a <<= 1;
+				b = description.type;
+				b <<= 16;
+				b |= description.length;
+				b <<= 8;
+				b |= encode_integer< 4, 4 >( description.seconds );
 			}
 
 			bool isNode() const
@@ -134,7 +137,13 @@ protected:
 
 			IRouter::Edge toEdge()
 			{
-				return IRouter::Edge( b >> 1, ( b & 1 ) == 1, a >> 17, a >> 1 );
+				IRouter::Edge edge;
+				edge.name = a >> 2;
+				edge.branchingPossible = ( a & 2 ) == 2;
+				edge.type = b >> 24;
+				edge.length = ( b >> 8 ) & ( ( 1u << 16 ) -1 );
+				edge.seconds = decode_integer< 4, 4 >( b & 255 );
+				return edge;
 			}
 		};
 
@@ -204,7 +213,7 @@ public:
 		bool unpacked() const { return m_data.unpacked; }
 		NodeIterator middle() const { return m_data.middle; }
 		unsigned distance() const { return m_data.distance; }
-		IRouter::Edge description() const { return IRouter::Edge( m_data.description.nameID, m_data.description.branchingPossible, m_data.description.type, 1 ); }
+		IRouter::Edge description() const { return IRouter::Edge( m_data.description.nameID, m_data.description.branchingPossible, m_data.description.type, 1, ( m_data.distance + 5 ) / 10 ); }
 #ifdef NDEBUG
 	private:
 #endif

@@ -639,7 +639,7 @@ private:
 
 	void unpackEdge( const IImporter::RoutingEdge& edge, bool reversed )
 	{
-		m_unpackBuffer.push_back( PathBlock::DataItem( IRouter::Edge( edge.nameID, edge.branchingPossible, edge.type, edge.pathLength + 1 ) ) );
+		m_unpackBuffer.push_back( PathBlock::DataItem( IRouter::Edge( edge.nameID, edge.branchingPossible, edge.type, edge.pathLength + 1, edge.distance + 0.5 ) ) );
 
 		if ( edge.pathLength == 0 )
 			return;

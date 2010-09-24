@@ -21,6 +21,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define BITHELPERS_H
 
 #include <cstring>
+#include <algorithm>
 
 template< class T >
 static inline T readUnaligned( const char* buffer ) {
@@ -154,6 +155,49 @@ static inline unsigned bits_needed( unsigned x )
 	++x;
 
 	return bit_position[ ( x * 0x077CB531u ) >> 27];
+}
+
+template< int exponentBits, int significantBits >
+static unsigned decode_integer( unsigned x )
+{
+	if ( x == ( ( 1u << ( exponentBits + significantBits ) ) - 1 ) )
+		return 0;
+	unsigned exponent = x >> significantBits;
+	unsigned significant = x & ( ( 1u << significantBits ) - 1 );
+	significant = ( significant << 1 ) | 1; // implicit 1
+	return significant << exponent;
+}
+
+template< int exponentBits, int significantBits >
+static unsigned encode_integer( unsigned x )
+{
+	assert ( exponentBits > 0 );
+	assert( significantBits > 0 );
+
+	static bool initialized = false;
+	static const unsigned numEncoded = 1u << ( exponentBits + significantBits );
+	typedef std::pair< unsigned, unsigned > Lookup;
+	static Lookup lookup[numEncoded];
+
+	if ( !initialized ) {
+		for ( unsigned value = 0; value < numEncoded; value++ )
+			lookup[value] = Lookup( decode_integer< exponentBits, significantBits >( value ), value );
+		std::sort( lookup, lookup + numEncoded );
+		initialized = true;
+	}
+
+	Lookup* value = std::lower_bound( lookup, lookup + numEncoded, Lookup( x, 0 ) );
+
+	if ( value >= lookup + numEncoded - 1 )
+		return lookup[numEncoded - 1].second;
+
+	unsigned diffFirst = x - value->first;
+	unsigned diffSecond = ( value + 1 )->first - x;
+
+	if ( diffFirst < diffSecond )
+		return value->second;
+	else
+		return ( value + 1 )->second;
 }
 
 #endif // BITHELPERS_H
