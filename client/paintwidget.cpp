@@ -24,6 +24,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QtDebug>
+#include <algorithm>
 
 PaintWidget::PaintWidget(QWidget *parent) :
 	QWidget( parent ),
