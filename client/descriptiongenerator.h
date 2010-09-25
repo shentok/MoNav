@@ -165,19 +165,7 @@ protected:
 		}
 
 		QString name = m_lastName;
-		bool turnInstruction = true;
 
-		if ( m_lastType == "motorway_link" ) {
-			icons->push_back( ":/images/directions/motorway_exit.png" );
-			if ( !name.isEmpty() )
-				labels->push_back( "Take the ramp towards " + name + "." );
-			else
-				labels->push_back( "Take the ramp." );
-
-			turnInstruction = false;
-		}
-
-		if ( turnInstruction ) {
 			switch ( m_direction ) {
 			case 0:
 				break;
@@ -224,7 +212,13 @@ protected:
 				else
 					labels->back() += ".";
 			}
-		}
+
+			if ( m_lastType == "motorway_link" ) {
+				if ( !name.isEmpty() )
+					labels->last() = "Take the ramp towards " + name + ".";
+				else
+					labels->last() = "Take the ramp.";
+			}
 
 		if ( m_distance > 20 ) {
 			QString distance;
