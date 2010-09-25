@@ -80,14 +80,18 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 			return false;
 		std::vector< IImporter::RoutingEdge > inputEdges;
 		std::vector< IImporter::RoutingNode > inputNodes;
+		std::vector< IImporter::RoutingNode > inputPaths;
 		if ( settings.deleteTiles ) {
 			if ( !importer->GetRoutingEdges( &inputEdges ) ) {
-				qCritical() << "Mapnik Renderer: failed to read routing Edges";
+				qCritical() << "Mapnik Renderer: failed to read routing edges";
 				return false;
 			}
 			if ( !importer->GetRoutingNodes( &inputNodes ) ) {
-				qCritical() << "Mapnik Renderer: failed to read routing Nodes";
+				qCritical() << "Mapnik Renderer: failed to read routing nodes";
 				return false;
+			}
+			if ( !importer->GetRoutingEdgePaths( &inputPaths ) ) {
+				qCritical() << "Mapnik Renderer: failed to read routing paths";
 			}
 		}
 
@@ -166,26 +170,36 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 			dummyIndex.start = dummyIndex.size = 0;
 			info.index.resize( numberOfTiles, dummyIndex );
 
+			std::vector< UnsignedCoordinate > path;
 			for ( std::vector< IImporter::RoutingEdge >::const_iterator i = inputEdges.begin(), e = inputEdges.end(); i != e; ++i ) {
-				int sourceX = inputNodes[i->source].coordinate.GetTileX( zoom );
-				int sourceY = inputNodes[i->source].coordinate.GetTileY( zoom );
-				int targetX = inputNodes[i->target].coordinate.GetTileX( zoom );
-				int targetY = inputNodes[i->target].coordinate.GetTileY( zoom );
-				if ( sourceX > targetX )
-					std::swap( sourceX, targetX );
-				if ( sourceY > targetY )
-					std::swap( sourceY, targetY );
-				sourceX = std::max( sourceX, info.minX );
-				sourceX = std::min( sourceX, info.maxX - 1 );
-				sourceY = std::max( sourceY, info.minY );
-				sourceY = std::min( sourceY, info.maxY - 1 );
-				targetX = std::max( targetX, info.minX );
-				targetX = std::min( targetX, info.maxX - 1 );
-				targetY = std::max( targetY, info.minY );
-				targetY = std::min( targetY, info.maxY - 1 );
-				for ( int x = sourceX; x <= targetX; ++x )
-					for ( int y = sourceY; y <= targetY; ++y )
-						info.index[( x - info.minX ) + ( y - info.minY ) * ( info.maxX - info.minX )].size = 1;
+				path.push_back( inputNodes[i->source].coordinate );
+				for ( int pathID = 0; pathID < i->pathLength; pathID++ )
+					path.push_back( inputPaths[pathID + i->pathID].coordinate );
+				path.push_back( inputNodes[i->target].coordinate );
+
+				for ( unsigned edge = 0; edge < path.size(); edge++ ) {
+					int sourceX = path[edge].GetTileX( zoom );
+					int sourceY = path[edge].GetTileY( zoom );
+					int targetX = path[edge].GetTileX( zoom );
+					int targetY = path[edge].GetTileY( zoom );
+					if ( sourceX > targetX )
+						std::swap( sourceX, targetX );
+					if ( sourceY > targetY )
+						std::swap( sourceY, targetY );
+					sourceX = std::max( sourceX, info.minX );
+					sourceX = std::min( sourceX, info.maxX - 1 );
+					sourceY = std::max( sourceY, info.minY );
+					sourceY = std::min( sourceY, info.maxY - 1 );
+					targetX = std::max( targetX, info.minX );
+					targetX = std::min( targetX, info.maxX - 1 );
+					targetY = std::max( targetY, info.minY );
+					targetY = std::min( targetY, info.maxY - 1 );
+					for ( int x = sourceX; x <= targetX; ++x )
+						for ( int y = sourceY; y <= targetY; ++y )
+							info.index[( x - info.minX ) + ( y - info.minY ) * ( info.maxX - info.minX )].size = 1;
+				}
+
+				path.clear();
 			}
 
 			info.tilesFile = new QFile( filename + QString( "_%1_tiles" ).arg( zoom ) );
