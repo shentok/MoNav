@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QObject>
 #include <QCache>
+#include <vector>
 #include "interfaces/irenderer.h"
 #include "utils/coordinates.h"
 #include "brsettingsdialog.h"
