@@ -268,21 +268,21 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 								result = mapnik::save_to_string( view, "png" );
 
 							if ( settings.pngcrush ) {
-								tempOut[numThreads].open();
-								tempOut[numThreads].write( result.data(), result.size() );
-								tempOut[numThreads].close();
+								tempOut[threadID].open();
+								tempOut[threadID].write( result.data(), result.size() );
+								tempOut[threadID].close();
 
-								tempIn[numThreads].open();
+								tempIn[threadID].open();
 
-								pngcrush[threadID].start( "pngcrush", QStringList() << tempOut[numThreads].fileName() << tempIn[numThreads].fileName() );
+								pngcrush[threadID].start( "pngcrush", QStringList() << tempOut[threadID].fileName() << tempIn[threadID].fileName() );
 								if ( pngcrush[threadID].waitForStarted() && pngcrush[threadID].waitForFinished() ) {
-									QByteArray buffer = tempIn[numThreads].readAll();
+									QByteArray buffer = tempIn[threadID].readAll();
 									if ( buffer.size() != 0 && buffer.size() < ( int ) result.size() ) {
 										saved += result.size() - buffer.size();
 										result.assign( buffer.constData(), buffer.size() );
 									}
 								}
-								tempIn[numThreads].close();
+								tempIn[threadID].close();
 							}
 						}
 
