@@ -120,23 +120,6 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 
 		configData << quint32( settings.tileSize ) << quint32( settings.zoomLevels.size() );
 
-		mapnik::Map* maps[numThreads];
-		mapnik::Image32* images[numThreads];
-		QProcess pngcrush[numThreads];
-		QTemporaryFile tempOut[numThreads];
-		QTemporaryFile tempIn[numThreads];
-#pragma omp parallel
-		{
-			int threadID = omp_get_thread_num();
-
-			maps[threadID] = new mapnik::Map;
-			mapnik::load_map( *maps[threadID], settings.theme.toLocal8Bit().constData() );
-			const int metaTileSize = settings.metaTileSize * settings.tileSize + 2 * settings.margin;
-			images[threadID] = new mapnik::Image32( metaTileSize, metaTileSize );
-		}
-
-		qDebug() << "Mapnik Renderer: initialized thread data:" << time.restart() << "ms";
-
 		long long tilesSkipped = 0;
 		long long tiles = 0;
 		long long metaTilesRendered = 0;
@@ -225,7 +208,19 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 		}
 
 
-#pragma omp parallel for schedule( dynamic )
+#pragma omp parallel
+		{
+			int threadID = omp_get_thread_num();
+			const int metaTileSize = settings.metaTileSize * settings.tileSize + 2 * settings.margin;
+
+			mapnik::Map map;
+			mapnik::Image32 image( metaTileSize, metaTileSize );
+			QProcess pngcrush;
+			QTemporaryFile tempOut;
+			QTemporaryFile tempIn;
+			mapnik::load_map( map, settings.theme.toLocal8Bit().constData() );
+
+#pragma omp for schedule( dynamic )
 			for ( int i = 0; i < ( int ) tasks.size(); i++ ) {
 
 				int metaTileSizeX = tasks[i].metaTileSizeX;
@@ -235,10 +230,6 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 				int zoomLevel = tasks[i].zoom;
 				int zoom = settings.zoomLevels[zoomLevel];
 				ZoomInfo& info = zoomInfo[zoomLevel];
-
-				int threadID = omp_get_thread_num();
-				mapnik::Map& map = *maps[threadID];
-				mapnik::Image32& image = *images[threadID];
 
 				map.resize( metaTileSizeX * settings.tileSize + 2 * settings.margin, metaTileSizeY * settings.tileSize + 2 * settings.margin );
 
@@ -268,21 +259,21 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 								result = mapnik::save_to_string( view, "png" );
 
 							if ( settings.pngcrush ) {
-								tempOut[threadID].open();
-								tempOut[threadID].write( result.data(), result.size() );
-								tempOut[threadID].close();
+								tempOut.open();
+								tempOut.write( result.data(), result.size() );
+								tempOut.close();
 
-								tempIn[threadID].open();
+								tempIn.open();
 
-								pngcrush[threadID].start( "pngcrush", QStringList() << tempOut[threadID].fileName() << tempIn[threadID].fileName() );
-								if ( pngcrush[threadID].waitForStarted() && pngcrush[threadID].waitForFinished() ) {
-									QByteArray buffer = tempIn[threadID].readAll();
+								pngcrush.start( "pngcrush", QStringList() << tempOut.fileName() << tempIn.fileName() );
+								if ( pngcrush.waitForStarted() && pngcrush.waitForFinished() ) {
+									QByteArray buffer = tempIn.readAll();
 									if ( buffer.size() != 0 && buffer.size() < ( int ) result.size() ) {
 										saved += result.size() - buffer.size();
 										result.assign( buffer.constData(), buffer.size() );
 									}
 								}
-								tempIn[threadID].close();
+								tempIn.close();
 							}
 						}
 
@@ -311,10 +302,6 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 					}
 				}
 			}
-
-		for ( int i = 0; i < numThreads; i++ ) {
-			delete maps[i];
-			delete images[i];
 		}
 
 		for ( int zoomLevel = 0; zoomLevel < ( int ) settings.zoomLevels.size(); zoomLevel++ ) {
