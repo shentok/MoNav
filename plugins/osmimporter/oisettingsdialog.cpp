@@ -71,7 +71,7 @@ OISettingsDialog::OISettingsDialog(QWidget *parent) :
 	if ( !lastName.isEmpty() )
 		load( m_lastFilename );
 	else
-		load( speedProfilesDir.filePath( includedSpeedProfiles.first() ) );
+		load( speedProfilesDir.filePath( includedSpeedProfiles.last() ) );
 
 	m_ui->speedProfileChooser->setCurrentIndex( m_ui->speedProfileChooser->findData( m_lastFilename ) );
 

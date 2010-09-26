@@ -21,6 +21,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "bz2input.h"
 #include <algorithm>
 #include <QtDebug>
+#include <limits>
 #include "utils/qthelpers.h"
 
 OSMImporter::OSMImporter()

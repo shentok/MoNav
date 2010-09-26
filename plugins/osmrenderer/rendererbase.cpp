@@ -290,7 +290,7 @@ void RendererBase::drawIndicator( QPainter* painter, const QTransform& transform
 		clipEdge( &start, &end, ProjectedCoordinate( margin, margin ), ProjectedCoordinate( sizeX - margin, sizeY - margin ) );
 		QPoint position = inverseTransform.map( QPoint( start.x, start.y ) );
 		QPoint center = inverseTransform.map( QPoint( sizeX / 2, sizeY / 2 ) );
-		double heading = atan2( y - center.y(), x - center.x() ) * 360 / 2 / M_PI;
+		double heading = atan2( ( double ) ( y - center.y() ), ( double ) ( x - center.x() ) ) * 360 / 2 / M_PI;
 		drawArrow( painter, position.x(), position.y(), heading, outer, inner );
 	}
 	else {

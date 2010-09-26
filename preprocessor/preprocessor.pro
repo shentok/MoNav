@@ -8,7 +8,6 @@ SOURCES += main.cpp \
 HEADERS += preprocessingwindow.h \
     aboutdialog.h \
     interfaces/IImporter.h \
-    utils/utils.h \
     utils/coordinates.h \
     utils/config.h \
     interfaces/IPreprocessor.h \
