@@ -29,8 +29,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <omp.h>
 #include <QFile>
 #include <QTemporaryFile>
-#include <QProcess>
 #include <QtDebug>
+#include <stdlib.h>
 
 MapnikRenderer::MapnikRenderer()
 {
@@ -215,7 +215,6 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 
 			mapnik::Map map;
 			mapnik::Image32 image( metaTileSize, metaTileSize );
-			QProcess pngcrush;
 			QTemporaryFile tempOut;
 			QTemporaryFile tempIn;
 			mapnik::load_map( map, settings.theme.toLocal8Bit().constData() );
@@ -261,19 +260,16 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 							if ( settings.pngcrush ) {
 								tempOut.open();
 								tempOut.write( result.data(), result.size() );
-								tempOut.close();
-
+								tempOut.flush();
 								tempIn.open();
-
-								pngcrush.start( "pngcrush", QStringList() << tempOut.fileName() << tempIn.fileName() );
-								if ( pngcrush.waitForStarted() && pngcrush.waitForFinished() ) {
-									QByteArray buffer = tempIn.readAll();
-									if ( buffer.size() != 0 && buffer.size() < ( int ) result.size() ) {
-										saved += result.size() - buffer.size();
-										result.assign( buffer.constData(), buffer.size() );
-									}
-								}
+								pclose( popen( ( "pngcrush " + tempOut.fileName() + " " + tempIn.fileName() ).toUtf8().constData(), "r" ) );
+								QByteArray buffer = tempIn.readAll();
 								tempIn.close();
+								tempOut.close();
+								if ( buffer.size() != 0 && buffer.size() < ( int ) result.size() ) {
+									saved += result.size() - buffer.size();
+									result.assign( buffer.constData(), buffer.size() );
+								}
 							}
 						}
 
