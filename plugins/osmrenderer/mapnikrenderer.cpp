@@ -122,6 +122,9 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 
 		mapnik::Map* maps[numThreads];
 		mapnik::Image32* images[numThreads];
+		QProcess pngcrush[numThreads];
+		QTemporaryFile tempOut[numThreads];
+		QTemporaryFile tempIn[numThreads];
 #pragma omp parallel
 		{
 			int threadID = omp_get_thread_num();
@@ -265,23 +268,21 @@ bool MapnikRenderer::Preprocess( IImporter* importer )
 								result = mapnik::save_to_string( view, "png" );
 
 							if ( settings.pngcrush ) {
-								QTemporaryFile tempOut;
-								tempOut.open();
-								tempOut.write( result.data(), result.size() );
-								tempOut.close();
+								tempOut[numThreads].open();
+								tempOut[numThreads].write( result.data(), result.size() );
+								tempOut[numThreads].close();
 
-								QTemporaryFile tempIn;
-								tempIn.open();
+								tempIn[numThreads].open();
 
-								QProcess pngcrush;
-								pngcrush.start( "pngcrush", QStringList() << tempOut.fileName() << tempIn.fileName() );
-								if ( pngcrush.waitForStarted() && pngcrush.waitForFinished() ) {
-									QByteArray buffer = tempIn.readAll();
+								pngcrush[threadID].start( "pngcrush", QStringList() << tempOut[numThreads].fileName() << tempIn[numThreads].fileName() );
+								if ( pngcrush[threadID].waitForStarted() && pngcrush[threadID].waitForFinished() ) {
+									QByteArray buffer = tempIn[numThreads].readAll();
 									if ( buffer.size() != 0 && buffer.size() < ( int ) result.size() ) {
 										saved += result.size() - buffer.size();
 										result.assign( buffer.constData(), buffer.size() );
 									}
 								}
+								tempIn[numThreads].close();
 							}
 						}
 
