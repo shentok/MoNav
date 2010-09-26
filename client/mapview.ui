@@ -267,8 +267,8 @@
            <widget class="QLabel" name="infoIcon1">
             <property name="maximumSize">
              <size>
-              <width>32</width>
-              <height>32</height>
+              <width>64</width>
+              <height>64</height>
              </size>
             </property>
             <property name="text">
@@ -306,8 +306,8 @@
            <widget class="QLabel" name="infoIcon2">
             <property name="maximumSize">
              <size>
-              <width>32</width>
-              <height>32</height>
+              <width>64</width>
+              <height>64</height>
              </size>
             </property>
             <property name="text">
