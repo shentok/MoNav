@@ -215,11 +215,11 @@ bool PreprocessingWindow::importerPreprocessing()
 	if ( result )
 		m_ui->importerLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
 	else
-		m_ui->importerLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-	m_ui->rendererLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-	m_ui->routerLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-	m_ui->gpsLookupLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-	m_ui->addressLookupLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
+		m_ui->importerLabel->setPixmap( QPixmap( ":/images/reload.png" ) );
+	m_ui->rendererLabel->setPixmap( QPixmap( ":/images/reload.png" ) );
+	m_ui->routerLabel->setPixmap( QPixmap( ":/images/reload.png" ) );
+	m_ui->gpsLookupLabel->setPixmap( QPixmap( ":/images/reload.png" ) );
+	m_ui->addressLookupLabel->setPixmap( QPixmap( ":/images/reload.png" ) );
 	return result;
 }
 
@@ -261,7 +261,7 @@ bool PreprocessingWindow::routerPreprocessing()
 		m_ui->routerLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
 	else
 		m_ui->routerLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-	m_ui->gpsLookupLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
+	m_ui->gpsLookupLabel->setPixmap( QPixmap( ":/images/reload.png" ) );
 	return result;
 }
 

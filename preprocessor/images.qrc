@@ -3,5 +3,6 @@
         <file>images/about.png</file>
         <file>images/notok.png</file>
         <file>images/ok.png</file>
+        <file>images/reload.png</file>
     </qresource>
 </RCC>
