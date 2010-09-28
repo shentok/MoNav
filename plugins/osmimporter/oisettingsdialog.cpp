@@ -346,6 +346,10 @@ bool OISettingsDialog::getSettings( Settings* settings )
 
 	for ( int item = 0; item < m_ui->languagePriorities->count(); item++ ) {
 		qDebug() << "OSM Importer: language list:" << settings->languageSettings.size() << ":" << m_ui->languagePriorities->item( item )->text();
+		if ( !m_ui->languagePriorities->item( item )->text().startsWith( "name" ) ) {
+			qDebug() << "language tags have to begin with 'name'";
+			return false;
+		}
 		settings->languageSettings.append( m_ui->languagePriorities->item( item )->text() );
 	}
 

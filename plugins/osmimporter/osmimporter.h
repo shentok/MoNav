@@ -21,10 +21,10 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define OSMIMPORTER_H
 
 #include "interfaces/iimporter.h"
+#include "ientityreader.h"
 #include "oisettingsdialog.h"
 #include "statickdtree.h"
 #include "utils/intersection.h"
-#include <libxml/xmlreader.h>
 #include <QObject>
 #include <QHash>
 #include <cstring>
@@ -74,32 +74,32 @@ protected:
 	};
 
 	struct Way {
-		std::vector< unsigned > path;
 		enum {
-			NotSure = 0, Oneway, Bidirectional, Opposite
+			NotSure, Oneway, Bidirectional, Opposite
 		} direction;
 		double maximumSpeed;
 		bool usefull;
 		bool access;
 		int accessPriority;
-		xmlChar* name;
+		QString name;
 		int namePriority;
-		xmlChar* ref;
-		xmlChar* placeName;
+		QString ref;
+		QString placeName;
 		Place::Type placeType;
 		unsigned type;
 		bool roundabout;
 	};
 
 	struct Node {
-		double latitude;
-		double longitude;
-		unsigned id;
-		xmlChar* name;
+		QString name;
 		int namePriority;
 		unsigned population;
 		bool trafficSignal;
 		Place::Type type;
+	};
+
+	struct Relation {
+
 	};
 
 	struct NodeLocation {
@@ -160,21 +160,36 @@ protected:
 
 	typedef KDTree::StaticKDTree< 2, unsigned, unsigned, GPSMetric > GPSTree;
 
-	bool readXML( const QString& inputFilename, const QString& filename );
+	struct NodeTags {
+		enum Key {
+			Place = 0, Population = 1, Highway = 2, MaxTag = 3
+		};
+	};
+
+	struct WayTags {
+		enum Key {
+			Oneway = 0, Junction = 1, Highway = 2, Ref = 3, PlaceName = 4, Place = 5, MaxSpeed = 6, MaxTag = 7
+		};
+	};
+
+	bool read( const QString& inputFilename, const QString& filename );
+	void readWay( Way* way, const IEntityReader::Way& inputWay );
+	void readNode( Node* node, const IEntityReader::Node& inputNode );
+	Place::Type parsePlaceType( const QString& type );
+	void setRequiredTags( IEntityReader* reader );
+
 	bool preprocessData( const QString& filename );
 	bool computeInCityFlags( QString filename, std::vector< NodeLocation >* nodeLocation, const std::vector< UnsignedCoordinate >& nodeCoordinates, const std::vector< UnsignedCoordinate >& outlineCoordinates );
 	bool remapEdges( QString filename, const std::vector< UnsignedCoordinate >& nodeCoordinates, const std::vector< NodeLocation >& nodeLocation );
-	Way readXMLWay( xmlTextReaderPtr& inputReader );
-	Node readXMLNode( xmlTextReaderPtr& inputReader );
-	Place::Type parsePlaceType( const xmlChar* type );
 
 	Statistics m_statistics;
 	QString m_outputDirectory;
 	OISettingsDialog* m_settingsDialog;
 
 	OISettingsDialog::Settings m_settings;
-	std::vector< const char* > m_kmhStrings;
-	std::vector< const char* > m_mphStrings;
+	std::vector< QString > m_kmhStrings;
+	std::vector< QString > m_mphStrings;
+
 	std::vector< unsigned > m_usedNodes;
 	std::vector< unsigned > m_routingNodes;
 	std::vector< unsigned > m_outlineNodes;

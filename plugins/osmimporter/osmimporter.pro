@@ -10,7 +10,9 @@ HEADERS += osmimporter.h \
     utils/config.h \
     bz2input.h \
     utils/intersection.h \
-    utils/qthelpers.h
+    utils/qthelpers.h \
+    xmlreader.h \
+    ientityreader.h
 SOURCES += osmimporter.cpp \
 	 oisettingsdialog.cpp
 DESTDIR = ../../bin/plugins_preprocessor

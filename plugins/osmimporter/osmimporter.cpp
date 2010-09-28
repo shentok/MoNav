@@ -18,31 +18,56 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "osmimporter.h"
-#include "bz2input.h"
+#include "xmlreader.h"
+#include "utils/qthelpers.h"
 #include <algorithm>
 #include <QtDebug>
 #include <limits>
-#include "utils/qthelpers.h"
 
 OSMImporter::OSMImporter()
 {
 	Q_INIT_RESOURCE(speedprofiles);
 	m_settingsDialog = NULL;
-	m_kmhStrings.push_back( "%.lf" );
-	m_kmhStrings.push_back( "%.lf kmh" );
-	m_kmhStrings.push_back( "%.lf km/h" );
-	m_kmhStrings.push_back( "%.lfkmh" );
-	m_kmhStrings.push_back( "%.lfkm/h" );
-	m_kmhStrings.push_back( "%lf" );
-	m_kmhStrings.push_back( "%lf kmh" );
-	m_kmhStrings.push_back( "%lf km/h" );
-	m_kmhStrings.push_back( "%lfkmh" );
-	m_kmhStrings.push_back( "%lfkm/h" );
 
-	m_mphStrings.push_back( "%.lf mph" );
-	m_mphStrings.push_back( "%.lfmph" );
-	m_mphStrings.push_back( "%lf mph" );
-	m_mphStrings.push_back( "%lfmph" );
+	m_kmhStrings.push_back( "kmh" );
+	m_kmhStrings.push_back( " kmh" );
+	m_kmhStrings.push_back( "km/h" );
+	m_kmhStrings.push_back( " km/h" );
+	m_kmhStrings.push_back( "kph" );
+	m_kmhStrings.push_back( " kph" );
+
+	m_mphStrings.push_back( "mph" );
+	m_mphStrings.push_back( " mph" );
+}
+
+void OSMImporter::setRequiredTags( IEntityReader *reader )
+{
+	QStringList list;
+	// Place = 0, Population = 1, Highway = 2
+	list.push_back( "place" );
+	list.push_back( "population" );
+	list.push_back( "highway" );
+	for ( int i = 0; i < m_settings.languageSettings.size(); i++ )
+		list.push_back( m_settings.languageSettings[i] );
+	reader->setNodeTags( list );
+
+	list.clear();
+	//Oneway = 0, Junction = 1, Highway = 2, Ref = 3, PlaceName = 4, Place = 5, MaxSpeed = 6,
+	list.push_back( "oneway" );
+	list.push_back( "junction" );
+	list.push_back( "highway" );
+	list.push_back( "ref" );
+	list.push_back( "place_name" );
+	list.push_back( "place" );
+	list.push_back( "maxspeed" );
+	for ( int i = 0; i < m_settings.languageSettings.size(); i++ )
+		list.push_back( m_settings.languageSettings[i] );
+	for ( int i = 0; i < m_settings.accessList.size(); i++ )
+		list.push_back( m_settings.accessList[i] );
+	reader->setWayTags( list );
+
+	list.clear();
+	reader->setRelationTags( list );
 }
 
 OSMImporter::~OSMImporter()
@@ -102,7 +127,7 @@ bool OSMImporter::Preprocess()
 
 	Timer time;
 
-	if ( !readXML( m_settings.input, filename ) )
+	if ( !read( m_settings.input, filename ) )
 		return false;
 	qDebug() << "OSM Importer: finished import pass 1:" << time.restart() << "ms";
 
@@ -156,7 +181,7 @@ bool OSMImporter::Preprocess()
 	return true;
 }
 
-bool OSMImporter::readXML( const QString& inputFilename, const QString& filename ) {
+bool OSMImporter::read( const QString& inputFilename, const QString& filename ) {
 	FileStream edgesData( filename + "_edges" );
 	FileStream placesData( filename + "_places" );
 	FileStream boundingBoxData( filename + "_bounding_box" );
@@ -185,169 +210,135 @@ bool OSMImporter::readXML( const QString& inputFilename, const QString& filename
 	m_wayRefs[QString()] = 0;
 	wayRefsData << QString();
 
-	xmlTextReaderPtr inputReader;
-	if ( inputFilename.endsWith( ".bz2" ) )
-		inputReader = getBz2Reader( inputFilename.toLocal8Bit().constData() );
-	else
-		inputReader = xmlNewTextReaderFilename( inputFilename.toLocal8Bit().constData() );
+	IEntityReader* reader = NULL;
+	if ( inputFilename.endsWith( "osm.bz2" ) || inputFilename.endsWith( ".osm" ) )
+		reader = new XMLReader();
+	else if ( inputFilename.endsWith( ".pbf" ) )
+		reader = NULL;
 
-	if ( inputReader == NULL ) {
-		qCritical() << "failed to open XML reader";
+	if ( reader == NULL ) {
+		qCritical() << "file format not supporter";
+		return false;
+	}
+
+	if ( !reader->open( inputFilename ) ) {
+		qCritical() << "error opening file";
 		return false;
 	}
 
 	try {
-		while ( xmlTextReaderRead( inputReader ) == 1 ) {
-			const int type = xmlTextReaderNodeType( inputReader );
+		GPSCoordinate min( std::numeric_limits< double >::max(), std::numeric_limits< double >::max() );
+		GPSCoordinate max( std::numeric_limits< double >::min(), std::numeric_limits< double >::min() );
 
-			//1 is Element
-			if ( type != 1 )
-				continue;
+		setRequiredTags( reader );
 
-			xmlChar* currentName = xmlTextReaderName( inputReader );
-			if ( currentName == NULL )
-				continue;
+		IEntityReader::Way inputWay;
+		IEntityReader::Node inputNode;
+		IEntityReader::Relation inputRelation;
+		Node node;
+		Way way;
+		while ( true ) {
+			IEntityReader::EntityType type = reader->getEntitiy( &inputNode, &inputWay, &inputRelation );
 
-			if ( xmlStrEqual( currentName, ( const xmlChar* ) "node" ) == 1 ) {
+			if ( type == IEntityReader::EntityNone )
+				break;
+
+			if ( type == IEntityReader::EntityNode ) {
 				m_statistics.numberOfNodes++;
-				Node node = readXMLNode( inputReader );
+				readNode( &node, inputNode );
+
+				min.latitude = std::min( min.latitude, inputNode.coordinate.latitude );
+				min.longitude = std::min( min.longitude, inputNode.coordinate.longitude );
+				max.latitude = std::max( max.latitude, inputNode.coordinate.latitude );
+				max.longitude = std::max( max.longitude, inputNode.coordinate.longitude );
 
 				if ( node.trafficSignal )
-					m_signalNodes.push_back( node.id );
+					m_signalNodes.push_back( inputNode.id );
 
-				GPSCoordinate gps( node.latitude, node.longitude );
-				UnsignedCoordinate coordinate( gps );
-				allNodesData << node.id << coordinate.x << coordinate.y;
+				UnsignedCoordinate coordinate( inputNode.coordinate );
+				allNodesData << unsigned( inputNode.id ) << coordinate.x << coordinate.y;
 
-				if ( node.type != Place::None && node.name != NULL ) {
-					placesData << node.latitude << node.longitude << unsigned( node.type ) << node.population << QString::fromUtf8( ( const char* ) node.name );
+				if ( node.type != Place::None && !node.name.isEmpty() ) {
+					placesData << inputNode.coordinate.latitude << inputNode.coordinate.longitude << unsigned( node.type ) << node.population << node.name;
 					m_statistics.numberOfPlaces++;
 				}
-				if ( node.name != NULL )
-					xmlFree( node.name );
+
+				continue;
 			}
 
-
-			else if ( xmlStrEqual( currentName, ( const xmlChar* ) "way" ) == 1 ) {
+			if ( type == IEntityReader::EntityWay ) {
 				m_statistics.numberOfWays++;
-				Way way = readXMLWay( inputReader );
+				readWay( &way, inputWay );
 
-				if ( way.usefull && way.access && way.path.size() > 1 ) {
-					for ( unsigned i = 0; i < way.path.size(); ++i )
-						m_usedNodes.push_back( way.path[i] );
-					m_routingNodes.push_back( way.path.front() );
-					m_routingNodes.push_back( way.path.back() );
+				if ( way.usefull && way.access && inputWay.nodes.size() > 1 ) {
+					for ( unsigned node = 0; node < inputWay.nodes.size(); ++node )
+						m_usedNodes.push_back( inputWay.nodes[node] );
 
-					QString name;
-					if ( way.name != NULL )
-						name = QString::fromUtf8( ( const char* ) way.name ).simplified();
+					m_routingNodes.push_back( inputWay.nodes.front() ); // first and last node are always considered routing nodes
+					m_routingNodes.push_back( inputWay.nodes.back() );  // as ways are never merged
+
+					QString name = way.name.simplified();
+
 					if ( !m_wayNames.contains( name ) ) {
 						wayNamesData << name;
 						int id = m_wayNames.size();
 						m_wayNames[name] = id;
 					}
-					edgesData << m_wayNames[name];
 
 					QString ref = name; // fallback to name
-					if ( way.ref != NULL )
-						ref = QString::fromUtf8( ( const char* ) way.ref ).simplified();
+					if ( !way.ref.isEmpty() )
+						ref = way.ref.simplified();
+
 					if ( !m_wayRefs.contains( ref ) ) {
 						wayRefsData << ref;
 						int id = m_wayRefs.size();
 						m_wayRefs[ref] = id;
 					}
-					edgesData << m_wayRefs[ref];
 
 					if ( m_settings.ignoreOneway )
 						way.direction = Way::Bidirectional;
 					if ( m_settings.ignoreMaxspeed )
 						way.maximumSpeed = -1;
 
+					if ( way.direction == Way::Opposite )
+						std::reverse( inputWay.nodes.begin(), inputWay.nodes.end() );
+
+					edgesData << m_wayNames[name];
+					edgesData << m_wayRefs[ref];
 					edgesData << way.type;
 					edgesData << way.roundabout;
 					edgesData << way.maximumSpeed;
 					edgesData << !( way.direction == Way::Oneway || way.direction == Way::Opposite );
-					edgesData << unsigned( way.path.size() );
-
-					if ( way.direction == Way::Opposite )
-						std::reverse( way.path.begin(), way.path.end() );
-
-					for ( int i = 0; i < ( int ) way.path.size(); ++i )
-						edgesData << way.path[i];
+					edgesData << unsigned( inputWay.nodes.size() );
+					for ( unsigned node = 0; node < inputWay.nodes.size(); ++node )
+						edgesData << inputWay.nodes[node];
 
 				}
 
-				if ( way.placeType != Place::None && way.path.size() > 1 && way.path[0] == way.path[way.path.size() - 1] && way.placeName != NULL ) {
-					cityOutlineData << unsigned( way.placeType ) << unsigned( way.path.size() - 1 );
-					QString name;
-					if ( way.placeName != NULL )
-						name = QString::fromUtf8( ( const char* ) way.placeName ).simplified();
+				bool closedWay = inputWay.nodes.size() != 0 && inputWay.nodes.front() == inputWay.nodes.back();
 
+				if ( closedWay && way.placeType != Place::None && !way.placeName.isEmpty() ) {
+					QString name = way.placeName.simplified();
+
+					cityOutlineData << unsigned( way.placeType ) << unsigned( inputWay.nodes.size() - 1 );
 					cityOutlineData << name;
-					for ( unsigned i = 1; i < way.path.size(); ++i ) {
-						m_outlineNodes.push_back( way.path[i] );
-						cityOutlineData << way.path[i];
+					for ( unsigned i = 1; i < inputWay.nodes.size(); ++i ) {
+						m_outlineNodes.push_back( inputWay.nodes[i] );
+						cityOutlineData << inputWay.nodes[i];
 					}
 					m_statistics.numberOfOutlines++;
 				}
 
-				if ( way.name != NULL )
-					xmlFree( way.name );
-				if ( way.ref != NULL )
-					xmlFree( way.ref );
-				if ( way.placeName != NULL )
-					xmlFree( way.placeName );
+				continue;
 			}
 
+			if ( type == IEntityReader::EntityRelation ) {
 
-			else if ( xmlStrEqual( currentName, ( const xmlChar* ) "bound" ) == 1 ) {
-				xmlChar* box = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "box" );
-				if ( box != NULL ) {
-					QString boxString = QString::fromUtf8( ( const char* ) box );
-					QStringList coordinateList = boxString.split( ',' );
-					if ( coordinateList.size() != 4 )
-					{
-						qCritical( "OSM Importer: bounding box not valid!" );
-						return false;
-					}
-					double temp;
-					temp = coordinateList[0].toDouble();
-					boundingBoxData << temp;
-					temp = coordinateList[1].toDouble();
-					boundingBoxData << temp;
-					temp = coordinateList[2].toDouble();
-					boundingBoxData << temp;
-					temp = coordinateList[3].toDouble();
-					boundingBoxData << temp;
-					xmlFree( box );
-				}
+				continue;
 			}
-
-			else if ( xmlStrEqual( currentName, ( const xmlChar* ) "bounds" ) == 1 ) {
-				xmlChar* minLat = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "minlat" );
-				xmlChar* maxLat = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "maxlat" );
-				xmlChar* minLon = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "minlon" );
-				xmlChar* maxLon = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "maxlon" );
-				if ( minLat != NULL && maxLat != NULL && minLon != NULL && maxLon != NULL ) {
-					double temp;
-					temp = atof( ( const char* ) minLat );
-					boundingBoxData << temp;
-					temp = atof( ( const char* ) minLon );
-					boundingBoxData << temp;
-					temp = atof( ( const char* ) maxLat );
-					boundingBoxData << temp;
-					temp = atof( ( const char* ) maxLon );
-					boundingBoxData << temp;
-				}
-				if ( minLat != NULL )
-					xmlFree( minLat );
-					xmlFree( maxLat );
-					xmlFree( minLon );
-					xmlFree( maxLon );
-			}
-
-			xmlFree( currentName );
 		}
+
+		boundingBoxData << min.latitude << min.longitude << max.latitude << max.longitude;
 
 	} catch ( const std::exception& e ) {
 		qCritical( "OSM Importer: caught execption: %s", e.what() );
@@ -683,248 +674,198 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< UnsignedCoord
 	return true;
 }
 
-OSMImporter::Way OSMImporter::readXMLWay( xmlTextReaderPtr& inputReader ) {
-	Way way;
-	way.direction = Way::NotSure;
-	way.maximumSpeed = -1;
-	way.type = -1;
-	way.roundabout = false;
-	way.name = NULL;
-	way.namePriority = m_settings.languageSettings.size();
-	way.ref = NULL;
-	way.placeType = Place::None;
-	way.placeName = NULL;
-	way.usefull = false;
-	way.access = true;
-	way.accessPriority = m_settings.accessList.size();
+void OSMImporter::readWay( OSMImporter::Way* way, const IEntityReader::Way& inputWay ) {
+	way->direction = Way::NotSure;
+	way->maximumSpeed = -1;
+	way->type = -1;
+	way->roundabout = false;
+	way->name.clear();
+	way->namePriority = m_settings.languageSettings.size();
+	way->ref.clear();
+	way->placeType = Place::None;
+	way->placeName.clear();
+	way->usefull = false;
+	way->access = true;
+	way->accessPriority = m_settings.accessList.size();
 
-	if ( xmlTextReaderIsEmptyElement( inputReader ) != 1 ) {
-		const int depth = xmlTextReaderDepth( inputReader );
-		while ( xmlTextReaderRead( inputReader ) == 1 ) {
-			const int childType = xmlTextReaderNodeType( inputReader );
-			if ( childType != 1 && childType != 15 )
-				continue;
-			const int childDepth = xmlTextReaderDepth( inputReader );
-			xmlChar* childName = xmlTextReaderName( inputReader );
-			if ( childName == NULL )
-				continue;
+	for ( unsigned tag = 0; tag < inputWay.tags.size(); tag++ ) {
+		int key = inputWay.tags[tag].key;
+		QString value = inputWay.tags[tag].value;
 
-			if ( depth == childDepth && childType == 15 && xmlStrEqual( childName, ( const xmlChar* ) "way" ) == 1 ) {
-				xmlFree( childName );
-				break;
-			}
-			if ( childType != 1 ) {
-				xmlFree( childName );
-				continue;
-			}
-
-			if ( xmlStrEqual( childName, ( const xmlChar* ) "tag" ) == 1 ) {
-				xmlChar* k = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "k" );
-				xmlChar* value = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "v" );
-				if ( k != NULL && value != NULL ) {
-					if ( xmlStrEqual( k, ( const xmlChar* ) "oneway" ) == 1 ) {
-						if ( xmlStrEqual( value, ( const xmlChar* ) "no" ) == 1 || xmlStrEqual( value, ( const xmlChar* ) "false" ) == 1 || xmlStrEqual( value, ( const xmlChar* ) "0" ) == 1 )
-							way.direction = Way::Bidirectional;
-						else if ( xmlStrEqual( value, ( const xmlChar* ) "yes" ) == 1 || xmlStrEqual( value, ( const xmlChar* ) "true" ) == 1 || xmlStrEqual( value, ( const xmlChar* ) "1" ) == 1 )
-							way.direction = Way::Oneway;
-						else if ( xmlStrEqual( value, ( const xmlChar* ) "-1" ) == 1 )
-							way.direction = Way::Opposite;
-					} else if ( xmlStrEqual( k, ( const xmlChar* ) "junction" ) == 1 ) {
-						if ( xmlStrEqual( value, ( const xmlChar* ) "roundabout" ) == 1 ) {
-							if ( way.direction == Way::NotSure ) {
-								way.direction = Way::Oneway;
-								way.roundabout = true;
-							}
-						}
-					} else if ( xmlStrEqual( k, ( const xmlChar* ) "highway" ) == 1 ) {
-						if ( xmlStrEqual( value, ( const xmlChar* ) "motorway" ) == 1 ) {
-							if ( way.direction == Way::NotSure ) {
-								way.direction = Way::Oneway;
-							}
-						} else if ( xmlStrEqual( value, ( const xmlChar* ) "motorway_link" ) == 1 ) {
-							if ( way.direction == Way::NotSure ) {
-								way.direction = Way::Oneway;
-							}
-						}
-						{
-							QString name = QString::fromUtf8( ( const char* ) value );
-							for ( int i = 0; i < m_settings.speedProfile.names.size(); i++ ) {
-								if ( name == m_settings.speedProfile.names[i] ) {
-									way.type = i;
-									way.usefull = true;
-									break;
-								}
-							}
-						}
-					} else if ( xmlStrncmp( k, ( const xmlChar* ) "name", 4 ) == 0 ) {
-						QString tag = QString::fromUtf8( ( const char* ) k );
-						int index = m_settings.languageSettings.indexOf( tag );
-						if ( index != -1 && index < way.namePriority ) {
-							way.namePriority = index;
-							if ( way.name != NULL )
-								xmlFree( way.name );
-							way.name = xmlStrdup( value );
-						}
-					} else if ( xmlStrEqual( k, ( const xmlChar* ) "ref" ) == 1 ) {
-						way.ref = xmlStrdup( value );
-					} else if ( xmlStrEqual( k, ( const xmlChar* ) "place_name" ) ) {
-						way.placeName = xmlStrdup( value );
-					} else if ( xmlStrEqual( k, ( const xmlChar* ) "place" ) ) {
-						way.placeType = parsePlaceType( value );
-					} else if ( xmlStrEqual( k, ( const xmlChar* ) "maxspeed" ) == 1 ) {
-						double maxspeed = atof(( const char* ) value );
-
-						xmlChar buffer[100];
-						for ( int i = 0; i < ( int ) m_kmhStrings.size(); i++ ) {
-							xmlStrPrintf( buffer, 100, ( const xmlChar* ) m_kmhStrings[i], maxspeed );
-							if ( xmlStrEqual( value, buffer ) == 1 ) {
-								way.maximumSpeed = maxspeed;
-								m_statistics.numberOfMaxspeed++;
-								break;
-							}
-						}
-						for ( int i = 0; i < ( int ) m_mphStrings.size(); i++ ) {
-							xmlStrPrintf( buffer, 100, ( const xmlChar* ) m_mphStrings[i], maxspeed );
-							if ( xmlStrEqual( value, buffer ) == 1 ) {
-								way.maximumSpeed = maxspeed * 1.609344;
-								m_statistics.numberOfMaxspeed++;
-								break;
-							}
-						}
-					} else {
-						QString key = QString::fromUtf8( ( const char* ) k );
-						int index = m_settings.accessList.indexOf( key );
-						if ( index != -1 && index < way.accessPriority ) {
-							if ( xmlStrEqual( value, ( const xmlChar* ) "private" ) == 1
-									|| xmlStrEqual( value, ( const xmlChar* ) "no" ) == 1
-									|| xmlStrEqual( value, ( const xmlChar* ) "agricultural" ) == 1
-									|| xmlStrEqual( value, ( const xmlChar* ) "forestry" ) == 1
-									|| xmlStrEqual( value, ( const xmlChar* ) "delivery" ) == 1
-									) {
-								way.access = false;
-								way.accessPriority = index;
-							}
-							else if ( xmlStrEqual( value, ( const xmlChar* ) "yes" ) == 1
-									|| xmlStrEqual( value, ( const xmlChar* ) "designated" ) == 1
-									|| xmlStrEqual( value, ( const xmlChar* ) "official" ) == 1
-									|| xmlStrEqual( value, ( const xmlChar* ) "permissive" ) == 1
-									) {
-								way.access = true;
-								way.accessPriority = index;
-							}
+		if ( key < WayTags::MaxTag ) {
+			switch ( WayTags::Key( key ) ) {
+			case WayTags::Oneway:
+				{
+					if ( value== "no" || value == "false" || value == "0" )
+						way->direction = Way::Bidirectional;
+					else if ( value == "yes" || value == "true" || value == "1" )
+						way->direction = Way::Oneway;
+					else if ( value == "-1" )
+						way->direction = Way::Opposite;
+					break;
+				}
+			case WayTags::Junction:
+				{
+					if ( value == "roundabout" ) {
+						if ( way->direction == Way::NotSure ) {
+							way->direction = Way::Oneway;
+							way->roundabout = true;
 						}
 					}
+					break;
+				}
+			case WayTags::Highway:
+				{
+					if ( value == "motorway" ) {
+						if ( way->direction == Way::NotSure )
+							way->direction = Way::Oneway;
+					} else if ( value =="motorway_link" ) {
+						if ( way->direction == Way::NotSure )
+							way->direction = Way::Oneway;
+					}
 
-					if ( k != NULL )
-						xmlFree( k );
-					if ( value != NULL )
-						xmlFree( value );
+					int index = m_settings.speedProfile.names.indexOf( value );
+					if ( index != -1 ) {
+						way->type = index;
+						way->usefull = true;
+					}
+					break;
 				}
-			} else if ( xmlStrEqual( childName, ( const xmlChar* ) "nd" ) == 1 ) {
-				xmlChar* ref = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "ref" );
-				if ( ref != NULL ) {
-					way.path.push_back( atoi(( const char* ) ref ) );
-					xmlFree( ref );
+			case WayTags::Ref:
+				{
+					way->ref = value;
+					break;
 				}
+			case WayTags::PlaceName:
+				{
+					way->placeName = value;
+					break;
+				}
+			case WayTags::Place:
+				{
+					way->placeType = parsePlaceType( value );
+					break;
+				}
+			case WayTags::MaxSpeed:
+				{
+					int index = -1;
+					double factor = 1.609344;
+					for ( unsigned i = 0; index == -1 && i < m_mphStrings.size(); i++ )
+						index = value.lastIndexOf( m_mphStrings[i] );
+
+					if ( index == -1 )
+						factor = 1;
+
+					for ( unsigned i = 0; index == -1 && i < m_kmhStrings.size(); i++ )
+						index = value.lastIndexOf( m_kmhStrings[i] );
+
+					if( index == -1 )
+						index = value.size();
+					bool ok = true;
+					double maxspeed = value.left( index ).toDouble( &ok );
+					if ( ok ) {
+						way->maximumSpeed = maxspeed * factor;
+						//qDebug() << value << index << value.left( index ) << way->maximumSpeed;
+						m_statistics.numberOfMaxspeed++;
+					}
+					break;
+				}
+			case WayTags::MaxTag:
+				assert( false );
 			}
 
-			xmlFree( childName );
+			continue;
 		}
 
-	}
-	return way;
-}
-
-OSMImporter::Node OSMImporter::readXMLNode( xmlTextReaderPtr& inputReader ) {
-	Node node;
-	node.name = NULL;
-	node.namePriority = m_settings.languageSettings.size();
-	node.type = Place::None;
-	node.population = -1;
-	node.trafficSignal = false;
-
-	xmlChar* attribute = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "lat" );
-	if ( attribute != NULL ) {
-		node.latitude =  atof(( const char* ) attribute );
-		xmlFree( attribute );
-	}
-	attribute = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "lon" );
-	if ( attribute != NULL ) {
-		node.longitude =  atof(( const char* ) attribute );
-		xmlFree( attribute );
-	}
-	attribute = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "id" );
-	if ( attribute != NULL ) {
-		node.id =  atoi(( const char* ) attribute );
-		xmlFree( attribute );
-	}
-
-	if ( xmlTextReaderIsEmptyElement( inputReader ) != 1 ) {
-		const int depth = xmlTextReaderDepth( inputReader );
-		while ( xmlTextReaderRead( inputReader ) == 1 ) {
-			const int childType = xmlTextReaderNodeType( inputReader );
-			// 1 = Element, 15 = EndElement
-			if ( childType != 1 && childType != 15 )
-				continue;
-			const int childDepth = xmlTextReaderDepth( inputReader );
-			xmlChar* childName = xmlTextReaderName( inputReader );
-			if ( childName == NULL )
-				continue;
-
-			if ( depth == childDepth && childType == 15 && xmlStrEqual( childName, ( const xmlChar* ) "node" ) == 1 ) {
-				xmlFree( childName );
-				break;
-			}
-			if ( childType != 1 ) {
-				xmlFree( childName );
-				continue;
+		key -= WayTags::MaxTag;
+		if ( key < m_settings.languageSettings.size() ) {
+			if ( key < way->namePriority ) {
+				way->namePriority = key;
+				way->name = value;
 			}
 
-			if ( xmlStrEqual( childName, ( const xmlChar* ) "tag" ) == 1 ) {
-				xmlChar* k = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "k" );
-				xmlChar* value = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "v" );
-				if ( k != NULL && value != NULL ) {
-					if ( xmlStrEqual( k, ( const xmlChar* ) "place" ) == 1 ) {
-						node.type = parsePlaceType( value );
-					} else if ( xmlStrncmp( k, ( const xmlChar* ) "name", 4 ) == 0 ) {
-						QString tag = QString::fromUtf8( ( const char* ) k );
-						int index = m_settings.languageSettings.indexOf( tag );
-						if ( index != -1 && index < node.namePriority ) {
-							node.namePriority = index;
-							if ( node.name != NULL )
-								xmlFree( node.name );
-							node.name = xmlStrdup( value );
-						}
-					} else if ( xmlStrEqual( k, ( const xmlChar* ) "population" ) == 1 ) {
-						node.population = atoi(( const char* ) value );
-					} else if ( xmlStrEqual( k, ( const xmlChar* ) "highway" ) == 1 ) {
-						if ( xmlStrEqual( value, ( const xmlChar* ) "traffic_signals" ) == 1 )
-							node.trafficSignal = true;
+			continue;
+		}
+
+		key -= m_settings.languageSettings.size();
+		if ( key < m_settings.accessList.size() ) {
+				if ( key < way->accessPriority ) {
+					if ( value == "private" || value == "no" || value == "agricultural" || value == "forestry" || value == "delivery" ) {
+						way->access = false;
+						way->accessPriority = key;
+					} else if ( value == "yes" || value == "designated" || value == "official" || value == "permissive" ) {
+						way->access = true;
+						way->accessPriority = key;
 					}
 				}
-				if ( k != NULL )
-					xmlFree( k );
-				if ( value != NULL )
-					xmlFree( value );
-			}
 
-			xmlFree( childName );
+			continue;
 		}
 	}
-	return node;
 }
 
-OSMImporter::Place::Type OSMImporter::parsePlaceType( const xmlChar* type )
+void OSMImporter::readNode( OSMImporter::Node* node, const IEntityReader::Node& inputNode ) {
+	node->name.clear();
+	node->namePriority = m_settings.languageSettings.size();
+	node->type = Place::None;
+	node->population = -1;
+	node->trafficSignal = false;
+
+	for ( unsigned tag = 0; tag < inputNode.tags.size(); tag++ ) {
+		int key = inputNode.tags[tag].key;
+		QString value = inputNode.tags[tag].value;
+
+		if ( key < NodeTags::MaxTag ) {
+			switch ( NodeTags::Key( key ) ) {
+			case NodeTags::Place:
+				{
+					node->type = parsePlaceType( value );
+					break;
+				}
+			case NodeTags::Population:
+				{
+					bool ok;
+					int population = value.toInt( &ok );
+					if ( ok )
+						node->population = population;
+					break;
+				}
+			case NodeTags::Highway:
+				{
+					if ( value == "traffic_signals" )
+						node->trafficSignal = true;
+					break;
+				}
+			case NodeTags::MaxTag:
+				assert( false );
+			}
+
+			continue;
+		}
+
+		key -= NodeTags::MaxTag;
+		if ( key < m_settings.languageSettings.size() ) {
+			if ( key < node->namePriority ) {
+				node->namePriority = key;
+				node->name = value;
+			}
+
+			continue;
+		}
+	}
+}
+
+OSMImporter::Place::Type OSMImporter::parsePlaceType( const QString& type )
 {
-	if ( xmlStrEqual( type, ( const xmlChar* ) "city" ) == 1 )
+	if ( type == "city" )
 		return Place::City;
-	if ( xmlStrEqual( type, ( const xmlChar* ) "town" ) == 1 )
+	if ( type == "town" )
 		return Place::Town;
-	if ( xmlStrEqual( type, ( const xmlChar* ) "village" ) == 1 )
+	if ( type == "village" )
 		return Place::Village;
-	if ( xmlStrEqual( type, ( const xmlChar* ) "hamlet" ) == 1 )
+	if ( type == "hamlet" )
 		return Place::Hamlet;
-	if ( xmlStrEqual( type, ( const xmlChar* ) "suburb" ) == 1 )
+	if ( type == "suburb" )
 		return Place::Suburb;
 	return Place::None;
 }
