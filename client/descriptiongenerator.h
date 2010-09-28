@@ -214,6 +214,10 @@ protected:
 			}
 
 			if ( m_lastType == "motorway_link" ) {
+				if ( m_direction == 0 ) {
+					icons->push_back( ":/images/directions/forward.png" );
+					labels->push_back( "" );
+				}
 				if ( !name.isEmpty() )
 					labels->last() = "Take the ramp towards " + name + ".";
 				else
