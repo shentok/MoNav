@@ -28,7 +28,7 @@
       </font>
      </property>
      <property name="text">
-      <string>MoNav 0.1</string>
+      <string>MoNav 0.2</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
