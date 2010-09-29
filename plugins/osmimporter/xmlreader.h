@@ -36,11 +36,11 @@ public:
 	virtual bool open( QString filename )
 	{
 		if ( filename.endsWith( ".bz2" ) )
-			inputReader = getBz2Reader( filename.toUtf8().constData() );
+			m_inputReader = getBz2Reader( filename.toUtf8().constData() );
 		else
-			inputReader = xmlNewTextReaderFilename( filename.toUtf8().constData() );
+			m_inputReader = xmlNewTextReaderFilename( filename.toUtf8().constData() );
 
-		if ( inputReader == NULL ) {
+		if ( m_inputReader == NULL ) {
 			qCritical() << "failed to open XML reader";
 			return false;
 		}
@@ -50,8 +50,8 @@ public:
 
 	virtual ~XMLReader()
 	{
-		if ( inputReader != NULL )
-			xmlFreeTextReader( inputReader );
+		if ( m_inputReader != NULL )
+			xmlFreeTextReader( m_inputReader );
 	}
 
 	virtual void setNodeTags( QStringList tags )
@@ -78,13 +78,13 @@ public:
 		assert( way != NULL );
 		assert( relation != NULL );
 
-		while ( xmlTextReaderRead( inputReader ) == 1 ) {
-			const int type = xmlTextReaderNodeType( inputReader );
+		while ( xmlTextReaderRead( m_inputReader ) == 1 ) {
+			const int type = xmlTextReaderNodeType( m_inputReader );
 
 			if ( type != 1 ) // 1 is Element
 				continue;
 
-			xmlChar* currentName = xmlTextReaderName( inputReader );
+			xmlChar* currentName = xmlTextReaderName( m_inputReader );
 			if ( currentName == NULL )
 				continue;
 
@@ -117,33 +117,33 @@ protected:
 	void readNode( Node* node )
 	{
 		node->tags.clear();
-		xmlChar* attribute = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "id" );
+		xmlChar* attribute = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "id" );
 		if ( attribute != NULL ) {
 			node->id =  atoi( ( const char* ) attribute );
 			xmlFree( attribute );
 		}
-		attribute = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "lat" );
+		attribute = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "lat" );
 		if ( attribute != NULL ) {
 			node->coordinate.latitude =  atof( ( const char* ) attribute );
 			xmlFree( attribute );
 		}
-		attribute = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "lon" );
+		attribute = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "lon" );
 		if ( attribute != NULL ) {
 			node->coordinate.longitude =  atof( ( const char* ) attribute );
 			xmlFree( attribute );
 		}
 
-		if ( xmlTextReaderIsEmptyElement( inputReader ) != 1 ) {
-			const int depth = xmlTextReaderDepth( inputReader );
+		if ( xmlTextReaderIsEmptyElement( m_inputReader ) != 1 ) {
+			const int depth = xmlTextReaderDepth( m_inputReader );
 
-			while ( xmlTextReaderRead( inputReader ) == 1 ) {
-				const int childType = xmlTextReaderNodeType( inputReader );
+			while ( xmlTextReaderRead( m_inputReader ) == 1 ) {
+				const int childType = xmlTextReaderNodeType( m_inputReader );
 
 				if ( childType != 1 && childType != 15 ) // element begin / end
 					continue;
 
-				const int childDepth = xmlTextReaderDepth( inputReader );
-				xmlChar* childName = xmlTextReaderName( inputReader );
+				const int childDepth = xmlTextReaderDepth( m_inputReader );
+				xmlChar* childName = xmlTextReaderName( m_inputReader );
 
 				if ( childName == NULL )
 					continue;
@@ -159,8 +159,8 @@ protected:
 				}
 
 				if ( xmlStrEqual( childName, ( const xmlChar* ) "tag" ) == 1 ) {
-					xmlChar* key = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "k" );
-					xmlChar* value = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "v" );
+					xmlChar* key = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "k" );
+					xmlChar* value = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "v" );
 
 					if ( key != NULL && value != NULL ) {
 						int tagID = m_nodeTags.value( QString( ( const char* ) key ), -1 );
@@ -188,23 +188,23 @@ protected:
 		way->tags.clear();
 		way->nodes.clear();
 
-		xmlChar* attribute = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "id" );
+		xmlChar* attribute = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "id" );
 		if ( attribute != NULL ) {
 			way->id =  atoi( ( const char* ) attribute );
 			xmlFree( attribute );
 		}
 
-		if ( xmlTextReaderIsEmptyElement( inputReader ) != 1 ) {
-			const int depth = xmlTextReaderDepth( inputReader );
+		if ( xmlTextReaderIsEmptyElement( m_inputReader ) != 1 ) {
+			const int depth = xmlTextReaderDepth( m_inputReader );
 
-			while ( xmlTextReaderRead( inputReader ) == 1 ) {
-				const int childType = xmlTextReaderNodeType( inputReader );
+			while ( xmlTextReaderRead( m_inputReader ) == 1 ) {
+				const int childType = xmlTextReaderNodeType( m_inputReader );
 
 				if ( childType != 1 && childType != 15 ) // element begin / end
 					continue;
 
-				const int childDepth = xmlTextReaderDepth( inputReader );
-				xmlChar* childName = xmlTextReaderName( inputReader );
+				const int childDepth = xmlTextReaderDepth( m_inputReader );
+				xmlChar* childName = xmlTextReaderName( m_inputReader );
 
 				if ( childName == NULL )
 					continue;
@@ -220,8 +220,8 @@ protected:
 				}
 
 				if ( xmlStrEqual( childName, ( const xmlChar* ) "tag" ) == 1 ) {
-					xmlChar* key = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "k" );
-					xmlChar* value = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "v" );
+					xmlChar* key = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "k" );
+					xmlChar* value = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "v" );
 
 					if ( key != NULL && value != NULL ) {
 						int tagID = m_wayTags.value( QString( ( const char* ) key ), -1 );
@@ -238,7 +238,7 @@ protected:
 					if ( value != NULL )
 						xmlFree( value );
 				} else if ( xmlStrEqual( childName, ( const xmlChar* ) "nd" ) == 1 ) {
-					xmlChar* ref = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "ref" );
+					xmlChar* ref = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "ref" );
 					if ( ref != NULL ) {
 						way->nodes.push_back( atoi( ( const char* ) ref ) );
 						xmlFree( ref );
@@ -254,23 +254,23 @@ protected:
 	{
 		relation->tags.clear();
 
-		xmlChar* attribute = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "id" );
+		xmlChar* attribute = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "id" );
 		if ( attribute != NULL ) {
 			relation->id =  atoi( ( const char* ) attribute );
 			xmlFree( attribute );
 		}
 
-		if ( xmlTextReaderIsEmptyElement( inputReader ) != 1 ) {
-			const int depth = xmlTextReaderDepth( inputReader );
+		if ( xmlTextReaderIsEmptyElement( m_inputReader ) != 1 ) {
+			const int depth = xmlTextReaderDepth( m_inputReader );
 
-			while ( xmlTextReaderRead( inputReader ) == 1 ) {
-				const int childType = xmlTextReaderNodeType( inputReader );
+			while ( xmlTextReaderRead( m_inputReader ) == 1 ) {
+				const int childType = xmlTextReaderNodeType( m_inputReader );
 
 				if ( childType != 1 && childType != 15 ) // element begin / end
 					continue;
 
-				const int childDepth = xmlTextReaderDepth( inputReader );
-				xmlChar* childName = xmlTextReaderName( inputReader );
+				const int childDepth = xmlTextReaderDepth( m_inputReader );
+				xmlChar* childName = xmlTextReaderName( m_inputReader );
 
 				if ( childName == NULL )
 					continue;
@@ -286,8 +286,8 @@ protected:
 				}
 
 				if ( xmlStrEqual( childName, ( const xmlChar* ) "tag" ) == 1 ) {
-					xmlChar* key = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "k" );
-					xmlChar* value = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "v" );
+					xmlChar* key = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "k" );
+					xmlChar* value = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "v" );
 
 					if ( key != NULL && value != NULL ) {
 						int tagID = m_relationTags.value( QString( ( const char* ) key ), -1 );
@@ -304,9 +304,9 @@ protected:
 					if ( value != NULL )
 						xmlFree( value );
 				} else if ( xmlStrEqual( childName, ( const xmlChar* ) "member" ) == 1 ) {
-					xmlChar* type = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "type" );
-					xmlChar* ref = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "ref" );
-					xmlChar* role = xmlTextReaderGetAttribute( inputReader, ( const xmlChar* ) "role" );
+					xmlChar* type = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "type" );
+					xmlChar* ref = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "ref" );
+					xmlChar* role = xmlTextReaderGetAttribute( m_inputReader, ( const xmlChar* ) "role" );
 
 					if ( type != NULL && ref != NULL && role != NULL ) {
 						RelationMember member;
@@ -342,7 +342,7 @@ protected:
 		}
 	}
 
-	xmlTextReaderPtr inputReader;
+	xmlTextReaderPtr m_inputReader;
 	QHash< QString, int > m_nodeTags;
 	QHash< QString, int > m_wayTags;
 	QHash< QString, int > m_relationTags;
