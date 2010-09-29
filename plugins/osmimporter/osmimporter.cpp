@@ -19,6 +19,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "osmimporter.h"
 #include "xmlreader.h"
+#include "pbfreader.h"
 #include "utils/qthelpers.h"
 #include <algorithm>
 #include <QtDebug>
@@ -214,7 +215,7 @@ bool OSMImporter::read( const QString& inputFilename, const QString& filename ) 
 	if ( inputFilename.endsWith( "osm.bz2" ) || inputFilename.endsWith( ".osm" ) )
 		reader = new XMLReader();
 	else if ( inputFilename.endsWith( ".pbf" ) )
-		reader = NULL;
+		reader = new PBFReader();
 
 	if ( reader == NULL ) {
 		qCritical() << "file format not supporter";
@@ -344,6 +345,8 @@ bool OSMImporter::read( const QString& inputFilename, const QString& filename ) 
 		qCritical( "OSM Importer: caught execption: %s", e.what() );
 		return false;
 	}
+
+	delete reader;
 	return true;
 }
 

@@ -2,22 +2,25 @@
 # Project created by QtCreator 2010-06-08T10:48:36
 # -------------------------------------------------
 TEMPLATE = app
+CONFIG += link_pkgconfig
+PKGCONFIG += libxml-2.0
+PKGCONFIG += protobuf
 SOURCES += main.cpp \
-    preprocessingwindow.cpp \
-    aboutdialog.cpp
+	 preprocessingwindow.cpp \
+	 aboutdialog.cpp
 HEADERS += preprocessingwindow.h \
-    aboutdialog.h \
-    interfaces/IImporter.h \
-    utils/coordinates.h \
-    utils/config.h \
-    interfaces/IPreprocessor.h \
-    interfaces/IRenderer.h \
-    interfaces/ipreprocessor.h \
-    interfaces/iimporter.h
+	 aboutdialog.h \
+	 interfaces/IImporter.h \
+	 utils/coordinates.h \
+	 utils/config.h \
+	 interfaces/IPreprocessor.h \
+	 interfaces/IRenderer.h \
+	 interfaces/ipreprocessor.h \
+	 interfaces/iimporter.h
 DESTDIR = ../bin
 TARGET = MoNavP
 FORMS += preprocessingwindow.ui \
-    aboutdialog.ui
+	 aboutdialog.ui
 RESOURCES += images.qrc
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2

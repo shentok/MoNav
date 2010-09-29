@@ -275,7 +275,7 @@ void OISettingsDialog::load()
 
 void OISettingsDialog::browse() {
 	QString file = m_ui->inputEdit->text();
-	file = QFileDialog::getOpenFileName( this, tr("Enter OSM XML Filename"), file, "*.osm *osm.bz2" );
+	file = QFileDialog::getOpenFileName( this, tr("Enter OSM Filename"), file, "OSM XML ( *.osm );; Compressed OSM XML ( *osm.bz2 );; ProtocolBufBinary ( *.pbf )" );
 	if ( file.isEmpty() )
 		return;
 
