@@ -157,7 +157,7 @@ protected:
 				continue;
 			Tag newTag;
 			newTag.key = tagID;
-			newTag.value = m_primitiveBlock.stringtable().s( inputNode.vals( tag ) ).data();
+			newTag.value = QString::fromUtf8( m_primitiveBlock.stringtable().s( inputNode.vals( tag ) ).data() );
 			node->tags.push_back( newTag );
 		}
 
@@ -177,6 +177,24 @@ protected:
 		way->tags.clear();
 		way->nodes.clear();
 
+		const PBF::Way& inputWay = m_primitiveBlock.primitivegroup( m_currentGroup ).ways( m_currentEntity );
+		way->id = inputWay.id();
+		for ( int tag = 0; tag < inputWay.keys_size(); tag++ ) {
+			int tagID = m_wayTagIDs[inputWay.keys( tag )];
+			if ( tagID == -1 )
+				continue;
+			Tag newTag;
+			newTag.key = tagID;
+			newTag.value = QString::fromUtf8( m_primitiveBlock.stringtable().s( inputWay.vals( tag ) ).data() );
+			way->tags.push_back( newTag );
+		}
+
+		long long lastRef = 0;
+		for ( int i = 0; i < inputWay.refs_size(); i++ ) {
+			lastRef += inputWay.refs( i );
+			way->nodes.push_back( lastRef );
+		}
+
 		m_currentEntity++;
 		if ( m_currentEntity >= m_primitiveBlock.primitivegroup( m_currentGroup ).ways_size() ) {
 			m_currentEntity = 0;
@@ -192,6 +210,37 @@ protected:
 	{
 		relation->tags.clear();
 		relation->members.clear();
+
+		const PBF::Relation& inputRelation = m_primitiveBlock.primitivegroup( m_currentGroup ).relations( m_currentEntity );
+		relation->id = inputRelation.id();
+		for ( int tag = 0; tag < inputRelation.keys_size(); tag++ ) {
+			int tagID = m_relationTagIDs[inputRelation.keys( tag )];
+			if ( tagID == -1 )
+				continue;
+			Tag newTag;
+			newTag.key = tagID;
+			newTag.value = QString::fromUtf8( m_primitiveBlock.stringtable().s( inputRelation.vals( tag ) ).data() );
+			relation->tags.push_back( newTag );
+		}
+
+		long long lastRef = 0;
+		for ( int i = 0; i < inputRelation.types_size(); i++ ) {
+			RelationMember member;
+			switch ( inputRelation.types( i ) ) {
+			case PBF::Relation::NODE:
+				member.type = RelationMember::Node;
+				break;
+			case PBF::Relation::WAY:
+				member.type = RelationMember::Way;
+				break;
+			case PBF::Relation::RELATION:
+				member.type = RelationMember::Relation;
+			}
+			lastRef += inputRelation.memids( i );
+			member.ref = lastRef;
+			member.role = m_primitiveBlock.stringtable().s( inputRelation.roles_sid( i ) ).data();
+			relation->members.push_back( member );
+		}
 
 		m_currentEntity++;
 		if ( m_currentEntity >= m_primitiveBlock.primitivegroup( m_currentGroup ).relations_size() ) {
@@ -213,28 +262,31 @@ protected:
 		m_lastDenseLatitude += dense.lat( m_currentEntity );
 		m_lastDenseLongitude += dense.lon( m_currentEntity );
 		node->id = m_lastDenseID;
-		node->coordinate.latitude = m_lastDenseLatitude;
-		node->coordinate.longitude = m_lastDenseLongitude;
+		node->coordinate.latitude = ( ( double ) m_lastDenseLatitude * m_primitiveBlock.granularity() + m_primitiveBlock.lat_offset() ) / NANO;
+		node->coordinate.longitude = ( ( double ) m_lastDenseLongitude * m_primitiveBlock.granularity() + m_primitiveBlock.lon_offset() ) / NANO;
 
 		while ( true ){
 			if ( m_lastDenseTag >= dense.keys_vals_size() )
 				break;
-			int tagID = m_nodeTagIDs[dense.keys_vals( m_lastDenseTag )];
-			m_lastDenseTag++;
 
-			if ( tagID == 0 )
+			int tagValue = dense.keys_vals( m_lastDenseTag );
+			if ( tagValue == 0 ) {
+				m_lastDenseTag++;
 				break;
+			}
+
+			int tagID = m_nodeTagIDs[tagValue];
 
 			if ( tagID == -1 ) {
-				m_lastDenseTag++;
+				m_lastDenseTag += 2;
 				continue;
 			}
 
 			Tag newTag;
 			newTag.key = tagID;
-			newTag.value = m_primitiveBlock.stringtable().s( dense.keys_vals( m_lastDenseTag ) ).data();
+			newTag.value = QString::fromUtf8( m_primitiveBlock.stringtable().s( dense.keys_vals( m_lastDenseTag + 1 ) ).data() );
 			node->tags.push_back( newTag );
-			m_lastDenseTag++;
+			m_lastDenseTag += 2;
 		}
 
 		m_currentEntity++;
@@ -259,6 +311,10 @@ protected:
 			m_mode = ModeRelation;
 		} else if ( group.has_dense() )  {
 			m_mode = ModeDense;
+			m_lastDenseID = 0;
+			m_lastDenseTag = 0;
+			m_lastDenseLatitude = 0;
+			m_lastDenseLongitude = 0;
 			assert( group.dense().id_size() != 0 );
 		} else
 			assert( false );
