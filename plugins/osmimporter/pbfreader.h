@@ -408,9 +408,11 @@ protected:
 		} else if ( m_blob.has_zlib_data() ) {
 			unpackZlib();
 		} else if ( m_blob.has_bzip2_data() ) {
-
+			qCritical() << "bzip2 Blobs not supported yet";
+			return false;
 		} else if ( m_blob.has_lzma_data() ) {
-
+			qCritical() << "lzma Blobs not supported yet";
+			return false;
 		} else {
 			qCritical() << "Blob contains no data";
 			return false;
