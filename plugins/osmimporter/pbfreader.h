@@ -28,6 +28,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QFile>
 #include <string>
 #include <zlib.h>
+#include <bzlib.h>
+#include "lzma/LzmaDec.h"
 
 #define NANO ( 1000.0 * 1000.0 * 1000.0 )
 #define MAX_BLOCK_HEADER_SIZE ( 64 * 1024 )
@@ -406,13 +408,14 @@ protected:
 			for ( unsigned i = 0; i < data.size(); i++ )
 				m_buffer[i] = data[i];
 		} else if ( m_blob.has_zlib_data() ) {
-			unpackZlib();
+			if ( !unpackZlib() )
+				return false;
 		} else if ( m_blob.has_bzip2_data() ) {
-			qCritical() << "bzip2 Blobs not supported yet";
-			return false;
+			if ( !unpackBzip2() )
+				return false;
 		} else if ( m_blob.has_lzma_data() ) {
-			qCritical() << "lzma Blobs not supported yet";
-			return false;
+			if ( !unpackLzma() )
+				return false;
 		} else {
 			qCritical() << "Blob contains no data";
 			return false;
@@ -450,6 +453,56 @@ protected:
 		return true;
 	}
 
+	bool unpackBzip2()
+	{
+		unsigned size = m_blob.raw_size();
+		m_buffer.resize( size );
+		m_bzip2Buffer.resize( m_blob.bzip2_data().size() );
+		for ( unsigned i = 0; i < m_blob.bzip2_data().size(); i++ )
+			m_bzip2Buffer[i] = m_blob.bzip2_data()[i];
+		int ret = BZ2_bzBuffToBuffDecompress( m_buffer.data(), &size, m_bzip2Buffer.data(), m_bzip2Buffer.size(), 0, 0 );
+		if ( ret != BZ_OK ) {
+			qCritical() << "failed to unpack bzip2 stream";
+			return false;
+		}
+		return true;
+	}
+
+	static void *SzAlloc( void *p, size_t size)
+	{
+		p = p;
+		return malloc( size );
+	}
+
+	static void SzFree( void *p, void *address)
+	{
+		p = p;
+		free( address );
+	}
+
+	bool unpackLzma()
+	{
+		ISzAlloc alloc = { SzAlloc, SzFree };
+		ELzmaStatus status;
+		SizeT destinationLength = m_blob.raw_size();
+		SizeT sourceLength = m_blob.lzma_data().size() - LZMA_PROPS_SIZE + 8;
+		int ret = LzmaDecode(
+				( unsigned char* ) m_buffer.data(),
+				&destinationLength,
+				( const unsigned char* ) m_blob.lzma_data().data() + LZMA_PROPS_SIZE + 8,
+				&sourceLength,
+				( const unsigned char* ) m_blob.lzma_data().data(),
+				LZMA_PROPS_SIZE + 8,
+				LZMA_FINISH_END,
+				&status,
+				&alloc );
+
+		if ( ret != SZ_OK )
+			return false;
+
+		return true;
+	}
+
 	PBF::BlockHeader m_blockHeader;
 	PBF::Blob m_blob;
 
@@ -477,6 +530,7 @@ protected:
 
 	QFile m_file;
 	QByteArray m_buffer;
+	QByteArray m_bzip2Buffer;
 
 };
 

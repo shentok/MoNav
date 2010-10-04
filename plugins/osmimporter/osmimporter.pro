@@ -16,11 +16,14 @@ HEADERS += osmimporter.h \
 	 ientityreader.h \
 	 pbfreader.h \
 	 "protobuff definitions/osmformat.pb.h" \
-	 "protobuff definitions/fileformat.pb.h"
+	 "protobuff definitions/fileformat.pb.h" \
+    lzma/Types.h \
+    lzma/LzmaDec.h
 SOURCES += osmimporter.cpp \
 	 oisettingsdialog.cpp \
 	 "protobuff definitions/osmformat.pb.cc" \
-	 "protobuff definitions/fileformat.pb.cc"
+	 "protobuff definitions/fileformat.pb.cc" \
+    lzma/LzmaDec.c
 DESTDIR = ../../bin/plugins_preprocessor
 FORMS += oisettingsdialog.ui
 unix {

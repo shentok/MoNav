@@ -10,11 +10,11 @@ SOURCES += main.cpp \
 	 aboutdialog.cpp
 HEADERS += preprocessingwindow.h \
 	 aboutdialog.h \
-	 interfaces/IImporter.h \
+	 interfaces/iimporter.h \
 	 utils/coordinates.h \
 	 utils/config.h \
-	 interfaces/IPreprocessor.h \
-	 interfaces/IRenderer.h \
+	 interfaces/ipreprocessor.h \
+	 interfaces/irenderer.h \
 	 interfaces/ipreprocessor.h \
 	 interfaces/iimporter.h
 DESTDIR = ../bin
@@ -31,5 +31,5 @@ unix {
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function \
 		 -fopenmp
 }
+LIBS += -fopenmp -lmapnik -lbz2
 LIBS += -L../bin/plugins_preprocessor -lmapnikrenderer -lcontractionhierarchies -lgpsgrid -losmrenderer -lunicodetournamenttrie -losmimporter
-LIBS += -fopenmp -lmapnik -lbz2 -lxml2
