@@ -82,9 +82,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	m_updateSource = true;
 	m_updateTarget = false;
-
+#ifndef NOQTMOBILE
 	if ( m_gpsSource != NULL )
 		m_gpsSource->startUpdates();
+#endif
 }
 
 MainWindow::~MainWindow()
