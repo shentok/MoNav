@@ -27,6 +27,9 @@ BookmarksDialog::BookmarksDialog(QWidget *parent) :
 		m_ui( new Ui::BookmarksDialog )
 {
 	m_ui->setupUi(this);
+#ifdef Q_WS_MAEMO_5
+	setAttribute( Qt::WA_Maemo5StackedWindow );
+#endif
 
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "Bookmarks" );

@@ -28,15 +28,24 @@ AddressDialog::AddressDialog(QWidget *parent) :
 		m_ui(new Ui::AddressDialog)
 {
 	m_ui->setupUi(this);
+	bool increaseFontSize = true;
+#ifdef Q_WS_MAEMO_5
+	setAttribute( Qt::WA_Maemo5StackedWindow );
+	m_ui->characterList->hide();
+	increaseFontSize = false;
+#endif
+
 	m_addressLookup = NULL;
 	m_renderer = NULL;
 	m_skipStreetPosition = false;
 	m_ui->suggestionList->setAlternatingRowColors( true );
 	m_ui->characterList->setAlternatingRowColors( true );
-	QFont font = m_ui->suggestionList->font();
-	font.setPointSize( font.pointSize() * 1.5 );
-	m_ui->suggestionList->setFont( font );
-	m_ui->characterList->setFont( font );
+	if ( increaseFontSize ) {
+		QFont font = m_ui->suggestionList->font();
+		font.setPointSize( font.pointSize() * 1.5 );
+		m_ui->suggestionList->setFont( font );
+		m_ui->characterList->setFont( font );
+	}
 	resetCity();
 	connectSlots();
 }
@@ -100,6 +109,7 @@ void AddressDialog::suggestionClicked( QListWidgetItem * item )
 		m_ui->cityEdit->setText( text );
 		m_ui->cityEdit->setDisabled( true );
 		m_ui->streetEdit->setEnabled( true );
+		m_ui->streetEdit->setFocus();
 		m_ui->resetStreet->setEnabled( true );
 		m_mode = Street;
 		m_addressLookup->SelectPlace( m_placeID );

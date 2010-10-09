@@ -22,7 +22,8 @@ HEADERS += mainwindow.h \
     interfaces/irouter.h \
     bookmarksdialog.h \
     routedescriptiondialog.h \
-    descriptiongenerator.h
+    descriptiongenerator.h \
+    fullscreenexitbutton.h
 FORMS += mainwindow.ui \
     mapview.ui \
     paintwidget.ui \
@@ -34,7 +35,6 @@ TARGET = MoNavC
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
 	QMAKE_CXXFLAGS_RELEASE += -O3 \
-		 -march=native \
 		 -Wno-unused-function
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }

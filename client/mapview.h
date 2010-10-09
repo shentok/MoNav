@@ -90,6 +90,11 @@ protected:
 	void setPlaces( QVector< UnsignedCoordinate > p );
 	void setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinate > coordinates );
 
+#ifdef Q_WS_MAEMO_5
+	void grabZoomKeys( bool grab );
+	void keyPressEvent( QKeyEvent* event );
+#endif
+
 	Ui::MapView *m_ui;
 
 	IRenderer* m_renderer;

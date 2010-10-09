@@ -24,11 +24,40 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QtDebug>
 #include <QInputDialog>
 #include <QSettings>
+#include <QGridLayout>
+
+#ifdef Q_WS_MAEMO_5
+	#include "fullscreenexitbutton.h"
+	#include <QtGui/QX11Info>
+	#include <X11/Xlib.h>
+	#include <X11/Xatom.h>
+#endif
 
 MapView::MapView( QWidget *parent ) :
 	 QDialog(parent, Qt::Window ),
 	 m_ui(new Ui::MapView)
 {
+	m_ui->setupUi(this);
+#ifdef Q_WS_MAEMO_5
+	setAttribute( Qt::WA_Maemo5StackedWindow );
+	QGridLayout* grid = qobject_cast< QGridLayout* >( layout() );
+	if ( grid != NULL ) {
+		int infoWidgetIndex = grid->indexOf( m_ui->infoWidget );
+		grid->takeAt( infoWidgetIndex );
+		grid->addWidget( m_ui->infoWidget, 1, 0 );
+		QBoxLayout* box = qobject_cast< QBoxLayout* >( m_ui->infoWidget->layout() );
+		if ( box != NULL )
+			box->setDirection( QBoxLayout::TopToBottom );
+		m_ui->infoButton->setArrowType( Qt::DownArrow );
+	}
+	m_ui->zoomBar->hide();
+	m_ui->zoomIn->hide();
+	m_ui->zoomOut->hide();
+	grabZoomKeys( true );
+	new FullScreenExitButton(this);
+	showFullScreen();
+#endif
+
 	m_renderer = NULL;
 	m_addressLookup = NULL;
 	m_menu = NoMenu;
@@ -37,7 +66,6 @@ MapView::MapView( QWidget *parent ) :
 	m_fixed = false;
 	m_toMapview = false;
 
-	m_ui->setupUi(this);
 	setupMenu();
 	m_ui->headerWidget->hide();
 	m_ui->menuButton->hide();
@@ -75,20 +103,20 @@ void MapView::connectSlots()
 void MapView::setupMenu()
 {
 	m_contextMenu = new QMenu( this );
-  m_contextSubMenu = m_contextMenu->addMenu( tr("Show") );
-  m_gotoGPSAction = m_contextSubMenu->addAction( tr( "GPS-Location" ), this, SLOT(gotoGPS()) );
-  m_gotoSourceAction = m_contextSubMenu->addAction( tr( "Departure" ), this, SLOT(gotoSource()) );
-  m_gotoTargetAction = m_contextSubMenu->addAction( tr( "Destination" ), this, SLOT(gotoTarget()) );
-  m_gotoAddressAction = m_contextSubMenu->addAction( tr( "Address..." ), this, SLOT(gotoAddress()) );
+	m_contextSubMenu = m_contextMenu->addMenu( tr("Show") );
+	m_gotoGPSAction = m_contextSubMenu->addAction( tr( "GPS-Location" ), this, SLOT(gotoGPS()) );
+	m_gotoSourceAction = m_contextSubMenu->addAction( tr( "Departure" ), this, SLOT(gotoSource()) );
+	m_gotoTargetAction = m_contextSubMenu->addAction( tr( "Destination" ), this, SLOT(gotoTarget()) );
+	m_gotoAddressAction = m_contextSubMenu->addAction( tr( "Address..." ), this, SLOT(gotoAddress()) );
 	m_contextMenu->addSeparator();
 	m_bookmarkAction = m_contextMenu->addAction( tr( "Bookmarks" ), this, SLOT(bookmarks()) );
 	m_contextMenu->addSeparator();
 	m_magnifyAction = m_contextMenu->addAction( tr( "Magnify" ), this, SLOT(magnify()) );
 	m_contextMenu->addSeparator();
 	m_modeGroup = new QActionGroup( this );
-  m_modeSourceAction = new QAction( tr( "Choose Destination" ), m_modeGroup );
+	m_modeSourceAction = new QAction( tr( "Choose Departure" ), m_modeGroup );
 	m_modeSourceAction->setCheckable( true );
-  m_modeTargetAction = new QAction( tr( "Choose Departure" ), m_modeGroup );
+	m_modeTargetAction = new QAction( tr( "Choose Destination" ), m_modeGroup );
 	m_modeTargetAction->setCheckable( true );
 	m_contextMenu->addActions( m_modeGroup->actions() );
 
@@ -96,6 +124,49 @@ void MapView::setupMenu()
 	m_routeMenu->insertAction( NULL, m_magnifyAction );
 	m_routeMenu->addAction( tr( "Goto Mapview" ), this, SLOT(gotoMapview()) );
 }
+
+#ifdef Q_WS_MAEMO_5
+void MapView::grabZoomKeys(bool grab)
+{
+	if ( !winId() ) {
+		qWarning() << "Can't grab keys unless we have a window id";
+		return;
+	}
+
+	unsigned long val = ( grab ) ? 1 : 0;
+	Atom atom = XInternAtom(QX11Info::display(), "_HILDON_ZOOM_KEY_ATOM", False);
+	if ( !atom ) {
+		qWarning() << "Unable to obtain _HILDON_ZOOM_KEY_ATOM. This will only work on a Maemo 5 device!";
+		return;
+	}
+
+	XChangeProperty ( QX11Info::display(),
+		winId(),
+		atom,
+		XA_INTEGER,
+		32,
+		PropModeReplace,
+		reinterpret_cast< unsigned char* >( &val ),
+		1 );
+}
+
+void MapView::keyPressEvent( QKeyEvent* event )
+{
+	switch (event->key()) {
+	case Qt::Key_F7:
+		addZoom();
+		event->accept();
+		break;
+
+	case Qt::Key_F8:
+		this->substractZoom();
+		event->accept();
+		break;
+	}
+	QWidget::keyPressEvent(event);
+}
+
+#endif
 
 bool MapView::exitedToMapview()
 {

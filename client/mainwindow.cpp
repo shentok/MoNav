@@ -34,6 +34,11 @@ MainWindow::MainWindow(QWidget *parent) :
 		QMainWindow(parent),
 		m_ui(new Ui::MainWindow)
 {
+	m_ui->setupUi(this);
+#ifdef Q_WS_MAEMO_5
+	setAttribute( Qt::WA_Maemo5StackedWindow );
+#endif
+
 	m_renderer = NULL;
 	m_addressLookup = NULL;
 	m_gpsLookup = NULL;
@@ -44,7 +49,6 @@ MainWindow::MainWindow(QWidget *parent) :
 	m_sourceSet = false;
 	m_targetSet = false;
 
-	m_ui->setupUi(this);
 	QSize maxSize = m_ui->mainMenuList->widget()->size();
 	maxSize = maxSize.expandedTo( m_ui->targetMenuList->widget()->size() );
 	maxSize = maxSize.expandedTo( m_ui->settingsMenuList->widget()->size() );
