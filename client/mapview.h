@@ -109,8 +109,9 @@ protected:
 
 	Menu m_menu;
 	Mode m_mode;
-	QMenu* m_contextMenu;
 	QMenu* m_routeMenu;
+  QMenu* m_contextMenu;
+  QMenu* m_contextSubMenu;
 	QActionGroup* m_modeGroup;
 	QAction* m_gotoSourceAction;
 	QAction* m_gotoTargetAction;

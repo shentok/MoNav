@@ -57,7 +57,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	this->updateGeometry();
 
 	QSettings settings( "MoNavClient" );
-	m_dataDirectory = settings.value( "dataDirectory" ).toString();
+  m_dataDirectory = settings.value( "dataDirectory", QDir::homePath() ).toString();
 	m_source.x = settings.value( "source.x", 0 ).toUInt();
 	m_source.y = settings.value( "source.y", 0 ).toUInt();
 	mode = Source;

@@ -75,19 +75,20 @@ void MapView::connectSlots()
 void MapView::setupMenu()
 {
 	m_contextMenu = new QMenu( this );
-	m_gotoSourceAction = m_contextMenu->addAction( tr( "Goto Source" ), this, SLOT(gotoSource()) );
-	m_gotoGPSAction = m_contextMenu->addAction( tr( "Goto GPS" ), this, SLOT(gotoGPS()) );
-	m_gotoTargetAction = m_contextMenu->addAction( tr( "Goto Target" ), this, SLOT(gotoTarget()) );
-	m_gotoAddressAction = m_contextMenu->addAction( tr( "Goto Address" ), this, SLOT(gotoAddress()) );
+  m_contextSubMenu = m_contextMenu->addMenu( tr("Show") );
+  m_gotoGPSAction = m_contextSubMenu->addAction( tr( "GPS-Location" ), this, SLOT(gotoGPS()) );
+  m_gotoSourceAction = m_contextSubMenu->addAction( tr( "Departure" ), this, SLOT(gotoSource()) );
+  m_gotoTargetAction = m_contextSubMenu->addAction( tr( "Destination" ), this, SLOT(gotoTarget()) );
+  m_gotoAddressAction = m_contextSubMenu->addAction( tr( "Address..." ), this, SLOT(gotoAddress()) );
 	m_contextMenu->addSeparator();
 	m_bookmarkAction = m_contextMenu->addAction( tr( "Bookmarks" ), this, SLOT(bookmarks()) );
 	m_contextMenu->addSeparator();
 	m_magnifyAction = m_contextMenu->addAction( tr( "Magnify" ), this, SLOT(magnify()) );
 	m_contextMenu->addSeparator();
 	m_modeGroup = new QActionGroup( this );
-	m_modeSourceAction = new QAction( tr( "Choose Source" ), m_modeGroup );
+  m_modeSourceAction = new QAction( tr( "Choose Destination" ), m_modeGroup );
 	m_modeSourceAction->setCheckable( true );
-	m_modeTargetAction = new QAction( tr( "Choose Target" ), m_modeGroup );
+  m_modeTargetAction = new QAction( tr( "Choose Departure" ), m_modeGroup );
 	m_modeTargetAction->setCheckable( true );
 	m_contextMenu->addActions( m_modeGroup->actions() );
 

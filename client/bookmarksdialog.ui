@@ -27,28 +27,28 @@
    <item>
     <widget class="QPushButton" name="chooseButton">
      <property name="text">
-      <string>Choose Bookmark</string>
+      <string>Show on Map</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="sourceButton">
      <property name="text">
-      <string>Bookmark Source</string>
+      <string>Add Departure</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="targetButton">
      <property name="text">
-      <string>Bookmark Target</string>
+      <string>Add Destination</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="deleteButton">
      <property name="text">
-      <string>Delete Bookmark</string>
+      <string>Delete</string>
      </property>
     </widget>
    </item>
