@@ -38,6 +38,9 @@ unix {
 		 -Wno-unused-function
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
+maemo5 {
+	QT += maemo5
+}
 RESOURCES += images.qrc
 LIBS += -L../bin/plugins_client -lmapnikrendererclient -lcontractionhierarchiesclient -lgpsgridclient -losmrendererclient -lunicodetournamenttrieclient
 #required by osmrendererclient
