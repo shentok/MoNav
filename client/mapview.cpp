@@ -115,28 +115,30 @@ void MapView::setupMenu()
 {
 	m_contextMenu = new QMenu( this );
 
-	m_contextSubMenu = m_contextMenu->addMenu( tr("Show") );
-	m_gotoGPSAction = m_contextSubMenu->addAction( tr( "GPS-Location" ), this, SLOT(gotoGPS()) );
-	m_gotoSourceAction = m_contextSubMenu->addAction( tr( "Departure" ), this, SLOT(gotoSource()) );
-	m_gotoTargetAction = m_contextSubMenu->addAction( tr( "Destination" ), this, SLOT(gotoTarget()) );
-	m_gotoBookmarkAction = m_contextSubMenu->addAction( tr( "Bookmark..." ), this, SLOT(gotoBookmark()) );
-	m_gotoAddressAction = m_contextSubMenu->addAction( tr( "Address..." ), this, SLOT(gotoAddress()) );
+	QMenu* contextSubMenu = m_contextMenu->addMenu( tr("Show") );
+	m_gotoGPSAction = contextSubMenu->addAction( tr( "GPS-Location" ), this, SLOT(gotoGPS()) );
+	m_gotoSourceAction = contextSubMenu->addAction( tr( "Departure" ), this, SLOT(gotoSource()) );
+	m_gotoTargetAction = contextSubMenu->addAction( tr( "Destination" ), this, SLOT(gotoTarget()) );
+	m_gotoBookmarkAction = contextSubMenu->addAction( tr( "Bookmark..." ), this, SLOT(gotoBookmark()) );
+	m_gotoAddressAction = contextSubMenu->addAction( tr( "Address..." ), this, SLOT(gotoAddress()) );
 
-	m_contextSubMenu = m_contextMenu->addMenu( tr( "Departure" ) );
-	m_sourceByTapAction = m_contextSubMenu->addAction( tr( "Tap on Map" ), this, SLOT(setModeSourceSelection()) );
-	m_sourceByBookmarkAction = m_contextSubMenu->addAction( tr( "Bookmark..." ), this, SLOT(sourceByBookmark()) );
-	m_sourceByAddressAction = m_contextSubMenu->addAction( tr( "Address..." ), this, SLOT(sourceByAddress()) );
+	contextSubMenu = m_contextMenu->addMenu( tr( "Departure" ) );
+	m_sourceByTapAction = contextSubMenu->addAction( tr( "Tap on Map" ), this, SLOT(setModeSourceSelection()) );
+	m_sourceByBookmarkAction = contextSubMenu->addAction( tr( "Bookmark..." ), this, SLOT(sourceByBookmark()) );
+	m_sourceByAddressAction = contextSubMenu->addAction( tr( "Address..." ), this, SLOT(sourceByAddress()) );
 
-	m_contextSubMenu = m_contextMenu->addMenu( tr( "Destination" ) );
-	m_targetByTapAction = m_contextSubMenu->addAction( tr( "Tap on Map" ), this, SLOT(setModeTargetSelection()) );
-	m_targetByBookmarkAction = m_contextSubMenu->addAction( tr( "Bookmark..." ), this, SLOT(targetByBookmark()) );
-	m_targetByAddressAction = m_contextSubMenu->addAction( tr( "Address..." ), this, SLOT(targetByAddress()) );
+	contextSubMenu = m_contextMenu->addMenu( tr( "Destination" ) );
+	m_targetByTapAction = contextSubMenu->addAction( tr( "Tap on Map" ), this, SLOT(setModeTargetSelection()) );
+	m_targetByBookmarkAction = contextSubMenu->addAction( tr( "Bookmark..." ), this, SLOT(targetByBookmark()) );
+	m_targetByAddressAction = contextSubMenu->addAction( tr( "Address..." ), this, SLOT(targetByAddress()) );
 
-	m_contextMenu->addSeparator();
-	m_bookmarkAction = m_contextMenu->addAction( tr( "Bookmarks" ), this, SLOT(bookmarks()) );
-	m_contextMenu->addSeparator();
-	m_magnifyAction = m_contextMenu->addAction( tr( "Magnify" ), this, SLOT(magnify()) );
-	m_contextMenu->addSeparator();
+	contextSubMenu = m_contextMenu->addMenu( tr( "Tools" ) );
+	m_bookmarkAction = contextSubMenu->addAction( tr( "Bookmarks..." ), this, SLOT(bookmarks()) );
+	m_magnifyAction = contextSubMenu->addAction( tr( "Magnify..." ), this, SLOT(magnify()) );
+	m_toggleInfoWidgetAction = contextSubMenu->addAction( tr( "Turn Directions" ), this, SLOT(toggleInfoWidget()) );
+	m_toggleInfoWidgetAction->setCheckable( true );
+	m_toggleInfoWidgetAction->setChecked( false );
+	m_toggleInfoWidgetAction->setEnabled( false );
 }
 
 #ifdef Q_WS_MAEMO_5
@@ -257,8 +259,20 @@ void MapView::setModeNoSelection()
 	m_ui->modeButton->hide();
 }
 
+void MapView::toggleInfoWidget()
+{
+	if ( m_ui->infoWidget->isVisible() )
+		m_ui->infoWidget->hide();
+	else
+		m_ui->infoWidget->show();
+
+	m_toggleInfoWidgetAction->setChecked( m_ui->infoWidget->isVisible() );
+}
+
 void MapView::setRoute( QVector< IRouter::Node > pathNodes, QStringList icon, QStringList label )
 {
+	m_toggleInfoWidgetAction->setEnabled( !label.isEmpty() );
+	m_toggleInfoWidgetAction->setChecked( !label.isEmpty() );
 	m_ui->paintArea->setRoute( pathNodes );
 	m_ui->infoWidget->setHidden( label.isEmpty() );
 
@@ -385,7 +399,11 @@ void MapView::setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinat
 
 void MapView::showContextMenu()
 {
-	showContextMenu( this->mapToGlobal( m_ui->menuButton->pos() ) );
+#ifdef Q_WS_MAEMO_5
+	showContextMenu( mapToGlobal( QPoint( width() / 2, height() / 2 ) ) );
+#else
+	showContextMenu( mapToGlobal( m_ui->menuButton->pos() ) );
+#endif
 }
 
 void MapView::showContextMenu( QPoint globalPos )
@@ -393,9 +411,11 @@ void MapView::showContextMenu( QPoint globalPos )
 	if ( m_menu == NoMenu )
 		return;
 	if ( m_menu == ContextMenu ) {
-		m_gotoSourceAction->setEnabled( m_source.x != 0 || m_source.y != 0 );
-		m_gotoTargetAction->setEnabled( m_target.x != 0 || m_target.y != 0 );
+		m_gotoSourceAction->setEnabled( m_source.IsValid() );
+		m_gotoTargetAction->setEnabled( m_target.IsValid() );
 		m_gotoAddressAction->setEnabled( m_addressLookup != NULL );
+		m_targetByAddressAction->setEnabled( m_addressLookup != NULL );
+		m_sourceByAddressAction->setEnabled( m_addressLookup != NULL );
 
 		m_contextMenu->exec( globalPos );
 		return;

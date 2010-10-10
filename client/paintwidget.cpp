@@ -134,6 +134,7 @@ void PaintWidget::mousePressEvent( QMouseEvent* event )
 	m_startMouseX = m_lastMouseX = event->x();
 	m_startMouseY = m_lastMouseY = event->y();
 	m_drag = false;
+	event->accept();
 }
 
 void PaintWidget::mouseMoveEvent( QMouseEvent* event )

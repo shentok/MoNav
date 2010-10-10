@@ -88,6 +88,7 @@ protected slots:
 	void setModePOISelection();
 	void setModeNoSelection();
 	void toogleLocked();
+	void toggleInfoWidget();
 
 protected:
 	void connectSlots();
@@ -119,7 +120,6 @@ protected:
 	Menu m_menu;
 	Mode m_mode;
 	QMenu* m_contextMenu;
-	QMenu* m_contextSubMenu;
 
 	QAction* m_gotoGPSAction;
 	QAction* m_gotoSourceAction;
@@ -134,6 +134,8 @@ protected:
 	QAction* m_targetByTapAction;
 	QAction* m_targetByBookmarkAction;
 	QAction* m_targetByAddressAction;
+
+	QAction* m_toggleInfoWidgetAction;
 
 	QAction* m_bookmarkAction;
 	QAction* m_magnifyAction;
