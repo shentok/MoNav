@@ -49,6 +49,7 @@ MapView::MapView( QWidget *parent ) :
 		if ( box != NULL )
 			box->setDirection( QBoxLayout::TopToBottom );
 		m_ui->infoButton->setArrowType( Qt::DownArrow );
+		m_ui->infoWidget->setMaximumWidth( 300 );
 	}
 	m_ui->zoomBar->hide();
 	m_ui->zoomIn->hide();
@@ -81,12 +82,8 @@ MapView::MapView( QWidget *parent ) :
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "MapView" );
 	m_virtualZoom = settings.value( "virtualZoom", 1 ).toInt();
-	QSize size = settings.value("size", QSize(0, 0)).toSize();
-	QPoint pos = settings.value("pos", QPoint(0, 0)).toPoint();
-	if ( !size.isNull() )
-		resize(size);
-	if ( !pos.isNull() )
-		move(pos);
+	if ( settings.contains( "geometry") )
+		setGeometry( settings.value( "geometry" ).toRect() );
 }
 
 MapView::~MapView()
@@ -94,8 +91,7 @@ MapView::~MapView()
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "MapView" );
 	settings.setValue( "virtualZoom", m_virtualZoom );
-	settings.setValue( "pos", pos() );
-	settings.setValue( "size", size() );
+	settings.setValue( "geometry", geometry() );
 
 	delete m_ui;
 }

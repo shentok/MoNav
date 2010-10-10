@@ -49,21 +49,15 @@ MainWindow::MainWindow(QWidget *parent) :
 	m_sourceSet = false;
 	m_targetSet = false;
 
-	QSize maxSize = m_ui->mainMenuList->widget()->size();
-	maxSize = maxSize.expandedTo( m_ui->targetMenuList->widget()->size() );
-	maxSize = maxSize.expandedTo( m_ui->settingsMenuList->widget()->size() );
-	maxSize += QSize( 2, 2 );
-	m_ui->mainMenuList->setMinimumSize( maxSize );
-	m_ui->targetMenuList->setMinimumSize( maxSize );
-	m_ui->settingsMenuList->setMinimumSize( maxSize );
 	m_ui->targetSourceWidget->hide();
 	m_ui->settingsWidget->hide();
-	this->updateGeometry();
 
 	QSettings settings( "MoNavClient" );
-  m_dataDirectory = settings.value( "dataDirectory", QDir::homePath() ).toString();
+	m_dataDirectory = settings.value( "dataDirectory", QDir::homePath() ).toString();
 	m_source.x = settings.value( "source.x", 0 ).toUInt();
 	m_source.y = settings.value( "source.y", 0 ).toUInt();
+	if ( settings.contains( "menu.geometry") )
+		setGeometry( settings.value( "menu.geometry" ).toRect() );
 	mode = Source;
 
 #ifndef NOQTMOBILE
@@ -99,6 +93,7 @@ MainWindow::~MainWindow()
 	settings.setValue( "dataDirectory", m_dataDirectory );
 	settings.setValue( "source.x", m_source.x );
 	settings.setValue( "source.y", m_source.y );
+	settings.setValue( "menu.geometry", geometry() );
 
 	//delete static plugins
 	foreach ( QObject *plugin, QPluginLoader::staticInstances() )
