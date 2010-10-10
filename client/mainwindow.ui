@@ -128,7 +128,7 @@
              </property>
              <property name="icon">
               <iconset resource="images.qrc">
-               <normaloff>:/images/bookmark.png</normaloff>:/images/bookmark.png</iconset>
+               <normaloff>:/images/oxygen/bookmarks.png</normaloff>:/images/oxygen/bookmarks.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -221,7 +221,7 @@
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>-300</y>
+            <y>0</y>
             <width>196</width>
             <height>642</height>
            </rect>

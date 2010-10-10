@@ -115,27 +115,27 @@ void MapView::setupMenu()
 {
 	m_contextMenu = new QMenu( this );
 
-	QMenu* contextSubMenu = m_contextMenu->addMenu( tr("Show") );
-	m_gotoGPSAction = contextSubMenu->addAction( tr( "GPS-Location" ), this, SLOT(gotoGPS()) );
-	m_gotoSourceAction = contextSubMenu->addAction( tr( "Departure" ), this, SLOT(gotoSource()) );
-	m_gotoTargetAction = contextSubMenu->addAction( tr( "Destination" ), this, SLOT(gotoTarget()) );
-	m_gotoBookmarkAction = contextSubMenu->addAction( tr( "Bookmark..." ), this, SLOT(gotoBookmark()) );
-	m_gotoAddressAction = contextSubMenu->addAction( tr( "Address..." ), this, SLOT(gotoAddress()) );
+	QMenu* contextSubMenu = m_contextMenu->addMenu( QIcon( ":/images/map.png" ), tr("Show") );
+	m_gotoGPSAction = contextSubMenu->addAction( QIcon( ":/images/oxygen/network-wireless.png" ), tr( "GPS-Location" ), this, SLOT(gotoGPS()) );
+	m_gotoSourceAction = contextSubMenu->addAction( QIcon( ":/images/source.png" ), tr( "Departure" ), this, SLOT(gotoSource()) );
+	m_gotoTargetAction = contextSubMenu->addAction( QIcon( ":/images/target.png" ), tr( "Destination" ), this, SLOT(gotoTarget()) );
+	m_gotoBookmarkAction = contextSubMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmark..." ), this, SLOT(gotoBookmark()) );
+	m_gotoAddressAction = contextSubMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address..." ), this, SLOT(gotoAddress()) );
 
-	contextSubMenu = m_contextMenu->addMenu( tr( "Departure" ) );
-	m_sourceByTapAction = contextSubMenu->addAction( tr( "Tap on Map" ), this, SLOT(setModeSourceSelection()) );
-	m_sourceByBookmarkAction = contextSubMenu->addAction( tr( "Bookmark..." ), this, SLOT(sourceByBookmark()) );
-	m_sourceByAddressAction = contextSubMenu->addAction( tr( "Address..." ), this, SLOT(sourceByAddress()) );
+	contextSubMenu = m_contextMenu->addMenu( QIcon( ":/images/source.png" ), tr( "Departure" ) );
+	m_sourceByTapAction = contextSubMenu->addAction( QIcon( ":/images/map.png" ), tr( "Tap on Map" ), this, SLOT(setModeSourceSelection()) );
+	m_sourceByBookmarkAction = contextSubMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmark..." ), this, SLOT(sourceByBookmark()) );
+	m_sourceByAddressAction = contextSubMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address..." ), this, SLOT(sourceByAddress()) );
 
-	contextSubMenu = m_contextMenu->addMenu( tr( "Destination" ) );
-	m_targetByTapAction = contextSubMenu->addAction( tr( "Tap on Map" ), this, SLOT(setModeTargetSelection()) );
-	m_targetByBookmarkAction = contextSubMenu->addAction( tr( "Bookmark..." ), this, SLOT(targetByBookmark()) );
-	m_targetByAddressAction = contextSubMenu->addAction( tr( "Address..." ), this, SLOT(targetByAddress()) );
+	contextSubMenu = m_contextMenu->addMenu( QIcon( ":/images/target.png" ), tr( "Destination" ) );
+	m_targetByTapAction = contextSubMenu->addAction( QIcon( ":/images/map.png" ), tr( "Tap on Map" ), this, SLOT(setModeTargetSelection()) );
+	m_targetByBookmarkAction = contextSubMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmark..." ), this, SLOT(targetByBookmark()) );
+	m_targetByAddressAction = contextSubMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address..." ), this, SLOT(targetByAddress()) );
 
-	contextSubMenu = m_contextMenu->addMenu( tr( "Tools" ) );
-	m_bookmarkAction = contextSubMenu->addAction( tr( "Bookmarks..." ), this, SLOT(bookmarks()) );
-	m_magnifyAction = contextSubMenu->addAction( tr( "Magnify..." ), this, SLOT(magnify()) );
-	m_toggleInfoWidgetAction = contextSubMenu->addAction( tr( "Turn Directions" ), this, SLOT(toggleInfoWidget()) );
+	contextSubMenu = m_contextMenu->addMenu( QIcon( ":/images/oxygen/configure.png" ), tr( "Tools" ) );
+	m_bookmarkAction = contextSubMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmarks..." ), this, SLOT(bookmarks()) );
+	m_magnifyAction = contextSubMenu->addAction( QIcon( ":/images/oxygen/zoom-in.png" ), tr( "Magnify..." ), this, SLOT(magnify()) );
+	m_toggleInfoWidgetAction = contextSubMenu->addAction( QIcon( ":/images/directions/forward.png" ), tr( "Turn Directions" ), this, SLOT(toggleInfoWidget()) );
 	m_toggleInfoWidgetAction->setCheckable( true );
 	m_toggleInfoWidgetAction->setChecked( false );
 	m_toggleInfoWidgetAction->setEnabled( false );
@@ -386,6 +386,7 @@ void MapView::setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinat
 	m_ui->headerWidget->show();
 	m_ui->nextButton->hide();
 	m_ui->previousButton->hide();
+	m_ui->lockButton->hide();
 
 	ProjectedCoordinate center = coordinates[coordinates.size()/2].ToProjectedCoordinate();
 

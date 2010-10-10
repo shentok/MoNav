@@ -35,5 +35,6 @@
         <file>images/oxygen/go-previous.png</file>
         <file>images/oxygen/zoom-in.png</file>
         <file>images/oxygen/zoom-out.png</file>
+        <file>images/oxygen/bookmarks.png</file>
     </qresource>
 </RCC>
