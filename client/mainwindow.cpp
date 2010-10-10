@@ -368,7 +368,6 @@ void MainWindow::browseMap()
 	window->setTarget( m_target );
 	window->setRoute( m_pathNodes, m_descriptionIcons, m_descriptionLabels );
 	window->setMenu( MapView::ContextMenu );
-	window->setMode( MapView::Target );
 
 	connect( window, SIGNAL(sourceChanged(UnsignedCoordinate,double)), this, SLOT(setSource(UnsignedCoordinate,double)) );
 	connect( window, SIGNAL(targetChanged(UnsignedCoordinate)), this, SLOT(setTarget(UnsignedCoordinate)) );
@@ -403,7 +402,6 @@ void MainWindow::routeView()
 	MapView* window = new MapView( this );
 	window->setFixed( true );
 	window->setRender( m_renderer );
-	window->setMode( MapView::None );
 	window->setSource( m_source, m_heading );
 	window->setTarget( m_target );
 	window->setRoute( m_pathNodes, m_descriptionIcons, m_descriptionLabels );

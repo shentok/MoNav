@@ -58,10 +58,21 @@ MapView::MapView( QWidget *parent ) :
 	showFullScreen();
 #endif
 
+	// set the background to 0.5 alpha
+	QPalette pal;
+	QColor backgroundColor = pal.color( m_ui->modeButton->backgroundRole() );
+	backgroundColor.setAlpha( 128 );
+	pal.setColor( m_ui->modeButton->backgroundRole(), backgroundColor );
+	m_ui->modeButton->setPalette( pal );
+	m_ui->modeButton->hide();
+
+	// ensure that we're painting our background
+	setAutoFillBackground(true);
+
 	m_renderer = NULL;
 	m_addressLookup = NULL;
 	m_menu = NoMenu;
-	m_mode = POI;
+	m_mode = NoSelection;
 	m_heading = 0;
 	m_fixed = false;
 	m_toMapview = false;
@@ -98,6 +109,7 @@ void MapView::connectSlots()
 	connect( m_ui->zoomIn, SIGNAL(clicked()), this, SLOT(addZoom()) );
 	connect( m_ui->zoomOut, SIGNAL(clicked()), this, SLOT(substractZoom()) );
 	connect( m_ui->infoButton, SIGNAL(clicked()), this, SIGNAL(infoClicked()) );
+	connect( m_ui->modeButton, SIGNAL(clicked()), this, SLOT(setModeNoSelection()) );
 }
 
 void MapView::setupMenu()
@@ -108,17 +120,20 @@ void MapView::setupMenu()
 	m_gotoSourceAction = m_contextSubMenu->addAction( tr( "Departure" ), this, SLOT(gotoSource()) );
 	m_gotoTargetAction = m_contextSubMenu->addAction( tr( "Destination" ), this, SLOT(gotoTarget()) );
 	m_gotoAddressAction = m_contextSubMenu->addAction( tr( "Address..." ), this, SLOT(gotoAddress()) );
+
+	m_contextSubMenu = m_contextMenu->addMenu( tr( "Departure" ) );
+	m_contextSubMenu->addAction( tr( "Tap on Map" ), this, SLOT(setModeSourceSelection()) );
+	m_contextSubMenu->addAction( tr( "Address..." ), this, SLOT(sourceByAddress()) );
+
+	m_contextSubMenu = m_contextMenu->addMenu( tr( "Destination" ) );
+	m_contextSubMenu->addAction( tr( "Tap on Map" ), this, SLOT(setModeTargetSelection()) );
+	m_contextSubMenu->addAction( tr( "Address..." ), this, SLOT(targetByAddress()) );
+
 	m_contextMenu->addSeparator();
 	m_bookmarkAction = m_contextMenu->addAction( tr( "Bookmarks" ), this, SLOT(bookmarks()) );
 	m_contextMenu->addSeparator();
 	m_magnifyAction = m_contextMenu->addAction( tr( "Magnify" ), this, SLOT(magnify()) );
 	m_contextMenu->addSeparator();
-	m_modeGroup = new QActionGroup( this );
-	m_modeSourceAction = new QAction( tr( "Choose Departure" ), m_modeGroup );
-	m_modeSourceAction->setCheckable( true );
-	m_modeTargetAction = new QAction( tr( "Choose Destination" ), m_modeGroup );
-	m_modeTargetAction->setCheckable( true );
-	m_contextMenu->addActions( m_modeGroup->actions() );
 
 	m_routeMenu = new QMenu( this );
 	m_routeMenu->insertAction( NULL, m_magnifyAction );
@@ -222,11 +237,30 @@ void MapView::setMenu( Menu m )
 	m_ui->menuButton->setVisible( m_menu != NoMenu );
 }
 
-void MapView::setMode( Mode m )
+void MapView::setModeSourceSelection()
 {
-	m_mode = m;
-	m_modeSourceAction->setChecked( m_mode == Source );
-	m_modeTargetAction->setChecked( m_mode == Target );
+	m_mode = Source;
+	m_ui->modeButton->setIcon( QIcon( ":/images/source.png" ) );
+	m_ui->modeButton->show();
+}
+
+void MapView::setModeTargetSelection()
+{
+	m_mode = Target;
+	m_ui->modeButton->setIcon( QIcon( ":/images/target.png" ) );
+	m_ui->modeButton->show();
+}
+
+void MapView::setModePOISelection()
+{
+	m_mode = POI;
+	m_ui->modeButton->hide();
+}
+
+void MapView::setModeNoSelection()
+{
+	m_mode = NoSelection;
+	m_ui->modeButton->hide();
 }
 
 void MapView::setFixed( bool fixed )
@@ -260,15 +294,15 @@ void MapView::mouseClicked( ProjectedCoordinate clickPos )
 	UnsignedCoordinate coordinate( clickPos );
 	if ( m_mode == Source ) {
 		emit sourceChanged( coordinate, 0 );
-		return;
-	}
-	if ( m_mode == Target ) {
+	} else if ( m_mode == Target ) {
 		emit targetChanged( coordinate );
+	} else if ( m_mode == POI ){
+		m_selected = coordinate;
+		m_ui->paintArea->setPOI( coordinate );
 		return;
 	}
 
-	m_selected = coordinate;
-	m_ui->paintArea->setPOI( coordinate );
+	//m_mode = None; // might be contra-productiv for some use cases. E.g., many new users just want to click around the map and wonder about the blazingly fast routing *g*
 }
 
 void MapView::nextPlace()
@@ -331,6 +365,7 @@ bool MapView::selectStreet( UnsignedCoordinate* result, QVector< int >segmentLen
 	MapView* window = new MapView( p );
 	window->setRender( renderer );
 	window->setEdges( segmentLength, coordinates );
+	window->setModePOISelection();
 
 	int value = window->exec();
 
@@ -373,11 +408,6 @@ void MapView::showContextMenu( QPoint globalPos )
 		m_gotoAddressAction->setEnabled( m_addressLookup != NULL );
 
 		m_contextMenu->exec( globalPos );
-		QAction* action = m_modeGroup->checkedAction();
-		if ( action == m_modeSourceAction )
-			m_mode = Source;
-		if ( action == m_modeTargetAction )
-			m_mode = Target;
 		return;
 	}
 	if ( m_menu == RouteMenu ) {
@@ -420,6 +450,28 @@ void MapView::gotoAddress()
 		return;
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 	m_ui->paintArea->setZoom( m_maxZoom );
+}
+
+void MapView::sourceByAddress()
+{
+	if ( m_addressLookup == NULL )
+		return;
+	UnsignedCoordinate result;
+	if ( !AddressDialog::getAddress( &result, m_addressLookup, m_renderer, this ) )
+		return;
+	emit sourceChanged( result, 0 );
+	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
+}
+
+void MapView::targetByAddress()
+{
+	if ( m_addressLookup == NULL )
+		return;
+	UnsignedCoordinate result;
+	if ( !AddressDialog::getAddress( &result, m_addressLookup, m_renderer, this ) )
+		return;
+	emit targetChanged( result );
+	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 }
 
 void MapView::bookmarks()

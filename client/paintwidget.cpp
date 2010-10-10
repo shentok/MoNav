@@ -141,7 +141,11 @@ void PaintWidget::mouseMoveEvent( QMouseEvent* event )
 		return;
 	if ( ( event->buttons() & Qt::LeftButton ) == 0 )
 		return;
-	if ( abs( event->x() - m_startMouseX ) + abs( event->y() - m_startMouseY ) > 7 )
+	int minDiff = 7;
+#ifdef Q_WS_MAEMO_5
+	minDiff = 15;
+#endif
+	if ( abs( event->x() - m_startMouseX ) + abs( event->y() - m_startMouseY ) > minDiff )
 		m_drag = true;
 	if ( !m_drag )
 		return;

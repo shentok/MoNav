@@ -38,7 +38,7 @@ public:
 	~MapView();
 
 	enum Mode {
-		Source, Target, POI, None
+		Source, Target, POI, NoSelection
 	};
 
 	enum Menu {
@@ -48,7 +48,6 @@ public:
 	void setRender( IRenderer* r );
 	void setAddressLookup( IAddressLookup* al );
 	void setMenu( Menu m );
-	void setMode( Mode m );
 	void setFixed( bool fixed );
 
 	bool exitedToMapview();
@@ -79,10 +78,16 @@ protected slots:
 	void gotoGPS();
 	void gotoTarget();
 	void gotoAddress();
+	void sourceByAddress();
+	void targetByAddress();
 	void gotoMapview();
 	void addZoom();
 	void substractZoom();
 	void bookmarks();
+	void setModeSourceSelection();
+	void setModeTargetSelection();
+	void setModePOISelection();
+	void setModeNoSelection();
 
 protected:
 	void connectSlots();
@@ -115,9 +120,9 @@ protected:
 	Menu m_menu;
 	Mode m_mode;
 	QMenu* m_routeMenu;
-  QMenu* m_contextMenu;
-  QMenu* m_contextSubMenu;
-	QActionGroup* m_modeGroup;
+	QMenu* m_contextMenu;
+	QMenu* m_contextSubMenu;
+
 	QAction* m_gotoSourceAction;
 	QAction* m_gotoTargetAction;
 	QAction* m_gotoGPSAction;
