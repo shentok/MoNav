@@ -70,7 +70,6 @@ MapView::MapView( QWidget *parent ) :
 	m_mode = NoSelection;
 	m_heading = 0;
 	m_fixed = false;
-	m_toMapview = false;
 
 	setupMenu();
 	m_ui->headerWidget->hide();
@@ -109,6 +108,7 @@ void MapView::connectSlots()
 	connect( m_ui->zoomOut, SIGNAL(clicked()), this, SLOT(substractZoom()) );
 	connect( m_ui->infoButton, SIGNAL(clicked()), this, SIGNAL(infoClicked()) );
 	connect( m_ui->modeButton, SIGNAL(clicked()), this, SLOT(setModeNoSelection()) );
+	connect( m_ui->lockButton, SIGNAL(clicked()), this, SLOT(toogleLocked()) );
 }
 
 void MapView::setupMenu()
@@ -137,10 +137,6 @@ void MapView::setupMenu()
 	m_contextMenu->addSeparator();
 	m_magnifyAction = m_contextMenu->addAction( tr( "Magnify" ), this, SLOT(magnify()) );
 	m_contextMenu->addSeparator();
-
-	m_routeMenu = new QMenu( this );
-	m_routeMenu->insertAction( NULL, m_magnifyAction );
-	m_routeMenu->addAction( tr( "Goto Mapview" ), this, SLOT(gotoMapview()) );
 }
 
 #ifdef Q_WS_MAEMO_5
@@ -185,11 +181,6 @@ void MapView::keyPressEvent( QKeyEvent* event )
 }
 
 #endif
-
-bool MapView::exitedToMapview()
-{
-	return m_toMapview;
-}
 
 void MapView::setRender( IRenderer* r )
 {
@@ -264,11 +255,6 @@ void MapView::setModeNoSelection()
 {
 	m_mode = NoSelection;
 	m_ui->modeButton->hide();
-}
-
-void MapView::setFixed( bool fixed )
-{
-	m_ui->paintArea->setFixed( fixed );
 }
 
 void MapView::setRoute( QVector< IRouter::Node > pathNodes, QStringList icon, QStringList label )
@@ -349,6 +335,7 @@ void MapView::setPlaces( QVector< UnsignedCoordinate > p )
 
 	m_ui->headerLabel->setText( QString( tr( "Choose City (%1/%2)" ) ).arg( 1 ).arg( p.size() ) );
 	m_ui->headerWidget->show();
+	m_ui->lockButton->hide();
 
 	m_ui->paintArea->setCenter( m_places.first().ToProjectedCoordinate() );
 	m_ui->paintArea->setPOIs( p );
@@ -412,9 +399,6 @@ void MapView::showContextMenu( QPoint globalPos )
 
 		m_contextMenu->exec( globalPos );
 		return;
-	}
-	if ( m_menu == RouteMenu ) {
-		m_routeMenu->exec( globalPos );
 	}
 }
 
@@ -531,9 +515,13 @@ void MapView::magnify()
 	m_ui->paintArea->setVirtualZoom( m_virtualZoom );
 }
 
-void MapView::gotoMapview()
+void MapView::toogleLocked()
 {
-	m_toMapview = true;
-	accept();
+	m_fixed = !m_fixed;
+	m_ui->paintArea->setFixed( m_fixed );
+	if ( m_fixed )
+		m_ui->lockButton->setIcon( QIcon( ":images/oxygen/emblem-locked.png") );
+	else
+		m_ui->lockButton->setIcon( QIcon( ":images/oxygen/emblem-unlocked.png") );
 }
 

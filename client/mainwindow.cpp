@@ -106,7 +106,6 @@ void MainWindow::connectSlots()
 {
 	connect( m_ui->sourceButton, SIGNAL(clicked()), this, SLOT(sourceMode()) );
 	connect( m_ui->targetButton, SIGNAL(clicked()), this, SLOT(targetMode()) );
-	connect( m_ui->routeButton, SIGNAL(clicked()), this, SLOT(routeView()) );
 	connect( m_ui->mapButton, SIGNAL(clicked()), this, SLOT(browseMap()) );
 	connect( m_ui->settingsButton, SIGNAL(clicked()), this, SLOT(settingsMenu()) );
 
@@ -390,30 +389,6 @@ void MainWindow::targetMode()
 	m_ui->mainMenuWidget->hide();
 	m_ui->targetSourceWidget->show();
 	m_ui->targetSourceMenuLabel->setText( tr( "Target Menu" ) );
-}
-
-void MainWindow::routeView()
-{
-	MapView* window = new MapView( this );
-	window->setFixed( true );
-	window->setRender( m_renderer );
-	window->setSource( m_source, m_heading );
-	window->setTarget( m_target );
-	window->setRoute( m_pathNodes, m_descriptionIcons, m_descriptionLabels );
-	window->setMenu( MapView::RouteMenu );
-
-	connect( window, SIGNAL(infoClicked()), this, SLOT(routeDescription()) );
-	connect( this, SIGNAL(routeChanged(QVector<IRouter::Node>,QStringList,QStringList)), window, SLOT(setRoute(QVector<IRouter::Node>,QStringList,QStringList)) );
-	connect( this, SIGNAL(sourceChanged(UnsignedCoordinate,double)), window, SLOT(setSource(UnsignedCoordinate,double)) );
-
-	window->exec();
-
-	bool mapView = window->exitedToMapview();
-
-	delete window;
-
-	if ( mapView )
-		browseMap();
 }
 
 void MainWindow::settingsMenu()

@@ -28,5 +28,12 @@
         <file>images/directions/slightly_left.svg</file>
         <file>images/directions/slightly_right.png</file>
         <file>images/directions/slightly_right.svg</file>
+        <file>images/oxygen/emblem-locked.png</file>
+        <file>images/oxygen/emblem-unlocked.png</file>
+        <file>images/oxygen/start-here.png</file>
+        <file>images/oxygen/go-next.png</file>
+        <file>images/oxygen/go-previous.png</file>
+        <file>images/oxygen/zoom-in.png</file>
+        <file>images/oxygen/zoom-out.png</file>
     </qresource>
 </RCC>

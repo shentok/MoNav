@@ -65,7 +65,6 @@ protected slots:
 	void browseMap();
 	void sourceMode();
 	void targetMode();
-	void routeView();
 	void settingsMenu();
 
 	void targetBookmarks();

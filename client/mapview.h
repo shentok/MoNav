@@ -42,15 +42,12 @@ public:
 	};
 
 	enum Menu {
-		NoMenu, ContextMenu, RouteMenu
+		NoMenu, ContextMenu
 	};
 
 	void setRender( IRenderer* r );
 	void setAddressLookup( IAddressLookup* al );
 	void setMenu( Menu m );
-	void setFixed( bool fixed );
-
-	bool exitedToMapview();
 
 	static int selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* renderer, QWidget* p = NULL );
 	static bool selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, IRenderer* renderer, QWidget* p = NULL );
@@ -83,7 +80,6 @@ protected slots:
 	void sourceByAddress();
 	void targetByBookmark();
 	void targetByAddress();
-	void gotoMapview();
 	void addZoom();
 	void substractZoom();
 	void bookmarks();
@@ -91,6 +87,7 @@ protected slots:
 	void setModeTargetSelection();
 	void setModePOISelection();
 	void setModeNoSelection();
+	void toogleLocked();
 
 protected:
 	void connectSlots();
@@ -118,11 +115,9 @@ protected:
 	int m_virtualZoom;
 
 	bool m_fixed;
-	bool m_toMapview;
 
 	Menu m_menu;
 	Mode m_mode;
-	QMenu* m_routeMenu;
 	QMenu* m_contextMenu;
 	QMenu* m_contextSubMenu;
 

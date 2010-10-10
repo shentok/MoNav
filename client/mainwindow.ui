@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>628</width>
+    <height>417</height>
+   </rect>
+  </property>
   <property name="windowTitle">
    <string>MoNav</string>
   </property>
@@ -46,7 +54,7 @@
             <x>0</x>
             <y>0</y>
             <width>167</width>
-            <height>342</height>
+            <height>358</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -516,9 +524,9 @@
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>-66</y>
+            <y>0</y>
             <width>167</width>
-            <height>408</height>
+            <height>358</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -565,35 +573,6 @@
              <property name="icon">
               <iconset resource="images.qrc">
                <normaloff>:/images/source.png</normaloff>:/images/source.png</iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>64</width>
-               <height>64</height>
-              </size>
-             </property>
-             <property name="toolButtonStyle">
-              <enum>Qt::ToolButtonTextBesideIcon</enum>
-             </property>
-             <property name="autoRaise">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QToolButton" name="routeButton">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="text">
-              <string>Route View</string>
-             </property>
-             <property name="icon">
-              <iconset resource="images.qrc">
-               <normaloff>:/images/route.png</normaloff>:/images/route.png</iconset>
              </property>
              <property name="iconSize">
               <size>

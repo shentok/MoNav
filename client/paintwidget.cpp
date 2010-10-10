@@ -47,6 +47,7 @@ PaintWidget::~PaintWidget()
 void PaintWidget::setFixed( bool f )
 {
 	m_fixed = f;
+	update();
 }
 
 void PaintWidget::setRenderer( IRenderer* r )
