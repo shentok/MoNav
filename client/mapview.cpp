@@ -58,12 +58,6 @@ MapView::MapView( QWidget *parent ) :
 	showFullScreen();
 #endif
 
-	// set the background to 0.5 alpha
-	QPalette pal;
-	QColor backgroundColor = pal.color( m_ui->modeButton->backgroundRole() );
-	backgroundColor.setAlpha( 128 );
-	pal.setColor( m_ui->modeButton->backgroundRole(), backgroundColor );
-	m_ui->modeButton->setPalette( pal );
 	m_ui->modeButton->hide();
 
 	// ensure that we're painting our background
@@ -87,6 +81,12 @@ MapView::MapView( QWidget *parent ) :
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "MapView" );
 	m_virtualZoom = settings.value( "virtualZoom", 1 ).toInt();
+	QSize size = settings.value("size", QSize(0, 0)).toSize();
+	QPoint pos = settings.value("pos", QPoint(0, 0)).toPoint();
+	if ( !size.isNull() )
+		resize(size);
+	if ( !pos.isNull() )
+		move(pos);
 }
 
 MapView::~MapView()
@@ -94,6 +94,9 @@ MapView::~MapView()
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "MapView" );
 	settings.setValue( "virtualZoom", m_virtualZoom );
+	settings.setValue( "pos", pos() );
+	settings.setValue( "size", size() );
+
 	delete m_ui;
 }
 
@@ -115,19 +118,23 @@ void MapView::connectSlots()
 void MapView::setupMenu()
 {
 	m_contextMenu = new QMenu( this );
+
 	m_contextSubMenu = m_contextMenu->addMenu( tr("Show") );
 	m_gotoGPSAction = m_contextSubMenu->addAction( tr( "GPS-Location" ), this, SLOT(gotoGPS()) );
 	m_gotoSourceAction = m_contextSubMenu->addAction( tr( "Departure" ), this, SLOT(gotoSource()) );
 	m_gotoTargetAction = m_contextSubMenu->addAction( tr( "Destination" ), this, SLOT(gotoTarget()) );
+	m_gotoBookmarkAction = m_contextSubMenu->addAction( tr( "Bookmark..." ), this, SLOT(gotoBookmark()) );
 	m_gotoAddressAction = m_contextSubMenu->addAction( tr( "Address..." ), this, SLOT(gotoAddress()) );
 
 	m_contextSubMenu = m_contextMenu->addMenu( tr( "Departure" ) );
-	m_contextSubMenu->addAction( tr( "Tap on Map" ), this, SLOT(setModeSourceSelection()) );
-	m_contextSubMenu->addAction( tr( "Address..." ), this, SLOT(sourceByAddress()) );
+	m_sourceByTapAction = m_contextSubMenu->addAction( tr( "Tap on Map" ), this, SLOT(setModeSourceSelection()) );
+	m_sourceByBookmarkAction = m_contextSubMenu->addAction( tr( "Bookmark..." ), this, SLOT(sourceByBookmark()) );
+	m_sourceByAddressAction = m_contextSubMenu->addAction( tr( "Address..." ), this, SLOT(sourceByAddress()) );
 
 	m_contextSubMenu = m_contextMenu->addMenu( tr( "Destination" ) );
-	m_contextSubMenu->addAction( tr( "Tap on Map" ), this, SLOT(setModeTargetSelection()) );
-	m_contextSubMenu->addAction( tr( "Address..." ), this, SLOT(targetByAddress()) );
+	m_targetByTapAction = m_contextSubMenu->addAction( tr( "Tap on Map" ), this, SLOT(setModeTargetSelection()) );
+	m_targetByBookmarkAction = m_contextSubMenu->addAction( tr( "Bookmark..." ), this, SLOT(targetByBookmark()) );
+	m_targetByAddressAction = m_contextSubMenu->addAction( tr( "Address..." ), this, SLOT(targetByAddress()) );
 
 	m_contextMenu->addSeparator();
 	m_bookmarkAction = m_contextMenu->addAction( tr( "Bookmarks" ), this, SLOT(bookmarks()) );
@@ -441,6 +448,14 @@ void MapView::gotoTarget()
 	m_ui->paintArea->setZoom( m_maxZoom );
 }
 
+void MapView::gotoBookmark()
+{
+	UnsignedCoordinate result;
+	if ( !BookmarksDialog::showBookmarks( &result, this, m_source, m_target ) )
+		return;
+	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
+}
+
 void MapView::gotoAddress()
 {
 	if ( m_addressLookup == NULL )
@@ -449,7 +464,15 @@ void MapView::gotoAddress()
 	if ( !AddressDialog::getAddress( &result, m_addressLookup, m_renderer, this, true ) )
 		return;
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
-	m_ui->paintArea->setZoom( m_maxZoom );
+}
+
+void MapView::sourceByBookmark()
+{
+	UnsignedCoordinate result;
+	if ( !BookmarksDialog::showBookmarks( &result, this, m_source, m_target ) )
+		return;
+	emit sourceChanged( result, 0 );
+	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 }
 
 void MapView::sourceByAddress()
@@ -460,6 +483,15 @@ void MapView::sourceByAddress()
 	if ( !AddressDialog::getAddress( &result, m_addressLookup, m_renderer, this ) )
 		return;
 	emit sourceChanged( result, 0 );
+	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
+}
+
+void MapView::targetByBookmark()
+{
+	UnsignedCoordinate result;
+	if ( !BookmarksDialog::showBookmarks( &result, this, m_source, m_target ) )
+		return;
+	emit targetChanged( result );
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 }
 

@@ -77,8 +77,11 @@ protected slots:
 	void gotoSource();
 	void gotoGPS();
 	void gotoTarget();
+	void gotoBookmark();
 	void gotoAddress();
+	void sourceByBookmark();
 	void sourceByAddress();
+	void targetByBookmark();
 	void targetByAddress();
 	void gotoMapview();
 	void addZoom();
@@ -123,10 +126,20 @@ protected:
 	QMenu* m_contextMenu;
 	QMenu* m_contextSubMenu;
 
+	QAction* m_gotoGPSAction;
 	QAction* m_gotoSourceAction;
 	QAction* m_gotoTargetAction;
-	QAction* m_gotoGPSAction;
+	QAction* m_gotoBookmarkAction;
 	QAction* m_gotoAddressAction;
+
+	QAction* m_sourceByTapAction;
+	QAction* m_sourceByBookmarkAction;
+	QAction* m_sourceByAddressAction;
+
+	QAction* m_targetByTapAction;
+	QAction* m_targetByBookmarkAction;
+	QAction* m_targetByAddressAction;
+
 	QAction* m_bookmarkAction;
 	QAction* m_magnifyAction;
 	QAction* m_modeSourceAction;

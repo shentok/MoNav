@@ -27,7 +27,7 @@
    <item>
     <widget class="QPushButton" name="chooseButton">
      <property name="text">
-      <string>Show on Map</string>
+      <string>Select</string>
      </property>
     </widget>
    </item>
