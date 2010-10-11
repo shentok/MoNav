@@ -130,7 +130,6 @@ void MainWindow::routeDescription()
 void MainWindow::browseMap()
 {
 	MapView* window = new MapView( this );
-	window->setMenu( MapView::ContextMenu );
 
 	connect( window, SIGNAL(infoClicked()), this, SLOT(routeDescription()) );
 

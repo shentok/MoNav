@@ -28,6 +28,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QInputDialog>
 #include <QSettings>
 #include <QGridLayout>
+#include <QResizeEvent>
 
 #ifdef Q_WS_MAEMO_5
 	#include "fullscreenexitbutton.h"
@@ -43,37 +44,21 @@ MapView::MapView( QWidget *parent ) :
 	m_ui->setupUi(this);
 #ifdef Q_WS_MAEMO_5
 	setAttribute( Qt::WA_Maemo5StackedWindow );
-	QGridLayout* grid = qobject_cast< QGridLayout* >( layout() );
-	if ( grid != NULL ) {
-		int infoWidgetIndex = grid->indexOf( m_ui->infoWidget );
-		grid->takeAt( infoWidgetIndex );
-		grid->addWidget( m_ui->infoWidget, 1, 0 );
-		QBoxLayout* box = qobject_cast< QBoxLayout* >( m_ui->infoWidget->layout() );
-		if ( box != NULL )
-			box->setDirection( QBoxLayout::TopToBottom );
-		m_ui->infoButton->setArrowType( Qt::DownArrow );
-		m_ui->infoWidget->setMaximumWidth( 300 );
-	}
-	m_ui->zoomBar->hide();
-	m_ui->zoomIn->hide();
-	m_ui->zoomOut->hide();
 	grabZoomKeys( true );
 	new FullScreenExitButton(this);
 	showFullScreen();
 #endif
 
-	m_ui->modeButton->hide();
+	m_ui->zoomBar->hide();
 
 	// ensure that we're painting our background
 	setAutoFillBackground(true);
 
-	m_menu = NoMenu;
 	m_mode = NoSelection;
 	m_fixed = false;
 
 	setupMenu();
 	m_ui->headerWidget->hide();
-	m_ui->menuButton->hide();
 	m_ui->infoWidget->hide();
 
 	QSettings settings( "MoNavClient" );
@@ -83,7 +68,6 @@ MapView::MapView( QWidget *parent ) :
 		setGeometry( settings.value( "geometry" ).toRect() );
 
 	dataLoaded();
-	instructionsChanged();
 
 	connectSlots();
 }
@@ -106,44 +90,79 @@ void MapView::connectSlots()
 	connect( m_ui->previousButton, SIGNAL(clicked()), this, SLOT(previousPlace()) );
 	connect( m_ui->nextButton, SIGNAL(clicked()), this, SLOT(nextPlace()) );
 	connect( m_ui->paintArea, SIGNAL(contextMenu(QPoint)), this, SLOT(showContextMenu(QPoint)) );
-	connect( m_ui->menuButton, SIGNAL(clicked()), this, SLOT(showContextMenu()) );
 	connect( m_ui->zoomIn, SIGNAL(clicked()), this, SLOT(addZoom()) );
 	connect( m_ui->zoomOut, SIGNAL(clicked()), this, SLOT(substractZoom()) );
-	connect( m_ui->infoButton, SIGNAL(clicked()), this, SIGNAL(infoClicked()) );
+	connect( m_ui->infoIcon1, SIGNAL(clicked()), this, SIGNAL(infoClicked()) );
+	connect( m_ui->infoIcon2, SIGNAL(clicked()), this, SIGNAL(infoClicked()) );
 	connect( MapData::instance(), SIGNAL(dataLoaded()), this, SLOT(dataLoaded()) );
 	connect( RoutingLogic::instance(), SIGNAL(instructionsChanged()), this, SLOT(instructionsChanged()) );
-	connect( m_ui->modeButton, SIGNAL(clicked()), this, SLOT(setModeNoSelection()) );
 	connect( m_ui->lockButton, SIGNAL(clicked()), this, SLOT(toogleLocked()) );
+
+	connect( m_ui->show, SIGNAL(clicked()), this, SLOT(gotoMenu()) );
+	connect( m_ui->tools, SIGNAL(clicked()), this, SLOT(toolsMenu()) );
+	connect( m_ui->settings, SIGNAL(clicked()), this, SLOT(settingsMenu()) );
+	connect( m_ui->source, SIGNAL(clicked()), this, SLOT(sourceMenu()) );
+	connect( m_ui->target, SIGNAL(clicked()), this, SLOT(targetMenu()) );
 }
 
 void MapView::setupMenu()
 {
-	m_contextMenu = new QMenu( this );
+	m_gotoMenu = new QMenu( tr( "Show" ), this );
+	m_gotoGPSAction = m_gotoMenu->addAction( QIcon( ":/images/oxygen/network-wireless.png" ), tr( "GPS-Location" ), this, SLOT(gotoGPS()) );
+	m_gotoSourceAction = m_gotoMenu->addAction( QIcon( ":/images/source.png" ), tr( "Departure" ), this, SLOT(gotoSource()) );
+	m_gotoTargetAction = m_gotoMenu->addAction( QIcon( ":/images/target.png" ), tr( "Destination" ), this, SLOT(gotoTarget()) );
+	m_gotoBookmarkAction = m_gotoMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmark..." ), this, SLOT(gotoBookmark()) );
+	m_gotoAddressAction = m_gotoMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address..." ), this, SLOT(gotoAddress()) );
 
-	QMenu* contextSubMenu = m_contextMenu->addMenu( QIcon( ":/images/map.png" ), tr("Show") );
-	m_gotoGPSAction = contextSubMenu->addAction( QIcon( ":/images/oxygen/network-wireless.png" ), tr( "GPS-Location" ), this, SLOT(gotoGPS()) );
-	m_gotoSourceAction = contextSubMenu->addAction( QIcon( ":/images/source.png" ), tr( "Departure" ), this, SLOT(gotoSource()) );
-	m_gotoTargetAction = contextSubMenu->addAction( QIcon( ":/images/target.png" ), tr( "Destination" ), this, SLOT(gotoTarget()) );
-	m_gotoBookmarkAction = contextSubMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmark..." ), this, SLOT(gotoBookmark()) );
-	m_gotoAddressAction = contextSubMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address..." ), this, SLOT(gotoAddress()) );
+	m_sourceMenu = new QMenu( tr( "Departure" ), this );
+	m_sourceByTapAction = m_sourceMenu->addAction( QIcon( ":/images/map.png" ), tr( "Tap on Map" ), this, SLOT(setModeSourceSelection()) );
+	m_sourceByBookmarkAction = m_sourceMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmark..." ), this, SLOT(sourceByBookmark()) );
+	m_sourceByAddressAction = m_sourceMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address..." ), this, SLOT(sourceByAddress()) );
 
-	contextSubMenu = m_contextMenu->addMenu( QIcon( ":/images/source.png" ), tr( "Departure" ) );
-	m_sourceByTapAction = contextSubMenu->addAction( QIcon( ":/images/map.png" ), tr( "Tap on Map" ), this, SLOT(setModeSourceSelection()) );
-	m_sourceByBookmarkAction = contextSubMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmark..." ), this, SLOT(sourceByBookmark()) );
-	m_sourceByAddressAction = contextSubMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address..." ), this, SLOT(sourceByAddress()) );
+	m_targetMenu = new QMenu( tr( "Destination" ), this );
+	m_targetByTapAction = m_targetMenu->addAction( QIcon( ":/images/map.png" ), tr( "Tap on Map" ), this, SLOT(setModeTargetSelection()) );
+	m_targetByBookmarkAction = m_targetMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmark..." ), this, SLOT(targetByBookmark()) );
+	m_targetByAddressAction = m_targetMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address..." ), this, SLOT(targetByAddress()) );
 
-	contextSubMenu = m_contextMenu->addMenu( QIcon( ":/images/target.png" ), tr( "Destination" ) );
-	m_targetByTapAction = contextSubMenu->addAction( QIcon( ":/images/map.png" ), tr( "Tap on Map" ), this, SLOT(setModeTargetSelection()) );
-	m_targetByBookmarkAction = contextSubMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmark..." ), this, SLOT(targetByBookmark()) );
-	m_targetByAddressAction = contextSubMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address..." ), this, SLOT(targetByAddress()) );
+	m_toolsMenu = new QMenu( tr( "Tools" ), this );
+	m_bookmarkAction = m_toolsMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmarks..." ), this, SLOT(bookmarks()) );
+	m_magnifyAction = m_toolsMenu->addAction( QIcon( ":/images/oxygen/zoom-in.png" ), tr( "Magnify..." ), this, SLOT(magnify()) );
+}
 
-	contextSubMenu = m_contextMenu->addMenu( QIcon( ":/images/oxygen/configure.png" ), tr( "Tools" ) );
-	m_bookmarkAction = contextSubMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmarks..." ), this, SLOT(bookmarks()) );
-	m_magnifyAction = contextSubMenu->addAction( QIcon( ":/images/oxygen/zoom-in.png" ), tr( "Magnify..." ), this, SLOT(magnify()) );
-	m_toggleInfoWidgetAction = contextSubMenu->addAction( QIcon( ":/images/directions/forward.png" ), tr( "Turn Directions" ), this, SLOT(toggleInfoWidget()) );
-	m_toggleInfoWidgetAction->setCheckable( true );
-	m_toggleInfoWidgetAction->setChecked( false );
-	m_toggleInfoWidgetAction->setEnabled( false );
+void MapView::gotoMenu()
+{
+	QPoint position = m_ui->show->mapToGlobal( QPoint( m_ui->show->width() / 2, m_ui->show->height() / 2 ) );
+	m_gotoMenu->exec( position );
+}
+
+void MapView::toolsMenu()
+{
+	QPoint position = m_ui->tools->mapToGlobal( QPoint( m_ui->tools->width() / 2, m_ui->tools->height() / 2 ) );
+	m_toolsMenu->exec( position );
+}
+
+void MapView::settingsMenu()
+{
+}
+void MapView::sourceMenu()
+{
+	QPoint position = m_ui->source->mapToGlobal( QPoint( m_ui->source->width() / 2, m_ui->source->height() / 2 ) );
+	m_sourceMenu->exec( position );
+}
+void MapView::targetMenu()
+{
+	QPoint position = m_ui->target->mapToGlobal( QPoint( m_ui->target->width() / 2, m_ui->target->height() / 2 ) );
+	m_targetMenu->exec( position );
+}
+
+void MapView::resizeEvent( QResizeEvent* event )
+{
+	QBoxLayout* box = qobject_cast< QBoxLayout* >( m_ui->infoWidget->layout() );
+	assert ( box != NULL );
+	if ( event->size().width() > event->size().height() )
+		box->setDirection( QBoxLayout::LeftToRight );
+	else
+		box->setDirection( QBoxLayout::TopToBottom );
 }
 
 #ifdef Q_WS_MAEMO_5
@@ -204,64 +223,43 @@ void MapView::dataLoaded()
 	m_ui->paintArea->setCenter( RoutingLogic::instance()->source().ToProjectedCoordinate() );
 }
 
-void MapView::setMenu( Menu m )
-{
-	m_menu = m;
-	m_ui->menuButton->setVisible( m_menu != NoMenu );
-}
-
 void MapView::setModeSourceSelection()
 {
 	m_mode = Source;
-	m_ui->modeButton->setIcon( QIcon( ":/images/source.png" ) );
-	m_ui->modeButton->show();
 }
 
 void MapView::setModeTargetSelection()
 {
 	m_mode = Target;
-	m_ui->modeButton->setIcon( QIcon( ":/images/target.png" ) );
-	m_ui->modeButton->show();
 }
 
 void MapView::setModePOISelection()
 {
 	m_mode = POI;
-	m_ui->modeButton->hide();
 }
 
 void MapView::setModeNoSelection()
 {
 	m_mode = NoSelection;
-	m_ui->modeButton->hide();
-}
-
-void MapView::toggleInfoWidget()
-{
-	if ( m_ui->infoWidget->isVisible() )
-		m_ui->infoWidget->hide();
-	else
-		m_ui->infoWidget->show();
-
-	m_toggleInfoWidgetAction->setChecked( m_ui->infoWidget->isVisible() );
 }
 
 void MapView::instructionsChanged()
 {
+	if ( !m_fixed )
+		return;
+
 	QStringList label;
 	QStringList icon;
 
 	RoutingLogic::instance()->instructions( &label, &icon, 60 );
 
-	m_toggleInfoWidgetAction->setEnabled( !label.isEmpty() );
-	m_toggleInfoWidgetAction->setChecked( !label.isEmpty() );
-	m_ui->infoWidget->setHidden( label.isEmpty() );
+	m_ui->infoWidget->setHidden( label.empty() );
 
 	if ( label.isEmpty() )
 		return;
 
 	m_ui->infoLabel1->setText( label[0] );
-	m_ui->infoIcon1->setPixmap( QPixmap( icon[0] ) );
+	m_ui->infoIcon1->setIcon( QIcon( icon[0] ) );
 
 	m_ui->infoIcon2->setHidden( label.size() == 1 );
 	m_ui->infoLabel2->setHidden( label.size() == 1 );
@@ -270,7 +268,7 @@ void MapView::instructionsChanged()
 		return;
 
 	m_ui->infoLabel2->setText( label[1] );
-	m_ui->infoIcon2->setPixmap( QPixmap( icon[1] ) );
+	m_ui->infoIcon2->setIcon( QIcon( icon[1] ) );
 }
 
 void MapView::mouseClicked( ProjectedCoordinate clickPos )
@@ -327,7 +325,9 @@ void MapView::setPlaces( QVector< UnsignedCoordinate > p )
 
 	m_ui->headerLabel->setText( QString( tr( "Choose City (%1/%2)" ) ).arg( 1 ).arg( p.size() ) );
 	m_ui->headerWidget->show();
-	m_ui->lockButton->hide();
+	m_ui->lockWidget->hide();
+	m_ui->waypointsWidget->hide();
+	m_ui->menuWidget->hide();
 
 	m_ui->paintArea->setCenter( m_places.first().ToProjectedCoordinate() );
 	m_ui->paintArea->setPOIs( p );
@@ -361,7 +361,9 @@ void MapView::setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinat
 	m_ui->headerWidget->show();
 	m_ui->nextButton->hide();
 	m_ui->previousButton->hide();
-	m_ui->lockButton->hide();
+	m_ui->lockWidget->hide();
+	m_ui->waypointsWidget->hide();
+	m_ui->menuWidget->hide();
 
 	ProjectedCoordinate center = coordinates[coordinates.size()/2].ToProjectedCoordinate();
 
@@ -373,30 +375,8 @@ void MapView::setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinat
 	m_ui->paintArea->setPOI( centerPos );
 }
 
-void MapView::showContextMenu()
+void MapView::showContextMenu( QPoint /*globalPos*/ )
 {
-#ifdef Q_WS_MAEMO_5
-	showContextMenu( mapToGlobal( QPoint( width() / 2, height() / 2 ) ) );
-#else
-	showContextMenu( mapToGlobal( m_ui->menuButton->pos() ) );
-#endif
-}
-
-void MapView::showContextMenu( QPoint globalPos )
-{
-	if ( m_menu == NoMenu )
-		return;
-	if ( m_menu == ContextMenu ) {
-		m_gotoSourceAction->setEnabled( RoutingLogic::instance()->source().IsValid() );
-		m_gotoTargetAction->setEnabled( RoutingLogic::instance()->target().IsValid() );
-		bool addressLookupAvailable = MapData::instance()->addressLookup() != NULL;
-		m_gotoAddressAction->setEnabled( addressLookupAvailable );
-		m_targetByAddressAction->setEnabled( addressLookupAvailable );
-		m_sourceByAddressAction->setEnabled( addressLookupAvailable );
-
-		m_contextMenu->exec( globalPos );
-		return;
-	}
 }
 
 void MapView::gotoSource()
@@ -522,9 +502,12 @@ void MapView::toogleLocked()
 {
 	m_fixed = !m_fixed;
 	m_ui->paintArea->setFixed( m_fixed );
-	if ( m_fixed )
+	if ( m_fixed ) {
 		m_ui->lockButton->setIcon( QIcon( ":images/oxygen/emblem-locked.png") );
-	else
+		instructionsChanged();
+	} else {
 		m_ui->lockButton->setIcon( QIcon( ":images/oxygen/emblem-unlocked.png") );
+		m_ui->infoWidget->hide();
+	}
 }
 

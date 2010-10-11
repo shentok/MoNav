@@ -39,12 +39,6 @@ public:
 		Source, Target, POI, NoSelection
 	};
 
-	enum Menu {
-		NoMenu, ContextMenu
-	};
-
-	void setMenu( Menu m );
-
 	static int selectPlaces( QVector< UnsignedCoordinate > places, QWidget* p = NULL );
 	static bool selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, QWidget* p = NULL );
 
@@ -57,28 +51,41 @@ signals:
 
 protected slots:
 	void mouseClicked( ProjectedCoordinate clickPos );
+
 	void nextPlace();
 	void previousPlace();
+
 	void showContextMenu( QPoint globalPos );
-	void showContextMenu();
+
 	void gotoSource();
 	void gotoGPS();
 	void gotoTarget();
 	void gotoBookmark();
 	void gotoAddress();
+
 	void sourceByBookmark();
 	void sourceByAddress();
 	void targetByBookmark();
 	void targetByAddress();
+
 	void addZoom();
 	void substractZoom();
+
 	void bookmarks();
+
 	void setModeSourceSelection();
 	void setModeTargetSelection();
 	void setModePOISelection();
 	void setModeNoSelection();
 	void toogleLocked();
-	void toggleInfoWidget();
+
+	void gotoMenu();
+	void toolsMenu();
+	void settingsMenu();
+	void sourceMenu();
+	void targetMenu();
+	//void waypointMenu();
+	//void addWaypoint();
 
 	void dataLoaded();
 	void instructionsChanged();
@@ -89,6 +96,8 @@ protected:
 	void setupMenu();
 	void setPlaces( QVector< UnsignedCoordinate > p );
 	void setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinate > coordinates );
+
+	virtual void resizeEvent( QResizeEvent* event );
 
 #ifdef Q_WS_MAEMO_5
 	void grabZoomKeys( bool grab );
@@ -105,9 +114,11 @@ protected:
 
 	bool m_fixed;
 
-	Menu m_menu;
 	Mode m_mode;
-	QMenu* m_contextMenu;
+	QMenu* m_targetMenu;
+	QMenu* m_sourceMenu;
+	QMenu* m_gotoMenu;
+	QMenu* m_toolsMenu;
 
 	QAction* m_gotoGPSAction;
 	QAction* m_gotoSourceAction;
@@ -122,8 +133,6 @@ protected:
 	QAction* m_targetByTapAction;
 	QAction* m_targetByBookmarkAction;
 	QAction* m_targetByAddressAction;
-
-	QAction* m_toggleInfoWidgetAction;
 
 	QAction* m_bookmarkAction;
 	QAction* m_magnifyAction;

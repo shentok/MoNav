@@ -255,7 +255,7 @@ void PaintWidget::paintEvent( QPaintEvent* )
 			m_request.rotation += 360;
 		while ( m_request.rotation >= 360 )
 			m_request.rotation -= 360;
-		int radius = height() * 0.3;
+		int radius = height() * 0.25;
 
 		m_request.center = renderer->PointToCoordinate( 0, -radius, m_request );
 	}
