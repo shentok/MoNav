@@ -38,6 +38,7 @@ public:
 	virtual QString GetName();
 	virtual void SetInputDirectory( const QString& dir );
 	virtual void ShowSettings();
+	virtual bool IsCompatible( int fileFormatVersion );
 	virtual bool LoadData();
 	virtual bool GetNearestEdge( Result* result, const UnsignedCoordinate& coordinate, double radius, bool headingPenalty, double heading );
 

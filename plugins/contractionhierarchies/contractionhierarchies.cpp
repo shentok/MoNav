@@ -25,7 +25,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 ContractionHierarchies::ContractionHierarchies()
 {
-	settingsDialog = NULL;
+	m_settingsDialog = NULL;
 }
 
 ContractionHierarchies::~ContractionHierarchies()
@@ -37,6 +37,11 @@ QString ContractionHierarchies::GetName()
 	return "Contraction Hierarchies";
 }
 
+int ContractionHierarchies::GetFileFormatVersion()
+{
+	return 1;
+}
+
 ContractionHierarchies::Type ContractionHierarchies::GetType()
 {
 	return Router;
@@ -44,28 +49,23 @@ ContractionHierarchies::Type ContractionHierarchies::GetType()
 
 void ContractionHierarchies::SetOutputDirectory( const QString& dir )
 {
-	outputDirectory = dir;
+	m_outputDirectory = dir;
 }
 
-void ContractionHierarchies::ShowSettings()
+QWidget* ContractionHierarchies::GetSettings()
 {
-	if ( settingsDialog == NULL )
-		settingsDialog = new CHSettingsDialog();
-	settingsDialog->exec();
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new CHSettingsDialog();
+	return m_settingsDialog;
 }
 
 bool ContractionHierarchies::Preprocess( IImporter* importer )
 {
-	if ( settingsDialog == NULL )
-		settingsDialog = new CHSettingsDialog();
-	settingsDialog->getSettings( &settings );
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new CHSettingsDialog();
+	m_settingsDialog->getSettings( &m_settings );
 
-	QString filename = fileInDirectory( outputDirectory, "Contraction Hierarchies" );
-
-	if ( settings.threads == 0 )
-		omp_set_num_threads( omp_get_max_threads() );
-	else
-		omp_set_num_threads( settings.threads );
+	QString filename = fileInDirectory( m_outputDirectory, "Contraction Hierarchies" );
 
 	std::vector< IImporter::RoutingNode > inputNodes;
 	std::vector< IImporter::RoutingEdge > inputEdges;
@@ -194,7 +194,7 @@ bool ContractionHierarchies::Preprocess( IImporter* importer )
 		i->target = map[i->target];
 	}
 
-	CompressedGraphBuilder* builder = new CompressedGraphBuilder( 1u << settings.blockSize, nodes, edges, inputEdges, pathNodes );
+	CompressedGraphBuilder* builder = new CompressedGraphBuilder( 1u << m_settings.blockSize, nodes, edges, inputEdges, pathNodes );
 	if ( !builder->run( filename, &map ) )
 		return false;
 	delete builder;

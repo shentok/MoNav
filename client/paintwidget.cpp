@@ -20,6 +20,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "paintwidget.h"
 #include "ui_paintwidget.h"
 #include "utils/qthelpers.h"
+#include "mapdata.h"
+#include "routinglogic.h"
+
 #include <QPainter>
 #include <QMouseEvent>
 #include <QWheelEvent>
@@ -31,17 +34,43 @@ PaintWidget::PaintWidget(QWidget *parent) :
 	m_ui( new Ui::PaintWidget )
 {
 	m_ui->setupUi( this );
-	setAttribute( Qt::WA_OpaquePaintEvent, true );
-	setAttribute( Qt::WA_NoSystemBackground, true );
+	if ( MapData::instance()->loaded() ) {
+		setAttribute( Qt::WA_OpaquePaintEvent, true );
+		setAttribute( Qt::WA_NoSystemBackground, true );
+	}
 	m_lastMouseX = 0;
 	m_lastMouseY = 0;
 	m_wheelDelta = 0;
 	m_fixed = false;
+	m_request.zoom = 0;
+	m_request.center = RoutingLogic::instance()->source().ToProjectedCoordinate();
+
+	dataLoaded();
+	sourceChanged();
+	waypointsChanged();
+	routeChanged();
+
+	connect( MapData::instance(), SIGNAL(dataLoaded()), this, SLOT(dataLoaded()) );
+	connect( RoutingLogic::instance(), SIGNAL(sourceChanged()), this, SLOT(sourceChanged()) );
+	connect( RoutingLogic::instance(), SIGNAL(routeChanged()), this, SLOT(routeChanged()) );
+	connect( RoutingLogic::instance(), SIGNAL(waypointsChanged()), this, SLOT(waypointsChanged()) );
 }
 
 PaintWidget::~PaintWidget()
 {
 	delete m_ui;
+}
+
+void PaintWidget::dataLoaded()
+{
+	IRenderer* renderer = MapData::instance()->renderer();
+	if ( renderer == NULL )
+		return;
+
+	setAttribute( Qt::WA_OpaquePaintEvent, true );
+	setAttribute( Qt::WA_NoSystemBackground, true );
+	renderer->SetUpdateSlot( this, SLOT(update()) );
+	update();
 }
 
 void PaintWidget::setFixed( bool f )
@@ -50,24 +79,16 @@ void PaintWidget::setFixed( bool f )
 	update();
 }
 
-void PaintWidget::setRenderer( IRenderer* r )
-{
-	m_renderer = r;
-	m_renderer->SetUpdateSlot( this, SLOT(update()) );
-}
-
 void PaintWidget::setCenter( const ProjectedCoordinate c )
 {
 	m_request.center = c;
-	if ( isVisible() )
-		update();
+	update();
 }
 
 void PaintWidget::setZoom( int z )
 {
 	m_request.zoom = z;
-	if ( isVisible() )
-		update();
+	update();
 }
 
 void PaintWidget::setMaxZoom( int z )
@@ -75,40 +96,35 @@ void PaintWidget::setMaxZoom( int z )
 	m_maxZoom = z;
 }
 
-void PaintWidget::setPosition( const UnsignedCoordinate p, double heading )
+void PaintWidget::sourceChanged()
 {
-	m_request.position = p;
-	m_request.heading = heading;
-	if ( isVisible() )
-		update();
+	m_request.position = RoutingLogic::instance()->source();
+	m_request.heading = RoutingLogic::instance()->gpsInfo().heading;
+	update();
 }
 
-void PaintWidget::setTarget( const UnsignedCoordinate t )
+void PaintWidget::waypointsChanged()
 {
-	m_request.target = t;
-	if ( isVisible() )
-		update();
+	m_request.target = RoutingLogic::instance()->target();
+	update();
 }
 
 void PaintWidget::setPOIs( QVector< UnsignedCoordinate > p )
 {
 	m_request.POIs = p;
-	if ( isVisible() )
-		update();
+	update();
 }
 
 void PaintWidget::setPOI( UnsignedCoordinate p )
 {
 	m_request.POIs = QVector< UnsignedCoordinate >( 1, p );
-	if ( isVisible() )
-		update();
+	update();
 }
 
-void PaintWidget::setRoute( QVector< IRouter::Node > r )
+void PaintWidget::routeChanged()
 {
-	m_request.route = r;
-	if ( isVisible() )
-		update();
+	m_request.route = RoutingLogic::instance()->route();
+	update();
 }
 
 void PaintWidget::setEdges( QVector< int > edgeSegments, QVector< UnsignedCoordinate > edges )
@@ -151,7 +167,12 @@ void PaintWidget::mouseMoveEvent( QMouseEvent* event )
 		m_drag = true;
 	if ( !m_drag )
 		return;
-	m_request.center = m_renderer->Move( event->x() - m_lastMouseX, event->y() - m_lastMouseY, m_request );
+
+	IRenderer* renderer = MapData::instance()->renderer();
+	if ( renderer == NULL )
+		return;
+
+	m_request.center = renderer->Move( event->x() - m_lastMouseX, event->y() - m_lastMouseY, m_request );
 	m_lastMouseX = event->x();
 	m_lastMouseY = event->y();
 	update();
@@ -165,14 +186,18 @@ void PaintWidget::mouseReleaseEvent( QMouseEvent* event )
 		return;
 	if ( event->button() != Qt::LeftButton )
 		return;
-	if ( m_renderer == NULL )
+
+	IRenderer* renderer = MapData::instance()->renderer();
+	if ( renderer == NULL )
 		return;
-	emit mouseClicked( m_renderer->PointToCoordinate( event->x() - width() / 2, event->y() - height() / 2, m_request ) );
+
+	emit mouseClicked( renderer->PointToCoordinate( event->x() - width() / 2, event->y() - height() / 2, m_request ) );
 }
 
 void PaintWidget::wheelEvent( QWheelEvent * event )
 {
-	if ( m_renderer == NULL )
+	IRenderer* renderer = MapData::instance()->renderer();
+	if ( renderer == NULL )
 		return;
 
 	// 15 degrees is a full mousewheel "click"
@@ -192,9 +217,9 @@ void PaintWidget::wheelEvent( QWheelEvent * event )
 		return;
 
 	// zoom in/out on current mouse position
-	m_request.center = m_renderer->Move( width() / 2 - event->x(), height() / 2 - event->y(), m_request );
+	m_request.center = renderer->Move( width() / 2 - event->x(), height() / 2 - event->y(), m_request );
 	m_request.zoom = newZoom;
-	m_request.center = m_renderer->Move( event->x() - width() / 2, event->y() - height() / 2, m_request );
+	m_request.center = renderer->Move( event->x() - width() / 2, event->y() - height() / 2, m_request );
 
 	emit zoomChanged( newZoom );
 	update();
@@ -202,9 +227,11 @@ void PaintWidget::wheelEvent( QWheelEvent * event )
 
 void PaintWidget::paintEvent( QPaintEvent* )
 {
-	if ( m_renderer == NULL )
-		return;
 	if ( !isVisible() )
+		return;
+
+	IRenderer* renderer = MapData::instance()->renderer();
+	if ( renderer == NULL )
 		return;
 
 	if ( m_fixed ) {
@@ -230,12 +257,12 @@ void PaintWidget::paintEvent( QPaintEvent* )
 			m_request.rotation -= 360;
 		int radius = height() * 0.3;
 
-		m_request.center = m_renderer->PointToCoordinate( 0, -radius, m_request );
+		m_request.center = renderer->PointToCoordinate( 0, -radius, m_request );
 	}
 
 	QPainter painter( this );
 	Timer time;
-	m_renderer->Paint( &painter, m_request );
+	renderer->Paint( &painter, m_request );
 	qDebug() << "Rendering:" << time.elapsed() << "ms";
 }
 

@@ -31,16 +31,17 @@ class ContractionHierarchies : public QObject, public IPreprocessor
 public:
 	ContractionHierarchies();
 	virtual QString GetName();
+	virtual int GetFileFormatVersion();
 	virtual Type GetType();
 	virtual void SetOutputDirectory( const QString& dir );
-	virtual void ShowSettings();
+	virtual QWidget* GetSettings();
 	virtual bool Preprocess( IImporter* importer );
 	virtual ~ContractionHierarchies();
 
 protected:
-	QString outputDirectory;
-	CHSettingsDialog* settingsDialog;
-	CHSettingsDialog::Settings settings;
+	QString m_outputDirectory;
+	CHSettingsDialog* m_settingsDialog;
+	CHSettingsDialog::Settings m_settings;
 };
 
 #endif // ContractionHierarchies_H

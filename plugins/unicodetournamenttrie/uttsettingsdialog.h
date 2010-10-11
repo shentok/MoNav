@@ -20,29 +20,29 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef UTTSETTINGSDIALOG_H
 #define UTTSETTINGSDIALOG_H
 
-#include <QDialog>
+#include <QWidget>
 
 namespace Ui {
-    class UTTSettingsDialog;
+	class UTTSettingsDialog;
 }
 
-class UTTSettingsDialog : public QDialog
+class UTTSettingsDialog : public QWidget
 {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    explicit UTTSettingsDialog(QWidget *parent = 0);
-    ~UTTSettingsDialog();
+	explicit UTTSettingsDialog( QWidget *parent = 0 );
+	~UTTSettingsDialog();
 
-	 struct Settings
-	 {
+	struct Settings
+	{
 
-	 };
+	};
 
-	 bool getSettings( Settings* settings );
+	bool getSettings( Settings* settings );
 
 private:
-    Ui::UTTSettingsDialog *ui;
+	Ui::UTTSettingsDialog *ui;
 };
 
 #endif // UTTSETTINGSDIALOG_H

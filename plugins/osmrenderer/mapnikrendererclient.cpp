@@ -48,6 +48,13 @@ QString MapnikRendererClient::GetName()
 	return "Mapnik Renderer";
 }
 
+bool MapnikRendererClient::IsCompatible( int fileFormatVersion )
+{
+	if ( fileFormatVersion == 1 )
+		return true;
+	return false;
+}
+
 bool MapnikRendererClient::load()
 {
 	QString filename = fileInDirectory( m_directory, "Mapnik Renderer" );

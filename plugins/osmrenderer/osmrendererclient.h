@@ -32,6 +32,7 @@ public:
 	OSMRendererClient();
 	virtual ~OSMRendererClient();
 	virtual QString GetName();
+	virtual bool IsCompatible( int fileFormatVersion );
 
 public slots:
 	void finished( QNetworkReply* reply );

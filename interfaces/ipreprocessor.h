@@ -21,6 +21,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define IPREPROCESSING_H
 
 #include "iimporter.h"
+#include "QWidget"
 #include <QImage>
 
 class IPreprocessor
@@ -31,9 +32,10 @@ public:
 	};
 
 	virtual QString GetName() = 0;
+	virtual int GetFileFormatVersion() = 0;
 	virtual Type GetType() = 0;
 	virtual void SetOutputDirectory( const QString& dir ) = 0;
-	virtual void ShowSettings() = 0;
+	virtual QWidget* GetSettings() = 0;
 	virtual bool Preprocess( IImporter* importer ) = 0;
 	virtual ~IPreprocessor() {}
 };

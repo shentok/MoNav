@@ -23,9 +23,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QSettings>
 #include <QtDebug>
 
-ORSettingsDialog::ORSettingsDialog(QWidget *parent) :
-		QDialog(parent),
-		m_ui(new Ui::ORSettingsDialog)
+ORSettingsDialog::ORSettingsDialog( QWidget *parent ) :
+		QWidget( parent ),
+		m_ui( new Ui::ORSettingsDialog )
 {
 	m_ui->setupUi(this);
 	QSettings settings( "MoNav" );
@@ -36,7 +36,6 @@ ORSettingsDialog::ORSettingsDialog(QWidget *parent) :
 		assert( checkbox != NULL );
 		checkbox->setChecked( settings.value( name, true ).toBool() );
 	}
-	setGeometry( settings.value( "Geometry", geometry() ).toRect() );
 }
 
 ORSettingsDialog::~ORSettingsDialog()
@@ -49,7 +48,6 @@ ORSettingsDialog::~ORSettingsDialog()
 		assert( checkbox != NULL );
 		settings.setValue( name, checkbox->isChecked() );
 	}
-	settings.setValue( "geometry", geometry() );
 	delete m_ui;
 }
 

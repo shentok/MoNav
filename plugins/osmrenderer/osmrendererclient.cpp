@@ -48,6 +48,13 @@ QString OSMRendererClient::GetName()
 	return "OSM Renderer";
 }
 
+bool OSMRendererClient::IsCompatible( int fileFormatVersion )
+{
+	if ( fileFormatVersion == 1 )
+		return true;
+	return false;
+}
+
 bool OSMRendererClient::load()
 {
 	network = new QNetworkAccessManager( this );

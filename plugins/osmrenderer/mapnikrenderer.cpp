@@ -34,18 +34,23 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 MapnikRenderer::MapnikRenderer()
 {
-	settingsDialog = NULL;
+	m_settingsDialog = NULL;
 }
 
 MapnikRenderer::~MapnikRenderer()
 {
-	if ( settingsDialog != NULL )
-		delete settingsDialog;
+	if ( m_settingsDialog != NULL )
+		delete m_settingsDialog;
 }
 
 QString MapnikRenderer::GetName()
 {
 	return "Mapnik Renderer";
+}
+
+int MapnikRenderer::GetFileFormatVersion()
+{
+	return 1;
 }
 
 MapnikRenderer::Type MapnikRenderer::GetType()
@@ -55,25 +60,25 @@ MapnikRenderer::Type MapnikRenderer::GetType()
 
 void MapnikRenderer::SetOutputDirectory( const QString& dir )
 {
-	outputDirectory = dir;
+	m_outputDirectory = dir;
 }
 
-void MapnikRenderer::ShowSettings()
+QWidget* MapnikRenderer::GetSettings()
 {
-	if ( settingsDialog == NULL )
-		settingsDialog = new MRSettingsDialog();
-	settingsDialog->exec();
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new MRSettingsDialog();
+	return m_settingsDialog;
 }
 
 bool MapnikRenderer::Preprocess( IImporter* importer )
 {
-	if ( settingsDialog == NULL )
-		settingsDialog = new MRSettingsDialog();
-	QString filename = fileInDirectory( outputDirectory, "Mapnik Renderer" );
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new MRSettingsDialog();
+	QString filename = fileInDirectory( m_outputDirectory, "Mapnik Renderer" );
 
 	try {
 		MRSettingsDialog::Settings settings;
-		if ( !settingsDialog->getSettings( &settings ) )
+		if ( !m_settingsDialog->getSettings( &settings ) )
 			return false;
 		IImporter::BoundingBox box;
 		if ( !importer->GetBoundingBox( &box ) )

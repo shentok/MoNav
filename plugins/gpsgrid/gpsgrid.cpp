@@ -25,18 +25,23 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 GPSGrid::GPSGrid()
 {
-	settingsDialog = NULL;
+	m_settingsDialog = NULL;
 }
 
 GPSGrid::~GPSGrid()
 {
-	if ( settingsDialog != NULL )
-		delete settingsDialog;
+	if ( m_settingsDialog != NULL )
+		delete m_settingsDialog;
 }
 
 QString GPSGrid::GetName()
 {
 	return "GPS Grid";
+}
+
+int GPSGrid::GetFileFormatVersion()
+{
+	return 1;
 }
 
 GPSGrid::Type GPSGrid::GetType()
@@ -46,25 +51,25 @@ GPSGrid::Type GPSGrid::GetType()
 
 void GPSGrid::SetOutputDirectory( const QString& dir )
 {
-	outputDirectory = dir;
+	m_outputDirectory = dir;
 }
 
-void GPSGrid::ShowSettings()
+QWidget* GPSGrid::GetSettings()
 {
-	if ( settingsDialog == NULL )
-		settingsDialog = new GGDialog();
-	settingsDialog->exec();
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new GGDialog();
+	return m_settingsDialog;
 }
 
 bool GPSGrid::Preprocess( IImporter* importer )
 {
-	if ( settingsDialog == NULL )
-		settingsDialog = new GGDialog();
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new GGDialog();
 	GGDialog::Settings settings;
-	if ( !settingsDialog->getSettings( &settings ) )
+	if ( !m_settingsDialog->getSettings( &settings ) )
 		return false;
 
-	QString filename = fileInDirectory( outputDirectory, "GPSGrid" );
+	QString filename = fileInDirectory( m_outputDirectory, "GPSGrid" );
 
 	QFile gridFile( filename + "_grid" );
 	QFile configFile( filename + "_config" );

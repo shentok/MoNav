@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>ORSettingsDialog</class>
- <widget class="QDialog" name="ORSettingsDialog">
+ <widget class="QWidget" name="ORSettingsDialog">
   <property name="sizePolicy">
    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
     <horstretch>0</horstretch>
@@ -24,7 +24,7 @@
       <item>
        <widget class="QLabel" name="label">
         <property name="text">
-         <string>This plugin has performs no preprocessing. It loads map tiles directly from the OpenStreetMap website. This makes it unsuitable for devices without an internet connection. Otherwise, the client implementation shares its codebase with the MapnikRenderer plugin.</string>
+         <string>This plugin performs no preprocessing. It loads map tiles directly from the OpenStreetMap website. This makes it unsuitable for devices without an internet connection. The client implementation shares its codebase with the MapnikRenderer plugin.</string>
         </property>
         <property name="wordWrap">
          <bool>true</bool>
@@ -44,8 +44,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>478</width>
-        <height>148</height>
+        <width>481</width>
+        <height>188</height>
        </rect>
       </property>
       <attribute name="label">
@@ -208,49 +208,8 @@
      </widget>
     </widget>
    </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <spacer name="horizontalSpacer">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButton">
-       <property name="text">
-        <string>Close</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
   </layout>
  </widget>
  <resources/>
- <connections>
-  <connection>
-   <sender>pushButton</sender>
-   <signal>clicked()</signal>
-   <receiver>ORSettingsDialog</receiver>
-   <slot>accept()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>369</x>
-     <y>265</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>148</x>
-     <y>230</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>

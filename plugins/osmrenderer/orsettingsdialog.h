@@ -20,13 +20,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef ORSETTINGSDIALOG_H
 #define ORSETTINGSDIALOG_H
 
-#include <QDialog>
+#include <QWidget>
 
 namespace Ui {
 	class ORSettingsDialog;
 }
 
-class ORSettingsDialog : public QDialog
+class ORSettingsDialog : public QWidget
 {
 	Q_OBJECT
 

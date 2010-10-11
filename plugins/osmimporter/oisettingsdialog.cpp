@@ -28,8 +28,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils/qthelpers.h"
 
 OISettingsDialog::OISettingsDialog(QWidget *parent) :
-	 QDialog(parent),
-	 m_ui(new Ui::OISettingsDialog)
+	QWidget(parent),
+	m_ui(new Ui::OISettingsDialog)
 {
 	m_ui->setupUi(this);
 	m_ui->speedTable->resizeColumnsToContents();

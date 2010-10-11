@@ -34,6 +34,7 @@ public:
 	virtual QString GetName() = 0;
 	virtual void SetInputDirectory( const QString& dir ) = 0;
 	virtual void ShowSettings() = 0;
+	virtual bool IsCompatible( int fileFormatVersion ) = 0;
 	virtual bool LoadData() = 0;
 	// get the maximal zoom level; possible zoom levels are: [0,GetMaxZoom()]
 	virtual int GetMaxZoom() = 0;

@@ -21,13 +21,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "ggdialog.h"
 #include "ui_ggdialog.h"
 
-GGDialog::GGDialog(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::GGDialog)
+GGDialog::GGDialog( QWidget *parent ) :
+		QWidget( parent ),
+		ui( new Ui::GGDialog )
 {
-    ui->setupUi(this);
-	 QSettings settings( "MoNav" );
-	 settings.beginGroup( "GPSGrid" );
+	ui->setupUi(this);
+	QSettings settings( "MoNav" );
+	settings.beginGroup( "GPSGrid" );
 }
 
 GGDialog::~GGDialog()

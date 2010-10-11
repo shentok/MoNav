@@ -33,12 +33,13 @@ class GPSGrid : public QObject, public IPreprocessor {
 
 public:
 
-			GPSGrid();
+	GPSGrid();
 	virtual ~GPSGrid();
 	virtual QString GetName();
+	virtual int GetFileFormatVersion();
 	virtual Type GetType();
 	virtual void SetOutputDirectory( const QString& dir );
-	virtual void ShowSettings();
+	virtual QWidget* GetSettings();
 	virtual bool Preprocess( IImporter* importer );
 
 protected:
@@ -57,8 +58,8 @@ protected:
 	bool clipHelper( double directedProjection, double directedDistance, double* tMinimum, double* tMaximum );
 	bool clipEdge( ProjectedCoordinate source, ProjectedCoordinate target, ProjectedCoordinate min, ProjectedCoordinate max );
 
-	QString outputDirectory;
-	GGDialog* settingsDialog;
+	QString m_outputDirectory;
+	GGDialog* m_settingsDialog;
 };
 
 #endif // GPSGRID_H

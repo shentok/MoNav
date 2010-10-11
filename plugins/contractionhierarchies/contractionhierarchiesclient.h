@@ -38,6 +38,7 @@ public:
 	virtual QString GetName();
 	virtual void SetInputDirectory( const QString& dir );
 	virtual void ShowSettings();
+	virtual bool IsCompatible( int fileFormatVersion );
 	virtual bool LoadData();
 	virtual bool GetRoute( double* distance, QVector< Node>* pathNodes, QVector< Edge >* pathEdges, const IGPSLookup::Result& source, const IGPSLookup::Result& target );
 	virtual bool GetName( QString* result, unsigned name );

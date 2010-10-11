@@ -22,7 +22,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QMainWindow>
 #include <QPluginLoader>
-#include "aboutdialog.h"
 #include "interfaces/iimporter.h"
 #include "interfaces/ipreprocessor.h"
 
@@ -41,22 +40,19 @@ public:
 
 protected slots:
 
-	void about();
-	void browse();
-	void importerSettings();
+	void imageBrowse();
+	void outputBrowse();
+	void imageChanged( QString text );
+	void outputChanged( QString text );
+	void threadsChanged( int threads );
 	bool importerPreprocessing();
-	void rendererSettings();
 	bool rendererPreprocessing();
-	void routerSettings();
 	bool routerPreprocessing();
-	void gpsLookupSettings();
 	bool gpsLookupPreprocessing();
-	void addressLookupSettings();
 	bool addressLookupPreprocessing();
 	void preprocessAll();
-	void writeConfig();
-	void deleteTemporary();
-	void manual();
+	bool writeConfig();
+	bool deleteTemporary();
 
 protected:
 
@@ -64,8 +60,6 @@ protected:
 	void loadPlugins();
 	bool testPlugin( QObject* plugin );
 	void unloadPlugins();
-
-	AboutDialog* m_aboutDialog;
 
 	QList< IImporter* > m_importerPlugins;
 	QList< IPreprocessor* > m_rendererPlugins;

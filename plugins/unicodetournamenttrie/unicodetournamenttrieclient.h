@@ -38,6 +38,7 @@ public:
 	 virtual QString GetName();
 	 virtual void SetInputDirectory( const QString& dir );
 	 virtual void ShowSettings();
+	 virtual bool IsCompatible( int fileFormatVersion );
 	 virtual bool LoadData();
 	 virtual bool GetPlaceSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions );
 	 virtual bool GetStreetSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions );

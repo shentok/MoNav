@@ -80,6 +80,13 @@ void GPSGridClient::ShowSettings()
 #endif
 }
 
+bool GPSGridClient::IsCompatible( int fileFormatVersion )
+{
+	if ( fileFormatVersion == 1 )
+		return true;
+	return false;
+}
+
 bool GPSGridClient::LoadData()
 {
 	unload();

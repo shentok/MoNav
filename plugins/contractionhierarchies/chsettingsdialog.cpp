@@ -4,44 +4,29 @@
 #include <omp.h>
 
 CHSettingsDialog::CHSettingsDialog(QWidget *parent) :
-    QDialog(parent),
-	 ui(new Ui::CHSettingsDialog)
+	 QWidget(parent),
+	 m_ui(new Ui::CHSettingsDialog)
 {
-    ui->setupUi(this);
+	 m_ui->setupUi(this);
 
 	QSettings settings( "MoNav" );
 	settings.beginGroup( "Contraction Hierarchies" );
-	ui->blockSize->setValue( settings.value( "blockSize", 12 ).toInt() );
-	ui->threads->setValue( omp_get_max_threads() );
-	ui->threads->setMaximum( omp_get_max_threads() );
+	m_ui->blockSize->setValue( settings.value( "blockSize", 12 ).toInt() );
 }
 
 CHSettingsDialog::~CHSettingsDialog()
 {
 	QSettings settings( "MoNav" );
 	settings.beginGroup( "Contraction Hierarchies" );
-	settings.setValue( "blockSize", ui->blockSize->value() );
+	settings.setValue( "blockSize", m_ui->blockSize->value() );
 
-    delete ui;
-}
-
-void CHSettingsDialog::changeEvent(QEvent *e)
-{
-    QDialog::changeEvent(e);
-    switch (e->type()) {
-    case QEvent::LanguageChange:
-        ui->retranslateUi(this);
-        break;
-    default:
-        break;
-    }
+	 delete m_ui;
 }
 
 bool CHSettingsDialog::getSettings( Settings* settings )
 {
 	if ( settings == NULL )
 		return false;
-	settings->blockSize = ui->blockSize->value();
-	settings->threads = ui->threads->value();
+	settings->blockSize = m_ui->blockSize->value();
 	return true;
 }

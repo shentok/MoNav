@@ -88,11 +88,11 @@ void OSMImporter::SetOutputDirectory( const QString& dir )
 	m_outputDirectory = dir;
 }
 
-void OSMImporter::ShowSettings()
+QWidget* OSMImporter::GetSettings()
 {
 	if ( m_settingsDialog == NULL )
 		m_settingsDialog = new OISettingsDialog;
-	m_settingsDialog->exec();
+	return m_settingsDialog;
 }
 
 bool OSMImporter::Preprocess()

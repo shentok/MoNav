@@ -20,7 +20,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef DESCRIPTIONGENERATOR_H
 #define DESCRIPTIONGENERATOR_H
 
-#include "interfaces/irouter.h"
+#include "mapdata.h"
+
 #include <QVector>
 #include <QStringList>
 #include <QtDebug>
@@ -40,14 +41,16 @@ public:
 		m_lastTypeID = std::numeric_limits< unsigned >::max();
 	}
 
-	void descriptions( QStringList* icons, QStringList* labels, IRouter* router, QVector< IRouter::Node > pathNodes, QVector< IRouter::Edge > pathEdges, int maxSeconds = std::numeric_limits< int >::max() )
+	void descriptions( QStringList* icons, QStringList* labels, QVector< IRouter::Node > pathNodes, QVector< IRouter::Edge > pathEdges, int maxSeconds = std::numeric_limits< int >::max() )
 	{
 		icons->clear();
 		labels->clear();
 
-		if ( pathEdges.empty() || pathNodes.empty() ) {
-			*icons = QStringList( "" );
-			*labels = QStringList( "No Route" );
+		IRouter* router = MapData::instance()->router();
+
+		if ( router == NULL || pathEdges.empty() || pathNodes.empty() ) {
+			*icons = QStringList();
+			*labels = QStringList();
 			return;
 		}
 

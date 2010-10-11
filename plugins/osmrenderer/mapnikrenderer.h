@@ -33,9 +33,10 @@ class MapnikRenderer : public QObject, public IPreprocessor
 public:
 	 MapnikRenderer();
 	virtual QString GetName();
+	virtual int GetFileFormatVersion();
 	virtual Type GetType();
 	virtual void SetOutputDirectory( const QString& dir );
-	virtual void ShowSettings();
+	virtual QWidget* GetSettings();
 	virtual bool Preprocess( IImporter* importer );
 	virtual ~MapnikRenderer();
 
@@ -63,8 +64,8 @@ protected:
 		QFile* tilesFile;
 	};
 
-	MRSettingsDialog* settingsDialog;
-	QString outputDirectory;
+	MRSettingsDialog* m_settingsDialog;
+	QString m_outputDirectory;
 };
 
 #endif // MAPNIKRENDERER_H

@@ -201,12 +201,17 @@ protected:
 	bool loadPlugins( QString dataDirectory )
 	{
 		QDir dir( dataDirectory );
-		QString configFilename = dir.filePath( "plugins.ini" );
+		QString configFilename = dir.filePath( "MoNav.ini" );
 		if ( !QFile::exists( configFilename ) ) {
-			qCritical() << "Not a valid data directory: Missing plugins.ini";
+			qCritical() << "Not a valid data directory: Missing MoNav.ini";
 			return false;
 		}
 		QSettings pluginSettings( configFilename, QSettings::IniFormat );
+		int iniVersion = pluginSettings.value( "configVersion" ).toInt();
+		if ( iniVersion != 1 ) {
+			qCritical() << "Config File not compatible";
+			return false;
+		}
 		QString routerName = pluginSettings.value( "router" ).toString();
 		QString gpsLookupName = pluginSettings.value( "gpsLookup" ).toString();
 
@@ -219,6 +224,11 @@ protected:
 				qCritical() << "GPSLookup plugin not found:" << gpsLookupName;
 				return false;
 			}
+			int gpsLookupFileFormat = pluginSettings.value( "gpsLookupFileFormatVersion" ).toInt();
+			if ( !m_gpsLookup->IsCompatible( gpsLookupFileFormat ) ) {
+				qCritical() << "GPS Lookup file format not compatible";
+				return false;
+			}
 			m_gpsLookup->SetInputDirectory( dataDirectory );
 			if ( !m_gpsLookup->LoadData() ) {
 				qCritical() << "could not load GPSLookup data";
@@ -227,6 +237,11 @@ protected:
 
 			if ( m_router == NULL ) {
 				qCritical() << "router plugin not found:" << routerName;
+				return false;
+			}
+			int routerFileFormat = pluginSettings.value( "routerFileFormatVersion" ).toInt();
+			if ( !m_gpsLookup->IsCompatible( routerFileFormat ) ) {
+				qCritical() << "GPS Lookup file format not compatible";
 				return false;
 			}
 			m_router->SetInputDirectory( dataDirectory );
@@ -240,6 +255,8 @@ protected:
 			qCritical() << "caught exception while loading plugins";
 			return false;
 		}
+
+		qDebug() << "loaded:" << pluginSettings.value( "name" ).toString() << pluginSettings.value( "description" ).toString();
 
 		return true;
 	}

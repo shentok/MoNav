@@ -20,14 +20,14 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef SETTINGSDIALOG_H
 #define SETTINGSDIALOG_H
 
-#include <QDialog>
+#include <QWidget>
 #include <vector>
 
 namespace Ui {
 	 class OISettingsDialog;
 }
 
-class OISettingsDialog : public QDialog {
+class OISettingsDialog : public QWidget {
 	 Q_OBJECT
 public:
 	 OISettingsDialog(QWidget *parent = 0);

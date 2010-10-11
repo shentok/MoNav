@@ -20,31 +20,31 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef CHSettingsDialog_H
 #define CHSettingsDialog_H
 
-#include <QDialog>
+#include <QWidget>
 
 namespace Ui {
 	 class CHSettingsDialog;
 }
 
-class CHSettingsDialog : public QDialog {
-    Q_OBJECT
+class CHSettingsDialog : public QWidget {
+
+	 Q_OBJECT
+
 public:
-	 CHSettingsDialog(QWidget *parent = 0);
+
+	 CHSettingsDialog( QWidget *parent = 0 );
 	 ~CHSettingsDialog();
 
 	struct Settings
 	{
 		int blockSize;
-		int threads;
 	};
 
 	bool getSettings( Settings* settings );
 
 protected:
-    void changeEvent(QEvent *e);
 
-private:
-	 Ui::CHSettingsDialog *ui;
+	 Ui::CHSettingsDialog *m_ui;
 };
 
 #endif // CHSettingsDialog_H

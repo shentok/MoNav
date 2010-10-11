@@ -20,28 +20,29 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef GGDIALOG_H
 #define GGDIALOG_H
 
-#include <QDialog>
+#include <QWidget>
 
 namespace Ui {
-    class GGDialog;
+	class GGDialog;
 }
 
-class GGDialog : public QDialog
+class GGDialog : public QWidget
 {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    explicit GGDialog(QWidget *parent = 0);
-    ~GGDialog();
 
-	 struct Settings
-	 {
-	 };
+	explicit GGDialog( QWidget *parent = 0 );
+	~GGDialog();
 
-	 bool getSettings( Settings* settings );
+	struct Settings
+	{
+	};
+
+	bool getSettings( Settings* settings );
 
 private:
-    Ui::GGDialog *ui;
+	Ui::GGDialog *ui;
 };
 
 #endif // GGDIALOG_H

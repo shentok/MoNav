@@ -41,6 +41,11 @@ QString UnicodeTournamentTrie::GetName()
 	return "Unicode Tournament Trie";
 }
 
+int UnicodeTournamentTrie::GetFileFormatVersion()
+{
+	return 1;
+}
+
 UnicodeTournamentTrie::Type UnicodeTournamentTrie::GetType()
 {
 	return AddressLookup;
@@ -51,11 +56,11 @@ void UnicodeTournamentTrie::SetOutputDirectory( const QString& dir )
 	outputDirectory = dir;
 }
 
-void UnicodeTournamentTrie::ShowSettings()
+QWidget* UnicodeTournamentTrie::GetSettings()
 {
 	if ( settingsDialog == NULL )
 		settingsDialog = new UTTSettingsDialog();
-	settingsDialog->exec();
+	return settingsDialog;
 }
 
 bool UnicodeTournamentTrie::Preprocess( IImporter* importer )

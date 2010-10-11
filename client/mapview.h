@@ -22,9 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QDialog>
 #include <QMenu>
-#include "interfaces/irenderer.h"
-#include "interfaces/igpslookup.h"
-#include "interfaces/iaddresslookup.h"
+
 #include "interfaces/irouter.h"
 
 namespace Ui {
@@ -45,24 +43,16 @@ public:
 		NoMenu, ContextMenu
 	};
 
-	void setRender( IRenderer* r );
-	void setAddressLookup( IAddressLookup* al );
 	void setMenu( Menu m );
 
-	static int selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* renderer, QWidget* p = NULL );
-	static bool selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, IRenderer* renderer, QWidget* p = NULL );
+	static int selectPlaces( QVector< UnsignedCoordinate > places, QWidget* p = NULL );
+	static bool selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, QWidget* p = NULL );
 
 public slots:
 
-	void setCenter( ProjectedCoordinate center );
-	void setSource( UnsignedCoordinate source, double heading );
-	void setTarget( UnsignedCoordinate target );
-	void setRoute( QVector< IRouter::Node > path, QStringList icon, QStringList label );
 	void magnify();
 
 signals:
-	void sourceChanged( UnsignedCoordinate pos, double heading );
-	void targetChanged( UnsignedCoordinate pos );
 	void infoClicked();
 
 protected slots:
@@ -90,7 +80,11 @@ protected slots:
 	void toogleLocked();
 	void toggleInfoWidget();
 
+	void dataLoaded();
+	void instructionsChanged();
+
 protected:
+
 	void connectSlots();
 	void setupMenu();
 	void setPlaces( QVector< UnsignedCoordinate > p );
@@ -103,16 +97,10 @@ protected:
 
 	Ui::MapView *m_ui;
 
-	IRenderer* m_renderer;
-	IAddressLookup* m_addressLookup;
-
 	int m_maxZoom;
 	QVector< UnsignedCoordinate > m_places;
 	int m_place;
 	UnsignedCoordinate m_selected;
-	UnsignedCoordinate m_target;
-	UnsignedCoordinate m_source;
-	double m_heading;
 	int m_virtualZoom;
 
 	bool m_fixed;

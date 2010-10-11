@@ -19,6 +19,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "bookmarksdialog.h"
 #include "ui_bookmarksdialog.h"
+#include "routinglogic.h"
 #include <QSettings>
 #include <QInputDialog>
 #include <QtDebug>
@@ -172,17 +173,17 @@ void BookmarksDialog::currentItemChanged( QItemSelection current, QItemSelection
 	m_ui->deleteButton->setDisabled( list.empty() );
 }
 
-bool BookmarksDialog::showBookmarks( UnsignedCoordinate* result, QWidget* p, UnsignedCoordinate source, UnsignedCoordinate target )
+bool BookmarksDialog::showBookmarks( UnsignedCoordinate* result, QWidget* p )
 {
 	if ( result == NULL )
 		return false;
 
 	BookmarksDialog* window = new BookmarksDialog( p );
 
-	window->m_target = target;
-	window->m_ui->targetButton->setDisabled( !target.IsValid() );
-	window->m_source = source;
-	window->m_ui->sourceButton->setDisabled( !source.IsValid() );
+	window->m_target = RoutingLogic::instance()->target();
+	window->m_ui->targetButton->setDisabled( !window->m_target.IsValid() );
+	window->m_source = RoutingLogic::instance()->source();
+	window->m_ui->sourceButton->setDisabled( !window->m_source.IsValid() );
 
 	window->exec();
 

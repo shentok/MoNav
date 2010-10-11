@@ -25,9 +25,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QtDebug>
 #include <QSettings>
 
-MRSettingsDialog::MRSettingsDialog(QWidget *parent) :
-	 QDialog(parent),
-	 ui(new Ui::MRSettingsDialog)
+MRSettingsDialog::MRSettingsDialog( QWidget *parent ) :
+	 QWidget( parent ),
+	 ui( new Ui::MRSettingsDialog )
 {
 	 ui->setupUi(this);
 	connectSlots();
@@ -52,7 +52,6 @@ MRSettingsDialog::MRSettingsDialog(QWidget *parent) :
 		assert( checkbox != NULL );
 		checkbox->setChecked( settings.value( name, true ).toBool() );
 	}
-	setGeometry( settings.value( "Geometry", geometry() ).toRect() );
 }
 
 MRSettingsDialog::~MRSettingsDialog()
@@ -77,9 +76,8 @@ MRSettingsDialog::~MRSettingsDialog()
 		assert( checkbox != NULL );
 		settings.setValue( name, checkbox->isChecked() );
 	}
-	settings.setValue( "geometry", geometry() );
 
-	 delete ui;
+	delete ui;
 }
 
 void MRSettingsDialog::connectSlots()
@@ -91,7 +89,7 @@ void MRSettingsDialog::connectSlots()
 
 void MRSettingsDialog::changeEvent(QEvent *e)
 {
-	 QDialog::changeEvent(e);
+	 QWidget::changeEvent(e);
 	 switch (e->type()) {
 	 case QEvent::LanguageChange:
 		  ui->retranslateUi(this);

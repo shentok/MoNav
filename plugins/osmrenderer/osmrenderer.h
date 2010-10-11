@@ -32,9 +32,10 @@ public:
 
 	OSMRenderer();
 	virtual QString GetName();
+	virtual int GetFileFormatVersion();
 	virtual Type GetType();
 	virtual void SetOutputDirectory( const QString& directory );
-	virtual void ShowSettings();
+	virtual QWidget* GetSettings();
 	virtual bool Preprocess( IImporter* importer );
 	virtual ~OSMRenderer();
 

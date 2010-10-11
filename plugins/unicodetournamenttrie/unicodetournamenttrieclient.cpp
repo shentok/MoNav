@@ -74,6 +74,13 @@ void UnicodeTournamentTrieClient::ShowSettings()
 #endif
 }
 
+bool UnicodeTournamentTrieClient::IsCompatible( int fileFormatVersion )
+{
+	if ( fileFormatVersion == 1 )
+		return true;
+	return false;
+}
+
 bool UnicodeTournamentTrieClient::LoadData()
 {
 	unload();

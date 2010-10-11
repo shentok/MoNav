@@ -33,6 +33,7 @@ public:
 	MapnikRendererClient();
 	virtual ~MapnikRendererClient();
 	virtual QString GetName();
+	virtual bool IsCompatible( int fileFormatVersion );
 
 protected:
 

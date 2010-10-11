@@ -39,7 +39,7 @@ public:
 	OSMImporter();
 	virtual QString GetName();
 	virtual void SetOutputDirectory( const QString& dir );
-	virtual void ShowSettings();
+	virtual QWidget* GetSettings();
 	virtual bool Preprocess();
 	virtual bool SetIDMap( const std::vector< NodeID >& idMap );
 	virtual bool GetIDMap( std::vector< NodeID >* idMap );

@@ -20,16 +20,16 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "uttsettingsdialog.h"
 #include "ui_uttsettingsdialog.h"
 
-UTTSettingsDialog::UTTSettingsDialog(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::UTTSettingsDialog)
+UTTSettingsDialog::UTTSettingsDialog( QWidget *parent ) :
+		QWidget( parent ),
+		ui( new Ui::UTTSettingsDialog )
 {
-    ui->setupUi(this);
+	ui->setupUi(this);
 }
 
 UTTSettingsDialog::~UTTSettingsDialog()
 {
-    delete ui;
+	delete ui;
 }
 
 bool UTTSettingsDialog::getSettings( Settings* /*settings*/ )

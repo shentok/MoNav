@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QWidget>
 #include "interfaces/irenderer.h"
+#include "interfaces/irouter.h"
 
 namespace Ui {
 	class PaintWidget;
@@ -38,15 +39,16 @@ public slots:
 	void setFixed( bool f );
 	void setZoom( int z );
 	void setMaxZoom( int z );
-	void setRenderer( IRenderer* r );
 	void setCenter( const ProjectedCoordinate c );
-	void setPosition( const UnsignedCoordinate p, double heading );
-	void setTarget( const UnsignedCoordinate t );
 	void setPOIs( QVector< UnsignedCoordinate > p );
 	void setPOI( UnsignedCoordinate p );
-	void setRoute( QVector< IRouter::Node > pathNodes );
 	void setEdges( QVector< int > edgeSegments, QVector< UnsignedCoordinate > edges );
 	void setVirtualZoom( int z );
+
+	void routeChanged();
+	void waypointsChanged();
+	void sourceChanged();
+	void dataLoaded();
 
 signals:
 
@@ -62,7 +64,6 @@ protected:
 	void wheelEvent( QWheelEvent * event );
 	void contextMenuEvent( QContextMenuEvent *event) ;
 
-	IRenderer* m_renderer;
 	IRenderer::PaintRequest m_request;
 
 	int m_maxZoom;

@@ -20,13 +20,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef MRSettingsDialog_H
 #define MRSettingsDialog_H
 
-#include <QDialog>
+#include <QWidget>
 
 namespace Ui {
 	 class MRSettingsDialog;
 }
 
-class MRSettingsDialog : public QDialog {
+class MRSettingsDialog : public QWidget {
 	 Q_OBJECT
 public:
 	 MRSettingsDialog(QWidget *parent = 0);

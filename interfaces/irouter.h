@@ -62,6 +62,7 @@ public:
 	virtual QString GetName() = 0;
 	virtual void SetInputDirectory( const QString& dir ) = 0;
 	virtual void ShowSettings() = 0;
+	virtual bool IsCompatible( int fileFormatVersion ) = 0;
 	virtual bool LoadData() = 0;
 	// computes the route between source and target and returns the distance in second
 	virtual bool GetRoute( double* distance, QVector< Node>* pathNodes, QVector< Edge >* pathEdges, const IGPSLookup::Result& source, const IGPSLookup::Result& target ) = 0;

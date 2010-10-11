@@ -37,6 +37,11 @@ QString OSMRenderer::GetName()
 	return "OSM Renderer";
 }
 
+int OSMRenderer::GetFileFormatVersion()
+{
+	return 1;
+}
+
 OSMRenderer::Type OSMRenderer::GetType()
 {
 	return Renderer;
@@ -47,11 +52,11 @@ void OSMRenderer::SetOutputDirectory( const QString& directory )
 	m_directory = directory;
 }
 
-void OSMRenderer::ShowSettings()
+QWidget* OSMRenderer::GetSettings()
 {
 	if ( m_settingsDialog == NULL )
 		m_settingsDialog = new ORSettingsDialog();
-	m_settingsDialog->exec();
+	return m_settingsDialog;
 }
 
 bool OSMRenderer::Preprocess( IImporter* )

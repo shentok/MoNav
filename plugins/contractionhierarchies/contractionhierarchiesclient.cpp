@@ -68,6 +68,13 @@ void ContractionHierarchiesClient::unload()
 	m_types.clear();
 }
 
+bool ContractionHierarchiesClient::IsCompatible( int fileFormatVersion )
+{
+	if ( fileFormatVersion == 1 )
+		return true;
+	return false;
+}
+
 bool ContractionHierarchiesClient::LoadData()
 {
 	QString filename = fileInDirectory( m_directory,"Contraction Hierarchies" );
@@ -340,7 +347,7 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& source
 	int begin = pathNodes->size();
 	bool reverseTargetDescription = pathNode != target.source;
 	if ( target.source == target.target && targetEdge.backward() && targetEdge.forward() && target.percentage > 0.5 )
-		reverseSourceDescription = !reverseSourceDescription;
+		reverseTargetDescription = !reverseTargetDescription;
 	if ( targetEdge.unpacked() ) {
 		bool unpackTargetForward = target.target != targetEdge.target() ? reverseTargetDescription : !reverseTargetDescription;
 		m_graph.path( targetEdge, pathNodes, pathEdges, unpackTargetForward );

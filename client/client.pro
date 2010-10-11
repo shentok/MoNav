@@ -4,32 +4,39 @@
 TARGET = MoNavClient
 TEMPLATE = app
 SOURCES += main.cpp \
-    mainwindow.cpp \
-    mapview.cpp \
-    paintwidget.cpp \
-    addressdialog.cpp \
-    bookmarksdialog.cpp \
-    routedescriptiondialog.cpp
+	 mainwindow.cpp \
+	 mapview.cpp \
+	 paintwidget.cpp \
+	 addressdialog.cpp \
+	 bookmarksdialog.cpp \
+	 routedescriptiondialog.cpp \
+	 mapdata.cpp \
+	 mapdatawidget.cpp \
+	 routinglogic.cpp
 HEADERS += mainwindow.h \
-    mapview.h \
-    paintwidget.h \
-    utils/coordinates.h \
-    utils/config.h \
-    interfaces/irenderer.h \
-    interfaces/iaddresslookup.h \
-    addressdialog.h \
-    interfaces/igpslookup.h \
-    interfaces/irouter.h \
-    bookmarksdialog.h \
-    routedescriptiondialog.h \
-    descriptiongenerator.h \
-    fullscreenexitbutton.h
+	 mapview.h \
+	 paintwidget.h \
+	 utils/coordinates.h \
+	 utils/config.h \
+	 interfaces/irenderer.h \
+	 interfaces/iaddresslookup.h \
+	 addressdialog.h \
+	 interfaces/igpslookup.h \
+	 interfaces/irouter.h \
+	 bookmarksdialog.h \
+	 routedescriptiondialog.h \
+	 descriptiongenerator.h \
+	 mapdata.h \
+	 mapdatawidget.h \
+	 routinglogic.h \
+	 fullscreenexitbutton.h
 FORMS += mainwindow.ui \
-    mapview.ui \
-    paintwidget.ui \
-    addressdialog.ui \
-    bookmarksdialog.ui \
-    routedescriptiondialog.ui
+	 mapview.ui \
+	 paintwidget.ui \
+	 addressdialog.ui \
+	 bookmarksdialog.ui \
+	 routedescriptiondialog.ui \
+	 mapdatawidget.ui
 DESTDIR = ../bin
 TARGET = MoNavC
 unix {

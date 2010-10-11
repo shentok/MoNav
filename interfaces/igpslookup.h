@@ -50,6 +50,7 @@ public:
 	virtual QString GetName() = 0;
 	virtual void SetInputDirectory( const QString& dir ) = 0;
 	virtual void ShowSettings() = 0;
+	virtual bool IsCompatible( int fileFormatVersion ) = 0;
 	virtual bool LoadData() = 0;
 	// gets the nearest routing edge; a heading penalty can be applied if the way's orientation differs greatly from the current heading.
 	virtual bool GetNearestEdge( Result* result, const UnsignedCoordinate& coordinate, double radius, bool headingPenalty = 0, double heading = 0 ) = 0;

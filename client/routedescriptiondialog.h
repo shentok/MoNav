@@ -38,7 +38,7 @@ public:
 
 public slots:
 
-	void setDescriptions( QStringList icons, QStringList labels );
+	void instructionsChanged();
 
 protected:
 	Ui::RouteDescriptionDialog* m_ui;

@@ -19,6 +19,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "routedescriptiondialog.h"
 #include "ui_routedescriptiondialog.h"
+#include "routinglogic.h"
+
 #include <cassert>
 #include <QtDebug>
 
@@ -27,6 +29,7 @@ RouteDescriptionDialog::RouteDescriptionDialog( QWidget *parent ) :
 		m_ui(new Ui::RouteDescriptionDialog)
 {
 	m_ui->setupUi(this);
+	instructionsChanged();
 #ifdef Q_WS_MAEMO_5
 	setAttribute( Qt::WA_Maemo5StackedWindow );
 #endif
@@ -37,9 +40,12 @@ RouteDescriptionDialog::~RouteDescriptionDialog()
 	delete m_ui;
 }
 
-void RouteDescriptionDialog::setDescriptions( QStringList icons, QStringList labels )
+void RouteDescriptionDialog::instructionsChanged()
 {
 	m_ui->descriptionList->clear();
+	QStringList labels;
+	QStringList icons;
+	RoutingLogic::instance()->instructions( &labels, &icons );
 	assert( icons.size() == labels.size() );
 	for ( int entry = 0; entry < icons.size(); entry++ ) {
 		new QListWidgetItem( QIcon( icons[entry] ), labels[entry], m_ui->descriptionList );

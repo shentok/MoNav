@@ -38,9 +38,7 @@ public:
 	explicit AddressDialog(QWidget *parent = 0);
 	~AddressDialog();
 
-	void setAddressLookup( IAddressLookup* al );
-	void setRenderer( IRenderer* r );
-	static bool getAddress( UnsignedCoordinate* result, IAddressLookup* addressLookup, IRenderer* renderer, QWidget* p, bool cityOnly = false );
+	static bool getAddress( UnsignedCoordinate* result, QWidget* p, bool cityOnly = false );
 
 public slots:
 
@@ -54,8 +52,6 @@ public slots:
 protected:
 	void connectSlots();
 
-	IAddressLookup* m_addressLookup;
-	IRenderer* m_renderer;
 	enum {
 		City = 0, Street = 1
 	} m_mode;

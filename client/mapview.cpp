@@ -21,6 +21,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "ui_mapview.h"
 #include "addressdialog.h"
 #include "bookmarksdialog.h"
+#include "mapdata.h"
+#include "routinglogic.h"
+
 #include <QtDebug>
 #include <QInputDialog>
 #include <QSettings>
@@ -64,11 +67,8 @@ MapView::MapView( QWidget *parent ) :
 	// ensure that we're painting our background
 	setAutoFillBackground(true);
 
-	m_renderer = NULL;
-	m_addressLookup = NULL;
 	m_menu = NoMenu;
 	m_mode = NoSelection;
-	m_heading = 0;
 	m_fixed = false;
 
 	setupMenu();
@@ -76,13 +76,16 @@ MapView::MapView( QWidget *parent ) :
 	m_ui->menuButton->hide();
 	m_ui->infoWidget->hide();
 
-	connectSlots();
-
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "MapView" );
 	m_virtualZoom = settings.value( "virtualZoom", 1 ).toInt();
 	if ( settings.contains( "geometry") )
 		setGeometry( settings.value( "geometry" ).toRect() );
+
+	dataLoaded();
+	instructionsChanged();
+
+	connectSlots();
 }
 
 MapView::~MapView()
@@ -107,6 +110,8 @@ void MapView::connectSlots()
 	connect( m_ui->zoomIn, SIGNAL(clicked()), this, SLOT(addZoom()) );
 	connect( m_ui->zoomOut, SIGNAL(clicked()), this, SLOT(substractZoom()) );
 	connect( m_ui->infoButton, SIGNAL(clicked()), this, SIGNAL(infoClicked()) );
+	connect( MapData::instance(), SIGNAL(dataLoaded()), this, SLOT(dataLoaded()) );
+	connect( RoutingLogic::instance(), SIGNAL(instructionsChanged()), this, SLOT(instructionsChanged()) );
 	connect( m_ui->modeButton, SIGNAL(clicked()), this, SLOT(setModeNoSelection()) );
 	connect( m_ui->lockButton, SIGNAL(clicked()), this, SLOT(toogleLocked()) );
 }
@@ -184,47 +189,19 @@ void MapView::keyPressEvent( QKeyEvent* event )
 
 #endif
 
-void MapView::setRender( IRenderer* r )
+void MapView::dataLoaded()
 {
-	m_renderer = r;
-	m_maxZoom = m_renderer->GetMaxZoom();
+	IRenderer* renderer = MapData::instance()->renderer();
+	if ( renderer == NULL )
+		return;
+
+	m_maxZoom = renderer->GetMaxZoom();
 	m_ui->zoomBar->setMaximum( m_maxZoom );
 	m_ui->zoomBar->setValue( m_maxZoom );
-	m_ui->paintArea->setRenderer( r );
-	m_ui->paintArea->setZoom( m_maxZoom );
 	m_ui->paintArea->setMaxZoom( m_maxZoom );
+	m_ui->paintArea->setZoom( m_maxZoom );
 	m_ui->paintArea->setVirtualZoom( m_virtualZoom );
-}
-
-void MapView::setCenter( ProjectedCoordinate center )
-{
-	m_ui->paintArea->setCenter( center );
-}
-
-void MapView::setAddressLookup( IAddressLookup* al )
-{
-	m_addressLookup = al;
-}
-
-void MapView::setSource( UnsignedCoordinate s, double h )
-{
-	if ( m_source.x == s.x && m_source.y == s.y && h == m_heading )
-		return;
-
-	emit sourceChanged( s, m_heading );
-	m_source = s;
-	m_heading = h;
-	m_ui->paintArea->setPosition( m_source, m_heading );
-}
-
-void MapView::setTarget( UnsignedCoordinate t )
-{
-	if ( m_target.x == t.x && m_target.y == t.y )
-		return;
-
-	emit targetChanged( t );
-	m_target = t;
-	m_ui->paintArea->setTarget( m_target );
+	m_ui->paintArea->setCenter( RoutingLogic::instance()->source().ToProjectedCoordinate() );
 }
 
 void MapView::setMenu( Menu m )
@@ -269,11 +246,15 @@ void MapView::toggleInfoWidget()
 	m_toggleInfoWidgetAction->setChecked( m_ui->infoWidget->isVisible() );
 }
 
-void MapView::setRoute( QVector< IRouter::Node > pathNodes, QStringList icon, QStringList label )
+void MapView::instructionsChanged()
 {
+	QStringList label;
+	QStringList icon;
+
+	RoutingLogic::instance()->instructions( &label, &icon, 60 );
+
 	m_toggleInfoWidgetAction->setEnabled( !label.isEmpty() );
 	m_toggleInfoWidgetAction->setChecked( !label.isEmpty() );
-	m_ui->paintArea->setRoute( pathNodes );
 	m_ui->infoWidget->setHidden( label.isEmpty() );
 
 	if ( label.isEmpty() )
@@ -296,9 +277,9 @@ void MapView::mouseClicked( ProjectedCoordinate clickPos )
 {
 	UnsignedCoordinate coordinate( clickPos );
 	if ( m_mode == Source ) {
-		emit sourceChanged( coordinate, 0 );
+		RoutingLogic::instance()->setSource( coordinate );
 	} else if ( m_mode == Target ) {
-		emit targetChanged( coordinate );
+		RoutingLogic::instance()->setTarget( coordinate );
 	} else if ( m_mode == POI ){
 		m_selected = coordinate;
 		m_ui->paintArea->setPOI( coordinate );
@@ -322,15 +303,12 @@ void MapView::previousPlace()
 	m_ui->paintArea->setCenter( m_places[m_place].ToProjectedCoordinate() );
 }
 
-int MapView::selectPlaces( QVector< UnsignedCoordinate > places, IRenderer* renderer, QWidget* p )
+int MapView::selectPlaces( QVector< UnsignedCoordinate > places, QWidget* p )
 {
 	if ( places.size() == 0 )
 		return -1;
-	if ( renderer == NULL )
-		return -1;
 
 	MapView* window = new MapView( p );
-	window->setRender( renderer );
 	window->setPlaces( places );
 
 	int value = window->exec();
@@ -355,7 +333,7 @@ void MapView::setPlaces( QVector< UnsignedCoordinate > p )
 	m_ui->paintArea->setPOIs( p );
 }
 
-bool MapView::selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, IRenderer* renderer, QWidget* p )
+bool MapView::selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, QWidget* p )
 {
 	if ( result == NULL )
 		return false;
@@ -363,11 +341,8 @@ bool MapView::selectStreet( UnsignedCoordinate* result, QVector< int >segmentLen
 		return false;
 	if ( coordinates.size() == 0 )
 		return false;
-	if ( renderer == 0 )
-		return false;
 
 	MapView* window = new MapView( p );
-	window->setRender( renderer );
 	window->setEdges( segmentLength, coordinates );
 	window->setModePOISelection();
 
@@ -412,11 +387,12 @@ void MapView::showContextMenu( QPoint globalPos )
 	if ( m_menu == NoMenu )
 		return;
 	if ( m_menu == ContextMenu ) {
-		m_gotoSourceAction->setEnabled( m_source.IsValid() );
-		m_gotoTargetAction->setEnabled( m_target.IsValid() );
-		m_gotoAddressAction->setEnabled( m_addressLookup != NULL );
-		m_targetByAddressAction->setEnabled( m_addressLookup != NULL );
-		m_sourceByAddressAction->setEnabled( m_addressLookup != NULL );
+		m_gotoSourceAction->setEnabled( RoutingLogic::instance()->source().IsValid() );
+		m_gotoTargetAction->setEnabled( RoutingLogic::instance()->target().IsValid() );
+		bool addressLookupAvailable = MapData::instance()->addressLookup() != NULL;
+		m_gotoAddressAction->setEnabled( addressLookupAvailable );
+		m_targetByAddressAction->setEnabled( addressLookupAvailable );
+		m_sourceByAddressAction->setEnabled( addressLookupAvailable );
 
 		m_contextMenu->exec( globalPos );
 		return;
@@ -425,7 +401,10 @@ void MapView::showContextMenu( QPoint globalPos )
 
 void MapView::gotoSource()
 {
-	m_ui->paintArea->setCenter( m_source.ToProjectedCoordinate() );
+	UnsignedCoordinate coordinate = RoutingLogic::instance()->source();
+	if ( !coordinate.IsValid() )
+		return;
+	m_ui->paintArea->setCenter( coordinate.ToProjectedCoordinate() );
 	m_ui->paintArea->setZoom( m_maxZoom );
 }
 
@@ -445,24 +424,27 @@ void MapView::gotoGPS()
 
 void MapView::gotoTarget()
 {
-	m_ui->paintArea->setCenter( m_target.ToProjectedCoordinate() );
+	UnsignedCoordinate coordinate = RoutingLogic::instance()->target();
+	if ( !coordinate.IsValid() )
+		return;
+	m_ui->paintArea->setCenter( coordinate.ToProjectedCoordinate() );
 	m_ui->paintArea->setZoom( m_maxZoom );
 }
 
 void MapView::gotoBookmark()
 {
 	UnsignedCoordinate result;
-	if ( !BookmarksDialog::showBookmarks( &result, this, m_source, m_target ) )
+	if ( !BookmarksDialog::showBookmarks( &result, this ) )
 		return;
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 }
 
 void MapView::gotoAddress()
 {
-	if ( m_addressLookup == NULL )
+	if ( MapData::instance()->addressLookup() == NULL )
 		return;
 	UnsignedCoordinate result;
-	if ( !AddressDialog::getAddress( &result, m_addressLookup, m_renderer, this, true ) )
+	if ( !AddressDialog::getAddress( &result, this, true ) )
 		return;
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 }
@@ -470,47 +452,47 @@ void MapView::gotoAddress()
 void MapView::sourceByBookmark()
 {
 	UnsignedCoordinate result;
-	if ( !BookmarksDialog::showBookmarks( &result, this, m_source, m_target ) )
+	if ( !BookmarksDialog::showBookmarks( &result, this ) )
 		return;
-	emit sourceChanged( result, 0 );
+	RoutingLogic::instance()->setSource( result );
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 }
 
 void MapView::sourceByAddress()
 {
-	if ( m_addressLookup == NULL )
+	if ( MapData::instance()->addressLookup() == NULL )
 		return;
 	UnsignedCoordinate result;
-	if ( !AddressDialog::getAddress( &result, m_addressLookup, m_renderer, this ) )
+	if ( !AddressDialog::getAddress( &result, this ) )
 		return;
-	emit sourceChanged( result, 0 );
+	RoutingLogic::instance()->setSource( result );
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 }
 
 void MapView::targetByBookmark()
 {
 	UnsignedCoordinate result;
-	if ( !BookmarksDialog::showBookmarks( &result, this, m_source, m_target ) )
+	if ( !BookmarksDialog::showBookmarks( &result, this ) )
 		return;
-	emit targetChanged( result );
+	RoutingLogic::instance()->setTarget( result );
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 }
 
 void MapView::targetByAddress()
 {
-	if ( m_addressLookup == NULL )
+	if ( MapData::instance()->addressLookup() == NULL )
 		return;
 	UnsignedCoordinate result;
-	if ( !AddressDialog::getAddress( &result, m_addressLookup, m_renderer, this ) )
+	if ( !AddressDialog::getAddress( &result, this ) )
 		return;
-	emit targetChanged( result );
+	RoutingLogic::instance()->setTarget( result );
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 }
 
 void MapView::bookmarks()
 {
 	UnsignedCoordinate result;
-	if ( !BookmarksDialog::showBookmarks( &result, this, m_source, m_target ) )
+	if ( !BookmarksDialog::showBookmarks( &result, this ) )
 		return;
 
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );

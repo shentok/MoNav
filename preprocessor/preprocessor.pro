@@ -6,10 +6,8 @@ CONFIG += link_pkgconfig
 PKGCONFIG += libxml-2.0
 PKGCONFIG += protobuf
 SOURCES += main.cpp \
-	 preprocessingwindow.cpp \
-	 aboutdialog.cpp
+	 preprocessingwindow.cpp
 HEADERS += preprocessingwindow.h \
-	 aboutdialog.h \
 	 interfaces/iimporter.h \
 	 utils/coordinates.h \
 	 utils/config.h \
@@ -19,8 +17,7 @@ HEADERS += preprocessingwindow.h \
 	 interfaces/iimporter.h
 DESTDIR = ../bin
 TARGET = MoNavP
-FORMS += preprocessingwindow.ui \
-	 aboutdialog.ui
+FORMS += preprocessingwindow.ui
 RESOURCES += images.qrc
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2

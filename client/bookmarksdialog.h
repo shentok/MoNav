@@ -43,7 +43,7 @@ public:
 	~BookmarksDialog();
 	UnsignedCoordinate getCoordinate();
 
-	static bool showBookmarks( UnsignedCoordinate* result, QWidget* p = NULL, UnsignedCoordinate source = UnsignedCoordinate(), UnsignedCoordinate target = UnsignedCoordinate() );
+	static bool showBookmarks( UnsignedCoordinate* result, QWidget* p = NULL );
 
 public slots:
 
