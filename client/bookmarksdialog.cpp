@@ -21,31 +21,51 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "ui_bookmarksdialog.h"
 #include <QSettings>
 #include <QInputDialog>
+#include <QtDebug>
+#include <QVBoxLayout>
 
 BookmarksDialog::BookmarksDialog(QWidget *parent) :
 		QDialog( parent ),
 		m_ui( new Ui::BookmarksDialog )
 {
 	m_ui->setupUi(this);
-#ifdef Q_WS_MAEMO_5
-	setAttribute( Qt::WA_Maemo5StackedWindow );
-#endif
 
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "Bookmarks" );
-	m_names = settings.value( "names" ).toStringList();
+	QStringList names = settings.value( "names" ).toStringList();
 
-	m_ui->bookmarkList->addItems( m_names );
-	for ( int i = 0; i < m_names.size(); i++ ) {
+	for ( int i = 0; i < names.size(); i++ ) {
 		UnsignedCoordinate pos;
 		pos.x = settings.value( QString( "%1.coordinates.x" ).arg( i ), 0 ).toUInt();
 		pos.y = settings.value( QString( "%1.coordinates.y" ).arg( i ), 0 ).toUInt();
 		m_coordinates.push_back( pos );
 	}
 
-	connectSlots();
-	itemSelectionChanged();
+	m_names.setColumnCount( 1 );
+	for ( int i = 0; i < names.size(); i++ )
+		m_names.appendRow( new QStandardItem( names[i] ) );
+
 	m_chosen = -1;
+
+	m_ui->bookmarkList->setModel( &m_names );
+
+#ifdef Q_WS_MAEMO_5
+	setAttribute( Qt::WA_Maemo5StackedWindow );
+	QVBoxLayout* box = qobject_cast< QVBoxLayout* >( layout() );
+	assert( box != NULL );
+	m_ui->bookmarkList->hide();
+	m_valueButton = new QMaemo5ValueButton( "Bookmark", this );
+	m_selector = new QMaemo5ListPickSelector;
+	m_selector->setModel( &m_names );
+	m_selector->setCurrentIndex( 0 );
+	m_valueButton->setPickSelector( m_selector );
+	m_valueButton->setValueLayout( QMaemo5ValueButton::ValueBesideText );
+	box->insertWidget( 0, m_valueButton );
+	m_ui->deleteButton->setEnabled( m_names.rowCount() != 0 );
+	m_ui->chooseButton->setEnabled( m_names.rowCount() != 0 );
+#endif
+
+	connectSlots();
 }
 
 void BookmarksDialog::connectSlots()
@@ -54,15 +74,22 @@ void BookmarksDialog::connectSlots()
 	connect( m_ui->sourceButton, SIGNAL(clicked()), this, SLOT(addSourceBookmark()) );
 	connect( m_ui->targetButton, SIGNAL(clicked()), this, SLOT(addTargetBookmark()) );
 	connect( m_ui->deleteButton, SIGNAL(clicked()), this, SLOT(deleteBookmark()) );
-	connect( m_ui->bookmarkList, SIGNAL(itemSelectionChanged()), this, SLOT(itemSelectionChanged()));
+#ifndef Q_WS_MAEMO_5
+	connect( m_ui->bookmarkList->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(currentItemChanged(QItemSelection,QItemSelection)));
+#endif
 }
 
 BookmarksDialog::~BookmarksDialog()
 {
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "Bookmarks" );
-	settings.setValue( "names", m_names );
-	for ( int i = 0; i < m_names.size(); i++ ) {
+
+	QStringList names;
+	for ( int i = 0; i < m_names.rowCount(); i++ )
+		names.push_back( m_names.item( i )->text() );
+	settings.setValue( "names", names );
+
+	for ( int i = 0; i < names.size(); i++ ) {
 		UnsignedCoordinate pos = m_coordinates[i];
 		settings.setValue( QString( "%1.coordinates.x" ).arg( i ), pos.x );
 		settings.setValue( QString( "%1.coordinates.y" ).arg( i ), pos.y );
@@ -72,22 +99,37 @@ BookmarksDialog::~BookmarksDialog()
 
 void BookmarksDialog::deleteBookmark()
 {
-	int index = m_ui->bookmarkList->currentRow();
-	if ( index == -1 )
+#ifdef Q_WS_MAEMO_5
+	if ( m_selector->currentIndex() == -1 )
 		return;
-	QListWidgetItem* item = m_ui->bookmarkList->takeItem( index );
-	if ( item != NULL )
-		delete item;
+	int index = m_selector->currentIndex();
+	m_ui->deleteButton->setEnabled( m_names.rowCount() != 1 );
+	m_ui->chooseButton->setEnabled( m_names.rowCount() != 1 );
+#else
+	if ( m_ui->bookmarkList->selectionModel()->selectedRows().empty() )
+		return;
+	int index = m_ui->bookmarkList->selectionModel()->selectedRows().first().row();
+#endif
+
 	m_coordinates.remove( index );
-	m_names.removeAt( index );
+	m_names.removeRow( index );
+
+#ifdef Q_WS_MAEMO_5
+	m_selector->setCurrentIndex( 0 );
+#endif
 }
 
 void BookmarksDialog::chooseBookmark()
 {
-	int index = m_ui->bookmarkList->currentRow();
-
-	if ( index == -1 )
+#ifdef Q_WS_MAEMO_5
+	if ( m_selector->currentIndex() == -1 )
 		return;
+	int index = m_selector->currentIndex();
+#else
+	if ( m_ui->bookmarkList->selectionModel()->selectedRows().empty() )
+		return;
+	int index = m_ui->bookmarkList->selectionModel()->selectedRows().first().row();
+#endif
 
 	m_chosen = index;
 	accept();
@@ -95,7 +137,7 @@ void BookmarksDialog::chooseBookmark()
 
 void BookmarksDialog::addTargetBookmark()
 {
-	if ( m_target.x == 0 && m_target.x == 0 )
+	if ( !m_target.IsValid() )
 		return;
 
 	bool ok = false;
@@ -104,14 +146,13 @@ void BookmarksDialog::addTargetBookmark()
 	if ( !ok )
 		return;
 
-	m_ui->bookmarkList->addItem( name );
+	m_names.appendRow( new QStandardItem( name ) );
 	m_coordinates.push_back( m_target );
-	m_names.push_back( name );
 }
 
 void BookmarksDialog::addSourceBookmark()
 {
-	if ( m_source.x == 0 && m_source.x == 0 )
+	if ( !m_source.IsValid() )
 		return;
 
 	bool ok = false;
@@ -120,16 +161,15 @@ void BookmarksDialog::addSourceBookmark()
 	if ( !ok )
 		return;
 
-	m_ui->bookmarkList->addItem( name );
+	m_names.appendRow( new QStandardItem( name ) );
 	m_coordinates.push_back( m_source );
-	m_names.push_back( name );
 }
 
-void BookmarksDialog::itemSelectionChanged()
+void BookmarksDialog::currentItemChanged( QItemSelection current, QItemSelection /*previous*/ )
 {
-	bool none = m_ui->bookmarkList->selectedItems().size() == 0;
-	m_ui->chooseButton->setDisabled( none );
-	m_ui->deleteButton->setDisabled( none );
+	QModelIndexList list = current.indexes();
+	m_ui->chooseButton->setDisabled( list.empty() );
+	m_ui->deleteButton->setDisabled( list.empty() );
 }
 
 bool BookmarksDialog::showBookmarks( UnsignedCoordinate* result, QWidget* p, UnsignedCoordinate source, UnsignedCoordinate target )

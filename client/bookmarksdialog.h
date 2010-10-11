@@ -22,6 +22,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "utils/coordinates.h"
 #include <QDialog>
+#include <QStandardItemModel>
+#include <QItemSelection>
+
+#ifdef Q_WS_MAEMO_5
+	#include <QMaemo5ValueButton>
+	#include <QMaemo5ListPickSelector>
+#endif
 
 namespace Ui {
 	class BookmarksDialog;
@@ -44,16 +51,20 @@ public slots:
 	void chooseBookmark();
 	void addTargetBookmark();
 	void addSourceBookmark();
-	void itemSelectionChanged();
+	void currentItemChanged( QItemSelection current, QItemSelection previous );
 
 protected:
 	void connectSlots();
 
-	QStringList m_names;
+	QStandardItemModel m_names;
 	QVector< UnsignedCoordinate > m_coordinates;
 	int m_chosen;
 	UnsignedCoordinate m_target;
 	UnsignedCoordinate m_source;
+#ifdef Q_WS_MAEMO_5
+	QMaemo5ValueButton* m_valueButton;
+	QMaemo5ListPickSelector* m_selector;
+#endif
 
 	Ui::BookmarksDialog *m_ui;
 };
