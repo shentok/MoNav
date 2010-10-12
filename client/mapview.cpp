@@ -79,6 +79,13 @@ MapView::MapView( QWidget *parent ) :
 		dataLoaded();
 	else
 		settingsDataDirectory();
+
+	/*
+	foreach ( QToolButton* button, this->findChildren< QToolButton* >() )
+		button->setIconSize( QSize( 64, 64 ) );
+	foreach ( QToolBar* button, this->findChildren< QToolBar* >() )
+		button->setIconSize( QSize( 64, 64 ) );
+	*/
 }
 
 MapView::~MapView()

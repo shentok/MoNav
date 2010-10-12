@@ -51,6 +51,12 @@ RoutingLogic::RoutingLogic() :
 	d->distance = -1;
 	d->travelTime = -1;
 
+	d->gpsInfo.groundSpeed = -1;
+	d->gpsInfo.verticalSpeed = -1;
+	d->gpsInfo.heading = -1;
+	d->gpsInfo.horizontalAccuracy = -1;
+	d->gpsInfo.verticalAccuracy = -1;
+
 	QSettings settings( "MoNavClient" );
 	d->source.x = settings.value( "source.x", 0 ).toUInt();
 	d->source.y = settings.value( "source.y", 0 ).toUInt();
@@ -89,12 +95,24 @@ RoutingLogic* RoutingLogic::instance()
 #ifndef NOQTMOBILE
 void RoutingLogic::positionUpdated( const QGeoPositionInfo& update )
 {
+	if ( !update.isValid() )
+		return;
+
 	GPSCoordinate gps;
 	gps.latitude = update.coordinate().latitude();
 	gps.longitude = update.coordinate().longitude();
 	d->gpsInfo.position = UnsignedCoordinate( gps );
+	d->gpsInfo.timestamp = update.timestamp();
 	if ( update.hasAttribute( QGeoPositionInfo::Direction ) )
 		d->gpsInfo.heading = update.attribute( QGeoPositionInfo::Direction );
+	if ( update.hasAttribute( QGeoPositionInfo::GroundSpeed ) )
+		d->gpsInfo.groundSpeed = update.attribute( QGeoPositionInfo::GroundSpeed );
+	if ( update.hasAttribute( QGeoPositionInfo::VerticalSpeed ) )
+		d->gpsInfo.verticalSpeed = update.attribute( QGeoPositionInfo::VerticalSpeed );
+	if ( update.hasAttribute( QGeoPositionInfo::HorizontalAccuracy ) )
+		d->gpsInfo.horizontalAccuracy = update.attribute( QGeoPositionInfo::HorizontalAccuracy );
+	if ( update.hasAttribute( QGeoPositionInfo::VerticalAccuracy ) )
+		d->gpsInfo.verticalAccuracy = update.attribute( QGeoPositionInfo::VerticalAccuracy );
 
 	if ( d->linked )
 		setSource( d->gpsInfo.position );

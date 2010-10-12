@@ -44,6 +44,11 @@ public:
 	struct GPSInfo {
 		UnsignedCoordinate position;
 		double heading;
+		double groundSpeed;
+		double verticalSpeed;
+		double horizontalAccuracy;
+		double verticalAccuracy;
+		QDateTime timestamp;
 	};
 
 	// return the instance of RoutingLogic
