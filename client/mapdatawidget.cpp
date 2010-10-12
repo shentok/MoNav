@@ -75,20 +75,23 @@ void MapDataWidget::connectSlots()
 int MapDataWidget::exec( bool autoLoad )
 {
 	MapData* mapData = MapData::instance();
+	QString oldPath = mapData->path();
+
 	if ( autoLoad ) {
 		if ( !mapData->loaded() ) {
 			directoryChanged( m_ui->directory->currentText() );
-			if ( mapData->containsMapData() ) {
-				if ( mapData->canBeLoaded() ) {
-					if ( mapData->load() ) {
+			if ( mapData->containsMapData() && mapData->canBeLoaded() && mapData->load() )
 						return QDialog::Accepted;
-					}
-				}
-			}
 		}
 	}
 	directoryChanged( m_ui->directory->currentText() );
-	return QDialog::exec();
+	int result = QDialog::exec();
+	if ( result != QDialog::Accepted ) {
+		mapData->setPath( oldPath );
+		if ( mapData->containsMapData() && mapData->canBeLoaded() )
+				mapData->load();
+	}
+	return result;
 }
 
 void MapDataWidget::directoryChanged( QString dir )

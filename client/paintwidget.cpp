@@ -258,6 +258,8 @@ void PaintWidget::paintEvent( QPaintEvent* )
 		int radius = height() * 0.25;
 
 		m_request.center = renderer->PointToCoordinate( 0, -radius, m_request );
+	} else {
+		m_request.rotation = 0;
 	}
 
 	QPainter painter( this );
