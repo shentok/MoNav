@@ -23,6 +23,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils/qthelpers.h"
 
 #include <QtDebug>
+#include <QSettings>
+#include <QDir>
 
 struct RoutingLogic::PrivateImplementation {
 	GPSInfo gpsInfo;
@@ -49,6 +51,10 @@ RoutingLogic::RoutingLogic() :
 	d->distance = -1;
 	d->travelTime = -1;
 
+	QSettings settings( "MoNavClient" );
+	d->source.x = settings.value( "source.x", 0 ).toUInt();
+	d->source.y = settings.value( "source.y", 0 ).toUInt();
+
 	connect( MapData::instance(), SIGNAL(dataLoaded()), this, SLOT(dataLoaded()) );
 
 #ifndef NOQTMOBILE
@@ -68,6 +74,9 @@ RoutingLogic::~RoutingLogic()
 	if ( d->gpsSource != NULL )
 		delete d->gpsSource;
 #endif
+	QSettings settings( "MoNavClient" );
+	settings.setValue( "source.x", d->source.x );
+	settings.setValue( "source.y", d->source.y );
 	delete d;
 }
 

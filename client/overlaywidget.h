@@ -17,39 +17,40 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MAPDATAWIDGET_H
-#define MAPDATAWIDGET_H
+#ifndef OVERLAYWIDGET_H
+#define OVERLAYWIDGET_H
 
-#include <QDialog>
+#include <QWidget>
+#include <QGridLayout>
+#include <QToolBar>
 
-namespace Ui {
-	class MapDataWidget;
-}
-
-class MapDataWidget : public QDialog
+class OverlayWidget : public QWidget
 {
+
 	Q_OBJECT
 
 public:
 
-	explicit MapDataWidget( QWidget *parent = 0 );
-	~MapDataWidget();
-	int exec( bool autoLoad = false );
+	explicit OverlayWidget( QWidget *parent = 0, QString title = "" );
+	void addAction( QAction *action );
+	void addActions( QList< QAction* > actions );
+	QList< QAction* > actions() const;
 
-protected slots:
+signals:
 
-	void directoryChanged( QString dir );
-	void browse();
-	void load();
+public slots:
+
 
 protected:
 
-	void connectSlots();
-	virtual void resizeEvent( QResizeEvent * event );
+	virtual void mouseReleaseEvent( QMouseEvent* event );
+	bool eventFilter( QObject *obj, QEvent* ev );
+	virtual void hideEvent( QHideEvent* event );
 	virtual void showEvent( QShowEvent* event );
+	void setOrientation();
 
-	Ui::MapDataWidget *m_ui;
-	QStringList m_directories;
+	QToolBar* m_centralWidget;
+	QGridLayout* m_grid;
 };
 
-#endif // MAPDATAWIDGET_H
+#endif // OVERLAYWIDGET_H

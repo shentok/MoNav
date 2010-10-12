@@ -61,7 +61,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	if ( MapData::instance()->path().isEmpty() || !loadPlugins() )
 		settingsDataDirectory();
-
 }
 
 MainWindow::~MainWindow()

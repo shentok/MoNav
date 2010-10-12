@@ -4,7 +4,6 @@
 TARGET = MoNavClient
 TEMPLATE = app
 SOURCES += main.cpp \
-	 mainwindow.cpp \
 	 mapview.cpp \
 	 paintwidget.cpp \
 	 addressdialog.cpp \
@@ -12,8 +11,9 @@ SOURCES += main.cpp \
 	 routedescriptiondialog.cpp \
 	 mapdata.cpp \
 	 mapdatawidget.cpp \
-	 routinglogic.cpp
-HEADERS += mainwindow.h \
+	 routinglogic.cpp \
+    overlaywidget.cpp
+HEADERS += \
 	 mapview.h \
 	 paintwidget.h \
 	 utils/coordinates.h \
@@ -29,8 +29,9 @@ HEADERS += mainwindow.h \
 	 mapdata.h \
 	 mapdatawidget.h \
 	 routinglogic.h \
-	 fullscreenexitbutton.h
-FORMS += mainwindow.ui \
+	 fullscreenexitbutton.h \
+    overlaywidget.h
+FORMS += \
 	 mapview.ui \
 	 paintwidget.ui \
 	 addressdialog.ui \

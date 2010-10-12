@@ -24,6 +24,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QMenu>
 
 #include "interfaces/irouter.h"
+#include "overlaywidget.h"
 
 namespace Ui {
 	 class MapView;
@@ -42,20 +43,23 @@ public:
 	static int selectPlaces( QVector< UnsignedCoordinate > places, QWidget* p = NULL );
 	static bool selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, QWidget* p = NULL );
 
-public slots:
-
+protected slots:
 	void magnify();
 
-signals:
-	void infoClicked();
-
-protected slots:
 	void mouseClicked( ProjectedCoordinate clickPos );
 
 	void nextPlace();
 	void previousPlace();
 
 	void showContextMenu( QPoint globalPos );
+
+	void settingsGeneral();
+	void settingsRenderer();
+	void settingsRouter();
+	void settingsGPSLookup();
+	void settingsAddressLookup();
+	void settingsGPS();
+	void settingsDataDirectory();
 
 	void gotoSource();
 	void gotoGPS();
@@ -65,6 +69,8 @@ protected slots:
 
 	void sourceByBookmark();
 	void sourceByAddress();
+	void sourceByGPS();
+
 	void targetByBookmark();
 	void targetByAddress();
 
@@ -86,6 +92,8 @@ protected slots:
 	void targetMenu();
 	//void waypointMenu();
 	//void addWaypoint();
+
+	void showInstructions();
 
 	void dataLoaded();
 	void instructionsChanged();
@@ -114,11 +122,20 @@ protected:
 
 	bool m_fixed;
 
+	OverlayWidget* m_targetOverlay;
+	OverlayWidget* m_sourceOverlay;
+	OverlayWidget* m_gotoOverlay;
+	OverlayWidget* m_toolsOverlay;
+	OverlayWidget* m_settingsOverlay;
+
 	Mode m_mode;
+	bool m_useMenus;
+
 	QMenu* m_targetMenu;
 	QMenu* m_sourceMenu;
 	QMenu* m_gotoMenu;
 	QMenu* m_toolsMenu;
+	QMenu* m_settingsMenu;
 
 	QAction* m_gotoGPSAction;
 	QAction* m_gotoSourceAction;
@@ -129,6 +146,7 @@ protected:
 	QAction* m_sourceByTapAction;
 	QAction* m_sourceByBookmarkAction;
 	QAction* m_sourceByAddressAction;
+	QAction* m_sourceByGPS;
 
 	QAction* m_targetByTapAction;
 	QAction* m_targetByBookmarkAction;
@@ -139,6 +157,14 @@ protected:
 	QAction* m_modeSourceAction;
 	QAction* m_modeTargetAction;
 	QAction* m_mapViewAction;
+
+	QAction* m_settingsGeneral;
+	QAction* m_settingsGPSLookup;
+	QAction* m_settingsRenderer;
+	QAction* m_settingsRouter;
+	QAction* m_settingsAddressLookup;
+	QAction* m_settingsGPS;
+	QAction* m_settingsDataDirectory;
 };
 
 #endif // MAPVIEW_H

@@ -328,6 +328,7 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& source
 		pathEdges->push_back( sourceEdge.description() );
 	}
 	pathEdges->front().length = pathNodes->size() - 1;
+	pathEdges->front().seconds *= reverseSourceDescription ? source.percentage : 1 - source.percentage;
 
 	while ( stack.size() > 1 ) {
 		const NodeIterator node = stack.top();
@@ -361,6 +362,7 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& source
 	}
 	pathNodes->push_back( target.nearestPoint );
 	pathEdges->back().length = pathNodes->size() - begin;
+	pathEdges->back().seconds *= reverseTargetDescription ? 1 - target.percentage : target.percentage;
 
 	return targetDistance;
 }

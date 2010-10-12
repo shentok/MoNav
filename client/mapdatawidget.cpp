@@ -42,12 +42,17 @@ MapDataWidget::MapDataWidget( QWidget *parent ) :
 
 	m_ui->directory->addItems( directories );
 
-	QString path = MapData::instance()->path();
+	QString path = settings.value( "dataDirectory", QDir::homePath() ).toString();
+
 	int index = m_ui->directory->findText( path );
 	if ( index == -1 )
 		m_ui->directory->lineEdit()->setText( path );
 	else
 		m_ui->directory->setCurrentIndex( index );
+
+#ifdef Q_WS_MAEMO_5
+	m_ui->details->hide();
+#endif
 
 	connectSlots();
 }
@@ -56,6 +61,7 @@ MapDataWidget::~MapDataWidget()
 {
 	QSettings settings( "MoNavClient" );
 	settings.setValue( "directories", m_directories );
+	settings.setValue( "dataDirectory", MapData::instance()->path() );
 	delete m_ui;
 }
 
@@ -64,6 +70,25 @@ void MapDataWidget::connectSlots()
 	connect( m_ui->directory, SIGNAL(editTextChanged(QString)), this, SLOT(directoryChanged(QString)) );
 	connect( m_ui->browse, SIGNAL(clicked()), this, SLOT(browse()) );
 	connect( m_ui->load, SIGNAL(clicked()), this, SLOT(load()) );
+}
+
+int MapDataWidget::exec( bool autoLoad )
+{
+	MapData* mapData = MapData::instance();
+	if ( autoLoad ) {
+		if ( !mapData->loaded() ) {
+			directoryChanged( m_ui->directory->currentText() );
+			if ( mapData->containsMapData() ) {
+				if ( mapData->canBeLoaded() ) {
+					if ( mapData->load() ) {
+						return QDialog::Accepted;
+					}
+				}
+			}
+		}
+	}
+	directoryChanged( m_ui->directory->currentText() );
+	return QDialog::exec();
 }
 
 void MapDataWidget::directoryChanged( QString dir )
@@ -170,6 +195,6 @@ void MapDataWidget::load()
 		m_ui->directory->clear();
 		m_ui->directory->insertItems( 0, m_directories );
 	}
-	emit loaded();
+	accept();
 }
 

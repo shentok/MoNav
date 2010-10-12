@@ -18,10 +18,11 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <QtGui/QApplication>
-#include "mainwindow.h"
+#include "mapview.h"
 #include <QMessageBox>
-#include <cstdio>
 #include <QtPlugin>
+#include <QThread>
+#include <cstdio>
 #include <cstdlib>
 
 #ifdef Q_WS_MAEMO_5
@@ -38,37 +39,42 @@ QtMsgHandler oldHandler = NULL;
 
 void MessageBoxHandler(QtMsgType type, const char *msg)
 {
-#ifdef Q_WS_MAEMO_5
-	switch (type) {
-	case QtDebugMsg:
-		//QMessageBox::information(0, "Debug message", msg, QMessageBox::Ok);
-		break;
-	case QtWarningMsg:
-		QMaemo5InformationBox::information( NULL, msg, QMaemo5InformationBox::NoTimeout );
-		break;
-	case QtCriticalMsg:
-		QMaemo5InformationBox::information( NULL, msg, QMaemo5InformationBox::NoTimeout );
-		break;
-	case QtFatalMsg:
-		QMaemo5InformationBox::information( NULL, msg, QMaemo5InformationBox::NoTimeout );
-		exit( -1 );
+	if ( QApplication::instance() != NULL ) {
+		const bool isGuiThread = QThread::currentThread() == QApplication::instance()->thread();
+		if ( isGuiThread ) {
+	#ifdef Q_WS_MAEMO_5
+			switch (type) {
+			case QtDebugMsg:
+				//QMessageBox::information(0, "Debug message", msg, QMessageBox::Ok);
+				break;
+			case QtWarningMsg:
+				QMaemo5InformationBox::information( NULL, msg, QMaemo5InformationBox::NoTimeout );
+				break;
+			case QtCriticalMsg:
+				QMaemo5InformationBox::information( NULL, msg, QMaemo5InformationBox::NoTimeout );
+				break;
+			case QtFatalMsg:
+				QMaemo5InformationBox::information( NULL, msg, QMaemo5InformationBox::NoTimeout );
+				exit( -1 );
+			}
+	#else
+			switch (type) {
+			case QtDebugMsg:
+				//QMessageBox::information(0, "Debug message", msg, QMessageBox::Ok);
+				break;
+			case QtWarningMsg:
+				QMessageBox::warning(0, "Warning", msg, QMessageBox::Ok);
+				break;
+			case QtCriticalMsg:
+				QMessageBox::critical(0, "Critical error", msg, QMessageBox::Ok);
+				break;
+			case QtFatalMsg:
+				QMessageBox::critical(0, "Fatal error", msg, QMessageBox::Ok);
+				exit( -1 );
+			}
+	#endif
+		}
 	}
-#else
-	switch (type) {
-	case QtDebugMsg:
-		//QMessageBox::information(0, "Debug message", msg, QMessageBox::Ok);
-		break;
-	case QtWarningMsg:
-		QMessageBox::warning(0, "Warning", msg, QMessageBox::Ok);
-		break;
-	case QtCriticalMsg:
-		QMessageBox::critical(0, "Critical error", msg, QMessageBox::Ok);
-		break;
-	case QtFatalMsg:
-		QMessageBox::critical(0, "Fatal error", msg, QMessageBox::Ok);
-		exit( -1 );
-	}
-#endif
 
 	printf( "%s\n", msg );
 	if ( oldHandler != NULL )
@@ -78,8 +84,8 @@ void MessageBoxHandler(QtMsgType type, const char *msg)
 int main(int argc, char *argv[])
 {
 	oldHandler = qInstallMsgHandler( MessageBoxHandler );
-    QApplication a(argc, argv);
-    MainWindow w;
-    w.show();
-    return a.exec();
+	QApplication a(argc, argv);
+	MapView w;
+	w.show();
+	return a.exec();
 }
