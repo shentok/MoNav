@@ -151,6 +151,7 @@ bool MapData::pluginRequired( PluginType plugin ) const
 	case Router:
 		return d->routerRequired;
 	}
+	return false;
 }
 
 void MapData::setPluginRequired( PluginType plugin, bool required )
@@ -370,6 +371,7 @@ QString MapData::pluginName( PluginType plugin ) const
 	case Router:
 		return d->routerName;
 	}
+	return "";
 }
 
 bool MapData::pluginPresent( PluginType plugin ) const
@@ -384,6 +386,7 @@ bool MapData::pluginPresent( PluginType plugin ) const
 	case Router:
 		return d->router != NULL;
 	}
+	return false;
 }
 
 int MapData::fileFormatVersion( PluginType plugin ) const
@@ -398,6 +401,7 @@ int MapData::fileFormatVersion( PluginType plugin ) const
 	case Router:
 		return d->routerFileFormatVersion;
 	}
+	return -1;
 }
 
 bool MapData::fileFormatCompatible( PluginType plugin ) const

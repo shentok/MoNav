@@ -114,8 +114,10 @@ void RoutingLogic::positionUpdated( const QGeoPositionInfo& update )
 	if ( update.hasAttribute( QGeoPositionInfo::VerticalAccuracy ) )
 		d->gpsInfo.verticalAccuracy = update.attribute( QGeoPositionInfo::VerticalAccuracy );
 
-	if ( d->linked )
-		setSource( d->gpsInfo.position );
+	if ( d->linked ) {
+		d->source = d->gpsInfo.position;
+		emit sourceChanged();
+	}
 
 	emit gpsInfoChanged();
 }
@@ -200,8 +202,10 @@ void RoutingLogic::setGPSLink( bool linked )
 	if ( linked == d->linked )
 		return;
 	d->linked = true;
-	if ( d->gpsInfo.position.IsValid() )
-		setSource( d->gpsInfo.position );
+	if ( d->gpsInfo.position.IsValid() ) {
+		d->source = d->gpsInfo.position;
+		emit sourceChanged();
+	}
 	emit gpsLinkChanged( d->linked );
 }
 
