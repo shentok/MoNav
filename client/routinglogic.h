@@ -43,6 +43,7 @@ public:
 	// GPS information
 	struct GPSInfo {
 		UnsignedCoordinate position;
+		double altitude;
 		double heading;
 		double groundSpeed;
 		double verticalSpeed;

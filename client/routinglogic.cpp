@@ -51,6 +51,7 @@ RoutingLogic::RoutingLogic() :
 	d->distance = -1;
 	d->travelTime = -1;
 
+	d->gpsInfo.altitude = -1;
 	d->gpsInfo.groundSpeed = -1;
 	d->gpsInfo.verticalSpeed = -1;
 	d->gpsInfo.heading = -1;
@@ -102,6 +103,7 @@ void RoutingLogic::positionUpdated( const QGeoPositionInfo& update )
 	gps.latitude = update.coordinate().latitude();
 	gps.longitude = update.coordinate().longitude();
 	d->gpsInfo.position = UnsignedCoordinate( gps );
+	d->gpsInfo.altitude = update.coordinate().altitude();
 	d->gpsInfo.timestamp = update.timestamp();
 	if ( update.hasAttribute( QGeoPositionInfo::Direction ) )
 		d->gpsInfo.heading = update.attribute( QGeoPositionInfo::Direction );

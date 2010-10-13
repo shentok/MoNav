@@ -25,6 +25,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "mapdata.h"
 #include "routinglogic.h"
 #include "routedescriptiondialog.h"
+#include "gpsdialog.h"
 
 #include <QtDebug>
 #include <QInputDialog>
@@ -214,7 +215,9 @@ void MapView::settingsAddressLookup()
 
 void MapView::settingsGPS()
 {
-
+	GPSDialog* window = new GPSDialog( this );
+	window->exec();
+	delete window;
 }
 
 void MapView::settingsDataDirectory()

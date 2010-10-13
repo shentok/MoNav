@@ -1221,8 +1221,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>179</x>
-     <y>24</y>
+     <x>129</x>
+     <y>33</y>
     </hint>
     <hint type="destinationlabel">
      <x>296</x>
@@ -1237,12 +1237,12 @@
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>149</x>
-     <y>67</y>
+     <x>199</x>
+     <y>38</y>
     </hint>
     <hint type="destinationlabel">
-     <x>233</x>
-     <y>193</y>
+     <x>202</x>
+     <y>131</y>
     </hint>
    </hints>
   </connection>
@@ -1253,12 +1253,28 @@
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>128</x>
-     <y>72</y>
+     <x>199</x>
+     <y>38</y>
     </hint>
     <hint type="destinationlabel">
-     <x>158</x>
-     <y>378</y>
+     <x>151</x>
+     <y>249</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lockButton</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>frame</receiver>
+   <slot>setHidden(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>174</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>86</x>
+     <y>110</y>
     </hint>
    </hints>
   </connection>
