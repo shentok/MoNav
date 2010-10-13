@@ -42,6 +42,8 @@ PaintWidget::PaintWidget(QWidget *parent) :
 	m_lastMouseY = 0;
 	m_wheelDelta = 0;
 	m_fixed = false;
+	m_mouseDown = false;
+	m_drag = false;
 	m_request.zoom = 0;
 	m_request.center = RoutingLogic::instance()->source().ToProjectedCoordinate();
 
@@ -143,19 +145,21 @@ void PaintWidget::setVirtualZoom( int z )
 
 void PaintWidget::mousePressEvent( QMouseEvent* event )
 {
+	event->accept();
 	if ( m_fixed )
 		return;
 	if ( event->button() != Qt::LeftButton )
 		return;
 	m_startMouseX = m_lastMouseX = event->x();
 	m_startMouseY = m_lastMouseY = event->y();
+	m_mouseDown = true;
 	m_drag = false;
-	event->accept();
 }
 
 void PaintWidget::mouseMoveEvent( QMouseEvent* event )
 {
-	if ( m_fixed )
+	event->accept();
+	if ( m_fixed || !m_mouseDown )
 		return;
 	if ( ( event->buttons() & Qt::LeftButton ) == 0 )
 		return;
@@ -180,6 +184,8 @@ void PaintWidget::mouseMoveEvent( QMouseEvent* event )
 
 void PaintWidget::mouseReleaseEvent( QMouseEvent* event )
 {
+	event->accept();
+	m_mouseDown = false;
 	if ( m_fixed )
 		return;
 	if ( m_drag )
@@ -223,6 +229,7 @@ void PaintWidget::wheelEvent( QWheelEvent * event )
 
 	emit zoomChanged( newZoom );
 	update();
+	event->accept();
 }
 
 void PaintWidget::paintEvent( QPaintEvent* )

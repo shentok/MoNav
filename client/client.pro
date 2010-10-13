@@ -12,7 +12,8 @@ SOURCES += main.cpp \
 	 mapdata.cpp \
 	 mapdatawidget.cpp \
 	 routinglogic.cpp \
-    overlaywidget.cpp
+    overlaywidget.cpp \
+    scrollarea.cpp
 HEADERS += \
 	 mapview.h \
 	 paintwidget.h \
@@ -30,7 +31,8 @@ HEADERS += \
 	 mapdatawidget.h \
 	 routinglogic.h \
 	 fullscreenexitbutton.h \
-    overlaywidget.h
+    overlaywidget.h \
+    scrollarea.h
 FORMS += \
 	 mapview.ui \
 	 paintwidget.ui \

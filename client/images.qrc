@@ -36,12 +36,11 @@
         <file>images/oxygen/zoom-in.png</file>
         <file>images/oxygen/zoom-out.png</file>
         <file>images/oxygen/bookmarks.png</file>
-        <file>images/oxygen/flag-black.png</file>
-        <file>images/oxygen/flag-blue.png</file>
-        <file>images/oxygen/flag-green.png</file>
-        <file>images/oxygen/flag-red.png</file>
-        <file>images/oxygen/flag-yellow.png</file>
         <file>images/oxygen/list-add.png</file>
         <file>images/oxygen/list-remove.png</file>
+        <file>images/waypoint1.png</file>
+        <file>images/waypoint2.png</file>
+        <file>images/waypoint3.png</file>
+        <file>images/waypoint4.png</file>
     </qresource>
 </RCC>

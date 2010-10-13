@@ -72,6 +72,7 @@ protected:
 	int m_startMouseX;
 	int m_startMouseY;
 	bool m_drag;
+	bool m_mouseDown;
 	int m_wheelDelta;
 	bool m_fixed;
 

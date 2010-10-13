@@ -24,19 +24,26 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 OverlayWidget::OverlayWidget( QWidget *parent, QString title ) :
 	QWidget( parent )
 {
-	m_centralWidget = NULL;
+	m_mouseDown = false;
 	m_grid = new QGridLayout( this );
-	m_grid->setColumnStretch( 0, 1 );
+	m_grid->setColumnStretch( 0, 0 );
 	m_grid->setColumnStretch( 1, 0 );
-	m_grid->setColumnStretch( 2, 1 );
-	m_grid->setRowStretch( 0, 1 );
+	m_grid->setColumnStretch( 2, 0 );
+	m_grid->setRowStretch( 0, 0 );
 	m_grid->setRowStretch( 1, 0 );
-	m_grid->setRowStretch( 2, 1 );
+	m_grid->setRowStretch( 2, 0 );
+
+	m_scrollArea = new ScrollArea;
+	m_scrollArea->setOrientation( Qt::Horizontal );
 
 	m_centralWidget = new QToolBar( title );
 	m_centralWidget->setAutoFillBackground( true );
 	m_centralWidget->setToolButtonStyle( Qt::ToolButtonTextUnderIcon );
-	m_grid->addWidget( m_centralWidget, 1, 1 );
+	m_centralWidget->setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Fixed );
+	m_scrollArea->setWidget( m_centralWidget );
+	m_scrollArea->setWidgetResizable( true );
+
+	m_grid->addWidget( m_scrollArea, 1, 1 );
 
 	hide();
 
@@ -97,17 +104,33 @@ bool OverlayWidget::eventFilter( QObject* obj, QEvent* ev )
 	return QWidget::eventFilter( obj, ev );
 }
 
-void OverlayWidget::mouseReleaseEvent( QMouseEvent * event )
+void OverlayWidget::mousePressEvent( QMouseEvent* event )
 {
 	event->accept();
 	if ( event->button() == Qt::LeftButton )
+		m_mouseDown = true;
+}
+
+void OverlayWidget::mouseReleaseEvent( QMouseEvent* event )
+{
+	event->accept();
+	if ( !m_mouseDown )
+		return;
+
+	if ( event->button() == Qt::LeftButton ) {
+		m_mouseDown = false;
 		hide();
+	}
 }
 
 void OverlayWidget::setOrientation()
 {
-	if ( width() > height() )
+	if ( width() > height() ) {
 		m_centralWidget->setOrientation( Qt::Horizontal );
-	else
+		m_scrollArea->setOrientation( Qt::Horizontal );
+	} else {
 		m_centralWidget->setOrientation( Qt::Vertical );
+		m_scrollArea->setOrientation( Qt::Vertical );
+	}
+	m_centralWidget->setFixedSize( m_centralWidget->sizeHint() );
 }

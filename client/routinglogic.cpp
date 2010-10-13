@@ -47,7 +47,7 @@ struct RoutingLogic::PrivateImplementation {
 RoutingLogic::RoutingLogic() :
 		d( new PrivateImplementation )
 {
-	d->linked = false;
+	d->linked = true;
 	d->distance = -1;
 	d->travelTime = -1;
 
@@ -117,6 +117,7 @@ void RoutingLogic::positionUpdated( const QGeoPositionInfo& update )
 	if ( d->linked ) {
 		d->source = d->gpsInfo.position;
 		emit sourceChanged();
+		computeRoute();
 	}
 
 	emit gpsInfoChanged();
@@ -205,6 +206,7 @@ void RoutingLogic::setGPSLink( bool linked )
 	if ( d->gpsInfo.position.IsValid() ) {
 		d->source = d->gpsInfo.position;
 		emit sourceChanged();
+		computeRoute();
 	}
 	emit gpsLinkChanged( d->linked );
 }

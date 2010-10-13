@@ -17,44 +17,37 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef OVERLAYWIDGET_H
-#define OVERLAYWIDGET_H
+#ifndef SCROLLAREA_H
+#define SCROLLAREA_H
 
-#include "scrollarea.h"
-#include <QWidget>
-#include <QGridLayout>
-#include <QToolBar>
+#include <QScrollArea>
 
-class OverlayWidget : public QWidget
+// resizes the ScrollArea to always fit the contents in one direction and scroll in the other direction
+// default orientation is Vertical, i.e., no horizontal scrollbar should appear
+class ScrollArea : public QScrollArea
 {
 
 	Q_OBJECT
 
 public:
 
-	explicit OverlayWidget( QWidget *parent = 0, QString title = "" );
-	void addAction( QAction *action );
-	void addActions( QList< QAction* > actions );
-	QList< QAction* > actions() const;
+	explicit ScrollArea( QWidget* parent = 0 );
+	Qt::Orientation orientation();
 
 signals:
 
 public slots:
 
+	void setOrientation( Qt::Orientation orientation );
 
 protected:
 
+	virtual void resizeEvent( QResizeEvent* event );
 	virtual void mousePressEvent( QMouseEvent* event );
-	virtual void mouseReleaseEvent( QMouseEvent* event );
-	bool eventFilter( QObject *obj, QEvent* ev );
-	virtual void hideEvent( QHideEvent* event );
-	virtual void showEvent( QShowEvent* event );
-	void setOrientation();
+	virtual void mouseMoveEvent( QMouseEvent* event );
 
-	QToolBar* m_centralWidget;
-	ScrollArea* m_scrollArea;
-	QGridLayout* m_grid;
-	bool m_mouseDown;
+	Qt::Orientation m_orientation;
+
 };
 
-#endif // OVERLAYWIDGET_H
+#endif // SCROLLAREA_H
