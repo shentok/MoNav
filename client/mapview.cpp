@@ -33,6 +33,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QGridLayout>
 #include <QResizeEvent>
 #include <QMessageBox>
+#include <QStyle>
+#include <QScrollArea>
 
 #ifdef Q_WS_MAEMO_5
 #include "fullscreenexitbutton.h"
@@ -46,12 +48,6 @@ MapView::MapView( QWidget *parent ) :
 		m_ui(new Ui::MapView)
 {
 	m_ui->setupUi(this);
-#ifdef Q_WS_MAEMO_5
-	setAttribute( Qt::WA_Maemo5StackedWindow );
-	grabZoomKeys( true );
-	new FullScreenExitButton(this);
-	showFullScreen();
-#endif
 
 	this->setWindowIcon( QIcon( ":/images/source.png" ) );
 
@@ -72,7 +68,7 @@ MapView::MapView( QWidget *parent ) :
 	m_virtualZoom = settings.value( "virtualZoom", 1 ).toInt();
 	if ( settings.contains( "geometry") )
 		setGeometry( settings.value( "geometry" ).toRect() );
-	m_useMenus = settings.value( "useMenus", false ).toBool();
+	m_menuMode = settings.value( "useMenus", false ).toBool() ? GeneralSettingsDialog::MenuPopup : GeneralSettingsDialog::MenuOverlay;
 
 	connectSlots();
 
@@ -81,12 +77,19 @@ MapView::MapView( QWidget *parent ) :
 	else
 		settingsDataDirectory();
 
-	/*
-	foreach ( QToolButton* button, this->findChildren< QToolButton* >() )
-		button->setIconSize( QSize( 64, 64 ) );
-	foreach ( QToolBar* button, this->findChildren< QToolBar* >() )
-		button->setIconSize( QSize( 64, 64 ) );
-	*/
+	m_customIconSize = settings.value( "customIconSize", false ).toBool();
+	m_defaultIconSize = QApplication::style()->pixelMetric( QStyle::PM_ToolBarIconSize );
+	m_iconSize = settings.value( "iconSize", m_defaultIconSize ).toInt();
+
+	resizeIcons();
+
+#ifdef Q_WS_MAEMO_5
+	setAttribute( Qt::WA_Maemo5StackedWindow );
+	grabZoomKeys( true );
+	new FullScreenExitButton(this);
+	showFullScreen();
+#endif
+
 }
 
 MapView::~MapView()
@@ -95,6 +98,9 @@ MapView::~MapView()
 	settings.beginGroup( "MapView" );
 	settings.setValue( "virtualZoom", m_virtualZoom );
 	settings.setValue( "geometry", geometry() );
+	settings.setValue( "iconSize", m_iconSize );
+	settings.setValue( "customIconSize", m_customIconSize );
+	settings.setValue( "useMenus", m_menuMode == GeneralSettingsDialog::MenuPopup );
 
 	delete m_ui;
 }
@@ -173,6 +179,19 @@ void MapView::setupMenu()
 	m_settingsOverlay->addActions( m_settingsMenu->actions() );
 }
 
+void MapView::resizeIcons()
+{
+	return;
+	if ( !m_customIconSize )
+		m_iconSize = m_defaultIconSize;
+	foreach ( QToolButton* button, this->findChildren< QToolButton* >() )
+		button->setIconSize( QSize( m_iconSize, m_iconSize ) );
+	foreach ( QToolBar* button, this->findChildren< QToolBar* >() )
+		button->setIconSize( QSize( m_iconSize, m_iconSize ) );
+	foreach ( QScrollArea* scrollArea, this->findChildren< QScrollArea* >() )
+		scrollArea->resize( scrollArea->widget()->sizeHint() );
+}
+
 void MapView::showInstructions()
 {
 	RouteDescriptionDialog* window = new RouteDescriptionDialog( this );
@@ -182,7 +201,16 @@ void MapView::showInstructions()
 
 void MapView::settingsGeneral()
 {
-
+	GeneralSettingsDialog* window = new GeneralSettingsDialog;
+	window->setIconSize( m_iconSize );
+	window->setCustomIconSize( m_customIconSize );
+	window->setMenuMode( m_menuMode );
+	window->exec();
+	m_iconSize = window->iconSize();
+	m_customIconSize = window->customIconSize();
+	m_menuMode = window->menuMode();
+	delete window;
+	resizeIcons();
 }
 
 void MapView::settingsRenderer()
@@ -233,7 +261,7 @@ void MapView::settingsDataDirectory()
 
 void MapView::gotoMenu()
 {
-	if ( m_useMenus ) {
+	if ( m_menuMode == GeneralSettingsDialog::MenuPopup ) {
 		QPoint position = m_ui->show->mapToGlobal( QPoint( m_ui->show->width() / 2, m_ui->show->height() / 2 ) );
 		m_gotoMenu->exec( position );
 	} else {
@@ -243,7 +271,7 @@ void MapView::gotoMenu()
 
 void MapView::toolsMenu()
 {
-	if ( m_useMenus ) {
+	if ( m_menuMode == GeneralSettingsDialog::MenuPopup ) {
 		QPoint position = m_ui->tools->mapToGlobal( QPoint( m_ui->tools->width() / 2, m_ui->tools->height() / 2 ) );
 		m_toolsMenu->exec( position );
 	} else {
@@ -253,7 +281,7 @@ void MapView::toolsMenu()
 
 void MapView::settingsMenu()
 {
-	if ( m_useMenus ) {
+	if ( m_menuMode == GeneralSettingsDialog::MenuPopup ) {
 		QPoint position = m_ui->settings->mapToGlobal( QPoint( m_ui->settings->width() / 2, m_ui->settings->height() / 2 ) );
 		m_settingsMenu->exec( position );
 	} else {
@@ -263,7 +291,7 @@ void MapView::settingsMenu()
 
 void MapView::sourceMenu()
 {
-	if ( m_useMenus ) {
+	if ( m_menuMode == GeneralSettingsDialog::MenuPopup ) {
 		QPoint position = m_ui->source->mapToGlobal( QPoint( m_ui->source->width() / 2, m_ui->source->height() / 2 ) );
 		m_sourceMenu->exec( position );
 	} else {
@@ -272,7 +300,7 @@ void MapView::sourceMenu()
 }
 void MapView::targetMenu()
 {
-	if ( m_useMenus ) {
+	if ( m_menuMode == GeneralSettingsDialog::MenuPopup ) {
 		QPoint position = m_ui->target->mapToGlobal( QPoint( m_ui->target->width() / 2, m_ui->target->height() / 2 ) );
 		m_targetMenu->exec( position );
 	} else {

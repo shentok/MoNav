@@ -20,11 +20,12 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef MAPVIEW_H
 #define MAPVIEW_H
 
-#include <QDialog>
-#include <QMenu>
-
+#include "generalsettingsdialog.h"
 #include "interfaces/irouter.h"
 #include "overlaywidget.h"
+
+#include <QDialog>
+#include <QMenu>
 
 namespace Ui {
 	 class MapView;
@@ -104,6 +105,7 @@ protected:
 	void setupMenu();
 	void setPlaces( QVector< UnsignedCoordinate > p );
 	void setEdges( QVector< int > segmentLength, QVector< UnsignedCoordinate > coordinates );
+	void resizeIcons();
 
 	virtual void resizeEvent( QResizeEvent* event );
 
@@ -129,7 +131,10 @@ protected:
 	OverlayWidget* m_settingsOverlay;
 
 	Mode m_mode;
-	bool m_useMenus;
+	GeneralSettingsDialog::MenuMode m_menuMode;
+	int m_iconSize;
+	int m_defaultIconSize;
+	bool m_customIconSize;
 
 	QMenu* m_targetMenu;
 	QMenu* m_sourceMenu;

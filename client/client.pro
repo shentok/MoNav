@@ -14,7 +14,8 @@ SOURCES += main.cpp \
 	 routinglogic.cpp \
     overlaywidget.cpp \
     scrollarea.cpp \
-    gpsdialog.cpp
+    gpsdialog.cpp \
+    generalsettingsdialog.cpp
 HEADERS += \
 	 mapview.h \
 	 paintwidget.h \
@@ -34,7 +35,8 @@ HEADERS += \
 	 fullscreenexitbutton.h \
     overlaywidget.h \
     scrollarea.h \
-    gpsdialog.h
+    gpsdialog.h \
+    generalsettingsdialog.h
 FORMS += \
 	 mapview.ui \
 	 paintwidget.ui \
@@ -42,7 +44,8 @@ FORMS += \
 	 bookmarksdialog.ui \
 	 routedescriptiondialog.ui \
 	 mapdatawidget.ui \
-    gpsdialog.ui
+    gpsdialog.ui \
+    generalsettingsdialog.ui
 DESTDIR = ../bin
 TARGET = MoNavC
 unix {

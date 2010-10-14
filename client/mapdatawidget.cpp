@@ -89,7 +89,7 @@ int MapDataWidget::exec( bool autoLoad )
 	if ( result != QDialog::Accepted ) {
 		mapData->setPath( oldPath );
 		if ( mapData->containsMapData() && mapData->canBeLoaded() )
-				mapData->load();
+			mapData->load();
 	}
 	return result;
 }
@@ -195,8 +195,6 @@ void MapDataWidget::load()
 	if ( !m_directories.contains( path ) ) {
 		m_directories.push_back( path );
 		m_directories.sort();
-		m_ui->directory->clear();
-		m_ui->directory->insertItems( 0, m_directories );
 	}
 	accept();
 }

@@ -435,14 +435,23 @@
                  <property name="widgetResizable">
                   <bool>true</bool>
                  </property>
+                 <property name="alignment">
+                  <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+                 </property>
                  <widget class="QWidget" name="scrollAreaWidgetContents">
                   <property name="geometry">
                    <rect>
                     <x>0</x>
                     <y>0</y>
-                    <width>80</width>
-                    <height>100</height>
+                    <width>34</width>
+                    <height>68</height>
                    </rect>
+                  </property>
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
                   </property>
                   <property name="palette">
                    <palette>
@@ -526,23 +535,6 @@
                      <property name="icon">
                       <iconset resource="images.qrc">
                        <normaloff>:/images/target.png</normaloff>:/images/target.png</iconset>
-                     </property>
-                     <property name="autoRaise">
-                      <bool>true</bool>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QToolButton" name="addWaypoint">
-                     <property name="focusPolicy">
-                      <enum>Qt::NoFocus</enum>
-                     </property>
-                     <property name="text">
-                      <string>...</string>
-                     </property>
-                     <property name="icon">
-                      <iconset resource="images.qrc">
-                       <normaloff>:/images/oxygen/list-add.png</normaloff>:/images/oxygen/list-add.png</iconset>
                      </property>
                      <property name="autoRaise">
                       <bool>true</bool>
