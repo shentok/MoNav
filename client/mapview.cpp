@@ -181,7 +181,6 @@ void MapView::setupMenu()
 
 void MapView::resizeIcons()
 {
-	return;
 	if ( !m_customIconSize )
 		m_iconSize = m_defaultIconSize;
 	foreach ( QToolButton* button, this->findChildren< QToolButton* >() )
