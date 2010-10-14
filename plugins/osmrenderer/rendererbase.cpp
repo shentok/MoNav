@@ -327,17 +327,22 @@ void RendererBase::drawPolyline( QPainter* painter, const QRect& boundingBox, QV
 	ProjectedCoordinate lastCoord;
 	for ( int i = 0; i < line.size(); i++ ) {
 		if ( !draw[i] ) {
-			painter->drawPolyline( polygon.data(), polygon.size() );
-			polygon.clear();
+			if ( !polygon.empty() ) {
+				painter->drawPolyline( polygon.data(), polygon.size() );
+				polygon.clear();
+			}
 			firstPoint = true;
 			continue;
 		}
 		ProjectedCoordinate pos = line[i];
-		if ( !firstPoint && fabs( pos.x - lastCoord.x ) + fabs( pos.y - lastCoord.y ) < 5 )
+		double xDiff = fabs( pos.x - lastCoord.x );
+		double yDiff = fabs( pos.y - lastCoord.y );
+		if ( !( firstPoint || i == line.size() - 1 || !draw[i + 1] ) &&  xDiff * xDiff + yDiff * yDiff <= 64 )
 			continue;
 		QPoint point( pos.x, pos.y );
 		polygon.push_back( point );
 		lastCoord = pos;
+		firstPoint = false;
 	}
 	painter->drawPolyline( polygon.data(), polygon.size() );
 }
