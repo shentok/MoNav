@@ -761,12 +761,12 @@ class Info : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 version() const;
   inline void set_version(::google::protobuf::int32 value);
   
-  // optional int32 timestamp = 2;
+  // optional int64 timestamp = 2;
   inline bool has_timestamp() const;
   inline void clear_timestamp();
   static const int kTimestampFieldNumber = 2;
-  inline ::google::protobuf::int32 timestamp() const;
-  inline void set_timestamp(::google::protobuf::int32 value);
+  inline ::google::protobuf::int64 timestamp() const;
+  inline void set_timestamp(::google::protobuf::int64 value);
   
   // optional int64 changeset = 3;
   inline bool has_changeset() const;
@@ -795,7 +795,7 @@ class Info : public ::google::protobuf::Message {
   mutable int _cached_size_;
   
   ::google::protobuf::int32 version_;
-  ::google::protobuf::int32 timestamp_;
+  ::google::protobuf::int64 timestamp_;
   ::google::protobuf::int64 changeset_;
   ::google::protobuf::int32 uid_;
   ::google::protobuf::int32 user_sid_;
@@ -1033,85 +1033,17 @@ class ChangeSet : public ::google::protobuf::Message {
   inline ::google::protobuf::int64 id() const;
   inline void set_id(::google::protobuf::int64 value);
   
-  // repeated uint32 keys = 2 [packed = true];
-  inline int keys_size() const;
-  inline void clear_keys();
-  static const int kKeysFieldNumber = 2;
-  inline ::google::protobuf::uint32 keys(int index) const;
-  inline void set_keys(int index, ::google::protobuf::uint32 value);
-  inline void add_keys(::google::protobuf::uint32 value);
-  inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
-      keys() const;
-  inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
-      mutable_keys();
-  
-  // repeated uint32 vals = 3 [packed = true];
-  inline int vals_size() const;
-  inline void clear_vals();
-  static const int kValsFieldNumber = 3;
-  inline ::google::protobuf::uint32 vals(int index) const;
-  inline void set_vals(int index, ::google::protobuf::uint32 value);
-  inline void add_vals(::google::protobuf::uint32 value);
-  inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
-      vals() const;
-  inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
-      mutable_vals();
-  
-  // optional .PBF.Info info = 4;
-  inline bool has_info() const;
-  inline void clear_info();
-  static const int kInfoFieldNumber = 4;
-  inline const ::PBF::Info& info() const;
-  inline ::PBF::Info* mutable_info();
-  
-  // required int64 created_at = 8;
-  inline bool has_created_at() const;
-  inline void clear_created_at();
-  static const int kCreatedAtFieldNumber = 8;
-  inline ::google::protobuf::int64 created_at() const;
-  inline void set_created_at(::google::protobuf::int64 value);
-  
-  // optional int64 closetime_delta = 9;
-  inline bool has_closetime_delta() const;
-  inline void clear_closetime_delta();
-  static const int kClosetimeDeltaFieldNumber = 9;
-  inline ::google::protobuf::int64 closetime_delta() const;
-  inline void set_closetime_delta(::google::protobuf::int64 value);
-  
-  // required bool open = 10;
-  inline bool has_open() const;
-  inline void clear_open();
-  static const int kOpenFieldNumber = 10;
-  inline bool open() const;
-  inline void set_open(bool value);
-  
-  // optional .PBF.HeaderBBox bbox = 11;
-  inline bool has_bbox() const;
-  inline void clear_bbox();
-  static const int kBboxFieldNumber = 11;
-  inline const ::PBF::HeaderBBox& bbox() const;
-  inline ::PBF::HeaderBBox* mutable_bbox();
-  
   // @@protoc_insertion_point(class_scope:PBF.ChangeSet)
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
   ::google::protobuf::int64 id_;
-  ::google::protobuf::RepeatedField< ::google::protobuf::uint32 > keys_;
-  mutable int _keys_cached_byte_size_;
-  ::google::protobuf::RepeatedField< ::google::protobuf::uint32 > vals_;
-  mutable int _vals_cached_byte_size_;
-  ::PBF::Info* info_;
-  ::google::protobuf::int64 created_at_;
-  ::google::protobuf::int64 closetime_delta_;
-  bool open_;
-  ::PBF::HeaderBBox* bbox_;
   friend void  protobuf_AddDesc_osmformat_2eproto();
   friend void protobuf_AssignDesc_osmformat_2eproto();
   friend void protobuf_ShutdownFile_osmformat_2eproto();
   
-  ::google::protobuf::uint32 _has_bits_[(8 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
   
   // WHY DOES & HAVE LOWER PRECEDENCE THAN != !?
   inline bool _has_bit(int index) const {
@@ -2305,18 +2237,18 @@ inline void Info::set_version(::google::protobuf::int32 value) {
   version_ = value;
 }
 
-// optional int32 timestamp = 2;
+// optional int64 timestamp = 2;
 inline bool Info::has_timestamp() const {
   return _has_bit(1);
 }
 inline void Info::clear_timestamp() {
-  timestamp_ = 0;
+  timestamp_ = GOOGLE_LONGLONG(0);
   _clear_bit(1);
 }
-inline ::google::protobuf::int32 Info::timestamp() const {
+inline ::google::protobuf::int64 Info::timestamp() const {
   return timestamp_;
 }
-inline void Info::set_timestamp(::google::protobuf::int32 value) {
+inline void Info::set_timestamp(::google::protobuf::int64 value) {
   _set_bit(1);
   timestamp_ = value;
 }
@@ -2516,138 +2448,6 @@ inline ::google::protobuf::int64 ChangeSet::id() const {
 inline void ChangeSet::set_id(::google::protobuf::int64 value) {
   _set_bit(0);
   id_ = value;
-}
-
-// repeated uint32 keys = 2 [packed = true];
-inline int ChangeSet::keys_size() const {
-  return keys_.size();
-}
-inline void ChangeSet::clear_keys() {
-  keys_.Clear();
-}
-inline ::google::protobuf::uint32 ChangeSet::keys(int index) const {
-  return keys_.Get(index);
-}
-inline void ChangeSet::set_keys(int index, ::google::protobuf::uint32 value) {
-  keys_.Set(index, value);
-}
-inline void ChangeSet::add_keys(::google::protobuf::uint32 value) {
-  keys_.Add(value);
-}
-inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
-ChangeSet::keys() const {
-  return keys_;
-}
-inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
-ChangeSet::mutable_keys() {
-  return &keys_;
-}
-
-// repeated uint32 vals = 3 [packed = true];
-inline int ChangeSet::vals_size() const {
-  return vals_.size();
-}
-inline void ChangeSet::clear_vals() {
-  vals_.Clear();
-}
-inline ::google::protobuf::uint32 ChangeSet::vals(int index) const {
-  return vals_.Get(index);
-}
-inline void ChangeSet::set_vals(int index, ::google::protobuf::uint32 value) {
-  vals_.Set(index, value);
-}
-inline void ChangeSet::add_vals(::google::protobuf::uint32 value) {
-  vals_.Add(value);
-}
-inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
-ChangeSet::vals() const {
-  return vals_;
-}
-inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
-ChangeSet::mutable_vals() {
-  return &vals_;
-}
-
-// optional .PBF.Info info = 4;
-inline bool ChangeSet::has_info() const {
-  return _has_bit(3);
-}
-inline void ChangeSet::clear_info() {
-  if (info_ != NULL) info_->::PBF::Info::Clear();
-  _clear_bit(3);
-}
-inline const ::PBF::Info& ChangeSet::info() const {
-  return info_ != NULL ? *info_ : *default_instance_->info_;
-}
-inline ::PBF::Info* ChangeSet::mutable_info() {
-  _set_bit(3);
-  if (info_ == NULL) info_ = new ::PBF::Info;
-  return info_;
-}
-
-// required int64 created_at = 8;
-inline bool ChangeSet::has_created_at() const {
-  return _has_bit(4);
-}
-inline void ChangeSet::clear_created_at() {
-  created_at_ = GOOGLE_LONGLONG(0);
-  _clear_bit(4);
-}
-inline ::google::protobuf::int64 ChangeSet::created_at() const {
-  return created_at_;
-}
-inline void ChangeSet::set_created_at(::google::protobuf::int64 value) {
-  _set_bit(4);
-  created_at_ = value;
-}
-
-// optional int64 closetime_delta = 9;
-inline bool ChangeSet::has_closetime_delta() const {
-  return _has_bit(5);
-}
-inline void ChangeSet::clear_closetime_delta() {
-  closetime_delta_ = GOOGLE_LONGLONG(0);
-  _clear_bit(5);
-}
-inline ::google::protobuf::int64 ChangeSet::closetime_delta() const {
-  return closetime_delta_;
-}
-inline void ChangeSet::set_closetime_delta(::google::protobuf::int64 value) {
-  _set_bit(5);
-  closetime_delta_ = value;
-}
-
-// required bool open = 10;
-inline bool ChangeSet::has_open() const {
-  return _has_bit(6);
-}
-inline void ChangeSet::clear_open() {
-  open_ = false;
-  _clear_bit(6);
-}
-inline bool ChangeSet::open() const {
-  return open_;
-}
-inline void ChangeSet::set_open(bool value) {
-  _set_bit(6);
-  open_ = value;
-}
-
-// optional .PBF.HeaderBBox bbox = 11;
-inline bool ChangeSet::has_bbox() const {
-  return _has_bit(7);
-}
-inline void ChangeSet::clear_bbox() {
-  if (bbox_ != NULL) bbox_->::PBF::HeaderBBox::Clear();
-  _clear_bit(7);
-}
-inline const ::PBF::HeaderBBox& ChangeSet::bbox() const {
-  return bbox_ != NULL ? *bbox_ : *default_instance_->bbox_;
-}
-inline ::PBF::HeaderBBox* ChangeSet::mutable_bbox() {
-  _set_bit(7);
-  if (bbox_ == NULL) bbox_ = new ::PBF::HeaderBBox;
-  return bbox_;
 }
 
 // -------------------------------------------------------------------

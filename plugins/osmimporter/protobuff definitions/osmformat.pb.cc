@@ -191,15 +191,8 @@ void protobuf_AssignDesc_osmformat_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(DenseInfo));
   ChangeSet_descriptor_ = file->message_type(7);
-  static const int ChangeSet_offsets_[8] = {
+  static const int ChangeSet_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ChangeSet, id_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ChangeSet, keys_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ChangeSet, vals_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ChangeSet, info_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ChangeSet, created_at_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ChangeSet, closetime_delta_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ChangeSet, open_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ChangeSet, bbox_),
   };
   ChangeSet_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -383,29 +376,25 @@ void protobuf_AddDesc_osmformat_2eproto() {
     "(\0132\r.PBF.Relation\022\"\n\nchangesets\030\005 \003(\0132\016."
     "PBF.ChangeSet\"\030\n\013StringTable\022\t\n\001s\030\001 \003(\014\""
     "`\n\004Info\022\023\n\007version\030\001 \001(\005:\002-1\022\021\n\ttimestam"
-    "p\030\002 \001(\005\022\021\n\tchangeset\030\003 \001(\003\022\013\n\003uid\030\004 \001(\005\022"
+    "p\030\002 \001(\003\022\021\n\tchangeset\030\003 \001(\003\022\013\n\003uid\030\004 \001(\005\022"
     "\020\n\010user_sid\030\005 \001(\005\"u\n\tDenseInfo\022\023\n\007versio"
     "n\030\001 \003(\005B\002\020\001\022\025\n\ttimestamp\030\002 \003(\022B\002\020\001\022\025\n\tch"
     "angeset\030\003 \003(\022B\002\020\001\022\017\n\003uid\030\004 \003(\021B\002\020\001\022\024\n\010us"
-    "er_sid\030\005 \003(\021B\002\020\001\"\256\001\n\tChangeSet\022\n\n\002id\030\001 \002"
-    "(\003\022\020\n\004keys\030\002 \003(\rB\002\020\001\022\020\n\004vals\030\003 \003(\rB\002\020\001\022\027"
-    "\n\004info\030\004 \001(\0132\t.PBF.Info\022\022\n\ncreated_at\030\010 "
-    "\002(\003\022\027\n\017closetime_delta\030\t \001(\003\022\014\n\004open\030\n \002"
-    "(\010\022\035\n\004bbox\030\013 \001(\0132\017.PBF.HeaderBBox\"i\n\004Nod"
-    "e\022\n\n\002id\030\001 \002(\022\022\020\n\004keys\030\002 \003(\rB\002\020\001\022\020\n\004vals\030"
-    "\003 \003(\rB\002\020\001\022\027\n\004info\030\004 \001(\0132\t.PBF.Info\022\013\n\003la"
-    "t\030\010 \002(\022\022\013\n\003lon\030\t \002(\022\"x\n\nDenseNodes\022\016\n\002id"
-    "\030\001 \003(\022B\002\020\001\022!\n\tdenseinfo\030\005 \001(\0132\016.PBF.Dens"
-    "eInfo\022\017\n\003lat\030\010 \003(\022B\002\020\001\022\017\n\003lon\030\t \003(\022B\002\020\001\022"
-    "\025\n\tkeys_vals\030\n \003(\005B\002\020\001\"`\n\003Way\022\n\n\002id\030\001 \002("
-    "\003\022\020\n\004keys\030\002 \003(\rB\002\020\001\022\020\n\004vals\030\003 \003(\rB\002\020\001\022\027\n"
-    "\004info\030\004 \001(\0132\t.PBF.Info\022\020\n\004refs\030\010 \003(\022B\002\020\001"
-    "\"\332\001\n\010Relation\022\n\n\002id\030\001 \002(\003\022\020\n\004keys\030\002 \003(\rB"
-    "\002\020\001\022\020\n\004vals\030\003 \003(\rB\002\020\001\022\027\n\004info\030\004 \001(\0132\t.PB"
-    "F.Info\022\025\n\troles_sid\030\010 \003(\005B\002\020\001\022\022\n\006memids\030"
-    "\t \003(\022B\002\020\001\022+\n\005types\030\n \003(\0162\030.PBF.Relation."
-    "MemberTypeB\002\020\001\"-\n\nMemberType\022\010\n\004NODE\020\000\022\007"
-    "\n\003WAY\020\001\022\014\n\010RELATION\020\002", 1581);
+    "er_sid\030\005 \003(\021B\002\020\001\"\027\n\tChangeSet\022\n\n\002id\030\001 \002("
+    "\003\"i\n\004Node\022\n\n\002id\030\001 \002(\022\022\020\n\004keys\030\002 \003(\rB\002\020\001\022"
+    "\020\n\004vals\030\003 \003(\rB\002\020\001\022\027\n\004info\030\004 \001(\0132\t.PBF.In"
+    "fo\022\013\n\003lat\030\010 \002(\022\022\013\n\003lon\030\t \002(\022\"x\n\nDenseNod"
+    "es\022\016\n\002id\030\001 \003(\022B\002\020\001\022!\n\tdenseinfo\030\005 \001(\0132\016."
+    "PBF.DenseInfo\022\017\n\003lat\030\010 \003(\022B\002\020\001\022\017\n\003lon\030\t "
+    "\003(\022B\002\020\001\022\025\n\tkeys_vals\030\n \003(\005B\002\020\001\"`\n\003Way\022\n\n"
+    "\002id\030\001 \002(\003\022\020\n\004keys\030\002 \003(\rB\002\020\001\022\020\n\004vals\030\003 \003("
+    "\rB\002\020\001\022\027\n\004info\030\004 \001(\0132\t.PBF.Info\022\020\n\004refs\030\010"
+    " \003(\022B\002\020\001\"\332\001\n\010Relation\022\n\n\002id\030\001 \002(\003\022\020\n\004key"
+    "s\030\002 \003(\rB\002\020\001\022\020\n\004vals\030\003 \003(\rB\002\020\001\022\027\n\004info\030\004 "
+    "\001(\0132\t.PBF.Info\022\025\n\troles_sid\030\010 \003(\005B\002\020\001\022\022\n"
+    "\006memids\030\t \003(\022B\002\020\001\022+\n\005types\030\n \003(\0162\030.PBF.R"
+    "elation.MemberTypeB\002\020\001\"-\n\nMemberType\022\010\n\004"
+    "NODE\020\000\022\007\n\003WAY\020\001\022\014\n\010RELATION\020\002", 1429);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "osmformat.proto", &protobuf_RegisterTypes);
   HeaderBlock::default_instance_ = new HeaderBlock();
@@ -2224,7 +2213,7 @@ Info::Info(const Info& from)
 void Info::SharedCtor() {
   _cached_size_ = 0;
   version_ = -1;
-  timestamp_ = 0;
+  timestamp_ = GOOGLE_LONGLONG(0);
   changeset_ = GOOGLE_LONGLONG(0);
   uid_ = 0;
   user_sid_ = 0;
@@ -2263,7 +2252,7 @@ Info* Info::New() const {
 void Info::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     version_ = -1;
-    timestamp_ = 0;
+    timestamp_ = GOOGLE_LONGLONG(0);
     changeset_ = GOOGLE_LONGLONG(0);
     uid_ = 0;
     user_sid_ = 0;
@@ -2293,13 +2282,13 @@ bool Info::MergePartialFromCodedStream(
         break;
       }
       
-      // optional int32 timestamp = 2;
+      // optional int64 timestamp = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
          parse_timestamp:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                   ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
                  input, &timestamp_)));
           _set_bit(1);
         } else {
@@ -2380,9 +2369,9 @@ void Info::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->version(), output);
   }
   
-  // optional int32 timestamp = 2;
+  // optional int64 timestamp = 2;
   if (_has_bit(1)) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->timestamp(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteInt64(2, this->timestamp(), output);
   }
   
   // optional int64 changeset = 3;
@@ -2413,9 +2402,9 @@ void Info::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->version(), target);
   }
   
-  // optional int32 timestamp = 2;
+  // optional int64 timestamp = 2;
   if (_has_bit(1)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->timestamp(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(2, this->timestamp(), target);
   }
   
   // optional int64 changeset = 3;
@@ -2451,10 +2440,10 @@ int Info::ByteSize() const {
           this->version());
     }
     
-    // optional int32 timestamp = 2;
+    // optional int64 timestamp = 2;
     if (has_timestamp()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
+        ::google::protobuf::internal::WireFormatLite::Int64Size(
           this->timestamp());
     }
     
@@ -3049,13 +3038,6 @@ void DenseInfo::Swap(DenseInfo* other) {
 
 #ifndef _MSC_VER
 const int ChangeSet::kIdFieldNumber;
-const int ChangeSet::kKeysFieldNumber;
-const int ChangeSet::kValsFieldNumber;
-const int ChangeSet::kInfoFieldNumber;
-const int ChangeSet::kCreatedAtFieldNumber;
-const int ChangeSet::kClosetimeDeltaFieldNumber;
-const int ChangeSet::kOpenFieldNumber;
-const int ChangeSet::kBboxFieldNumber;
 #endif  // !_MSC_VER
 
 ChangeSet::ChangeSet()
@@ -3064,8 +3046,6 @@ ChangeSet::ChangeSet()
 }
 
 void ChangeSet::InitAsDefaultInstance() {
-  info_ = const_cast< ::PBF::Info*>(&::PBF::Info::default_instance());
-  bbox_ = const_cast< ::PBF::HeaderBBox*>(&::PBF::HeaderBBox::default_instance());
 }
 
 ChangeSet::ChangeSet(const ChangeSet& from)
@@ -3077,11 +3057,6 @@ ChangeSet::ChangeSet(const ChangeSet& from)
 void ChangeSet::SharedCtor() {
   _cached_size_ = 0;
   id_ = GOOGLE_LONGLONG(0);
-  info_ = NULL;
-  created_at_ = GOOGLE_LONGLONG(0);
-  closetime_delta_ = GOOGLE_LONGLONG(0);
-  open_ = false;
-  bbox_ = NULL;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -3091,8 +3066,6 @@ ChangeSet::~ChangeSet() {
 
 void ChangeSet::SharedDtor() {
   if (this != default_instance_) {
-    delete info_;
-    delete bbox_;
   }
 }
 
@@ -3119,18 +3092,7 @@ ChangeSet* ChangeSet::New() const {
 void ChangeSet::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     id_ = GOOGLE_LONGLONG(0);
-    if (_has_bit(3)) {
-      if (info_ != NULL) info_->::PBF::Info::Clear();
-    }
-    created_at_ = GOOGLE_LONGLONG(0);
-    closetime_delta_ = GOOGLE_LONGLONG(0);
-    open_ = false;
-    if (_has_bit(7)) {
-      if (bbox_ != NULL) bbox_->::PBF::HeaderBBox::Clear();
-    }
   }
-  keys_.Clear();
-  vals_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
 }
@@ -3149,124 +3111,6 @@ bool ChangeSet::MergePartialFromCodedStream(
                    ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
                  input, &id_)));
           _set_bit(0);
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(18)) goto parse_keys;
-        break;
-      }
-      
-      // repeated uint32 keys = 2 [packed = true];
-      case 2: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_keys:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPackedPrimitive<
-                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
-                 input, this->mutable_keys())));
-        } else if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag)
-                   == ::google::protobuf::internal::WireFormatLite::
-                      WIRETYPE_VARINT) {
-          DO_((::google::protobuf::internal::WireFormatLite::ReadRepeatedPrimitiveNoInline<
-                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
-                 1, 18, input, this->mutable_keys())));
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(26)) goto parse_vals;
-        break;
-      }
-      
-      // repeated uint32 vals = 3 [packed = true];
-      case 3: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_vals:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPackedPrimitive<
-                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
-                 input, this->mutable_vals())));
-        } else if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag)
-                   == ::google::protobuf::internal::WireFormatLite::
-                      WIRETYPE_VARINT) {
-          DO_((::google::protobuf::internal::WireFormatLite::ReadRepeatedPrimitiveNoInline<
-                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
-                 1, 26, input, this->mutable_vals())));
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(34)) goto parse_info;
-        break;
-      }
-      
-      // optional .PBF.Info info = 4;
-      case 4: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_info:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-               input, mutable_info()));
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(64)) goto parse_created_at;
-        break;
-      }
-      
-      // required int64 created_at = 8;
-      case 8: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_created_at:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
-                 input, &created_at_)));
-          _set_bit(4);
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(72)) goto parse_closetime_delta;
-        break;
-      }
-      
-      // optional int64 closetime_delta = 9;
-      case 9: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_closetime_delta:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
-                 input, &closetime_delta_)));
-          _set_bit(5);
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(80)) goto parse_open;
-        break;
-      }
-      
-      // required bool open = 10;
-      case 10: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_open:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
-                 input, &open_)));
-          _set_bit(6);
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(90)) goto parse_bbox;
-        break;
-      }
-      
-      // optional .PBF.HeaderBBox bbox = 11;
-      case 11: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_bbox:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-               input, mutable_bbox()));
         } else {
           goto handle_uninterpreted;
         }
@@ -3297,53 +3141,6 @@ void ChangeSet::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt64(1, this->id(), output);
   }
   
-  // repeated uint32 keys = 2 [packed = true];
-  if (this->keys_size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteTag(2, ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED, output);
-    output->WriteVarint32(_keys_cached_byte_size_);
-  }
-  for (int i = 0; i < this->keys_size(); i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt32NoTag(
-      this->keys(i), output);
-  }
-  
-  // repeated uint32 vals = 3 [packed = true];
-  if (this->vals_size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteTag(3, ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED, output);
-    output->WriteVarint32(_vals_cached_byte_size_);
-  }
-  for (int i = 0; i < this->vals_size(); i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt32NoTag(
-      this->vals(i), output);
-  }
-  
-  // optional .PBF.Info info = 4;
-  if (_has_bit(3)) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      4, this->info(), output);
-  }
-  
-  // required int64 created_at = 8;
-  if (_has_bit(4)) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt64(8, this->created_at(), output);
-  }
-  
-  // optional int64 closetime_delta = 9;
-  if (_has_bit(5)) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt64(9, this->closetime_delta(), output);
-  }
-  
-  // required bool open = 10;
-  if (_has_bit(6)) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(10, this->open(), output);
-  }
-  
-  // optional .PBF.HeaderBBox bbox = 11;
-  if (_has_bit(7)) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      11, this->bbox(), output);
-  }
-  
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -3355,63 +3152,6 @@ void ChangeSet::SerializeWithCachedSizes(
   // required int64 id = 1;
   if (_has_bit(0)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(1, this->id(), target);
-  }
-  
-  // repeated uint32 keys = 2 [packed = true];
-  if (this->keys_size() > 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteTagToArray(
-      2,
-      ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED,
-      target);
-    target = ::google::protobuf::io::CodedOutputStream::WriteVarint32ToArray(
-      _keys_cached_byte_size_, target);
-  }
-  for (int i = 0; i < this->keys_size(); i++) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteUInt32NoTagToArray(this->keys(i), target);
-  }
-  
-  // repeated uint32 vals = 3 [packed = true];
-  if (this->vals_size() > 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteTagToArray(
-      3,
-      ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED,
-      target);
-    target = ::google::protobuf::io::CodedOutputStream::WriteVarint32ToArray(
-      _vals_cached_byte_size_, target);
-  }
-  for (int i = 0; i < this->vals_size(); i++) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteUInt32NoTagToArray(this->vals(i), target);
-  }
-  
-  // optional .PBF.Info info = 4;
-  if (_has_bit(3)) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        4, this->info(), target);
-  }
-  
-  // required int64 created_at = 8;
-  if (_has_bit(4)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(8, this->created_at(), target);
-  }
-  
-  // optional int64 closetime_delta = 9;
-  if (_has_bit(5)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(9, this->closetime_delta(), target);
-  }
-  
-  // required bool open = 10;
-  if (_has_bit(6)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(10, this->open(), target);
-  }
-  
-  // optional .PBF.HeaderBBox bbox = 11;
-  if (_has_bit(7)) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        11, this->bbox(), target);
   }
   
   if (!unknown_fields().empty()) {
@@ -3432,70 +3172,7 @@ int ChangeSet::ByteSize() const {
           this->id());
     }
     
-    // optional .PBF.Info info = 4;
-    if (has_info()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-          this->info());
-    }
-    
-    // required int64 created_at = 8;
-    if (has_created_at()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int64Size(
-          this->created_at());
-    }
-    
-    // optional int64 closetime_delta = 9;
-    if (has_closetime_delta()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int64Size(
-          this->closetime_delta());
-    }
-    
-    // required bool open = 10;
-    if (has_open()) {
-      total_size += 1 + 1;
-    }
-    
-    // optional .PBF.HeaderBBox bbox = 11;
-    if (has_bbox()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-          this->bbox());
-    }
-    
   }
-  // repeated uint32 keys = 2 [packed = true];
-  {
-    int data_size = 0;
-    for (int i = 0; i < this->keys_size(); i++) {
-      data_size += ::google::protobuf::internal::WireFormatLite::
-        UInt32Size(this->keys(i));
-    }
-    if (data_size > 0) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(data_size);
-    }
-    _keys_cached_byte_size_ = data_size;
-    total_size += data_size;
-  }
-  
-  // repeated uint32 vals = 3 [packed = true];
-  {
-    int data_size = 0;
-    for (int i = 0; i < this->vals_size(); i++) {
-      data_size += ::google::protobuf::internal::WireFormatLite::
-        UInt32Size(this->vals(i));
-    }
-    if (data_size > 0) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(data_size);
-    }
-    _vals_cached_byte_size_ = data_size;
-    total_size += data_size;
-  }
-  
   if (!unknown_fields().empty()) {
     total_size +=
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
@@ -3521,26 +3198,9 @@ void ChangeSet::MergeFrom(const ::google::protobuf::Message& from) {
 
 void ChangeSet::MergeFrom(const ChangeSet& from) {
   GOOGLE_CHECK_NE(&from, this);
-  keys_.MergeFrom(from.keys_);
-  vals_.MergeFrom(from.vals_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from._has_bit(0)) {
       set_id(from.id());
-    }
-    if (from._has_bit(3)) {
-      mutable_info()->::PBF::Info::MergeFrom(from.info());
-    }
-    if (from._has_bit(4)) {
-      set_created_at(from.created_at());
-    }
-    if (from._has_bit(5)) {
-      set_closetime_delta(from.closetime_delta());
-    }
-    if (from._has_bit(6)) {
-      set_open(from.open());
-    }
-    if (from._has_bit(7)) {
-      mutable_bbox()->::PBF::HeaderBBox::MergeFrom(from.bbox());
     }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -3559,24 +3219,14 @@ void ChangeSet::CopyFrom(const ChangeSet& from) {
 }
 
 bool ChangeSet::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000051) != 0x00000051) return false;
+  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
   
-  if (has_bbox()) {
-    if (!this->bbox().IsInitialized()) return false;
-  }
   return true;
 }
 
 void ChangeSet::Swap(ChangeSet* other) {
   if (other != this) {
     std::swap(id_, other->id_);
-    keys_.Swap(&other->keys_);
-    vals_.Swap(&other->vals_);
-    std::swap(info_, other->info_);
-    std::swap(created_at_, other->created_at_);
-    std::swap(closetime_delta_, other->closetime_delta_);
-    std::swap(open_, other->open_);
-    std::swap(bbox_, other->bbox_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);
