@@ -204,7 +204,7 @@ void RoutingLogic::setGPSLink( bool linked )
 {
 	if ( linked == d->linked )
 		return;
-	d->linked = true;
+	d->linked = linked;
 	if ( d->gpsInfo.position.IsValid() ) {
 		d->source = d->gpsInfo.position;
 		emit sourceChanged();
