@@ -32,6 +32,9 @@ MapDataWidget::MapDataWidget( QWidget *parent ) :
 		m_ui( new Ui::MapDataWidget )
 {
 	m_ui->setupUi( this );
+	// Windows Mobile Window Flags
+	setWindowFlags( windowFlags() & ( ~Qt::WindowOkButtonHint ) );
+	setWindowFlags( windowFlags() | Qt::WindowCancelButtonHint );
 
 	QSettings settings( "MoNavClient" );
 	QStringList directories = settings.value( "directories" ).toStringList();
@@ -86,7 +89,7 @@ int MapDataWidget::exec( bool autoLoad )
 	}
 	directoryChanged( m_ui->directory->currentText() );
 	int result = QDialog::exec();
-	if ( result != QDialog::Accepted ) {
+	if ( result != QDialog::Accepted || !mapData->loaded() ) {
 		mapData->setPath( oldPath );
 		if ( mapData->containsMapData() && mapData->canBeLoaded() )
 			mapData->load();

@@ -25,6 +25,9 @@ GeneralSettingsDialog::GeneralSettingsDialog( QWidget* parent ) :
 		m_ui( new Ui::GeneralSettingsDialog )
 {
 	m_ui->setupUi( this );
+	// Windows Mobile Window Flags
+	setWindowFlags( windowFlags() & ( ~Qt::WindowOkButtonHint ) );
+	setWindowFlags( windowFlags() | Qt::WindowCancelButtonHint );
 }
 
 void GeneralSettingsDialog::setIconSize( int size )

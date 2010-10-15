@@ -29,6 +29,9 @@ RouteDescriptionDialog::RouteDescriptionDialog( QWidget *parent ) :
 		m_ui(new Ui::RouteDescriptionDialog)
 {
 	m_ui->setupUi(this);
+	// Windows Mobile Window Flags
+	setWindowFlags( windowFlags() & ( ~Qt::WindowOkButtonHint ) );
+	setWindowFlags( windowFlags() | Qt::WindowCancelButtonHint );
 	instructionsChanged();
 #ifdef Q_WS_MAEMO_5
 	setAttribute( Qt::WA_Maemo5StackedWindow );

@@ -26,6 +26,8 @@ GPSDialog::GPSDialog( QWidget *parent ) :
 		m_ui( new Ui::GPSDialog )
 {
 	m_ui->setupUi(this);
+	// Windows Mobile Window Flags
+	setWindowFlags( windowFlags() & ( ~Qt::WindowOkButtonHint ) );
 #ifdef Q_WS_MAEMO_5
 	setAttribute( Qt::WA_Maemo5StackedWindow );
 #endif

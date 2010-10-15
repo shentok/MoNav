@@ -31,6 +31,10 @@ BookmarksDialog::BookmarksDialog(QWidget *parent) :
 {
 	m_ui->setupUi(this);
 
+	// Windows Mobile Window Flags
+	setWindowFlags( windowFlags() & ( ~Qt::WindowOkButtonHint ) );
+	setWindowFlags( windowFlags() | Qt::WindowCancelButtonHint );
+
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "Bookmarks" );
 	QStringList names = settings.value( "names" ).toStringList();
@@ -192,5 +196,5 @@ bool BookmarksDialog::showBookmarks( UnsignedCoordinate* result, QWidget* p )
 		*result = window->m_coordinates[window->m_chosen];
 	delete window;
 
-	return value == Accepted;
+	return value == Accepted && result->IsValid();
 }

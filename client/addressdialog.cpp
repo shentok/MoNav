@@ -30,6 +30,9 @@ AddressDialog::AddressDialog(QWidget *parent) :
 		m_ui(new Ui::AddressDialog)
 {
 	m_ui->setupUi(this);
+	// Windows Mobile Window Flags
+	setWindowFlags( windowFlags() & ( ~Qt::WindowOkButtonHint ) );
+	setWindowFlags( windowFlags() | Qt::WindowCancelButtonHint );
 
 	bool increaseFontSize = true;
 #ifdef Q_WS_MAEMO_5
