@@ -5,6 +5,14 @@
   <property name="windowModality">
    <enum>Qt::NonModal</enum>
   </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>505</width>
+    <height>532</height>
+   </rect>
+  </property>
   <property name="sizePolicy">
    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
     <horstretch>0</horstretch>
@@ -59,8 +67,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>303</width>
-        <height>152</height>
+        <width>487</width>
+        <height>242</height>
        </rect>
       </property>
       <attribute name="label">
@@ -228,7 +236,7 @@
         <x>0</x>
         <y>0</y>
         <width>437</width>
-        <height>204</height>
+        <height>164</height>
        </rect>
       </property>
       <attribute name="label">
@@ -407,19 +415,111 @@
          </column>
          <column>
           <property name="text">
-           <string>Default Speed</string>
+           <string>Maximal Speed [km/h]</string>
           </property>
          </column>
          <column>
           <property name="text">
-           <string>Default City Speed</string>
+           <string>Default City Speed [km/h]</string>
           </property>
          </column>
          <column>
           <property name="text">
-           <string>Average Speed</string>
+           <string>Average Speed [%]</string>
           </property>
          </column>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="page_6">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>487</width>
+        <height>242</height>
+       </rect>
+      </property>
+      <attribute name="label">
+       <string>Node Modificators</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_7">
+       <item>
+        <widget class="QToolButton" name="addNodeModificator">
+         <property name="text">
+          <string>+</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QScrollArea" name="nodeModificators">
+         <property name="widgetResizable">
+          <bool>true</bool>
+         </property>
+         <widget class="QWidget" name="scrollAreaWidgetContents">
+          <property name="geometry">
+           <rect>
+            <x>0</x>
+            <y>0</y>
+            <width>467</width>
+            <height>18</height>
+           </rect>
+          </property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_9"/>
+         </widget>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="Page_7">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>100</width>
+        <height>129</height>
+       </rect>
+      </property>
+      <attribute name="label">
+       <string>Way Modificators</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_8">
+       <item>
+        <widget class="QToolButton" name="addWayModificator">
+         <property name="text">
+          <string>+</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QScrollArea" name="wayModificators">
+         <property name="widgetResizable">
+          <bool>true</bool>
+         </property>
+         <widget class="QWidget" name="scrollAreaWidgetContents_2">
+          <property name="geometry">
+           <rect>
+            <x>0</x>
+            <y>0</y>
+            <width>98</width>
+            <height>18</height>
+           </rect>
+          </property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_2"/>
+         </widget>
         </widget>
        </item>
       </layout>

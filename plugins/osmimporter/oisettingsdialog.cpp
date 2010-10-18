@@ -19,13 +19,14 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "oisettingsdialog.h"
 #include "ui_oisettingsdialog.h"
+#include "utils/qthelpers.h"
+
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QTextStream>
 #include <QSettings>
 #include <QtDebug>
 #include <cassert>
-#include "utils/qthelpers.h"
 
 OISettingsDialog::OISettingsDialog(QWidget *parent) :
 	QWidget(parent),
@@ -36,6 +37,8 @@ OISettingsDialog::OISettingsDialog(QWidget *parent) :
 	m_ui->toolBox->widget( 2 )->setEnabled( false );
 	m_ui->toolBox->widget( 3 )->setEnabled( false );
 	m_ui->toolBox->widget( 4 )->setEnabled( false );
+	m_ui->toolBox->widget( 5 )->setEnabled( false );
+	m_ui->toolBox->widget( 6 )->setEnabled( false );
 
 	QSettings settings( "MoNav" );
 	settings.beginGroup( "OSM Importer" );
@@ -89,10 +92,15 @@ void OISettingsDialog::connectSlots()
 	connect( m_ui->customProfile, SIGNAL(toggled(bool)), m_ui->toolBox->widget( 2 ), SLOT(setEnabled(bool)) );
 	connect( m_ui->customProfile, SIGNAL(toggled(bool)), m_ui->toolBox->widget( 3 ), SLOT(setEnabled(bool)) );
 	connect( m_ui->customProfile, SIGNAL(toggled(bool)), m_ui->toolBox->widget( 4 ), SLOT(setEnabled(bool)) );
+	connect( m_ui->customProfile, SIGNAL(toggled(bool)), m_ui->toolBox->widget( 5 ), SLOT(setEnabled(bool)) );
+	connect( m_ui->customProfile, SIGNAL(toggled(bool)), m_ui->toolBox->widget( 6 ), SLOT(setEnabled(bool)) );
 	connect( m_ui->languagePriorities, SIGNAL(currentRowChanged(int)), this, SLOT(currentLanguageChanged(int)) );
 	connect( m_ui->speedTable, SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(currentWayTypeChanged(int,int,int,int)) );
 	connect( m_ui->addLanguage, SIGNAL(clicked()), this, SLOT(addLanguage()) );
 	connect( m_ui->deleteLanguage, SIGNAL(clicked()), this, SLOT(deleteLanguage()) );
+
+	connect( m_ui->addWayModificator, SIGNAL(clicked()), this, SLOT(addWayModificator()) );
+	connect( m_ui->addNodeModificator, SIGNAL(clicked()), this, SLOT(addNodeModificator()) );
 }
 
 OISettingsDialog::~OISettingsDialog()
@@ -107,6 +115,22 @@ OISettingsDialog::~OISettingsDialog()
 		languageSettings.append( m_ui->languagePriorities->item( item )->text() );
 	settings.setValue( "languageSettings", languageSettings );
 	delete m_ui;
+}
+
+void OISettingsDialog::addWayModificator()
+{
+	WayModificatorWidget* widget = new WayModificatorWidget( this );
+	m_ui->wayModificators->widget()->layout()->addWidget( widget );
+	if ( isVisible() )
+		widget->show();
+}
+
+void OISettingsDialog::addNodeModificator()
+{
+	NodeModificatorWidget* widget = new NodeModificatorWidget( this );
+	m_ui->nodeModificators->widget()->layout()->addWidget( widget );
+	if ( isVisible() )
+		widget->show();
 }
 
 void OISettingsDialog::currentLanguageChanged ( int currentRow )
@@ -180,6 +204,32 @@ void OISettingsDialog::save( const QString& filename, QString name )
 		settings.setValue( QString( "entry.%1" ).arg( row ), entry );
 	}
 
+	QList< WayModificatorWidget* > wayModificators = m_ui->wayModificators->findChildren< WayModificatorWidget* >();
+	settings.setValue( "wayModificatorsCount", wayModificators.size() );
+	for ( int i = 0; i < wayModificators.size(); i++ ) {
+		Settings::WayModificator mod = wayModificators[i]->modificator();
+		settings.setValue( QString( "wayModificator.%1.key" ).arg( i ), mod.key );
+		settings.setValue( QString( "wayModificator.%1.checkValue" ).arg( i ), mod.checkValue );
+		if ( mod.checkValue )
+			settings.setValue( QString( "wayModificator.%1.value" ).arg( i ), mod.value );
+		settings.setValue( QString( "wayModificator.%1.invert" ).arg( i ), mod.invert );
+		settings.setValue( QString( "wayModificator.%1.type" ).arg( i ), ( int ) mod.type );
+		settings.setValue( QString( "wayModificator.%1.modificatorValue" ).arg( i ), mod.modificatorValue );
+	}
+
+	QList< NodeModificatorWidget* > nodeModificators = m_ui->nodeModificators->findChildren< NodeModificatorWidget* >();
+	settings.setValue( "nodeModificatorsCount", nodeModificators.size() );
+	for ( int i = 0; i < nodeModificators.size(); i++ ) {
+		Settings::NodeModificator mod = nodeModificators[i]->modificator();
+		settings.setValue( QString( "nodeModificator.%1.key" ).arg( i ), mod.key );
+		settings.setValue( QString( "nodeModificator.%1.checkValue" ).arg( i ), mod.checkValue );
+		if ( mod.checkValue )
+			settings.setValue( QString( "nodeModificator.%1.value" ).arg( i ), mod.value );
+		settings.setValue( QString( "nodeModificator.%1.invert" ).arg( i ), mod.invert );
+		settings.setValue( QString( "nodeModificator.%1.type" ).arg( i ), ( int ) mod.type );
+		settings.setValue( QString( "nodeModificator.%1.modificatorValue" ).arg( i ), mod.modificatorValue );
+	}
+
 	if ( !settings.status() == QSettings::NoError ) {
 		qCritical() << "error accessing file:" << filename;
 		return;
@@ -232,6 +282,48 @@ QString OISettingsDialog::load( const QString& filename, bool nameOnly)
 			m_ui->speedTable->setItem( row, col, new QTableWidgetItem );
 			m_ui->speedTable->item( row, col )->setText( entry[col] );
 		}
+	}
+
+	foreach( WayModificatorWidget* widget, m_ui->wayModificators->findChildren< WayModificatorWidget* >() )
+		widget->deleteLater();
+
+	int wayModificatorCount = settings.value( "wayModificatorsCount" ).toInt();
+	for ( int i = 0; i < wayModificatorCount; i++ ) {
+		Settings::WayModificator mod;
+		mod.key = settings.value( QString( "wayModificator.%1.key" ).arg( i ) ).toString();
+		mod.checkValue = settings.value( QString( "wayModificator.%1.checkValue" ).arg( i ) ).toBool();
+		if ( mod.checkValue )
+			mod.value = settings.value( QString( "wayModificator.%1.value" ).arg( i ) ).toString();
+		mod.invert = settings.value( QString( "wayModificator.%1.invert" ).arg( i ) ).toBool();
+		mod.type = ( Settings::WayModificatorType ) settings.value( QString( "wayModificator.%1.type" ).arg( i ) ).toInt();
+		mod.modificatorValue = settings.value( QString( "wayModificator.%1.modificatorValue" ).arg( i ) );
+
+		WayModificatorWidget* widget = new WayModificatorWidget( this );
+		widget->setModificator( mod );
+		m_ui->wayModificators->widget()->layout()->addWidget( widget );
+		if ( isVisible() )
+			widget->show();
+	}
+
+	foreach( NodeModificatorWidget* widget, m_ui->nodeModificators->findChildren< NodeModificatorWidget* >() )
+		widget->deleteLater();
+
+	int nodeModificatorCount = settings.value( "nodeModificatorsCount" ).toInt();
+	for ( int i = 0; i < nodeModificatorCount; i++ ) {
+		Settings::NodeModificator mod;
+		mod.key = settings.value( QString( "nodeModificator.%1.key" ).arg( i ) ).toString();
+		mod.checkValue = settings.value( QString( "nodeModificator.%1.checkValue" ).arg( i ) ).toBool();
+		if ( mod.checkValue )
+			mod.value = settings.value( QString( "nodeModificator.%1.value" ).arg( i ) ).toString();
+		mod.invert = settings.value( QString( "nodeModificator.%1.invert" ).arg( i ) ).toBool();
+		mod.type = ( Settings::NodeModificatorType ) settings.value( QString( "nodeModificator.%1.type" ).arg( i ) ).toInt();
+		mod.modificatorValue = settings.value( QString( "nodeModificator.%1.modificatorValue" ).arg( i ) );
+
+		NodeModificatorWidget* widget = new NodeModificatorWidget( this );
+		widget->setModificator( mod );
+		m_ui->nodeModificators->widget()->layout()->addWidget( widget );
+		if ( isVisible() )
+			widget->show();
 	}
 
 	if ( !settings.status() == QSettings::NoError ) {

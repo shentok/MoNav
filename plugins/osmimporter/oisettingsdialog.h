@@ -23,6 +23,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QWidget>
 #include <vector>
 
+#include "waymodificatorwidget.h"
+#include "nodemodificatorwidget.h"
+
 namespace Ui {
 	 class OISettingsDialog;
 }
@@ -40,6 +43,15 @@ public:
 			QVector< double > speedInCity;
 			QVector< double > averagePercentage;
 		} speedProfile;
+
+		typedef WayModificatorWidget::ModificatorType WayModificatorType;
+		typedef NodeModificatorWidget::ModificatorType NodeModificatorType;
+		typedef WayModificatorWidget::Modificator WayModificator;
+		typedef NodeModificatorWidget::Modificator NodeModificator;
+
+		QVector< WayModificator > wayModificators;
+		QVector< NodeModificator > nodeModificators;
+
 		QStringList accessList;
 		bool defaultCitySpeed;
 		bool ignoreOneway;
@@ -63,6 +75,8 @@ public slots:
 	void currentWayTypeChanged( int currentRow, int currentCol, int lastRow, int lastCol );
 	void addLanguage();
 	void deleteLanguage();
+	void addWayModificator();
+	void addNodeModificator();
 
 protected:
 	void connectSlots();
