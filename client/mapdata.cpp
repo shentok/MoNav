@@ -280,6 +280,9 @@ bool MapData::loadInformation()
 	d->name = config.value( "name" ).toString();
 	d->description = config.value( "description" ).toString();
 	d->image = config.value( "image" ).value< QImage >();
+	if ( d->image.isNull() ) {
+		d->image.load( ":images/map.png" );
+	}
 
 	d->addressLookupName = config.value( "addressLookup" ).toString();
 	d->gpsLookupName = config.value( "gpsLookup" ).toString();

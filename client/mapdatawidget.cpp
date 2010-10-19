@@ -53,9 +53,7 @@ MapDataWidget::MapDataWidget( QWidget *parent ) :
 	else
 		m_ui->directory->setCurrentIndex( index );
 
-#ifdef Q_WS_MAEMO_5
 	m_ui->table->hide();
-#endif
 
 	connectSlots();
 }

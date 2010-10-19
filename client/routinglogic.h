@@ -26,6 +26,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QObject>
 #include <QStringList>
 #include <QVector>
+#include <QDateTime>
 #include <limits>
 
 #ifndef NOQTMOBILE
