@@ -35,9 +35,10 @@ public:
 	virtual QString GetName();
 	virtual int GetFileFormatVersion();
 	virtual Type GetType();
-	virtual void SetOutputDirectory( const QString& dir );
 	virtual QWidget* GetSettings();
-	virtual bool Preprocess( IImporter* importer );
+	virtual bool LoadSettings( QSettings* settings );
+	virtual bool SaveSettings( QSettings* settings );
+	virtual bool Preprocess( IImporter* importer, QString dir );
 	virtual ~MapnikRenderer();
 
 signals:
@@ -65,7 +66,6 @@ protected:
 	};
 
 	MRSettingsDialog* m_settingsDialog;
-	QString m_outputDirectory;
 };
 
 #endif // MAPNIKRENDERER_H

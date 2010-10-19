@@ -26,6 +26,8 @@ namespace Ui {
 	class UTTSettingsDialog;
 }
 
+class QSettings;
+
 class UTTSettingsDialog : public QWidget
 {
 	Q_OBJECT
@@ -40,6 +42,8 @@ public:
 	};
 
 	bool getSettings( Settings* settings );
+	bool loadSettings( QSettings* settings );
+	bool saveSettings( QSettings* settings );
 
 private:
 	Ui::UTTSettingsDialog *ui;

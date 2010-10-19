@@ -33,13 +33,13 @@ public:
 	virtual QString GetName();
 	virtual int GetFileFormatVersion();
 	virtual Type GetType();
-	virtual void SetOutputDirectory( const QString& dir );
 	virtual QWidget* GetSettings();
-	virtual bool Preprocess( IImporter* importer );
+	virtual bool LoadSettings( QSettings* settings );
+	virtual bool SaveSettings( QSettings* settings );
+	virtual bool Preprocess( IImporter* importer, QString dir );
 	virtual ~ContractionHierarchies();
 
 protected:
-	QString m_outputDirectory;
 	CHSettingsDialog* m_settingsDialog;
 	CHSettingsDialog::Settings m_settings;
 };

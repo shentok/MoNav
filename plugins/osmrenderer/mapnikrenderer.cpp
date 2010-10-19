@@ -19,6 +19,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "mapnikrenderer.h"
 #include "utils/qthelpers.h"
+#include "interfaces/iimporter.h"
 
 #include <mapnik/map.hpp>
 #include <mapnik/datasource_cache.hpp>
@@ -58,11 +59,6 @@ MapnikRenderer::Type MapnikRenderer::GetType()
 	return Renderer;
 }
 
-void MapnikRenderer::SetOutputDirectory( const QString& dir )
-{
-	m_outputDirectory = dir;
-}
-
 QWidget* MapnikRenderer::GetSettings()
 {
 	if ( m_settingsDialog == NULL )
@@ -70,11 +66,25 @@ QWidget* MapnikRenderer::GetSettings()
 	return m_settingsDialog;
 }
 
-bool MapnikRenderer::Preprocess( IImporter* importer )
+bool MapnikRenderer::LoadSettings( QSettings* settings )
 {
 	if ( m_settingsDialog == NULL )
 		m_settingsDialog = new MRSettingsDialog();
-	QString filename = fileInDirectory( m_outputDirectory, "Mapnik Renderer" );
+	return m_settingsDialog->loadSettings( settings );
+}
+
+bool MapnikRenderer::SaveSettings( QSettings* settings )
+{
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new MRSettingsDialog();
+	return m_settingsDialog->saveSettings( settings );
+}
+
+bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
+{
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new MRSettingsDialog();
+	QString filename = fileInDirectory( dir, "Mapnik Renderer" );
 
 	try {
 		MRSettingsDialog::Settings settings;

@@ -20,6 +20,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "unicodetournamenttrie.h"
 #include "utils/qthelpers.h"
 #include "utils/edgeconnector.h"
+#include "interfaces/iimporter.h"
+
 #include <algorithm>
 #include <QMultiHash>
 #include <QList>
@@ -27,13 +29,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 UnicodeTournamentTrie::UnicodeTournamentTrie()
 {
-	settingsDialog = NULL;
+	m_settingsDialog = NULL;
 }
 
 UnicodeTournamentTrie::~UnicodeTournamentTrie()
 {
-	if ( settingsDialog != NULL )
-		delete settingsDialog;
+	if ( m_settingsDialog != NULL )
+		delete m_settingsDialog;
 }
 
 QString UnicodeTournamentTrie::GetName()
@@ -51,27 +53,36 @@ UnicodeTournamentTrie::Type UnicodeTournamentTrie::GetType()
 	return AddressLookup;
 }
 
-void UnicodeTournamentTrie::SetOutputDirectory( const QString& dir )
-{
-	outputDirectory = dir;
-}
-
 QWidget* UnicodeTournamentTrie::GetSettings()
 {
-	if ( settingsDialog == NULL )
-		settingsDialog = new UTTSettingsDialog();
-	return settingsDialog;
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new UTTSettingsDialog();
+	return m_settingsDialog;
 }
 
-bool UnicodeTournamentTrie::Preprocess( IImporter* importer )
+bool UnicodeTournamentTrie::LoadSettings( QSettings* settings )
 {
-	if ( settingsDialog == NULL )
-		settingsDialog = new UTTSettingsDialog();
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new UTTSettingsDialog();
+	return m_settingsDialog->loadSettings( settings );
+}
+
+bool UnicodeTournamentTrie::SaveSettings( QSettings* settings )
+{
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new UTTSettingsDialog();
+	return m_settingsDialog->saveSettings( settings );
+}
+
+bool UnicodeTournamentTrie::Preprocess( IImporter* importer, QString dir )
+{
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new UTTSettingsDialog();
 
 	UTTSettingsDialog::Settings settings;
-	if ( !settingsDialog->getSettings( &settings ) )
+	if ( !m_settingsDialog->getSettings( &settings ) )
 		return false;
-	QString filename = fileInDirectory( outputDirectory, "Unicode Tournament Trie" );
+	QString filename = fileInDirectory( dir, "Unicode Tournament Trie" );
 
 	QFile subTrieFile( filename + "_sub" );
 	QFile mainTrieFile( filename + "_main" );

@@ -38,9 +38,10 @@ public:
 	virtual QString GetName();
 	virtual int GetFileFormatVersion();
 	virtual Type GetType();
-	virtual void SetOutputDirectory( const QString& dir );
 	virtual QWidget* GetSettings();
-	virtual bool Preprocess( IImporter* importer );
+	virtual bool LoadSettings( QSettings* settings );
+	virtual bool SaveSettings( QSettings* settings );
+	virtual bool Preprocess( IImporter* importer, QString dir );
 
 protected:
 
@@ -60,8 +61,7 @@ protected:
 		}
 	};
 
-	QString outputDirectory;
-	UTTSettingsDialog* settingsDialog;
+	UTTSettingsDialog* m_settingsDialog;
 };
 
 #endif // UNICODETOURNAMENTTRIE_H

@@ -30,6 +30,8 @@ namespace Ui {
 	 class OISettingsDialog;
 }
 
+class QSettings;
+
 class OISettingsDialog : public QWidget {
 	 Q_OBJECT
 public:
@@ -59,18 +61,18 @@ public:
 		bool ignoreMaxspeed;
 
 		QStringList languageSettings;
-		QString input;
 	};
 
 	bool getSettings( Settings* settings );
+	bool loadSettings( QSettings* settings );
+	bool saveSettings( QSettings* settings );
 
 public slots:
 	void addSpeed();
 	void removeSpeed();
 	void save();
 	void load();
-	void browse();
-	void currentIndexChanged( int index );
+	void currentIndexChanged();
 	void currentLanguageChanged ( int currentRow );
 	void currentWayTypeChanged( int currentRow, int currentCol, int lastRow, int lastCol );
 	void addLanguage();

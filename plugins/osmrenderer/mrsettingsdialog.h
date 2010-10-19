@@ -26,6 +26,8 @@ namespace Ui {
 	 class MRSettingsDialog;
 }
 
+class QSettings;
+
 class MRSettingsDialog : public QWidget {
 	 Q_OBJECT
 public:
@@ -49,6 +51,8 @@ public:
 	};
 
 	bool getSettings( Settings* settings );
+	bool loadSettings( QSettings* settings );
+	bool saveSettings( QSettings* settings );
 
 public slots:
 	void browseFont();

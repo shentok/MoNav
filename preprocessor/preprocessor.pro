@@ -12,7 +12,6 @@ HEADERS += preprocessingwindow.h \
 	 utils/coordinates.h \
 	 utils/config.h \
 	 interfaces/ipreprocessor.h \
-	 interfaces/irenderer.h \
 	 interfaces/ipreprocessor.h \
 	 interfaces/iimporter.h
 DESTDIR = ../bin

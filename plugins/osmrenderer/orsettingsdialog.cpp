@@ -28,26 +28,10 @@ ORSettingsDialog::ORSettingsDialog( QWidget *parent ) :
 		m_ui( new Ui::ORSettingsDialog )
 {
 	m_ui->setupUi(this);
-	QSettings settings( "MoNav" );
-	settings.beginGroup( "OSMRenderer" );
-	for ( int zoom = 0; zoom < 19; zoom++ ) {
-		QString name = QString( "zoom%1" ).arg( zoom );
-		QCheckBox* checkbox = findChild< QCheckBox* >( name );
-		assert( checkbox != NULL );
-		checkbox->setChecked( settings.value( name, true ).toBool() );
-	}
 }
 
 ORSettingsDialog::~ORSettingsDialog()
 {
-	QSettings settings( "MoNav" );
-	settings.beginGroup( "OSMRenderer" );
-	for ( int zoom = 0; zoom < 19; zoom++ ) {
-		QString name = QString( "zoom%1" ).arg( zoom );
-		QCheckBox* checkbox = findChild< QCheckBox* >( name );
-		assert( checkbox != NULL );
-		settings.setValue( name, checkbox->isChecked() );
-	}
 	delete m_ui;
 }
 
@@ -66,5 +50,31 @@ bool ORSettingsDialog::getSettings( Settings* settings )
 		qCritical() << "No Zoom Level Selected";
 		return false;
 	}
+	return true;
+}
+
+bool ORSettingsDialog::loadSettings( QSettings* settings )
+{
+	settings->beginGroup( "OSMRenderer" );
+	for ( int zoom = 0; zoom < 19; zoom++ ) {
+		QString name = QString( "zoom%1" ).arg( zoom );
+		QCheckBox* checkbox = findChild< QCheckBox* >( name );
+		assert( checkbox != NULL );
+		checkbox->setChecked( settings->value( name, true ).toBool() );
+	}
+	settings->endGroup();
+	return true;
+}
+
+bool ORSettingsDialog::saveSettings( QSettings* settings )
+{
+	settings->beginGroup( "OSMRenderer" );
+	for ( int zoom = 0; zoom < 19; zoom++ ) {
+		QString name = QString( "zoom%1" ).arg( zoom );
+		QCheckBox* checkbox = findChild< QCheckBox* >( name );
+		assert( checkbox != NULL );
+		settings->setValue( name, checkbox->isChecked() );
+	}
+	settings->endGroup();
 	return true;
 }

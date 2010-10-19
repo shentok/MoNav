@@ -35,8 +35,6 @@ Q_IMPORT_PLUGIN( gpsgridclient );
 Q_IMPORT_PLUGIN( unicodetournamenttrieclient );
 Q_IMPORT_PLUGIN( osmrendererclient );
 
-QtMsgHandler oldHandler = NULL;
-
 void MessageBoxHandler(QtMsgType type, const char *msg)
 {
 	if ( QApplication::instance() != NULL ) {
@@ -77,13 +75,11 @@ void MessageBoxHandler(QtMsgType type, const char *msg)
 	}
 
 	printf( "%s\n", msg );
-	if ( oldHandler != NULL )
-		oldHandler( type, msg );
 }
 
 int main(int argc, char *argv[])
 {
-	oldHandler = qInstallMsgHandler( MessageBoxHandler );
+	qInstallMsgHandler( MessageBoxHandler );
 	QApplication a(argc, argv);
 	MapView w;
 	w.show();

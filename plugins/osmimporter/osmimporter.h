@@ -40,7 +40,9 @@ public:
 	virtual QString GetName();
 	virtual void SetOutputDirectory( const QString& dir );
 	virtual QWidget* GetSettings();
-	virtual bool Preprocess();
+	virtual bool LoadSettings( QSettings* settings );
+	virtual bool SaveSettings( QSettings* settings );
+	virtual bool Preprocess( QString filename );
 	virtual bool SetIDMap( const std::vector< NodeID >& idMap );
 	virtual bool GetIDMap( std::vector< NodeID >* idMap );
 	virtual bool SetEdgeIDMap( const std::vector< NodeID >& idMap );

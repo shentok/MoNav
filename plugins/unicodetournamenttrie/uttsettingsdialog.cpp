@@ -20,6 +20,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "uttsettingsdialog.h"
 #include "ui_uttsettingsdialog.h"
 
+#include <QSettings>
+
 UTTSettingsDialog::UTTSettingsDialog( QWidget *parent ) :
 		QWidget( parent ),
 		ui( new Ui::UTTSettingsDialog )
@@ -34,5 +36,19 @@ UTTSettingsDialog::~UTTSettingsDialog()
 
 bool UTTSettingsDialog::getSettings( Settings* /*settings*/ )
 {
+	return true;
+}
+
+bool UTTSettingsDialog::loadSettings( QSettings* settings )
+{
+	settings->beginGroup( "UnicodeTournamentTree" );
+	settings->endGroup();
+	return true;
+}
+
+bool UTTSettingsDialog::saveSettings( QSettings* settings )
+{
+	settings->beginGroup( "UnicodeTournamentTree" );
+	settings->endGroup();
 	return true;
 }

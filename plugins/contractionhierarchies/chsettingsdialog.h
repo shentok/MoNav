@@ -22,6 +22,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QWidget>
 
+class QSettings;
+
 namespace Ui {
 	 class CHSettingsDialog;
 }
@@ -41,6 +43,8 @@ public:
 	};
 
 	bool getSettings( Settings* settings );
+	bool loadSettings( QSettings* settings );
+	bool saveSettings( QSettings* settings );
 
 protected:
 

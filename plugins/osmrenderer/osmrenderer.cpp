@@ -47,11 +47,6 @@ OSMRenderer::Type OSMRenderer::GetType()
 	return Renderer;
 }
 
-void OSMRenderer::SetOutputDirectory( const QString& directory )
-{
-	m_directory = directory;
-}
-
 QWidget* OSMRenderer::GetSettings()
 {
 	if ( m_settingsDialog == NULL )
@@ -59,7 +54,21 @@ QWidget* OSMRenderer::GetSettings()
 	return m_settingsDialog;
 }
 
-bool OSMRenderer::Preprocess( IImporter* )
+bool OSMRenderer::LoadSettings( QSettings* settings )
+{
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new ORSettingsDialog();
+	return m_settingsDialog->loadSettings( settings );
+}
+
+bool OSMRenderer::SaveSettings( QSettings* settings )
+{
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new ORSettingsDialog();
+	return m_settingsDialog->saveSettings( settings );
+}
+
+bool OSMRenderer::Preprocess( IImporter*, QString dir )
 {
 	if ( m_settingsDialog == NULL )
 		m_settingsDialog = new ORSettingsDialog;
@@ -67,7 +76,7 @@ bool OSMRenderer::Preprocess( IImporter* )
 	if ( !m_settingsDialog->getSettings( &settings ) )
 		return false;
 
-	QFile settingsFile( fileInDirectory( m_directory, "OSM Renderer" ) + "_settings" );
+	QFile settingsFile( fileInDirectory( dir, "OSM Renderer" ) + "_settings" );
 	if ( !openQFile( &settingsFile, QIODevice::WriteOnly ) )
 		return false;
 

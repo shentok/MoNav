@@ -30,11 +30,27 @@ ContractionHierarchies::ContractionHierarchies()
 
 ContractionHierarchies::~ContractionHierarchies()
 {
+	if ( m_settingsDialog != NULL )
+		delete m_settingsDialog;
 }
 
 QString ContractionHierarchies::GetName()
 {
 	return "Contraction Hierarchies";
+}
+
+bool ContractionHierarchies:: LoadSettings( QSettings* settings )
+{
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new CHSettingsDialog();
+	return m_settingsDialog->loadSettings( settings );
+}
+
+bool ContractionHierarchies::SaveSettings( QSettings* settings )
+{
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new CHSettingsDialog();
+	return m_settingsDialog->saveSettings( settings );
 }
 
 int ContractionHierarchies::GetFileFormatVersion()
@@ -47,11 +63,6 @@ ContractionHierarchies::Type ContractionHierarchies::GetType()
 	return Router;
 }
 
-void ContractionHierarchies::SetOutputDirectory( const QString& dir )
-{
-	m_outputDirectory = dir;
-}
-
 QWidget* ContractionHierarchies::GetSettings()
 {
 	if ( m_settingsDialog == NULL )
@@ -59,13 +70,13 @@ QWidget* ContractionHierarchies::GetSettings()
 	return m_settingsDialog;
 }
 
-bool ContractionHierarchies::Preprocess( IImporter* importer )
+bool ContractionHierarchies::Preprocess( IImporter* importer, QString dir )
 {
 	if ( m_settingsDialog == NULL )
 		m_settingsDialog = new CHSettingsDialog();
 	m_settingsDialog->getSettings( &m_settings );
 
-	QString filename = fileInDirectory( m_outputDirectory, "Contraction Hierarchies" );
+	QString filename = fileInDirectory( dir, "Contraction Hierarchies" );
 
 	std::vector< IImporter::RoutingNode > inputNodes;
 	std::vector< IImporter::RoutingEdge > inputEdges;

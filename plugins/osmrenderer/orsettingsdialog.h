@@ -26,6 +26,8 @@ namespace Ui {
 	class ORSettingsDialog;
 }
 
+class QSettings;
+
 class ORSettingsDialog : public QWidget
 {
 	Q_OBJECT
@@ -40,6 +42,8 @@ public:
 	~ORSettingsDialog();
 
 	bool getSettings( Settings* settings );
+	bool loadSettings( QSettings* settings );
+	bool saveSettings( QSettings* settings );
 
 protected:
 

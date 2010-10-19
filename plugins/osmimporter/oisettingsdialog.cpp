@@ -40,55 +40,17 @@ OISettingsDialog::OISettingsDialog(QWidget *parent) :
 	m_ui->toolBox->widget( 5 )->setEnabled( false );
 	m_ui->toolBox->widget( 6 )->setEnabled( false );
 
-	QSettings settings( "MoNav" );
-	settings.beginGroup( "OSM Importer" );
-	m_ui->inputEdit->setText( settings.value( "inputFile" ).toString() );
-	m_lastFilename = settings.value( "lastProfile" ).toString();
-	m_speedProfiles = settings.value( "SpeedProfiles" ).toStringList();
-	QStringList languageSettings = settings.value( "languageSettings", QStringList( "name:en" ) + QStringList( "name" ) ).toStringList();
-	for ( int language = 0; language < languageSettings.size(); language++ ) {
-		QListWidgetItem* item = new QListWidgetItem( languageSettings[language], m_ui->languagePriorities, 0 );
-		item->setFlags( item->flags () | Qt::ItemIsEditable );
-	}
-
-	QDir speedProfilesDir( ":/speed profiles" );
-	QStringList includedSpeedProfiles = speedProfilesDir.entryList();
-	for ( int i = 0; i < includedSpeedProfiles.size(); i++ ) {
-		QString filename = speedProfilesDir.filePath( includedSpeedProfiles[i] );
-		QString name = load( filename, true );
-		assert( !name.isEmpty() );
-		m_ui->speedProfileChooser->addItem( name, filename );
-	}
-
-	QStringList validSpeedProfiles;
-	for ( int i = 0; i < m_speedProfiles.size(); i++ ) {
-		QString name = load( m_speedProfiles[i], true );
-		if( name.isEmpty() )
-			continue;
-		m_ui->speedProfileChooser->addItem( "File: " + name, m_speedProfiles[i] );
-		validSpeedProfiles.push_back( m_speedProfiles[i] );
-	}
-	m_speedProfiles = validSpeedProfiles;
-
-	QString lastName = load( m_lastFilename, true );
-	if ( !lastName.isEmpty() )
-		load( m_lastFilename );
-	else
-		load( speedProfilesDir.filePath( includedSpeedProfiles.last() ) );
-
-	m_ui->speedProfileChooser->setCurrentIndex( m_ui->speedProfileChooser->findData( m_lastFilename ) );
-
 	connectSlots();
 }
 
 void OISettingsDialog::connectSlots()
 {
-	connect( m_ui->browseButton, SIGNAL(clicked()), this, SLOT(browse()) );
 	connect( m_ui->addWayType, SIGNAL(clicked()), this, SLOT(addSpeed()) );
 	connect( m_ui->deleteWayType, SIGNAL(clicked()), this, SLOT(removeSpeed()) );
 	connect( m_ui->saveButton, SIGNAL(clicked()), this, SLOT(save()) );
 	connect( m_ui->loadButton, SIGNAL(clicked()), this, SLOT(load()) );
-	connect( m_ui->speedProfileChooser, SIGNAL(currentIndexChanged(int)), this, SLOT(currentIndexChanged(int)) );
+	connect( m_ui->speedProfileChooser, SIGNAL(currentIndexChanged(int)), this, SLOT(currentIndexChanged()) );
+	connect( m_ui->customProfile, SIGNAL(toggled(bool)), this, SLOT(currentIndexChanged()) );
 	connect( m_ui->customProfile, SIGNAL(toggled(bool)), m_ui->toolBox->widget( 2 ), SLOT(setEnabled(bool)) );
 	connect( m_ui->customProfile, SIGNAL(toggled(bool)), m_ui->toolBox->widget( 3 ), SLOT(setEnabled(bool)) );
 	connect( m_ui->customProfile, SIGNAL(toggled(bool)), m_ui->toolBox->widget( 4 ), SLOT(setEnabled(bool)) );
@@ -105,15 +67,6 @@ void OISettingsDialog::connectSlots()
 
 OISettingsDialog::~OISettingsDialog()
 {
-	QSettings settings( "MoNav" );
-	settings.beginGroup( "OSM Importer" );
-	settings.setValue( "inputFile", m_ui->inputEdit->text()  );
-	settings.setValue( "lastProfile", m_lastFilename );
-	settings.setValue( "SpeedProfiles", m_speedProfiles );
-	QStringList languageSettings;
-	for ( int item = 0; item < m_ui->languagePriorities->count(); item++ )
-		languageSettings.append( m_ui->languagePriorities->item( item )->text() );
-	settings.setValue( "languageSettings", languageSettings );
 	delete m_ui;
 }
 
@@ -235,10 +188,13 @@ void OISettingsDialog::save( const QString& filename, QString name )
 		return;
 	}
 
+	m_ui->customProfile->setChecked( false );
+	m_ui->toolBox->setCurrentIndex( 0 );
+
 	load( filename );
 }
 
-QString OISettingsDialog::load( const QString& filename, bool nameOnly)
+QString OISettingsDialog::load( const QString& filename, bool nameOnly )
 {
 
 	QSettings settings( filename, QSettings::IniFormat );
@@ -331,6 +287,15 @@ QString OISettingsDialog::load( const QString& filename, bool nameOnly)
 		return "";
 	}
 
+	int existingIndex = m_ui->speedProfileChooser->findData( filename );
+	if ( existingIndex != -1 ) {
+		if ( filename.startsWith( ":/" ) )
+			m_ui->speedProfileChooser->setItemText( existingIndex, name );
+		else
+			m_ui->speedProfileChooser->setItemText( existingIndex, "File: " + name );
+		m_ui->speedProfileChooser->setCurrentIndex( existingIndex );
+	}
+
 	if ( !filename.startsWith( ":/" ) && !m_speedProfiles.contains( filename ) ) {
 		m_speedProfiles.push_back( filename );
 		m_ui->speedProfileChooser->addItem( "File: " + name, filename );
@@ -351,6 +316,9 @@ void OISettingsDialog::save()
 	if ( name.isEmpty() )
 		return;
 
+	if ( !name.endsWith( ".spp" ) )
+		name += ".spp";
+
 	save( filename, name );
 }
 
@@ -365,15 +333,6 @@ void OISettingsDialog::load()
 		return;
 }
 
-void OISettingsDialog::browse() {
-	QString file = m_ui->inputEdit->text();
-	file = QFileDialog::getOpenFileName( this, tr("Enter OSM Filename"), file, "OSM XML ( *.osm );; Compressed OSM XML ( *osm.bz2 );; ProtocolBufBinary ( *.pbf )" );
-	if ( file.isEmpty() )
-		return;
-
-	m_ui->inputEdit->setText( file );
-}
-
 bool OISettingsDialog::getSettings( Settings* settings )
 {
 	if ( settings == NULL )
@@ -382,7 +341,6 @@ bool OISettingsDialog::getSettings( Settings* settings )
 	settings->accessList.clear();
 	settings->defaultCitySpeed = m_ui->setDefaultCitySpeed->isChecked();
 	settings->trafficLightPenalty = m_ui->trafficLightPenalty->value();
-	settings->input = m_ui->inputEdit->text();
 	settings->ignoreOneway = m_ui->ignoreOneway->isChecked();
 	settings->ignoreMaxspeed = m_ui->ignoreMaxspeed->isChecked();
 
@@ -448,10 +406,71 @@ bool OISettingsDialog::getSettings( Settings* settings )
 	return true;
 }
 
-void OISettingsDialog::currentIndexChanged( int index )
+void OISettingsDialog::currentIndexChanged()
 {
+	int index = m_ui->speedProfileChooser->currentIndex();
 	if ( index == -1 )
 		return;
 	QString filename = m_ui->speedProfileChooser->itemData( index ).toString();
 	load( filename );
+}
+
+bool OISettingsDialog::loadSettings( QSettings* settings )
+{
+	settings->beginGroup( "OSM Importer" );
+	m_speedProfiles = settings->value( "SpeedProfiles" ).toStringList();
+	QStringList languageSettings = settings->value( "languageSettings", QStringList( "name:en" ) + QStringList( "name" ) ).toStringList();
+	for ( int language = 0; language < languageSettings.size(); language++ ) {
+		QListWidgetItem* item = new QListWidgetItem( languageSettings[language], m_ui->languagePriorities, 0 );
+		item->setFlags( item->flags () | Qt::ItemIsEditable );
+	}
+
+	QDir speedProfilesDir( ":/speed profiles" );
+	QStringList includedSpeedProfiles = speedProfilesDir.entryList();
+	for ( int i = 0; i < includedSpeedProfiles.size(); i++ ) {
+		QString filename = speedProfilesDir.filePath( includedSpeedProfiles[i] );
+		QString name = load( filename, true );
+		assert( !name.isEmpty() );
+		m_ui->speedProfileChooser->addItem( name, filename );
+	}
+
+	QStringList validSpeedProfiles;
+	for ( int i = 0; i < m_speedProfiles.size(); i++ ) {
+		QString name = load( m_speedProfiles[i], true );
+		if( name.isEmpty() )
+			continue;
+		m_ui->speedProfileChooser->addItem( "File: " + name, m_speedProfiles[i] );
+		validSpeedProfiles.push_back( m_speedProfiles[i] );
+	}
+	m_speedProfiles = validSpeedProfiles;
+
+	m_lastFilename = settings->value( "lastProfile" ).toString();
+	QString lastName = load( m_lastFilename, true );
+	if ( !lastName.isEmpty() )
+		load( m_lastFilename );
+	else
+		load( speedProfilesDir.filePath( includedSpeedProfiles.last() ) );
+
+	m_ui->speedProfileChooser->setCurrentIndex( m_ui->speedProfileChooser->findData( m_lastFilename ) );
+
+	settings->endGroup();
+	return true;
+}
+
+bool OISettingsDialog::saveSettings( QSettings* settings )
+{
+	settings->beginGroup( "OSM Importer" );
+	settings->setValue( "lastProfile", m_lastFilename );
+	settings->setValue( "SpeedProfiles", m_speedProfiles );
+	QStringList languageSettings;
+	for ( int item = 0; item < m_ui->languagePriorities->count(); item++ )
+		languageSettings.append( m_ui->languagePriorities->item( item )->text() );
+	settings->setValue( "languageSettings", languageSettings );
+	settings->endGroup();
+
+	if ( m_ui->customProfile->isChecked() ) {
+		qCritical() << "Unsafed Custom Speed Profile";
+		return false;
+	}
+	return true;
 }

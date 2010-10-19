@@ -38,9 +38,10 @@ public:
 	virtual QString GetName();
 	virtual int GetFileFormatVersion();
 	virtual Type GetType();
-	virtual void SetOutputDirectory( const QString& dir );
 	virtual QWidget* GetSettings();
-	virtual bool Preprocess( IImporter* importer );
+	virtual bool LoadSettings( QSettings* settings );
+	virtual bool SaveSettings( QSettings* settings );
+	virtual bool Preprocess( IImporter* importer, QString dir );
 
 protected:
 
@@ -58,7 +59,6 @@ protected:
 	bool clipHelper( double directedProjection, double directedDistance, double* tMinimum, double* tMaximum );
 	bool clipEdge( ProjectedCoordinate source, ProjectedCoordinate target, ProjectedCoordinate min, ProjectedCoordinate max );
 
-	QString m_outputDirectory;
 	GGDialog* m_settingsDialog;
 };
 

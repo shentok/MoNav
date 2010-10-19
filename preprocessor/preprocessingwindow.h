@@ -35,13 +35,20 @@ class PreprocessingWindow : public QMainWindow {
 
 public:
 
-	PreprocessingWindow(QWidget *parent = 0);
+	PreprocessingWindow( QWidget* parent = 0, QString configFile = "" );
 	~PreprocessingWindow();
+
+public slots:
+
+	bool preprocessAll();
+	bool preprocessDaemon();
 
 protected slots:
 
+	void inputBrowse();
 	void imageBrowse();
 	void outputBrowse();
+	void inputChanged( QString text );
 	void imageChanged( QString text );
 	void outputChanged( QString text );
 	void threadsChanged( int threads );
@@ -50,9 +57,9 @@ protected slots:
 	bool routerPreprocessing();
 	bool gpsLookupPreprocessing();
 	bool addressLookupPreprocessing();
-	void preprocessAll();
 	bool writeConfig();
 	bool deleteTemporary();
+	void saveSettingsToFile();
 
 protected:
 
@@ -60,6 +67,10 @@ protected:
 	void loadPlugins();
 	bool testPlugin( QObject* plugin );
 	void unloadPlugins();
+	bool saveSettings( QString configFile = "" );
+	void parseArguments();
+
+	virtual void closeEvent( QCloseEvent* event );
 
 	QList< IImporter* > m_importerPlugins;
 	QList< IPreprocessor* > m_rendererPlugins;

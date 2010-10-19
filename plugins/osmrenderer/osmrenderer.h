@@ -23,6 +23,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QObject>
 #include "interfaces/ipreprocessor.h"
 #include "orsettingsdialog.h"
+
 class OSMRenderer : public QObject, public IPreprocessor
 {
 	Q_OBJECT
@@ -34,9 +35,10 @@ public:
 	virtual QString GetName();
 	virtual int GetFileFormatVersion();
 	virtual Type GetType();
-	virtual void SetOutputDirectory( const QString& directory );
 	virtual QWidget* GetSettings();
-	virtual bool Preprocess( IImporter* importer );
+	virtual bool LoadSettings( QSettings* settings );
+	virtual bool SaveSettings( QSettings* settings );
+	virtual bool Preprocess( IImporter* importer, QString dir );
 	virtual ~OSMRenderer();
 
 protected:

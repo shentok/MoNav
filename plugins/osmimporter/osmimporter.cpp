@@ -95,7 +95,21 @@ QWidget* OSMImporter::GetSettings()
 	return m_settingsDialog;
 }
 
-bool OSMImporter::Preprocess()
+bool OSMImporter::LoadSettings( QSettings* settings )
+{
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new OISettingsDialog;
+	return m_settingsDialog->loadSettings( settings );
+}
+
+bool OSMImporter::SaveSettings( QSettings* settings )
+{
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new OISettingsDialog;
+	return m_settingsDialog->saveSettings( settings );
+}
+
+bool OSMImporter::Preprocess( QString inputFilename )
 {
 	if ( m_settingsDialog == NULL )
 		m_settingsDialog = new OISettingsDialog();
@@ -128,7 +142,7 @@ bool OSMImporter::Preprocess()
 
 	Timer time;
 
-	if ( !read( m_settings.input, filename ) )
+	if ( !read( inputFilename, filename ) )
 		return false;
 	qDebug() << "OSM Importer: finished import pass 1:" << time.restart() << "ms";
 

@@ -26,14 +26,10 @@ GGDialog::GGDialog( QWidget *parent ) :
 		ui( new Ui::GGDialog )
 {
 	ui->setupUi(this);
-	QSettings settings( "MoNav" );
-	settings.beginGroup( "GPSGrid" );
 }
 
 GGDialog::~GGDialog()
 {
-	QSettings settings( "MoNav" );
-	settings.beginGroup( "GPSGrid" );
 	delete ui;
 }
 
@@ -41,5 +37,19 @@ bool GGDialog::getSettings( Settings* settings )
 {
 	if ( settings == NULL )
 		return false;
+	return true;
+}
+
+bool GGDialog::loadSettings( QSettings* settings )
+{
+	settings->beginGroup( "GPSGrid" );
+	settings->endGroup();
+	return true;
+}
+
+bool GGDialog::saveSettings( QSettings* settings )
+{
+	settings->beginGroup( "GPSGrid" );
+	settings->endGroup();
 	return true;
 }

@@ -17,9 +17,11 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "interfaces/iimporter.h"
 #include "gpsgrid.h"
 #include "utils/intersection.h"
 #include "utils/qthelpers.h"
+
 #include <QFile>
 #include <algorithm>
 
@@ -49,11 +51,6 @@ GPSGrid::Type GPSGrid::GetType()
 	return GPSLookup;
 }
 
-void GPSGrid::SetOutputDirectory( const QString& dir )
-{
-	m_outputDirectory = dir;
-}
-
 QWidget* GPSGrid::GetSettings()
 {
 	if ( m_settingsDialog == NULL )
@@ -61,7 +58,21 @@ QWidget* GPSGrid::GetSettings()
 	return m_settingsDialog;
 }
 
-bool GPSGrid::Preprocess( IImporter* importer )
+bool GPSGrid::LoadSettings( QSettings* settings )
+{
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new GGDialog();
+	return m_settingsDialog->loadSettings( settings );
+}
+
+bool GPSGrid::SaveSettings( QSettings* settings )
+{
+	if ( m_settingsDialog == NULL )
+		m_settingsDialog = new GGDialog();
+	return m_settingsDialog->saveSettings( settings );
+}
+
+bool GPSGrid::Preprocess( IImporter* importer, QString dir )
 {
 	if ( m_settingsDialog == NULL )
 		m_settingsDialog = new GGDialog();
@@ -69,7 +80,7 @@ bool GPSGrid::Preprocess( IImporter* importer )
 	if ( !m_settingsDialog->getSettings( &settings ) )
 		return false;
 
-	QString filename = fileInDirectory( m_outputDirectory, "GPSGrid" );
+	QString filename = fileInDirectory( dir, "GPSGrid" );
 
 	QFile gridFile( filename + "_grid" );
 	QFile configFile( filename + "_config" );
