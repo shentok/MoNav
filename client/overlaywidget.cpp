@@ -86,7 +86,7 @@ void OverlayWidget::showEvent( QShowEvent* event )
 	setFixedSize( parentWidget()->size() );
 	setOrientation();
 	parentWidget()->installEventFilter( this );
-	QCursor::setPos( mapToGlobal( m_centralWidget->pos() ) );
+	QCursor::setPos( mapToGlobal( m_scrollArea->pos() ) );
 }
 
 bool OverlayWidget::eventFilter( QObject* obj, QEvent* ev )
