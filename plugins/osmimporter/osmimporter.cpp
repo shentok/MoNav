@@ -47,9 +47,19 @@ void OSMImporter::setRequiredTags( IEntityReader *reader )
 	// Place = 0, Population = 1, Highway = 2
 	list.push_back( "place" );
 	list.push_back( "population" );
-	list.push_back( "highway" );
+	list.push_back( "barrier" );
 	for ( int i = 0; i < m_settings.languageSettings.size(); i++ )
 		list.push_back( m_settings.languageSettings[i] );
+	for ( int i = 0; i < m_settings.accessList.size(); i++ )
+		list.push_back( m_settings.accessList[i] );
+	for ( int i = 0; i < m_settings.nodeModificators.size(); i++ ) {
+		int index = list.indexOf( m_settings.nodeModificators[i].key );
+		if ( index == -1 ) {
+			index = list.size();
+			list.push_back( m_settings.nodeModificators[i].key );
+		}
+		m_nodeModificatorIDs.push_back( index );
+	}
 	reader->setNodeTags( list );
 
 	list.clear();
@@ -65,6 +75,14 @@ void OSMImporter::setRequiredTags( IEntityReader *reader )
 		list.push_back( m_settings.languageSettings[i] );
 	for ( int i = 0; i < m_settings.accessList.size(); i++ )
 		list.push_back( m_settings.accessList[i] );
+	for ( int i = 0; i < m_settings.wayModificators.size(); i++ ) {
+		int index = list.indexOf( m_settings.wayModificators[i].key );
+		if ( index == -1 ) {
+			index = list.size();
+			list.push_back( m_settings.wayModificators[i].key );
+		}
+		m_wayModificatorIDs.push_back( index );
+	}
 	reader->setWayTags( list );
 
 	list.clear();
@@ -133,10 +151,13 @@ bool OSMImporter::Preprocess( QString inputFilename )
 
 	std::vector< unsigned >().swap( m_usedNodes );
 	std::vector< unsigned >().swap( m_outlineNodes );
-	std::vector< unsigned >().swap( m_signalNodes );
 	std::vector< unsigned >().swap( m_routingNodes );
+	std::vector< NodePenalty >().swap( m_penaltyNodes );
+	std::vector< unsigned >().swap( m_noAccessNodes );
 	m_wayNames.clear();
 	m_wayRefs.clear();
+	m_nodeModificatorIDs.clear();
+	m_wayModificatorIDs.clear();
 
 	m_statistics = Statistics();
 
@@ -164,7 +185,8 @@ bool OSMImporter::Preprocess( QString inputFilename )
 	m_usedNodes.resize( std::unique( m_usedNodes.begin(), m_usedNodes.end() ) - m_usedNodes.begin() );
 	std::sort( m_outlineNodes.begin(), m_outlineNodes.end() );
 	m_outlineNodes.resize( std::unique( m_outlineNodes.begin(), m_outlineNodes.end() ) - m_outlineNodes.begin() );
-	std::sort( m_signalNodes.begin(), m_signalNodes.end() );
+	std::sort( m_penaltyNodes.begin(), m_penaltyNodes.end() );
+	std::sort( m_noAccessNodes.begin(), m_noAccessNodes.end() );
 	std::sort( m_routingNodes.begin(), m_routingNodes.end() );
 	m_routingNodes.resize( std::unique( m_routingNodes.begin(), m_routingNodes.end() ) - m_routingNodes.begin() );
 
@@ -176,11 +198,12 @@ bool OSMImporter::Preprocess( QString inputFilename )
 	qDebug() << "OSM Importer: ways:" << m_statistics.numberOfWays;
 	qDebug() << "OSM Importer: places:" << m_statistics.numberOfPlaces;
 	qDebug() << "OSM Importer: places outlines:" << m_statistics.numberOfOutlines;
-	qDebug() << "OSM Importer: places outline nodes:" << ( int ) m_outlineNodes.size();
+	qDebug() << "OSM Importer: places outline nodes:" << m_outlineNodes.size();
 	qDebug() << "OSM Importer: routing edges:" << m_statistics.numberOfEdges;
 	qDebug() << "OSM Importer: routing nodes:" << m_routingNodes.size();
-	qDebug() << "OSM Importer: used nodes:" << ( int ) m_usedNodes.size();
-	qDebug() << "OSM Importer: traffic signal nodes:" << ( int ) m_signalNodes.size();
+	qDebug() << "OSM Importer: used nodes:" << m_usedNodes.size();
+	qDebug() << "OSM Importer: nodes with penalty:" << m_penaltyNodes.size();
+	qDebug() << "OSM Importer: nodes with no access:" << m_noAccessNodes.size();
 	qDebug() << "OSM Importer: maxspeed:" << m_statistics.numberOfMaxspeed;
 	qDebug() << "OSM Importer: zero speed ways:" << m_statistics.numberOfZeroSpeed;
 	qDebug() << "OSM Importer: default city speed:" << m_statistics.numberOfDefaultCitySpeed;
@@ -189,10 +212,13 @@ bool OSMImporter::Preprocess( QString inputFilename )
 
 	std::vector< unsigned >().swap( m_usedNodes );
 	std::vector< unsigned >().swap( m_outlineNodes );
-	std::vector< unsigned >().swap( m_signalNodes );
 	std::vector< unsigned >().swap( m_routingNodes );
+	std::vector< NodePenalty >().swap( m_penaltyNodes );
+	std::vector< unsigned >().swap( m_noAccessNodes );
 	m_wayNames.clear();
 	m_wayRefs.clear();
+	m_nodeModificatorIDs.clear();
+	m_wayModificatorIDs.clear();
 	return true;
 }
 
@@ -267,8 +293,11 @@ bool OSMImporter::read( const QString& inputFilename, const QString& filename ) 
 				max.latitude = std::max( max.latitude, inputNode.coordinate.latitude );
 				max.longitude = std::max( max.longitude, inputNode.coordinate.longitude );
 
-				if ( node.trafficSignal )
-					m_signalNodes.push_back( inputNode.id );
+				if ( node.penalty != 0 )
+					m_penaltyNodes.push_back( NodePenalty( inputNode.id, node.penalty ) );
+
+				if ( !node.access )
+					m_noAccessNodes.push_back( inputNode.id );
 
 				UnsignedCoordinate coordinate( inputNode.coordinate );
 				allNodesData << unsigned( inputNode.id ) << coordinate.x << coordinate.y;
@@ -323,6 +352,7 @@ bool OSMImporter::read( const QString& inputFilename, const QString& filename ) 
 					edgesData << way.type;
 					edgesData << way.roundabout;
 					edgesData << way.maximumSpeed;
+					edgesData << way.addFixed << way.addPercentage;
 					edgesData << !( way.direction == Way::Oneway || way.direction == Way::Opposite );
 					edgesData << unsigned( inputWay.nodes.size() );
 					for ( unsigned node = 0; node < inputWay.nodes.size(); ++node )
@@ -367,7 +397,6 @@ bool OSMImporter::read( const QString& inputFilename, const QString& filename ) 
 bool OSMImporter::preprocessData( const QString& filename ) {
 	std::vector< UnsignedCoordinate > nodeCoordinates( m_usedNodes.size() );
 	std::vector< UnsignedCoordinate > outlineCoordinates( m_outlineNodes.size() );
-	std::vector< UnsignedCoordinate > routingCoordinates( m_routingNodes.size() );
 
 	FileStream allNodesData( filename + "_all_nodes" );
 
@@ -393,17 +422,9 @@ bool OSMImporter::preprocessData( const QString& filename ) {
 		element = std::lower_bound( m_outlineNodes.begin(), m_outlineNodes.end(), node );
 		if ( element != m_outlineNodes.end() && *element == node )
 			outlineCoordinates[element - m_outlineNodes.begin()] = coordinate;
-		element = std::lower_bound( m_routingNodes.begin(), m_routingNodes.end(), node );
-		if ( element != m_routingNodes.end() && *element == node )
-			routingCoordinates[element - m_routingNodes.begin()] = coordinate;
 	}
 
 	qDebug() << "OSM Importer: filtered node coordinates:" << time.restart() << "ms";
-
-	for ( std::vector< UnsignedCoordinate >::const_iterator i = routingCoordinates.begin(); i != routingCoordinates.end(); ++i )
-		routingCoordinatesData << i->x << i->y;
-
-	qDebug() << "OSM Importer: wrote routing node coordinates:" << time.restart() << "ms";
 
 	std::vector< NodeLocation > nodeLocation( m_usedNodes.size() );
 
@@ -413,6 +434,15 @@ bool OSMImporter::preprocessData( const QString& filename ) {
 
 	if ( !remapEdges( filename, nodeCoordinates, nodeLocation ) )
 		return false;
+
+	qDebug() << "OSM Importer: remapped edges:" << time.restart() << "ms";
+
+	for ( unsigned i = 0; i < m_routingNodes.size(); i++ ) {
+		unsigned mapped = std::lower_bound( m_usedNodes.begin(), m_usedNodes.end(), m_routingNodes[i] ) - m_usedNodes.begin();
+		routingCoordinatesData << nodeCoordinates[mapped].x << nodeCoordinates[mapped].y;
+	}
+
+	qDebug() << "OSM Importer: wrote routing node coordinates:" << time.restart() << "ms";
 
 	return true;
 }
@@ -581,6 +611,8 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< UnsignedCoord
 	if ( !edgePathsData.open( QIODevice::WriteOnly ) )
 		return false;
 
+	unsigned oldRoutingNodes = m_routingNodes.size();
+
 	Timer time;
 
 	unsigned pathID = 0;
@@ -588,10 +620,11 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< UnsignedCoord
 	while ( true ) {
 		double speed;
 		unsigned numberOfPathNodes, type, nameID, refID;
+		int addFixed, addPercentage;
 		bool bidirectional, roundabout;
 		std::vector< unsigned > way;
 
-		edgesData >> nameID >> refID >> type >> roundabout >> speed >> bidirectional >> numberOfPathNodes;
+		edgesData >> nameID >> refID >> type >> roundabout >> speed >> addFixed >> addPercentage >> bidirectional >> numberOfPathNodes;
 		if ( edgesData.status() == QDataStream::ReadPastEnd )
 			break;
 
@@ -618,8 +651,12 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< UnsignedCoord
 			continue;
 
 		for ( unsigned pathNode = 0; pathNode + 1 < way.size(); ) {
-			unsigned source = std::lower_bound( m_routingNodes.begin(), m_routingNodes.end(), m_usedNodes[way[pathNode]] ) - m_routingNodes.begin();
-			assert( source < m_routingNodes.size() && m_routingNodes[source] == m_usedNodes[way[pathNode]] );
+			unsigned source = std::lower_bound( m_routingNodes.begin(), m_routingNodes.begin() + oldRoutingNodes, m_usedNodes[way[pathNode]] ) - m_routingNodes.begin();
+			if ( std::binary_search( m_noAccessNodes.begin(), m_noAccessNodes.end(), m_usedNodes[way[pathNode]] ) ) {
+				source = m_routingNodes.size();
+				m_routingNodes.push_back( m_usedNodes[way[pathNode]] );
+			}
+			assert( source < m_routingNodes.size() );
 			NodeID target = 0;
 			double seconds = 0;
 
@@ -629,6 +666,7 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< UnsignedCoord
 				NodeID to = way[nextRoutingNode];
 				GPSCoordinate fromCoordinate = nodeCoordinates[from].ToGPSCoordinate();
 				GPSCoordinate toCoordinate = nodeCoordinates[to].ToGPSCoordinate();
+
 				double distance = fromCoordinate.Distance( toCoordinate );
 
 				double segmentSpeed = speed;
@@ -644,13 +682,23 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< UnsignedCoord
 				segmentSpeed *= m_settings.speedProfile.averagePercentage[type] / 100.0;
 
 				seconds += distance * 3.6 / segmentSpeed;
+				seconds *= 1.0 + addPercentage / 100.0;
+				seconds += addFixed;
 
-				if ( std::binary_search( m_signalNodes.begin(), m_signalNodes.end(), m_usedNodes[from] ) )
-					seconds += m_settings.trafficLightPenalty / 2.0;
-				if ( std::binary_search( m_signalNodes.begin(), m_signalNodes.end(), m_usedNodes[to] ) )
-					seconds += m_settings.trafficLightPenalty / 2.0;
+				unsigned nodePenalty = std::lower_bound( m_penaltyNodes.begin(), m_penaltyNodes.end(), m_usedNodes[from] ) - m_penaltyNodes.begin();
+				if ( nodePenalty < m_penaltyNodes.size() && m_penaltyNodes[nodePenalty].id == m_usedNodes[from] )
+					seconds += m_penaltyNodes[nodePenalty].seconds;
+				nodePenalty = std::lower_bound( m_penaltyNodes.begin(), m_penaltyNodes.end(), m_usedNodes[to] ) - m_penaltyNodes.begin();
+				if ( nodePenalty < m_penaltyNodes.size() && m_penaltyNodes[nodePenalty].id == m_usedNodes[to] )
+					seconds += m_penaltyNodes[nodePenalty].seconds;
 
-				target = std::lower_bound( m_routingNodes.begin(), m_routingNodes.end(), m_usedNodes[to] ) - m_routingNodes.begin();
+				if ( std::binary_search( m_noAccessNodes.begin(), m_noAccessNodes.end(), m_usedNodes[to] ) ) {
+					target = m_routingNodes.size();
+					m_routingNodes.push_back( m_usedNodes[to] );
+					break;
+				}
+
+				target = std::lower_bound( m_routingNodes.begin(), m_routingNodes.begin() + oldRoutingNodes, m_usedNodes[to] ) - m_routingNodes.begin();
 				if ( target < m_routingNodes.size() && m_routingNodes[target] == m_usedNodes[to] )
 					break;
 
@@ -704,6 +752,8 @@ void OSMImporter::readWay( OSMImporter::Way* way, const IEntityReader::Way& inpu
 	way->usefull = false;
 	way->access = true;
 	way->accessPriority = m_settings.accessList.size();
+	way->addFixed = 0;
+	way->addPercentage = 0;
 
 	for ( unsigned tag = 0; tag < inputWay.tags.size(); tag++ ) {
 		int key = inputWay.tags[tag].key;
@@ -819,6 +869,39 @@ void OSMImporter::readWay( OSMImporter::Way* way, const IEntityReader::Way& inpu
 			continue;
 		}
 	}
+
+	// rescan tags to apply modificators
+	for ( unsigned tag = 0; tag < inputWay.tags.size(); tag++ ) {
+		int key = inputWay.tags[tag].key;
+		QString value = inputWay.tags[tag].value;
+
+		for ( unsigned modificator = 0; modificator < m_wayModificatorIDs.size(); modificator++ ) {
+			if ( m_wayModificatorIDs[modificator] != key )
+				continue;
+
+			const MoNav::WayModificator& mod = m_settings.wayModificators[modificator];
+			if ( mod.checkValue && mod.value != value )
+				continue;
+
+			switch ( mod.type ) {
+			case MoNav::WayModifyFixed:
+				way->addFixed += mod.modificatorValue.toInt();
+				break;
+			case MoNav::WayModifyPercentage:
+				way->addPercentage = std::min( way->addPercentage, mod.modificatorValue.toInt() );
+				break;
+			case MoNav::WayAccess:
+				way->access = mod.modificatorValue.toBool();
+				break;
+			case MoNav::WayOneway:
+				if ( mod.modificatorValue.toBool() )
+					way->direction = Way::Oneway;
+				else
+					way->direction = Way::Bidirectional;
+				break;
+			}
+		}
+	}
 }
 
 void OSMImporter::readNode( OSMImporter::Node* node, const IEntityReader::Node& inputNode ) {
@@ -826,7 +909,9 @@ void OSMImporter::readNode( OSMImporter::Node* node, const IEntityReader::Node& 
 	node->namePriority = m_settings.languageSettings.size();
 	node->type = Place::None;
 	node->population = -1;
-	node->trafficSignal = false;
+	node->penalty = 0;
+	node->access = true;
+	node->accessPriority = m_settings.accessList.size();
 
 	for ( unsigned tag = 0; tag < inputNode.tags.size(); tag++ ) {
 		int key = inputNode.tags[tag].key;
@@ -847,10 +932,10 @@ void OSMImporter::readNode( OSMImporter::Node* node, const IEntityReader::Node& 
 						node->population = population;
 					break;
 				}
-			case NodeTags::Highway:
+			case NodeTags::Barrier:
 				{
-					if ( value == "traffic_signals" )
-						node->trafficSignal = true;
+					if ( node->accessPriority == m_settings.accessList.size() )
+						node->access = false;
 					break;
 				}
 			case NodeTags::MaxTag:
@@ -868,6 +953,45 @@ void OSMImporter::readNode( OSMImporter::Node* node, const IEntityReader::Node& 
 			}
 
 			continue;
+		}
+
+		key -= m_settings.languageSettings.size();
+		if ( key < m_settings.accessList.size() ) {
+				if ( key < node->accessPriority ) {
+					if ( value == "private" || value == "no" || value == "agricultural" || value == "forestry" || value == "delivery" ) {
+						node->access = false;
+						node->accessPriority = key;
+					} else if ( value == "yes" || value == "designated" || value == "official" || value == "permissive" ) {
+						node->access = true;
+						node->accessPriority = key;
+					}
+				}
+
+			continue;
+		}
+	}
+
+	// rescan tags to apply modificators
+	for ( unsigned tag = 0; tag < inputNode.tags.size(); tag++ ) {
+		int key = inputNode.tags[tag].key;
+		QString value = inputNode.tags[tag].value;
+
+		for ( unsigned modificator = 0; modificator < m_nodeModificatorIDs.size(); modificator++ ) {
+			if ( m_nodeModificatorIDs[modificator] != key )
+				continue;
+
+			const MoNav::NodeModificator& mod = m_settings.nodeModificators[modificator];
+			if ( mod.checkValue && mod.value != value )
+				continue;
+
+			switch ( mod.type ) {
+			case MoNav::NodeModifyFixed:
+				node->penalty += mod.modificatorValue.toInt();
+				break;
+			case MoNav::NodeAccess:
+				node->access = mod.modificatorValue.toBool();
+				break;
+			}
 		}
 	}
 }

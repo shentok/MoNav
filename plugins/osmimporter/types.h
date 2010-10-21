@@ -17,31 +17,44 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef WAYMODIFICATORWIDGET_H
-#define WAYMODIFICATORWIDGET_H
+#ifndef TYPES_H
+#define TYPES_H
 
-#include "types.h"
+#include <QString>
+#include <QVariant>
 
-#include <QFrame>
+namespace MoNav {
 
-namespace Ui {
-	class WayModificatorWidget;
+	enum NodeModificatorType {
+		NodeModifyFixed = 0,
+		NodeAccess = 1
+	};
+
+	struct NodeModificator {
+		QString key;
+		bool checkValue;
+		QString value;
+		bool invert;
+		QVariant modificatorValue;
+		NodeModificatorType type;
+	};
+
+	enum WayModificatorType {
+		WayModifyFixed = 0,
+		WayModifyPercentage = 1,
+		WayAccess = 2,
+		WayOneway = 3
+
+	};
+
+	struct WayModificator {
+		QString key;
+		bool checkValue;
+		QString value;
+		bool invert;
+		QVariant modificatorValue;
+		WayModificatorType type;
+	};
 }
 
-class WayModificatorWidget : public QFrame
-{
-	Q_OBJECT
-
-public:
-
-	explicit WayModificatorWidget( QWidget* parent = 0 );
-	~WayModificatorWidget();
-
-	void setModificator( const MoNav::WayModificator& modificator );
-	MoNav::WayModificator modificator();
-
-private:
-	Ui::WayModificatorWidget* m_ui;
-};
-
-#endif // WAYMODIFICATORWIDGET_H
+#endif // TYPES_H

@@ -135,8 +135,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>100</width>
-        <height>131</height>
+        <width>487</width>
+        <height>242</height>
        </rect>
       </property>
       <attribute name="label">
@@ -199,8 +199,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>437</width>
-        <height>164</height>
+        <width>487</width>
+        <height>242</height>
        </rect>
       </property>
       <attribute name="label">
@@ -225,46 +225,6 @@
          </item>
          <item>
           <spacer name="horizontalSpacer_5">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_4">
-         <item>
-          <widget class="QLabel" name="label_3">
-           <property name="text">
-            <string>Traffic Light Penalty</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSpinBox" name="trafficLightPenalty">
-           <property name="frame">
-            <bool>true</bool>
-           </property>
-           <property name="suffix">
-            <string> s</string>
-           </property>
-           <property name="maximum">
-            <number>999</number>
-           </property>
-           <property name="value">
-            <number>5</number>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
            </property>
@@ -401,8 +361,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>487</width>
-        <height>242</height>
+        <width>100</width>
+        <height>129</height>
        </rect>
       </property>
       <attribute name="label">
@@ -426,7 +386,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>467</width>
+            <width>98</width>
             <height>18</height>
            </rect>
           </property>
@@ -447,8 +407,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>487</width>
-        <height>242</height>
+        <width>100</width>
+        <height>129</height>
        </rect>
       </property>
       <attribute name="label">
@@ -472,7 +432,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>467</width>
+            <width>98</width>
             <height>18</height>
            </rect>
           </property>

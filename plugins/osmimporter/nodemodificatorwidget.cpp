@@ -32,7 +32,7 @@ NodeModificatorWidget::~NodeModificatorWidget()
 	delete m_ui;
 }
 
-void NodeModificatorWidget::setModificator( const Modificator& modificator )
+void NodeModificatorWidget::setModificator( const MoNav::NodeModificator& modificator )
 {
 	m_ui->type->setCurrentIndex( modificator.invert ? 1 : 0 );
 	m_ui->key->setText( modificator.key );
@@ -41,36 +41,30 @@ void NodeModificatorWidget::setModificator( const Modificator& modificator )
 		m_ui->value->setText( modificator.value );
 	m_ui->action->setCurrentIndex( ( int ) modificator.type );
 	switch ( modificator.type ) {
-	case NodeModifyFixed:
+	case MoNav::NodeModifyFixed:
 		m_ui->fixed->setValue( modificator.modificatorValue.toInt() );
 		break;
-	case NodeModifyPercentage:
-		m_ui->percentage->setValue( modificator.modificatorValue.toInt() );
-		break;
-	case NodeAccess:
-		m_ui->access->setCurrentIndex( modificator.modificatorValue.toInt() );
+	case MoNav::NodeAccess:
+		m_ui->access->setChecked( modificator.modificatorValue.toBool() );
 		break;
 	}
 }
 
-NodeModificatorWidget::Modificator NodeModificatorWidget::modificator()
+MoNav::NodeModificator NodeModificatorWidget::modificator()
 {
-	Modificator result;
+	MoNav::NodeModificator result;
 	result.invert = m_ui->type->currentIndex() == 1;
 	result.key = m_ui->key->text();
 	result.checkValue = m_ui->useValue->isChecked();
 	if ( result.checkValue )
 		result.value = m_ui->value->text();
-	result.type = ( ModificatorType ) m_ui->action->currentIndex();
+	result.type = ( MoNav::NodeModificatorType ) m_ui->action->currentIndex();
 	switch ( result.type ) {
-	case NodeModifyFixed:
+	case MoNav::NodeModifyFixed:
 		result.modificatorValue = m_ui->fixed->value();
 		break;
-	case NodeModifyPercentage:
-		result.modificatorValue = m_ui->percentage->value();
-		break;
-	case NodeAccess:
-		result.modificatorValue = m_ui->access->currentIndex();
+	case MoNav::NodeAccess:
+		result.modificatorValue = m_ui->access->isChecked();
 		break;
 	}
 	return result;

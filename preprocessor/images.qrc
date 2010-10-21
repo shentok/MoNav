@@ -4,5 +4,6 @@
         <file>images/notok.png</file>
         <file>images/ok.png</file>
         <file>images/reload.png</file>
+        <file>images/target.png</file>
     </qresource>
 </RCC>

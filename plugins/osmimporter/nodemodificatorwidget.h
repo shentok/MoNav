@@ -20,8 +20,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef NODEMODIFICATORWIDGET_H
 #define NODEMODIFICATORWIDGET_H
 
+#include "types.h"
+
 #include <QFrame>
-#include <QVariant>
 
 namespace Ui {
 	class NodeModificatorWidget;
@@ -33,26 +34,11 @@ class NodeModificatorWidget : public QFrame
 
 public:
 
-	enum ModificatorType {
-		NodeModifyFixed = 0,
-		NodeModifyPercentage = 1,
-		NodeAccess = 2
-	};
-
-	struct Modificator {
-		QString key;
-		bool checkValue;
-		QString value;
-		bool invert;
-		QVariant modificatorValue;
-		ModificatorType type;
-	};
-
 	explicit NodeModificatorWidget( QWidget* parent = 0 );
 	~NodeModificatorWidget();
 
-	void setModificator( const Modificator& modificator );
-	Modificator modificator();
+	void setModificator( const MoNav::NodeModificator& modificator );
+	MoNav::NodeModificator modificator();
 
 private:
 	Ui::NodeModificatorWidget* m_ui;

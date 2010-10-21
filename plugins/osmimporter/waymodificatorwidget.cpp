@@ -32,7 +32,7 @@ WayModificatorWidget::~WayModificatorWidget()
 	delete m_ui;
 }
 
-void WayModificatorWidget::setModificator( const Modificator& modificator )
+void WayModificatorWidget::setModificator( const MoNav::WayModificator& modificator )
 {
 	m_ui->type->setCurrentIndex( modificator.invert ? 1 : 0 );
 	m_ui->key->setText( modificator.key );
@@ -41,42 +41,42 @@ void WayModificatorWidget::setModificator( const Modificator& modificator )
 		m_ui->value->setText( modificator.value );
 	m_ui->action->setCurrentIndex( ( int ) modificator.type );
 	switch ( modificator.type ) {
-	case WayModifyFixed:
+	case MoNav::WayModifyFixed:
 		m_ui->fixed->setValue( modificator.modificatorValue.toInt() );
 		break;
-	case WayModifyPercentage:
+	case MoNav::WayModifyPercentage:
 		m_ui->percentage->setValue( modificator.modificatorValue.toInt() );
 		break;
-	case WayAccess:
-		m_ui->access->setCurrentIndex( modificator.modificatorValue.toInt() );
+	case MoNav::WayAccess:
+		m_ui->access->setChecked( modificator.modificatorValue.toBool() );
 		break;
-	case WayOneway:
-		m_ui->oneway->setCurrentIndex( modificator.modificatorValue.toInt() );
+	case MoNav::WayOneway:
+		m_ui->oneway->setChecked( modificator.modificatorValue.toBool() );
 		break;
 	}
 }
 
-WayModificatorWidget::Modificator WayModificatorWidget::modificator()
+MoNav::WayModificator WayModificatorWidget::modificator()
 {
-	Modificator result;
+	MoNav::WayModificator result;
 	result.invert = m_ui->type->currentIndex() == 1;
 	result.key = m_ui->key->text();
 	result.checkValue = m_ui->useValue->isChecked();
 	if ( result.checkValue )
 		result.value = m_ui->value->text();
-	result.type = ( ModificatorType ) m_ui->action->currentIndex();
+	result.type = ( MoNav::WayModificatorType ) m_ui->action->currentIndex();
 	switch ( result.type ) {
-	case WayModifyFixed:
+	case MoNav::WayModifyFixed:
 		result.modificatorValue = m_ui->fixed->value();
 		break;
-	case WayModifyPercentage:
+	case MoNav::WayModifyPercentage:
 		result.modificatorValue = m_ui->percentage->value();
 		break;
-	case WayAccess:
-		result.modificatorValue = m_ui->access->currentIndex();
+	case MoNav::WayAccess:
+		result.modificatorValue = m_ui->access->isChecked();
 		break;
-	case WayOneway:
-		result.modificatorValue = m_ui->oneway->currentIndex();
+	case MoNav::WayOneway:
+		result.modificatorValue = m_ui->oneway->isChecked();
 		break;
 	}
 	return result;

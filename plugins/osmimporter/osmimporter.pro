@@ -20,7 +20,8 @@ HEADERS += osmimporter.h \
     lzma/Types.h \
     lzma/LzmaDec.h \
     waymodificatorwidget.h \
-    nodemodificatorwidget.h
+    nodemodificatorwidget.h \
+    types.h
 SOURCES += osmimporter.cpp \
 	 oisettingsdialog.cpp \
 	 "protobuff definitions/osmformat.pb.cc" \

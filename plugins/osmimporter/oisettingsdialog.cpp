@@ -128,7 +128,6 @@ void OISettingsDialog::save( const QString& filename, QString name )
 	settings.clear();
 
 	settings.setValue( "name", name );
-	settings.setValue( "trafficLightPenalty", m_ui->trafficLightPenalty->value() );
 	settings.setValue( "defaultCitySpeed", m_ui->setDefaultCitySpeed->isChecked() );
 	settings.setValue( "ignoreOneway", m_ui->ignoreOneway->isChecked() );
 	settings.setValue( "ignoreMaxspeed", m_ui->ignoreMaxspeed->isChecked() );
@@ -160,7 +159,7 @@ void OISettingsDialog::save( const QString& filename, QString name )
 	QList< WayModificatorWidget* > wayModificators = m_ui->wayModificators->findChildren< WayModificatorWidget* >();
 	settings.setValue( "wayModificatorsCount", wayModificators.size() );
 	for ( int i = 0; i < wayModificators.size(); i++ ) {
-		Settings::WayModificator mod = wayModificators[i]->modificator();
+		MoNav::WayModificator mod = wayModificators[i]->modificator();
 		settings.setValue( QString( "wayModificator.%1.key" ).arg( i ), mod.key );
 		settings.setValue( QString( "wayModificator.%1.checkValue" ).arg( i ), mod.checkValue );
 		if ( mod.checkValue )
@@ -173,7 +172,7 @@ void OISettingsDialog::save( const QString& filename, QString name )
 	QList< NodeModificatorWidget* > nodeModificators = m_ui->nodeModificators->findChildren< NodeModificatorWidget* >();
 	settings.setValue( "nodeModificatorsCount", nodeModificators.size() );
 	for ( int i = 0; i < nodeModificators.size(); i++ ) {
-		Settings::NodeModificator mod = nodeModificators[i]->modificator();
+		MoNav::NodeModificator mod = nodeModificators[i]->modificator();
 		settings.setValue( QString( "nodeModificator.%1.key" ).arg( i ), mod.key );
 		settings.setValue( QString( "nodeModificator.%1.checkValue" ).arg( i ), mod.checkValue );
 		if ( mod.checkValue )
@@ -204,7 +203,6 @@ QString OISettingsDialog::load( const QString& filename, bool nameOnly )
 	if ( nameOnly )
 		return name;
 
-	m_ui->trafficLightPenalty->setValue( settings.value( "trafficLightPenalty" ).toInt() );
 	m_ui->setDefaultCitySpeed->setChecked( settings.value( "defaultCitySpeed" ).toBool() );
 	m_ui->ignoreOneway->setChecked( settings.value( "ignoreOneway" ).toBool() );
 	m_ui->ignoreMaxspeed->setChecked( settings.value( "ignoreMaxspeed" ).toBool() );
@@ -245,13 +243,13 @@ QString OISettingsDialog::load( const QString& filename, bool nameOnly )
 
 	int wayModificatorCount = settings.value( "wayModificatorsCount" ).toInt();
 	for ( int i = 0; i < wayModificatorCount; i++ ) {
-		Settings::WayModificator mod;
+		MoNav::WayModificator mod;
 		mod.key = settings.value( QString( "wayModificator.%1.key" ).arg( i ) ).toString();
 		mod.checkValue = settings.value( QString( "wayModificator.%1.checkValue" ).arg( i ) ).toBool();
 		if ( mod.checkValue )
 			mod.value = settings.value( QString( "wayModificator.%1.value" ).arg( i ) ).toString();
 		mod.invert = settings.value( QString( "wayModificator.%1.invert" ).arg( i ) ).toBool();
-		mod.type = ( Settings::WayModificatorType ) settings.value( QString( "wayModificator.%1.type" ).arg( i ) ).toInt();
+		mod.type = ( MoNav::WayModificatorType ) settings.value( QString( "wayModificator.%1.type" ).arg( i ) ).toInt();
 		mod.modificatorValue = settings.value( QString( "wayModificator.%1.modificatorValue" ).arg( i ) );
 
 		WayModificatorWidget* widget = new WayModificatorWidget( this );
@@ -266,13 +264,13 @@ QString OISettingsDialog::load( const QString& filename, bool nameOnly )
 
 	int nodeModificatorCount = settings.value( "nodeModificatorsCount" ).toInt();
 	for ( int i = 0; i < nodeModificatorCount; i++ ) {
-		Settings::NodeModificator mod;
+		MoNav::NodeModificator mod;
 		mod.key = settings.value( QString( "nodeModificator.%1.key" ).arg( i ) ).toString();
 		mod.checkValue = settings.value( QString( "nodeModificator.%1.checkValue" ).arg( i ) ).toBool();
 		if ( mod.checkValue )
 			mod.value = settings.value( QString( "nodeModificator.%1.value" ).arg( i ) ).toString();
 		mod.invert = settings.value( QString( "nodeModificator.%1.invert" ).arg( i ) ).toBool();
-		mod.type = ( Settings::NodeModificatorType ) settings.value( QString( "nodeModificator.%1.type" ).arg( i ) ).toInt();
+		mod.type = ( MoNav::NodeModificatorType ) settings.value( QString( "nodeModificator.%1.type" ).arg( i ) ).toInt();
 		mod.modificatorValue = settings.value( QString( "nodeModificator.%1.modificatorValue" ).arg( i ) );
 
 		NodeModificatorWidget* widget = new NodeModificatorWidget( this );
@@ -340,7 +338,6 @@ bool OISettingsDialog::getSettings( Settings* settings )
 
 	settings->accessList.clear();
 	settings->defaultCitySpeed = m_ui->setDefaultCitySpeed->isChecked();
-	settings->trafficLightPenalty = m_ui->trafficLightPenalty->value();
 	settings->ignoreOneway = m_ui->ignoreOneway->isChecked();
 	settings->ignoreMaxspeed = m_ui->ignoreMaxspeed->isChecked();
 
@@ -402,6 +399,16 @@ bool OISettingsDialog::getSettings( Settings* settings )
 		}
 		settings->languageSettings.append( m_ui->languagePriorities->item( item )->text() );
 	}
+
+	settings->nodeModificators.clear();
+	QList< NodeModificatorWidget* > nodeModificators = m_ui->nodeModificators->findChildren< NodeModificatorWidget* >();
+	for ( int i = 0; i < nodeModificators.size(); i++ )
+		settings->nodeModificators.push_back( nodeModificators[i]->modificator() );
+
+	settings->wayModificators.clear();
+	QList< WayModificatorWidget* > wayModificators = m_ui->wayModificators->findChildren< WayModificatorWidget* >();
+	for ( int i = 0; i < wayModificators.size(); i++ )
+		settings->wayModificators.push_back( wayModificators[i]->modificator() );
 
 	return true;
 }

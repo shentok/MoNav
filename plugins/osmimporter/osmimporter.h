@@ -24,7 +24,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "ientityreader.h"
 #include "oisettingsdialog.h"
 #include "statickdtree.h"
+#include "types.h"
 #include "utils/intersection.h"
+
 #include <QObject>
 #include <QHash>
 #include <cstring>
@@ -81,23 +83,35 @@ protected:
 		} direction;
 		double maximumSpeed;
 		bool usefull;
+
 		bool access;
 		int accessPriority;
+
 		QString name;
 		int namePriority;
+
 		QString ref;
 		QString placeName;
 		Place::Type placeType;
+
 		unsigned type;
 		bool roundabout;
+
+		int addPercentage;
+		int addFixed;
 	};
 
 	struct Node {
 		QString name;
 		int namePriority;
+
 		unsigned population;
-		bool trafficSignal;
 		Place::Type type;
+
+		int penalty;
+
+		bool access;
+		int accessPriority;
 	};
 
 	struct Relation {
@@ -164,7 +178,7 @@ protected:
 
 	struct NodeTags {
 		enum Key {
-			Place = 0, Population = 1, Highway = 2, MaxTag = 3
+			Place = 0, Population = 1, Barrier = 2, MaxTag = 3
 		};
 	};
 
@@ -172,6 +186,28 @@ protected:
 		enum Key {
 			Oneway = 0, Junction = 1, Highway = 2, Ref = 3, PlaceName = 4, Place = 5, MaxSpeed = 6, MaxTag = 7
 		};
+	};
+
+	struct NodePenalty {
+		unsigned id;
+		int seconds;
+
+		NodePenalty( unsigned _id, int _seconds )
+		{
+			id = _id;
+			seconds = _seconds;
+		}
+
+		NodePenalty( unsigned _id )
+		{
+			id = _id;
+			seconds = 0;
+		}
+
+		bool operator<( const NodePenalty& right ) const
+		{
+			return id < right.id;
+		}
 	};
 
 	bool read( const QString& inputFilename, const QString& filename );
@@ -192,10 +228,15 @@ protected:
 	std::vector< QString > m_kmhStrings;
 	std::vector< QString > m_mphStrings;
 
+	std::vector< int > m_wayModificatorIDs;
+	std::vector< int > m_nodeModificatorIDs;
+
+	std::vector< NodePenalty > m_penaltyNodes;
+	std::vector< unsigned > m_noAccessNodes;
+
 	std::vector< unsigned > m_usedNodes;
 	std::vector< unsigned > m_routingNodes;
 	std::vector< unsigned > m_outlineNodes;
-	std::vector< unsigned > m_signalNodes;
 	QHash< QString, unsigned > m_wayNames;
 	QHash< QString, unsigned > m_wayRefs;
 };

@@ -190,17 +190,10 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="QComboBox" name="access">
-         <item>
-          <property name="text">
-           <string>Yes</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>No</string>
-          </property>
-         </item>
+        <widget class="QCheckBox" name="access">
+         <property name="text">
+          <string>access</string>
+         </property>
         </widget>
        </item>
       </layout>
@@ -220,27 +213,10 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="QComboBox" name="oneway">
-         <item>
-          <property name="text">
-           <string>Oneway</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Opposite</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Bidirectional</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Invert Oneway</string>
-          </property>
-         </item>
+        <widget class="QCheckBox" name="oneway">
+         <property name="text">
+          <string>oneway</string>
+         </property>
         </widget>
        </item>
       </layout>

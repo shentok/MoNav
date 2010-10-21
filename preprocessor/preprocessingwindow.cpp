@@ -36,6 +36,8 @@ PreprocessingWindow::PreprocessingWindow( QWidget* parent, QString configFile ) 
 {
 	m_ui->setupUi(this);
 
+	setWindowIcon( QIcon( ":/images/target.png" ) );
+
 	connectSlots();
 	loadPlugins();
 

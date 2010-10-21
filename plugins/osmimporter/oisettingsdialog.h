@@ -20,11 +20,12 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef SETTINGSDIALOG_H
 #define SETTINGSDIALOG_H
 
-#include <QWidget>
-#include <vector>
-
 #include "waymodificatorwidget.h"
 #include "nodemodificatorwidget.h"
+#include "types.h"
+
+#include <QWidget>
+#include <vector>
 
 namespace Ui {
 	 class OISettingsDialog;
@@ -46,13 +47,8 @@ public:
 			QVector< double > averagePercentage;
 		} speedProfile;
 
-		typedef WayModificatorWidget::ModificatorType WayModificatorType;
-		typedef NodeModificatorWidget::ModificatorType NodeModificatorType;
-		typedef WayModificatorWidget::Modificator WayModificator;
-		typedef NodeModificatorWidget::Modificator NodeModificator;
-
-		QVector< WayModificator > wayModificators;
-		QVector< NodeModificator > nodeModificators;
+		QVector< MoNav::WayModificator > wayModificators;
+		QVector< MoNav::NodeModificator > nodeModificators;
 
 		QStringList accessList;
 		bool defaultCitySpeed;
