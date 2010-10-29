@@ -86,6 +86,9 @@ void OSMImporter::setRequiredTags( IEntityReader *reader )
 	reader->setWayTags( list );
 
 	list.clear();
+	list.push_back( "type" );
+	list.push_back( "restriction" );
+	list.push_back( "except" );
 	reader->setRelationTags( list );
 }
 
@@ -127,6 +130,22 @@ bool OSMImporter::SaveSettings( QSettings* settings )
 	return m_settingsDialog->saveSettings( settings );
 }
 
+void OSMImporter::clear()
+{
+	std::vector< unsigned >().swap( m_usedNodes );
+	std::vector< unsigned >().swap( m_outlineNodes );
+	std::vector< unsigned >().swap( m_routingNodes );
+	std::vector< NodePenalty >().swap( m_penaltyNodes );
+	std::vector< unsigned >().swap( m_noAccessNodes );
+	m_wayNames.clear();
+	m_wayRefs.clear();
+	std::vector< int >().swap( m_nodeModificatorIDs );
+	std::vector< int >().swap( m_wayModificatorIDs );
+	std::vector< char >().swap( m_inDegree );
+	std::vector< char >().swap( m_outDegree );
+	std::vector< EdgeInfo >().swap( m_edgeInfo );
+}
+
 bool OSMImporter::Preprocess( QString inputFilename )
 {
 	if ( m_settingsDialog == NULL )
@@ -135,29 +154,21 @@ bool OSMImporter::Preprocess( QString inputFilename )
 	if ( !m_settingsDialog->getSettings( &m_settings ) )
 		return false;
 
-	if ( m_settings.speedProfile.names.size() == 0 ) {
-		qCritical( "no speed profile specified" );
+	if ( m_settings.highways.size() == 0 ) {
+		qCritical( "no highway types specified" );
 		return false;
 	}
+
+	clear();
 
 	QString filename = fileInDirectory( m_outputDirectory, "OSM Importer" );
 	FileStream typeData( filename + "_way_types" );
 	if ( !typeData.open( QIODevice::WriteOnly ) )
 		return false;
 
-	for ( int type = 0; type < m_settings.speedProfile.names.size(); type++ )
-		typeData << m_settings.speedProfile.names[type];
+	for ( int type = 0; type < m_settings.highways.size(); type++ )
+		typeData << m_settings.highways[type].value;
 	typeData << QString( "roundabout" );
-
-	std::vector< unsigned >().swap( m_usedNodes );
-	std::vector< unsigned >().swap( m_outlineNodes );
-	std::vector< unsigned >().swap( m_routingNodes );
-	std::vector< NodePenalty >().swap( m_penaltyNodes );
-	std::vector< unsigned >().swap( m_noAccessNodes );
-	m_wayNames.clear();
-	m_wayRefs.clear();
-	m_nodeModificatorIDs.clear();
-	m_wayModificatorIDs.clear();
 
 	m_statistics = Statistics();
 
@@ -193,15 +204,21 @@ bool OSMImporter::Preprocess( QString inputFilename )
 	if ( !preprocessData( filename ) )
 		return false;
 	qDebug() << "OSM Importer: finished import pass 2:" << time.restart() << "ms";
+	printStats();
+	clear();
+	return true;
+}
 
+void OSMImporter::printStats()
+{
+	qDebug() << "OSM Importer: === Statistics ===";
 	qDebug() << "OSM Importer: nodes:" << m_statistics.numberOfNodes;
 	qDebug() << "OSM Importer: ways:" << m_statistics.numberOfWays;
-	qDebug() << "OSM Importer: places:" << m_statistics.numberOfPlaces;
-	qDebug() << "OSM Importer: places outlines:" << m_statistics.numberOfOutlines;
-	qDebug() << "OSM Importer: places outline nodes:" << m_outlineNodes.size();
+	qDebug() << "OSM Importer: relations" << m_statistics.numberOfRelations;
+	qDebug() << "OSM Importer: used nodes:" << m_statistics.numberOfUsedNodes;
+	qDebug() << "OSM Importer: segments" << m_statistics.numberOfSegments;
 	qDebug() << "OSM Importer: routing edges:" << m_statistics.numberOfEdges;
 	qDebug() << "OSM Importer: routing nodes:" << m_routingNodes.size();
-	qDebug() << "OSM Importer: used nodes:" << m_usedNodes.size();
 	qDebug() << "OSM Importer: nodes with penalty:" << m_penaltyNodes.size();
 	qDebug() << "OSM Importer: nodes with no access:" << m_noAccessNodes.size();
 	qDebug() << "OSM Importer: maxspeed:" << m_statistics.numberOfMaxspeed;
@@ -209,47 +226,52 @@ bool OSMImporter::Preprocess( QString inputFilename )
 	qDebug() << "OSM Importer: default city speed:" << m_statistics.numberOfDefaultCitySpeed;
 	qDebug() << "OSM Importer: distinct way names:" << m_wayNames.size();
 	qDebug() << "OSM Importer: distinct way refs:" << m_wayRefs.size();
-
-	std::vector< unsigned >().swap( m_usedNodes );
-	std::vector< unsigned >().swap( m_outlineNodes );
-	std::vector< unsigned >().swap( m_routingNodes );
-	std::vector< NodePenalty >().swap( m_penaltyNodes );
-	std::vector< unsigned >().swap( m_noAccessNodes );
-	m_wayNames.clear();
-	m_wayRefs.clear();
-	m_nodeModificatorIDs.clear();
-	m_wayModificatorIDs.clear();
-	return true;
+	qDebug() << "OSM Importer: restrictions:" << m_statistics.numberOfRestrictions;
+	qDebug() << "OSM Importer: restrictions applied:" << m_statistics.numberOfRestrictionsApplied;
+	qDebug() << "OSM Importer: turning penalties:" << m_statistics.numberOfTurningPenalties;
+	qDebug() << "OSM Importer: max turning penalty:" << m_statistics.maxTurningPenalty;
+	qDebug() << "OSM Importer: average turning left penalty:" << m_statistics.averageLeftPenalty;
+	qDebug() << "OSM Importer: average turning right penalty:" << m_statistics.averageRightPenalty;
+	qDebug() << "OSM Importer: average turning straight penalty:" << m_statistics.averageStraightPenalty;
+	qDebug() << "OSM Importer: places:" << m_statistics.numberOfPlaces;
+	qDebug() << "OSM Importer: places outlines:" << m_statistics.numberOfOutlines;
+	qDebug() << "OSM Importer: places outline nodes:" << m_outlineNodes.size();
 }
 
 bool OSMImporter::read( const QString& inputFilename, const QString& filename ) {
-	FileStream edgesData( filename + "_edges" );
-	FileStream placesData( filename + "_places" );
+	FileStream edgeData( filename + "_edges" );
+	FileStream onewayEdgeData( filename + "_oneway_edges" );
+	FileStream placeData( filename + "_places" );
 	FileStream boundingBoxData( filename + "_bounding_box" );
-	FileStream allNodesData( filename + "_all_nodes" );
+	FileStream nodeData( filename + "_all_nodes" );
 	FileStream cityOutlineData( filename + "_city_outlines" );
-	FileStream wayNamesData( filename + "_way_names" );
-	FileStream wayRefsData( filename + "_way_refs" );
+	FileStream wayNameData( filename + "_way_names" );
+	FileStream wayRefData( filename + "_way_refs" );
+	FileStream restrictionData( filename + "_restrictions" );
 
-	if ( !edgesData.open( QIODevice::WriteOnly ) )
+	if ( !edgeData.open( QIODevice::WriteOnly ) )
 		return false;
-	if ( !placesData.open( QIODevice::WriteOnly ) )
+	if ( !onewayEdgeData.open( QIODevice::WriteOnly ) )
+		return false;
+	if ( !placeData.open( QIODevice::WriteOnly ) )
 		return false;
 	if ( !boundingBoxData.open( QIODevice::WriteOnly ) )
 		return false;
-	if ( !allNodesData.open( QIODevice::WriteOnly ) )
+	if ( !nodeData.open( QIODevice::WriteOnly ) )
 		return false;
 	if ( !cityOutlineData.open( QIODevice::WriteOnly ) )
 		return false;
-	if ( !wayNamesData.open( QIODevice::WriteOnly ) )
+	if ( !wayNameData.open( QIODevice::WriteOnly ) )
 		return false;
-	if ( !wayRefsData.open( QIODevice::WriteOnly ) )
+	if ( !wayRefData.open( QIODevice::WriteOnly ) )
+		return false;
+	if ( !restrictionData.open( QIODevice::WriteOnly ) )
 		return false;
 
 	m_wayNames[QString()] = 0;
-	wayNamesData << QString();
+	wayNameData << QString();
 	m_wayRefs[QString()] = 0;
-	wayRefsData << QString();
+	wayRefData << QString();
 
 	IEntityReader* reader = NULL;
 	if ( inputFilename.endsWith( "osm.bz2" ) || inputFilename.endsWith( ".osm" ) )
@@ -278,6 +300,7 @@ bool OSMImporter::read( const QString& inputFilename, const QString& filename ) 
 		IEntityReader::Relation inputRelation;
 		Node node;
 		Way way;
+		Relation relation;
 		while ( true ) {
 			IEntityReader::EntityType type = reader->getEntitiy( &inputNode, &inputWay, &inputRelation );
 
@@ -300,10 +323,10 @@ bool OSMImporter::read( const QString& inputFilename, const QString& filename ) 
 					m_noAccessNodes.push_back( inputNode.id );
 
 				UnsignedCoordinate coordinate( inputNode.coordinate );
-				allNodesData << unsigned( inputNode.id ) << coordinate.x << coordinate.y;
+				nodeData << unsigned( inputNode.id ) << coordinate.x << coordinate.y;
 
 				if ( node.type != Place::None && !node.name.isEmpty() ) {
-					placesData << inputNode.coordinate.latitude << inputNode.coordinate.longitude << unsigned( node.type ) << node.population << node.name;
+					placeData << inputNode.coordinate.latitude << inputNode.coordinate.longitude << unsigned( node.type ) << node.population << node.name;
 					m_statistics.numberOfPlaces++;
 				}
 
@@ -324,7 +347,7 @@ bool OSMImporter::read( const QString& inputFilename, const QString& filename ) 
 					QString name = way.name.simplified();
 
 					if ( !m_wayNames.contains( name ) ) {
-						wayNamesData << name;
+						wayNameData << name;
 						int id = m_wayNames.size();
 						m_wayNames[name] = id;
 					}
@@ -334,7 +357,7 @@ bool OSMImporter::read( const QString& inputFilename, const QString& filename ) 
 						ref = way.ref.simplified();
 
 					if ( !m_wayRefs.contains( ref ) ) {
-						wayRefsData << ref;
+						wayRefData << ref;
 						int id = m_wayRefs.size();
 						m_wayRefs[ref] = id;
 					}
@@ -347,16 +370,32 @@ bool OSMImporter::read( const QString& inputFilename, const QString& filename ) 
 					if ( way.direction == Way::Opposite )
 						std::reverse( inputWay.nodes.begin(), inputWay.nodes.end() );
 
-					edgesData << m_wayNames[name];
-					edgesData << m_wayRefs[ref];
-					edgesData << way.type;
-					edgesData << way.roundabout;
-					edgesData << way.maximumSpeed;
-					edgesData << way.addFixed << way.addPercentage;
-					edgesData << !( way.direction == Way::Oneway || way.direction == Way::Opposite );
-					edgesData << unsigned( inputWay.nodes.size() );
-					for ( unsigned node = 0; node < inputWay.nodes.size(); ++node )
-						edgesData << inputWay.nodes[node];
+					// seperate oneway edges from bidirectional ones. neccessary to determine consistent edgeIDAtSource / edgeIDAtTarget
+					if ( ( way.direction == Way::Oneway || way.direction == Way::Opposite ) ) {
+						onewayEdgeData << inputWay.id;
+						onewayEdgeData << m_wayNames[name];
+						onewayEdgeData << m_wayRefs[ref];
+						onewayEdgeData << way.type;
+						onewayEdgeData << way.roundabout;
+						onewayEdgeData << way.maximumSpeed;
+						onewayEdgeData << way.addFixed << way.addPercentage;
+						onewayEdgeData << bool( false ); // bidirectional?
+						onewayEdgeData << unsigned( inputWay.nodes.size() );
+						for ( unsigned node = 0; node < inputWay.nodes.size(); ++node )
+							onewayEdgeData << inputWay.nodes[node];
+					} else {
+						edgeData << inputWay.id;
+						edgeData << m_wayNames[name];
+						edgeData << m_wayRefs[ref];
+						edgeData << way.type;
+						edgeData << way.roundabout;
+						edgeData << way.maximumSpeed;
+						edgeData << way.addFixed << way.addPercentage;
+						edgeData << bool( true ); // bidirectional?
+						edgeData << unsigned( inputWay.nodes.size() );
+						for ( unsigned node = 0; node < inputWay.nodes.size(); ++node )
+							edgeData << inputWay.nodes[node];
+					}
 
 				}
 
@@ -378,6 +417,29 @@ bool OSMImporter::read( const QString& inputFilename, const QString& filename ) 
 			}
 
 			if ( type == IEntityReader::EntityRelation ) {
+				m_statistics.numberOfRelations++;
+				readRelation( &relation, inputRelation );
+
+				if ( relation.type != Relation::TypeRestriction )
+					continue;
+
+				if ( !relation.restriction.access )
+					continue;
+				if ( relation.restriction.type == Restriction::None )
+					continue;
+				if ( relation.restriction.from == std::numeric_limits< unsigned >::max() )
+					continue;
+				if ( relation.restriction.to == std::numeric_limits< unsigned >::max() )
+					continue;
+				if ( relation.restriction.via == std::numeric_limits< unsigned >::max() )
+					continue;
+
+				m_statistics.numberOfRestrictions++;
+
+				restrictionData << ( relation.restriction.type == Restriction::No );
+				restrictionData << relation.restriction.from;
+				restrictionData << relation.restriction.to;
+				restrictionData << relation.restriction.via;
 
 				continue;
 			}
@@ -426,16 +488,17 @@ bool OSMImporter::preprocessData( const QString& filename ) {
 
 	qDebug() << "OSM Importer: filtered node coordinates:" << time.restart() << "ms";
 
+	m_statistics.numberOfUsedNodes = m_usedNodes.size();
 	std::vector< NodeLocation > nodeLocation( m_usedNodes.size() );
 
 	if ( !computeInCityFlags( filename, &nodeLocation, nodeCoordinates, outlineCoordinates ) )
 		return false;
 	std::vector< UnsignedCoordinate >().swap( outlineCoordinates );
 
+	m_inDegree.resize( m_routingNodes.size(), 0 );
+	m_outDegree.resize( m_routingNodes.size(), 0 );
 	if ( !remapEdges( filename, nodeCoordinates, nodeLocation ) )
 		return false;
-
-	qDebug() << "OSM Importer: remapped edges:" << time.restart() << "ms";
 
 	for ( unsigned i = 0; i < m_routingNodes.size(); i++ ) {
 		unsigned mapped = std::lower_bound( m_usedNodes.begin(), m_usedNodes.end(), m_routingNodes[i] ) - m_usedNodes.begin();
@@ -443,6 +506,12 @@ bool OSMImporter::preprocessData( const QString& filename ) {
 	}
 
 	qDebug() << "OSM Importer: wrote routing node coordinates:" << time.restart() << "ms";
+
+	std::vector< unsigned >().swap( m_usedNodes );
+	std::vector< UnsignedCoordinate >().swap( nodeCoordinates );
+
+	if ( !computeTurningPenalties( filename ) )
+		return false;
 
 	return true;
 }
@@ -595,10 +664,13 @@ bool OSMImporter::computeInCityFlags( QString filename, std::vector< NodeLocatio
 
 bool OSMImporter::remapEdges( QString filename, const std::vector< UnsignedCoordinate >& nodeCoordinates, const std::vector< NodeLocation >& nodeLocation )
 {
-	FileStream edgesData( filename + "_edges" );
+	FileStream edgeData( filename + "_edges" );
+	FileStream onewayEdgeData( filename + "_oneway_edges" );
 
-	if ( !edgesData.open( QIODevice::ReadOnly ) )
+	if ( !edgeData.open( QIODevice::ReadOnly ) )
 		return false;
+	if ( !onewayEdgeData.open( QIODevice::ReadOnly ) )
+			return false;
 
 	FileStream mappedEdgesData( filename + "_mapped_edges" );
 	FileStream edgeAddressData( filename + "_address" );
@@ -617,124 +689,413 @@ bool OSMImporter::remapEdges( QString filename, const std::vector< UnsignedCoord
 
 	unsigned pathID = 0;
 	unsigned addressID = 0;
-	while ( true ) {
-		double speed;
-		unsigned numberOfPathNodes, type, nameID, refID;
-		int addFixed, addPercentage;
-		bool bidirectional, roundabout;
-		std::vector< unsigned > way;
 
-		edgesData >> nameID >> refID >> type >> roundabout >> speed >> addFixed >> addPercentage >> bidirectional >> numberOfPathNodes;
-		if ( edgesData.status() == QDataStream::ReadPastEnd )
-			break;
+	// bidirectional && oneway
+	for ( int onewayType = 0; onewayType < 2; onewayType++ ) {
+		while ( true ) {
+			double speed;
+			unsigned id, numberOfPathNodes, type, nameID, refID;
+			int addFixed, addPercentage;
+			bool bidirectional, roundabout;
+			std::vector< unsigned > way;
 
-		assert( ( int ) type < m_settings.speedProfile.names.size() );
-		if ( speed <= 0 )
-			speed = std::numeric_limits< double >::max();
+			if ( onewayType == 0 ) {
+				edgeData >> id >> nameID >> refID >> type >> roundabout >> speed >> addFixed >> addPercentage >> bidirectional >> numberOfPathNodes;
+				if ( edgeData.status() == QDataStream::ReadPastEnd )
+					break;
+				assert( bidirectional );
+			} else {
+				onewayEdgeData >> id >> nameID >> refID >> type >> roundabout >> speed >> addFixed >> addPercentage >> bidirectional >> numberOfPathNodes;
+				if ( onewayEdgeData.status() == QDataStream::ReadPastEnd )
+					break;
+				assert( !bidirectional );
+			}
 
-		bool valid = true;
+			assert( ( int ) type < m_settings.highways.size() );
+			if ( speed <= 0 )
+				speed = std::numeric_limits< double >::max();
 
-		for ( int i = 0; i < ( int ) numberOfPathNodes; ++i ) {
-			unsigned node;
-			edgesData >> node;
+			bool valid = true;
+
+			for ( int i = 0; i < ( int ) numberOfPathNodes; ++i ) {
+				unsigned node;
+				if ( onewayType == 0 )
+					edgeData >> node;
+				else
+					onewayEdgeData >> node;
+				if ( !valid )
+					continue;
+
+				NodeID mappedNode = std::lower_bound( m_usedNodes.begin(), m_usedNodes.end(), node ) - m_usedNodes.begin();
+				if ( !nodeCoordinates[mappedNode].IsValid() ) {
+					qDebug() << "OSM Importer: inconsistent OSM data: skipping way with missing node coordinate";
+					valid = false;
+				}
+				way.push_back( mappedNode );
+			}
 			if ( !valid )
 				continue;
 
-			NodeID mappedNode = std::lower_bound( m_usedNodes.begin(), m_usedNodes.end(), node ) - m_usedNodes.begin();
-			if ( !nodeCoordinates[mappedNode].IsValid() ) {
-				qDebug() << "OSM Importer: inconsistent OSM data: skipping way with missing node coordinate";
-				valid = false;
-			}
-			way.push_back( mappedNode );
-		}
-		if ( !valid )
-			continue;
+			for ( unsigned pathNode = 0; pathNode + 1 < way.size(); ) {
+				unsigned source = std::lower_bound( m_routingNodes.begin(), m_routingNodes.begin() + oldRoutingNodes, m_usedNodes[way[pathNode]] ) - m_routingNodes.begin();
+				if ( std::binary_search( m_noAccessNodes.begin(), m_noAccessNodes.end(), m_usedNodes[way[pathNode]] ) ) {
+					source = m_routingNodes.size();
+					m_routingNodes.push_back( m_usedNodes[way[pathNode]] );
+					m_inDegree.push_back( 0 );
+					m_outDegree.push_back( 0 );
+				}
+				assert( source < m_routingNodes.size() );
+				NodeID target = 0;
+				double seconds = 0;
 
-		for ( unsigned pathNode = 0; pathNode + 1 < way.size(); ) {
-			unsigned source = std::lower_bound( m_routingNodes.begin(), m_routingNodes.begin() + oldRoutingNodes, m_usedNodes[way[pathNode]] ) - m_routingNodes.begin();
-			if ( std::binary_search( m_noAccessNodes.begin(), m_noAccessNodes.end(), m_usedNodes[way[pathNode]] ) ) {
-				source = m_routingNodes.size();
-				m_routingNodes.push_back( m_usedNodes[way[pathNode]] );
-			}
-			assert( source < m_routingNodes.size() );
-			NodeID target = 0;
-			double seconds = 0;
+				EdgeInfo sourceInfo;
+				EdgeInfo targetInfo;
+				targetInfo.backward = sourceInfo.forward = true;
+				targetInfo.forward = sourceInfo.backward = bidirectional;
+				targetInfo.crossing = sourceInfo.crossing = false;
+				targetInfo.oldID = sourceInfo.oldID = id;
+				targetInfo.type = sourceInfo.type = type;
 
-			unsigned nextRoutingNode = pathNode + 1;
-			while ( true ) {
-				NodeID from = way[nextRoutingNode - 1];
-				NodeID to = way[nextRoutingNode];
-				GPSCoordinate fromCoordinate = nodeCoordinates[from].ToGPSCoordinate();
-				GPSCoordinate toCoordinate = nodeCoordinates[to].ToGPSCoordinate();
+				unsigned nextRoutingNode = pathNode + 1;
+				double lastAngle = 0;
+				while ( true ) {
+					m_statistics.numberOfSegments++;
 
-				double distance = fromCoordinate.Distance( toCoordinate );
+					NodeID from = way[nextRoutingNode - 1];
+					NodeID to = way[nextRoutingNode];
+					GPSCoordinate fromCoordinate = nodeCoordinates[from].ToGPSCoordinate();
+					GPSCoordinate toCoordinate = nodeCoordinates[to].ToGPSCoordinate();
 
-				double segmentSpeed = speed;
-				if ( m_settings.defaultCitySpeed && ( nodeLocation[from].isInPlace || nodeLocation[to].isInPlace ) ) {
-					if ( segmentSpeed == std::numeric_limits< double >::max() ) {
-						segmentSpeed = m_settings.speedProfile.speedInCity[type];
-						m_statistics.numberOfDefaultCitySpeed++;
+					double distance = fromCoordinate.Distance( toCoordinate );
+
+					double segmentSpeed = speed;
+					if ( m_settings.defaultCitySpeed && ( nodeLocation[from].isInPlace || nodeLocation[to].isInPlace ) ) {
+						if ( segmentSpeed == std::numeric_limits< double >::max() ) {
+							segmentSpeed = m_settings.highways[type].defaultCitySpeed;
+							m_statistics.numberOfDefaultCitySpeed++;
+						}
+					}
+
+					segmentSpeed = std::min( ( double ) m_settings.highways[type].maxSpeed, segmentSpeed );
+
+					segmentSpeed *= m_settings.highways[type].averageSpeed / 100.0;
+					segmentSpeed /= 1.0 + addPercentage / 100.0;
+
+					double toAngle;
+					if ( nextRoutingNode == pathNode + 1 ) {
+						sourceInfo.angle = atan2( ( double ) nodeCoordinates[to].y - nodeCoordinates[from].y, ( double ) nodeCoordinates[to].x - nodeCoordinates[from].x );;
+						sourceInfo.speed = segmentSpeed;
+						sourceInfo.length = distance;
+						lastAngle = sourceInfo.angle;
+						toAngle = sourceInfo.angle + M_PI;
+					} else {
+						toAngle = atan2( ( double ) nodeCoordinates[from].y - nodeCoordinates[to].y, ( double ) nodeCoordinates[from].x - nodeCoordinates[to].x );
+						double halfAngle = ( lastAngle - toAngle ) / 2.0;
+						double radius = sin( fabs( halfAngle ) ) / cos( fabs( halfAngle ) ) * distance / 2.0;
+						double maxSpeed = sqrt( m_settings.tangentialAcceleration * radius ) * 3.6;
+						if ( radius < 1000 && radius > 2.5 && maxSpeed < segmentSpeed ) // NAN and inf not possible
+							segmentSpeed = maxSpeed; // turn radius and maximum tangential acceleration limit turning speed
+						lastAngle = toAngle + M_PI;
+					}
+
+					seconds += distance * 3.6 / segmentSpeed;
+					seconds += addFixed;
+
+					unsigned nodePenalty = std::lower_bound( m_penaltyNodes.begin(), m_penaltyNodes.end(), m_usedNodes[from] ) - m_penaltyNodes.begin();
+					if ( nodePenalty < m_penaltyNodes.size() && m_penaltyNodes[nodePenalty].id == m_usedNodes[from] )
+						seconds += m_penaltyNodes[nodePenalty].seconds;
+					nodePenalty = std::lower_bound( m_penaltyNodes.begin(), m_penaltyNodes.end(), m_usedNodes[to] ) - m_penaltyNodes.begin();
+					if ( nodePenalty < m_penaltyNodes.size() && m_penaltyNodes[nodePenalty].id == m_usedNodes[to] )
+						seconds += m_penaltyNodes[nodePenalty].seconds;
+
+					bool splitPath = false;
+
+					if ( std::binary_search( m_noAccessNodes.begin(), m_noAccessNodes.end(), m_usedNodes[to] ) ) {
+						target = m_routingNodes.size();
+						m_routingNodes.push_back( m_usedNodes[to] );
+						m_inDegree.push_back( 0 );
+						m_outDegree.push_back( 0 );
+						splitPath = true;
+					} else {
+						target = std::lower_bound( m_routingNodes.begin(), m_routingNodes.begin() + oldRoutingNodes, m_usedNodes[to] ) - m_routingNodes.begin();
+						if ( target < m_routingNodes.size() && m_routingNodes[target] == m_usedNodes[to] )
+							splitPath = true;
+					}
+
+					if ( splitPath ) {
+						targetInfo.angle = toAngle;
+						if ( targetInfo.angle > M_PI )
+							targetInfo.angle -= 2 * M_PI;
+						targetInfo.speed = segmentSpeed;
+						targetInfo.length = distance;
+						break;
+					}
+
+					edgePathsData << nodeCoordinates[to].x << nodeCoordinates[to].y;
+
+					nextRoutingNode++;
+				}
+
+				char edgeIDAtSource = m_outDegree[source]; // == inDegree[source] for bidirectional edges
+				char edgeIDAtTarget = m_inDegree[target]; // == outDegree[target] for bidirectional edges
+
+				m_outDegree[source]++;
+				m_inDegree[target]++;
+				if ( m_outDegree[source] == std::numeric_limits< char >::max() ) {
+					qCritical() << "OSM Importer: node degree too large, node:" << m_usedNodes[source];
+					return false;
+				}
+				if ( m_inDegree[target] == std::numeric_limits< char >::max() ) {
+					qCritical() << "OSM Importer: node degree too large, node:" << m_usedNodes[target];
+					return false;
+				}
+				if ( onewayType == 0 ) {
+					m_outDegree[target]++;
+					m_inDegree[source]++;
+					if ( m_inDegree[source] == std::numeric_limits< char >::max() ) {
+						qCritical() << "OSM Importer: node degree too large, node:" << m_usedNodes[source];
+						return false;
+					}
+					if ( m_outDegree[target] == std::numeric_limits< char >::max() ) {
+						qCritical() << "OSM Importer: node degree too large, node:" << m_usedNodes[target];
+						return false;
 					}
 				}
 
-				segmentSpeed = std::min( m_settings.speedProfile.speed[type], segmentSpeed );
+				sourceInfo.id = edgeIDAtSource;
+				targetInfo.id = edgeIDAtTarget;
+				sourceInfo.node = source;
+				targetInfo.node = target;
+				m_edgeInfo.push_back( sourceInfo );
+				m_edgeInfo.push_back( targetInfo );
 
-				segmentSpeed *= m_settings.speedProfile.averagePercentage[type] / 100.0;
-
-				seconds += distance * 3.6 / segmentSpeed;
-				seconds *= 1.0 + addPercentage / 100.0;
-				seconds += addFixed;
-
-				unsigned nodePenalty = std::lower_bound( m_penaltyNodes.begin(), m_penaltyNodes.end(), m_usedNodes[from] ) - m_penaltyNodes.begin();
-				if ( nodePenalty < m_penaltyNodes.size() && m_penaltyNodes[nodePenalty].id == m_usedNodes[from] )
-					seconds += m_penaltyNodes[nodePenalty].seconds;
-				nodePenalty = std::lower_bound( m_penaltyNodes.begin(), m_penaltyNodes.end(), m_usedNodes[to] ) - m_penaltyNodes.begin();
-				if ( nodePenalty < m_penaltyNodes.size() && m_penaltyNodes[nodePenalty].id == m_usedNodes[to] )
-					seconds += m_penaltyNodes[nodePenalty].seconds;
-
-				if ( std::binary_search( m_noAccessNodes.begin(), m_noAccessNodes.end(), m_usedNodes[to] ) ) {
-					target = m_routingNodes.size();
-					m_routingNodes.push_back( m_usedNodes[to] );
-					break;
+				std::vector< unsigned > wayPlaces;
+				for ( unsigned i = pathNode; i < nextRoutingNode; i++ ) {
+					if ( nodeLocation[way[i]].isInPlace )
+						wayPlaces.push_back( nodeLocation[way[i]].place );
 				}
+				std::sort( wayPlaces.begin(), wayPlaces.end() );
+				wayPlaces.resize( std::unique( wayPlaces.begin(), wayPlaces.end() ) - wayPlaces.begin() );
+				for ( unsigned i = 0; i < wayPlaces.size(); i++ )
+					edgeAddressData << wayPlaces[i];
 
-				target = std::lower_bound( m_routingNodes.begin(), m_routingNodes.begin() + oldRoutingNodes, m_usedNodes[to] ) - m_routingNodes.begin();
-				if ( target < m_routingNodes.size() && m_routingNodes[target] == m_usedNodes[to] )
-					break;
+				mappedEdgesData << source << target << bidirectional << seconds;
+				mappedEdgesData << nameID << refID;
+				if ( roundabout )
+					mappedEdgesData << unsigned( m_settings.highways.size() );
+				else
+					mappedEdgesData << type;
+				mappedEdgesData << pathID << nextRoutingNode - pathNode - 1;
+				mappedEdgesData << addressID << unsigned( wayPlaces.size() );
+				mappedEdgesData << qint8( edgeIDAtSource ) << qint8( edgeIDAtTarget );
 
-				edgePathsData << nodeCoordinates[to].x << nodeCoordinates[to].y;
+				pathID += nextRoutingNode - pathNode - 1;
+				addressID += wayPlaces.size();
+				pathNode = nextRoutingNode;
 
-				nextRoutingNode++;
+				m_statistics.numberOfEdges++;
 			}
-
-			std::vector< unsigned > wayPlaces;
-			for ( unsigned i = pathNode; i < nextRoutingNode; i++ ) {
-				if ( nodeLocation[way[i]].isInPlace )
-					wayPlaces.push_back( nodeLocation[way[i]].place );
-			}
-			std::sort( wayPlaces.begin(), wayPlaces.end() );
-			wayPlaces.resize( std::unique( wayPlaces.begin(), wayPlaces.end() ) - wayPlaces.begin() );
-			for ( unsigned i = 0; i < wayPlaces.size(); i++ )
-				edgeAddressData << wayPlaces[i];
-
-			mappedEdgesData << source << target << bidirectional << seconds;
-			mappedEdgesData << nameID << refID;
-			if ( roundabout )
-				mappedEdgesData << unsigned( m_settings.speedProfile.names.size() );
-			else
-				mappedEdgesData << type;
-			mappedEdgesData << pathID << nextRoutingNode - pathNode - 1;
-			mappedEdgesData << addressID << unsigned( wayPlaces.size() );
-
-			pathID += nextRoutingNode - pathNode - 1;
-			addressID += wayPlaces.size();
-			pathNode = nextRoutingNode;
-
-			m_statistics.numberOfEdges++;
 		}
+
+		if ( onewayType == 0 )
+			qDebug() << "OSM Importer: remapped edges" << time.restart() << "ms";
+		else
+			qDebug() << "OSM Importer: remapped oneway edges" << time.restart() << "ms";
 	}
 
-	qDebug() << "OSM Importer: remapped edges" << time.restart() << "ms";
+	return true;
+}
+
+bool OSMImporter::computeTurningPenalties( QString filename )
+{
+	FileStream restrictionData( filename + "_restrictions" );
+
+	if ( !restrictionData.open( QIODevice::ReadOnly ) )
+		return false;
+
+	FileStream penaltyData( filename + "_penalties" );
+
+	if ( !penaltyData.open( QIODevice::WriteOnly ) )
+		return false;
+
+	Timer time;
+
+	std::vector< RestrictionInfo > restrictions;
+	while ( true ) {
+		RestrictionInfo restriction;
+		restrictionData >> restriction.exclude;
+		restrictionData >> restriction.from;
+		restrictionData >> restriction.to;
+		restrictionData >> restriction.via;
+
+		if ( restrictionData.status() == QDataStream::ReadPastEnd )
+			break;
+
+		restrictions.push_back( restriction );
+	}
+
+	qDebug() << "OSM Importer: read restrictions:" << time.restart() << "ms";
+
+	std::sort( restrictions.begin(), restrictions.end() );
+	std::sort( m_edgeInfo.begin(), m_edgeInfo.end() );
+	double leftSum = 0;
+	double rightSum = 0;
+	double straightSum = 0;
+	unsigned left = 0;
+	unsigned right = 0;
+	unsigned straight = 0;
+	unsigned edge = 0;
+	unsigned restriction = 0;
+	std::vector< double > table;
+	std::vector< int > histogram( m_settings.highways.size(), 0 );
+	for ( unsigned node = 0; node < m_routingNodes.size(); node++ ) {
+		penaltyData << ( int ) m_inDegree[node] << ( int ) m_outDegree[node];
+
+		while ( edge < m_edgeInfo.size() && m_edgeInfo[edge].node < node )
+			edge++;
+		while ( restriction < restrictions.size() && restrictions[restriction].via < m_routingNodes[node] )
+			restriction++;
+
+		table.clear();
+		table.resize( ( int ) m_inDegree[node] * m_outDegree[node], 0 );
+
+		for ( unsigned i = restriction; i < restrictions.size() && restrictions[i].via == m_routingNodes[node]; i++ ) {
+			unsigned from = std::numeric_limits< unsigned >::max();
+			unsigned to = std::numeric_limits< unsigned >::max();
+			//qDebug() << restrictions[i].from << restrictions[i].to;
+			for ( unsigned j = edge; j < m_edgeInfo.size() && m_edgeInfo[j].node == node; j++ ) {
+				//qDebug() << m_edgeInfo[j].oldID;
+				if ( m_edgeInfo[j].oldID == restrictions[i].from )
+					from = m_edgeInfo[j].id;
+				if ( m_edgeInfo[j].oldID == restrictions[i].to )
+					to = m_edgeInfo[j].id;
+				if ( from != std::numeric_limits< unsigned >::max() && to != std::numeric_limits< unsigned >::max() ) {
+					table[from * m_outDegree[node] + to] = -1; // infinity == not allowed
+					m_statistics.numberOfRestrictionsApplied++;
+					break;
+				}
+			}
+		}
+
+		histogram.assign( histogram.size(), 0 );
+		for ( unsigned i = edge; i < m_edgeInfo.size() && m_edgeInfo[i].node == node; i++ ) {
+			if ( m_edgeInfo[i].backward )
+				histogram[m_edgeInfo[i].type]++;
+		}
+
+		//penalties
+		for ( unsigned i = edge; i < m_edgeInfo.size() && m_edgeInfo[i].node == node; i++ ) {
+			const EdgeInfo& from = m_edgeInfo[i];
+			if ( !from.backward )
+				continue;
+			for ( unsigned j = edge; j < m_edgeInfo.size() && m_edgeInfo[j].node == node; j++ ) {
+				const EdgeInfo& to = m_edgeInfo[j];
+				if ( !to.forward )
+					continue;
+
+				unsigned tablePosition = ( int ) from.id * m_outDegree[node] + to.id;
+
+				if ( table[tablePosition] < 0 )
+					continue;
+
+				if ( from.speed == 0 || to.speed == 0 )
+					continue;
+				if ( m_settings.decceleration == 0 || m_settings.acceleration == 0 )
+					continue;
+
+				double angle = fmod( ( from.angle - to.angle ) / M_PI * 180.0 + 360.0, 360.0 ) - 180.0;
+				double radius = 1000;
+				if ( fabs( angle ) < 189 ) {
+					 // turn radius witht he assumption that the resolution is at least 5m
+					radius = sin( fabs( angle / 180.0 * M_PI ) / 2 ) / cos( fabs( angle / 180.0 * M_PI ) / 2 ) * std::min( 5.0, std::min( from.length, to.length ) ) / 2.0;
+				}
+				double maxVelocity = std::min( from.speed, to.speed );
+				if ( radius < 1000 ) // NAN and inf not possible
+					maxVelocity = std::min( maxVelocity, sqrt( m_settings.tangentialAcceleration * radius ) * 3.6 ); // turn radius and maximum tangential acceleration limit turning speed
+
+				if ( m_settings.highways[to.type].pedestrian && fabs( angle ) < 180 - 45 )
+					maxVelocity = std::min( maxVelocity, ( double ) m_settings.pedestrian );
+
+				{
+					int otherDirections = 0;
+					int startType = from.type;
+					bool equal = false;
+					bool skip = true;
+
+					if ( angle < 0 && angle > -180 + 45 ) {
+						if ( m_settings.highways[from.type].otherLeftPenalty )
+							skip = false;
+						else if ( m_settings.highways[from.type].otherLeftEqual )
+							equal = true;
+					} else if ( angle > 0 && angle < 180 - 45 ) {
+						if ( m_settings.highways[from.type].otherRightPenalty )
+							skip = false;
+						else if ( m_settings.highways[from.type].otherRightEqual )
+							equal = true;
+					} else {
+						if ( m_settings.highways[from.type].otherStraightPenalty )
+							skip = false;
+						else if ( m_settings.highways[from.type].otherStraightEqual )
+							equal = true;
+					}
+
+					if ( !skip ) {
+						if ( !equal )
+							startType++;
+						else
+							otherDirections--; // exclude your own origin
+
+						if ( to.type >= startType && to.backward )
+							otherDirections--; // exclude your target
+
+						for ( unsigned type = 0; type < histogram.size(); type++ ) {
+							if ( m_settings.highways[type].priority > m_settings.highways[from.type].priority )
+								otherDirections += histogram[type];
+						}
+
+						if ( otherDirections >= 1 )
+							maxVelocity = std::min( maxVelocity, ( double ) m_settings.otherCars );
+					}
+				}
+
+				// the time it takes to deccelerate vs the travel time assumed on the edge
+				double decceleratingPenalty = ( from.speed - maxVelocity ) * ( from.speed - maxVelocity ) / ( 2 * from.speed * m_settings.decceleration * 3.6 );
+				// the time it takes to accelerate vs the travel time assumed on the edge
+				double acceleratingPenalty = ( to.speed - maxVelocity ) * ( to.speed - maxVelocity ) / ( 2 * to.speed * m_settings.acceleration * 3.6 );
+
+				table[tablePosition] = decceleratingPenalty + acceleratingPenalty;
+				if ( angle < 0 && angle > -180 + 45 )
+					table[tablePosition] += m_settings.highways[to.type].leftPenalty;
+				if ( angle > 0 && angle < 180 - 45 )
+					table[tablePosition] += m_settings.highways[to.type].rightPenalty;
+				//if ( tables[position + from.id + m_inDegree[node] * to.id] > m_statistics.maxTurningPenalty ) {
+				//	qDebug() << angle << radius << from.speed << to.speed << maxVelocity;
+				//	qDebug() << from.length << to.length;
+				//}
+				m_statistics.maxTurningPenalty = std::max( m_statistics.maxTurningPenalty, table[tablePosition] );
+				if ( angle < 0 && angle > -180 + 45 ) {
+					leftSum += table[tablePosition];
+					left++;
+				} else if ( angle > 0 && angle < 180 - 45 ) {
+					rightSum += table[tablePosition];
+					right++;
+				} else {
+					straightSum += table[tablePosition];
+					straight++;
+				}
+			}
+		}
+
+		for ( unsigned i = 0; i < table.size(); i++ )
+			penaltyData << table[i];
+	}
+
+
+	m_statistics.numberOfTurningPenalties = table.size();
+	m_statistics.averageLeftPenalty = leftSum / left;
+	m_statistics.averageRightPenalty = rightSum / right;
+	m_statistics.averageStraightPenalty = straightSum / straight;
+	qDebug() << "OSM Importer: computed turning penalties:" << time.restart() << "ms";
 
 	return true;
 }
@@ -791,10 +1152,11 @@ void OSMImporter::readWay( OSMImporter::Way* way, const IEntityReader::Way& inpu
 							way->direction = Way::Oneway;
 					}
 
-					int index = m_settings.speedProfile.names.indexOf( value );
-					if ( index != -1 ) {
-						way->type = index;
-						way->usefull = true;
+					for ( int type = 0; type < m_settings.highways.size(); type++ ) {
+						if ( value == m_settings.highways[type].value ) {
+							way->type = type;
+							way->usefull = true;
+						}
 					}
 					break;
 				}
@@ -996,6 +1358,64 @@ void OSMImporter::readNode( OSMImporter::Node* node, const IEntityReader::Node& 
 	}
 }
 
+void OSMImporter::readRelation( Relation* relation, const IEntityReader::Relation& inputRelation )
+{
+	relation->type = Relation::TypeNone;
+	relation->restriction.access = true;
+	relation->restriction.from = std::numeric_limits< unsigned >::max();
+	relation->restriction.to = std::numeric_limits< unsigned >::max();;
+	relation->restriction.via = std::numeric_limits< unsigned >::max();
+	relation->restriction.type = Restriction::None;
+
+	for ( unsigned tag = 0; tag < inputRelation.tags.size(); tag++ ) {
+		int key = inputRelation.tags[tag].key;
+		QString value = inputRelation.tags[tag].value;
+
+		if ( key < RelationTags::MaxTag ) {
+			switch ( RelationTags::Key( key ) ) {
+			case RelationTags::Type:
+				{
+					if ( value == "restriction" )
+						relation->type = Relation::TypeRestriction;
+					break;
+				}
+			case RelationTags::Except:
+				{
+					QStringList accessTypes = value.split( ';' );
+					foreach( QString access, m_settings.accessList ) {
+						if ( accessTypes.contains( access ) )
+							relation->restriction.access = false;
+					}
+					break;
+				}
+			case RelationTags::Restriction:
+				{
+					if ( value.startsWith( "no" ) )
+						relation->restriction.type = Restriction::No;
+					else if ( value.startsWith( "only" ) )
+						relation->restriction.type = Restriction::Only;
+					break;
+				}
+			case RelationTags::MaxTag:
+				assert( false );
+			}
+
+			continue;
+		}
+
+	}
+
+	for ( unsigned i = 0; i < inputRelation.members.size(); i++ ) {
+		const IEntityReader::RelationMember& member = inputRelation.members[i];
+		if ( member.type == IEntityReader::RelationMember::Way && member.role == "from" )
+			relation->restriction.from = member.ref;
+		else if ( member.type == IEntityReader::RelationMember::Way && member.role == "to" )
+			relation->restriction.to = member.ref;
+		else if ( member.type == IEntityReader::RelationMember::Node && member.role == "via" )
+			relation->restriction.via = member.ref;
+	}
+}
+
 OSMImporter::Place::Type OSMImporter::parsePlaceType( const QString& type )
 {
 	if ( type == "city" )
@@ -1101,11 +1521,13 @@ bool OSMImporter::GetRoutingEdges( std::vector< RoutingEdge >* data )
 		unsigned addressID, addressLength;
 		bool bidirectional;
 		double seconds;
+		qint8 edgeIDAtSource, edgeIDAtTarget;
 
 		mappedEdgesData >> source >> target >> bidirectional >> seconds;
 		mappedEdgesData >> nameID >> refID >> type;
 		mappedEdgesData >> pathID >> pathLength;
 		mappedEdgesData >> addressID >> addressLength;
+		mappedEdgesData >> edgeIDAtSource >> edgeIDAtTarget;
 
 		if ( mappedEdgesData.status() == QDataStream::ReadPastEnd )
 			break;
@@ -1119,6 +1541,8 @@ bool OSMImporter::GetRoutingEdges( std::vector< RoutingEdge >* data )
 		edge.type = type;
 		edge.pathID = pathID;
 		edge.pathLength = pathLength;
+		edge.edgeIDAtSource = edgeIDAtSource;
+		edge.edgeIDAtTarget = edgeIDAtTarget;
 
 		data->push_back( edge );
 
@@ -1213,6 +1637,40 @@ bool OSMImporter::GetRoutingWayTypes( std::vector< QString >* data )
 	return true;
 }
 
+bool OSMImporter::GetRoutingPenalties( std::vector< char >* inDegree, std::vector< char >* outDegree, std::vector< double >* penalties )
+{
+	QString filename = fileInDirectory( m_outputDirectory, "OSM Importer" );
+
+	FileStream penaltyData( filename + "_penalties" );
+
+	if ( !penaltyData.open( QIODevice::ReadOnly ) )
+		return false;
+
+	while ( true ) {
+		int in, out;
+		penaltyData >> in >> out;
+		if ( penaltyData.status() == QDataStream::ReadPastEnd )
+			break;
+		unsigned oldPosition = penalties->size();
+		for ( int i = 0; i < in; i++ ) {
+			for ( int j = 0; j < out; j++ ) {
+				double penalty;
+				penaltyData >> penalty;
+				penalties->push_back( penalty );
+			}
+		}
+		if ( penaltyData.status() == QDataStream::ReadPastEnd ) {
+			penalties->resize( oldPosition );
+			qCritical() << "OSM Importer: Corrupt Penalty Data";
+			return false;
+		}
+		inDegree->push_back( in );
+		outDegree->push_back( out );
+	}
+
+	return true;
+}
+
 bool OSMImporter::GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer, std::vector< QString >* addressNames )
 {
 	QString filename = fileInDirectory( m_outputDirectory, "OSM Importer" );
@@ -1288,11 +1746,13 @@ bool OSMImporter::GetAddressData( std::vector< Place >* dataPlaces, std::vector<
 		unsigned addressID, addressLength;
 		bool bidirectional;
 		double seconds;
+		qint8 edgeIDAtSource, edgeIDAtTarget;
 
 		mappedEdgesData >> source >> target >> bidirectional >> seconds;
 		mappedEdgesData >> nameID >> refID >> type;
 		mappedEdgesData >> pathID >> pathLength;
 		mappedEdgesData >> addressID >> addressLength;
+		mappedEdgesData >> edgeIDAtSource >> edgeIDAtTarget;
 		if ( mappedEdgesData.status() == QDataStream::ReadPastEnd )
 			break;
 
@@ -1377,8 +1837,11 @@ void OSMImporter::DeleteTemporaryFiles()
 	QFile::remove( filename + "_edges" );
 	QFile::remove( filename + "_id_map" );
 	QFile::remove( filename + "_mapped_edges" );
+	QFile::remove( filename + "_oneway_edges" );
 	QFile::remove( filename + "_paths" );
+	QFile::remove( filename + "_penalties" );
 	QFile::remove( filename + "_places" );
+	QFile::remove( filename + "_restrictions" );
 	QFile::remove( filename + "_routing_coordinates" );
 	QFile::remove( filename + "_way_names" );
 	QFile::remove( filename + "_way_refs" );

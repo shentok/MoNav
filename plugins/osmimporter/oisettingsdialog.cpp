@@ -20,6 +20,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "oisettingsdialog.h"
 #include "ui_oisettingsdialog.h"
 #include "utils/qthelpers.h"
+#include "highwaytypewidget.h"
 
 #include <QFileDialog>
 #include <QInputDialog>
@@ -33,7 +34,6 @@ OISettingsDialog::OISettingsDialog(QWidget *parent) :
 	m_ui(new Ui::OISettingsDialog)
 {
 	m_ui->setupUi(this);
-	m_ui->speedTable->resizeColumnsToContents();
 	m_ui->toolBox->widget( 2 )->setEnabled( false );
 	m_ui->toolBox->widget( 3 )->setEnabled( false );
 	m_ui->toolBox->widget( 4 )->setEnabled( false );
@@ -46,7 +46,6 @@ OISettingsDialog::OISettingsDialog(QWidget *parent) :
 void OISettingsDialog::connectSlots()
 {
 	connect( m_ui->addWayType, SIGNAL(clicked()), this, SLOT(addSpeed()) );
-	connect( m_ui->deleteWayType, SIGNAL(clicked()), this, SLOT(removeSpeed()) );
 	connect( m_ui->saveButton, SIGNAL(clicked()), this, SLOT(save()) );
 	connect( m_ui->loadButton, SIGNAL(clicked()), this, SLOT(load()) );
 	connect( m_ui->speedProfileChooser, SIGNAL(currentIndexChanged(int)), this, SLOT(currentIndexChanged()) );
@@ -57,7 +56,6 @@ void OISettingsDialog::connectSlots()
 	connect( m_ui->customProfile, SIGNAL(toggled(bool)), m_ui->toolBox->widget( 5 ), SLOT(setEnabled(bool)) );
 	connect( m_ui->customProfile, SIGNAL(toggled(bool)), m_ui->toolBox->widget( 6 ), SLOT(setEnabled(bool)) );
 	connect( m_ui->languagePriorities, SIGNAL(currentRowChanged(int)), this, SLOT(currentLanguageChanged(int)) );
-	connect( m_ui->speedTable, SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(currentWayTypeChanged(int,int,int,int)) );
 	connect( m_ui->addLanguage, SIGNAL(clicked()), this, SLOT(addLanguage()) );
 	connect( m_ui->deleteLanguage, SIGNAL(clicked()), this, SLOT(deleteLanguage()) );
 
@@ -102,24 +100,10 @@ void OISettingsDialog::deleteLanguage()
 	delete m_ui->languagePriorities->takeItem( m_ui->languagePriorities->currentRow() );
 }
 
-void OISettingsDialog::currentWayTypeChanged( int currentRow, int /*currentCol*/, int /*lastRow*/, int /*lastCol*/ )
-{
-	m_ui->deleteWayType->setEnabled( currentRow != -1 );
-}
-
 void OISettingsDialog::addSpeed()
 {
-	int rows = m_ui->speedTable->rowCount();
-	m_ui->speedTable->setRowCount( rows + 1 );
-}
-
-void OISettingsDialog::removeSpeed()
-{
-	if ( m_ui->speedTable->rowCount() == 0 )
-		return;
-
-	int row = m_ui->speedTable->currentRow();
-	m_ui->speedTable->removeRow( row );
+	HighwayTypeWidget* widget = new HighwayTypeWidget( this );
+	m_ui->highwayTypes->widget()->layout()->addWidget( widget );
 }
 
 void OISettingsDialog::save( const QString& filename, QString name )
@@ -131,6 +115,11 @@ void OISettingsDialog::save( const QString& filename, QString name )
 	settings.setValue( "defaultCitySpeed", m_ui->setDefaultCitySpeed->isChecked() );
 	settings.setValue( "ignoreOneway", m_ui->ignoreOneway->isChecked() );
 	settings.setValue( "ignoreMaxspeed", m_ui->ignoreMaxspeed->isChecked() );
+	settings.setValue( "acceleration", m_ui->acceleration->value() );
+	settings.setValue( "decceleration", m_ui->decceleration->value() );
+	settings.setValue( "tangentialAcceleration", m_ui->tangentialAcceleration->value() );
+	settings.setValue( "pedestrian", m_ui->pedestrian->value() );
+	settings.setValue( "otherCars", m_ui->otherCars->value() );
 
 	QList< QTreeWidgetItem* > items = m_ui->accessTree->selectedItems();
 
@@ -141,19 +130,24 @@ void OISettingsDialog::save( const QString& filename, QString name )
 
 	settings.setValue( "accessType", items.first()->text( 0 ) );
 
-	int rowCount = m_ui->speedTable->rowCount();
-	int colCount = m_ui->speedTable->columnCount();
-	settings.setValue( "entries", rowCount );
-	for ( int row = 0; row < rowCount; ++row ) {
-		QStringList entry;
-		for ( int col = 0; col < colCount; col++ ) {
-			if ( m_ui->speedTable->item( row, col ) == NULL ) {
-				qCritical() << "speed profile table is missing some entries";
-				return;
-			}
-			entry.push_back( m_ui->speedTable->item( row, col )->text() );
-		}
-		settings.setValue( QString( "entry.%1" ).arg( row ), entry );
+	QList< HighwayTypeWidget* > highwayWidgets = m_ui->highwayTypes->findChildren< HighwayTypeWidget* >();
+	settings.setValue( "highwayCount", highwayWidgets.size() );
+	for ( int i = 0; i < highwayWidgets.size(); i++ ) {
+		MoNav::Highway highway = highwayWidgets[i]->highway();
+		settings.setValue( QString( "highway.%1.priority" ).arg( i ), highway.priority );
+		settings.setValue( QString( "highway.%1.value" ).arg( i ), highway.value );
+		settings.setValue( QString( "highway.%1.maxSpeed" ).arg( i ), highway.maxSpeed );
+		settings.setValue( QString( "highway.%1.defaultCitySpeed" ).arg( i ), highway.defaultCitySpeed );
+		settings.setValue( QString( "highway.%1.averageSpeed" ).arg( i ), highway.averageSpeed );
+		settings.setValue( QString( "highway.%1.pedestrian" ).arg( i ), highway.pedestrian );
+		settings.setValue( QString( "highway.%1.otherLeftPenalty" ).arg( i ), highway.otherLeftPenalty );
+		settings.setValue( QString( "highway.%1.otherRightPenalty" ).arg( i ), highway.otherRightPenalty );
+		settings.setValue( QString( "highway.%1.otherStraightPenalty" ).arg( i ), highway.otherStraightPenalty );
+		settings.setValue( QString( "highway.%1.otherLeftEqual" ).arg( i ), highway.otherLeftEqual );
+		settings.setValue( QString( "highway.%1.otherRightEqual" ).arg( i ), highway.otherRightEqual );
+		settings.setValue( QString( "highway.%1.otherStraightEqual" ).arg( i ), highway.otherStraightEqual );
+		settings.setValue( QString( "highway.%1.leftPenalty" ).arg( i ), highway.leftPenalty );
+		settings.setValue( QString( "highway.%1.rightPenalty" ).arg( i ), highway.rightPenalty );
 	}
 
 	QList< WayModificatorWidget* > wayModificators = m_ui->wayModificators->findChildren< WayModificatorWidget* >();
@@ -206,6 +200,11 @@ QString OISettingsDialog::load( const QString& filename, bool nameOnly )
 	m_ui->setDefaultCitySpeed->setChecked( settings.value( "defaultCitySpeed" ).toBool() );
 	m_ui->ignoreOneway->setChecked( settings.value( "ignoreOneway" ).toBool() );
 	m_ui->ignoreMaxspeed->setChecked( settings.value( "ignoreMaxspeed" ).toBool() );
+	m_ui->acceleration->setValue( settings.value( "acceleration" ).toDouble() );
+	m_ui->decceleration->setValue( settings.value( "decceleration" ).toDouble() );
+	m_ui->tangentialAcceleration->setValue( settings.value( "tangentialAcceleration" ).toDouble() );
+	m_ui->pedestrian->setValue( settings.value( "pedestrian" ).toInt() );
+	m_ui->otherCars->setValue( settings.value( "otherCars" ).toInt() );
 
 	QString accessType = settings.value( "accessType" ).toString();
 	QList< QTreeWidgetItem* > items = m_ui->accessTree->findItems( accessType, Qt::MatchFixedString | Qt::MatchRecursive );
@@ -220,26 +219,34 @@ QString OISettingsDialog::load( const QString& filename, bool nameOnly )
 	items.first()->setSelected( true );
 	m_ui->accessTree->expandAll();
 
-	int rowCount = settings.value( "entries" ).toInt();
-	int colCount = m_ui->speedTable->columnCount();
-	m_ui->speedTable->setRowCount( 0 );
-	m_ui->speedTable->setRowCount( rowCount );
-	for ( int row = 0; row < rowCount; ++row ) {
-		QStringList entry = settings.value( QString( "entry.%1" ).arg( row ) ).toStringList();
+	qDeleteAll( m_ui->highwayTypes->findChildren< HighwayTypeWidget* >() );
 
-		if ( entry.size() != colCount ) {
-			qCritical() << "invalid speed profile entry:" << entry;
-			return "";
-		}
+	int highwayCount = settings.value( "highwayCount" ).toInt();
+	for ( int i = 0; i < highwayCount; i++ ) {
+		MoNav::Highway highway;
+		highway.priority = settings.value( QString( "highway.%1.priority" ).arg( i ) ).toInt();
+		highway.value = settings.value( QString( "highway.%1.value" ).arg( i ) ).toString();
+		highway.maxSpeed = settings.value( QString( "highway.%1.maxSpeed" ).arg( i ) ).toInt();
+		highway.defaultCitySpeed = settings.value( QString( "highway.%1.defaultCitySpeed" ).arg( i ) ).toInt();
+		highway.averageSpeed = settings.value( QString( "highway.%1.averageSpeed" ).arg( i ) ).toInt();
+		highway.pedestrian = settings.value( QString( "highway.%1.pedestrian" ).arg( i ) ).toBool();
+		highway.otherLeftPenalty = settings.value( QString( "highway.%1.otherLeftPenalty" ).arg( i ) ).toBool();
+		highway.otherRightPenalty = settings.value( QString( "highway.%1.otherRightPenalty" ).arg( i ) ).toBool();
+		highway.otherStraightPenalty = settings.value( QString( "highway.%1.otherStraightPenalty" ).arg( i ) ).toBool();
+		highway.otherLeftEqual = settings.value( QString( "highway.%1.otherLeftEqual" ).arg( i ) ).toBool();
+		highway.otherRightEqual = settings.value( QString( "highway.%1.otherRightEqual" ).arg( i ) ).toBool();
+		highway.otherStraightEqual = settings.value( QString( "highway.%1.otherStraightEqual" ).arg( i ) ).toBool();
+		highway.leftPenalty = settings.value( QString( "highway.%1.leftPenalty" ).arg( i ) ).toInt();
+		highway.rightPenalty = settings.value( QString( "highway.%1.rightPenalty" ).arg( i ) ).toInt();
 
-		for ( int col = 0; col < colCount; col++ ) {
-			m_ui->speedTable->setItem( row, col, new QTableWidgetItem );
-			m_ui->speedTable->item( row, col )->setText( entry[col] );
-		}
+		HighwayTypeWidget* widget = new HighwayTypeWidget( this );
+		widget->setHighway( highway );
+		m_ui->highwayTypes->widget()->layout()->addWidget( widget );
+		if ( isVisible() )
+			widget->show();
 	}
 
-	foreach( WayModificatorWidget* widget, m_ui->wayModificators->findChildren< WayModificatorWidget* >() )
-		widget->deleteLater();
+	qDeleteAll( m_ui->wayModificators->findChildren< WayModificatorWidget* >() );
 
 	int wayModificatorCount = settings.value( "wayModificatorsCount" ).toInt();
 	for ( int i = 0; i < wayModificatorCount; i++ ) {
@@ -259,8 +266,7 @@ QString OISettingsDialog::load( const QString& filename, bool nameOnly )
 			widget->show();
 	}
 
-	foreach( NodeModificatorWidget* widget, m_ui->nodeModificators->findChildren< NodeModificatorWidget* >() )
-		widget->deleteLater();
+	qDeleteAll( m_ui->nodeModificators->findChildren< NodeModificatorWidget* >() );
 
 	int nodeModificatorCount = settings.value( "nodeModificatorsCount" ).toInt();
 	for ( int i = 0; i < nodeModificatorCount; i++ ) {
@@ -340,43 +346,18 @@ bool OISettingsDialog::getSettings( Settings* settings )
 	settings->defaultCitySpeed = m_ui->setDefaultCitySpeed->isChecked();
 	settings->ignoreOneway = m_ui->ignoreOneway->isChecked();
 	settings->ignoreMaxspeed = m_ui->ignoreMaxspeed->isChecked();
+	settings->acceleration = m_ui->acceleration->value();
+	settings->decceleration = m_ui->decceleration->value();
+	settings->tangentialAcceleration = m_ui->tangentialAcceleration->value();
+	settings->pedestrian = m_ui->pedestrian->value();
+	settings->otherCars = m_ui->otherCars->value();
 
-	int rowCount = m_ui->speedTable->rowCount();
-	int colCount = m_ui->speedTable->columnCount();
-
-	if ( colCount != 4 )
-		return false;
-
-	settings->speedProfile.names.clear();
-	settings->speedProfile.speed.clear();
-	settings->speedProfile.speedInCity.clear();
-	settings->speedProfile.averagePercentage.clear();
-
-	for ( int row = 0; row < rowCount; ++row ) {
-		for ( int i = 0; i < colCount; i++ ) {
-			if ( m_ui->speedTable->item( row, i ) == NULL ) {
-				qCritical() << tr( "Missing entry in speed profile table" );
-				return false;
-			}
-		}
-		bool ok = true;
-		settings->speedProfile.names.push_back( m_ui->speedTable->item( row, 0 )->text() );
-		settings->speedProfile.speed.push_back( m_ui->speedTable->item( row, 1 )->text().toInt( &ok ) );
-		if ( !ok ) {
-			qCritical() << "speed table contains invalid entries:" << m_ui->speedTable->item( row, 1 )->text();
-			return false;
-		}
-		settings->speedProfile.speedInCity.push_back( m_ui->speedTable->item( row, 2 )->text().toInt( &ok ) );
-		if ( !ok ) {
-			qCritical() << "speed table contains invalid entries:" << m_ui->speedTable->item( row, 1 )->text();
-			return false;
-		}
-		settings->speedProfile.averagePercentage.push_back( m_ui->speedTable->item( row, 3 )->text().toInt( &ok ) );
-		if ( !ok ) {
-			qCritical() << "speed table contains invalid entries:" << m_ui->speedTable->item( row, 1 )->text();
-			return false;
-		}
+	settings->highways.clear();
+	foreach( HighwayTypeWidget* highwayWidget, m_ui->highwayTypes->findChildren< HighwayTypeWidget* >() ) {
+		MoNav::Highway highway = highwayWidget->highway();
+		settings->highways.push_back( highway );
 	}
+	qSort( settings->highways );
 
 	QList< QTreeWidgetItem* > items = m_ui->accessTree->selectedItems();
 	if ( items.size() != 1 ) {

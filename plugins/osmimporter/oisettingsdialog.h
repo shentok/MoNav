@@ -40,20 +40,19 @@ public:
 	 ~OISettingsDialog();
 
 	struct Settings {
-		struct SpeedProfile {
-			QStringList names;
-			QVector< double > speed;
-			QVector< double > speedInCity;
-			QVector< double > averagePercentage;
-		} speedProfile;
-
+		QVector< MoNav::Highway > highways;
 		QVector< MoNav::WayModificator > wayModificators;
 		QVector< MoNav::NodeModificator > nodeModificators;
+
+		double acceleration;
+		double decceleration;
+		double tangentialAcceleration;
+		int pedestrian;
+		int otherCars;
 
 		QStringList accessList;
 		bool defaultCitySpeed;
 		bool ignoreOneway;
-		int trafficLightPenalty;
 		bool ignoreMaxspeed;
 
 		QStringList languageSettings;
@@ -65,12 +64,10 @@ public:
 
 public slots:
 	void addSpeed();
-	void removeSpeed();
 	void save();
 	void load();
 	void currentIndexChanged();
 	void currentLanguageChanged ( int currentRow );
-	void currentWayTypeChanged( int currentRow, int currentCol, int lastRow, int lastCol );
 	void addLanguage();
 	void deleteLanguage();
 	void addWayModificator();

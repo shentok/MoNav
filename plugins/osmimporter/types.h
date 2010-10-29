@@ -55,6 +55,30 @@ namespace MoNav {
 		QVariant modificatorValue;
 		WayModificatorType type;
 	};
+
+	struct Highway {
+		int priority;
+		QString value;
+		int maxSpeed;
+		int defaultCitySpeed;
+		int averageSpeed;
+		bool pedestrian;
+		bool otherLeftPenalty;
+		bool otherLeftEqual;
+		bool otherRightPenalty;
+		bool otherRightEqual;
+		bool otherStraightPenalty;
+		bool otherStraightEqual;
+		int leftPenalty;
+		int rightPenalty;
+
+		bool operator<( const Highway& right ) const
+		{
+			if ( priority != right.priority )
+				return priority;
+			return value < right.value;
+		}
+	};
 }
 
 #endif // TYPES_H

@@ -54,6 +54,7 @@ public:
 	virtual bool GetRoutingNodes( std::vector< RoutingNode >* data );
 	virtual bool GetRoutingWayNames( std::vector< QString >* data );
 	virtual bool GetRoutingWayTypes( std::vector< QString >* data );
+	virtual bool GetRoutingPenalties( std::vector< char >* inDegree, std::vector< char >* outDegree, std::vector< double >* penalties );
 	virtual bool GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer, std::vector< QString >* addressNames );
 	virtual bool GetBoundingBox( BoundingBox* box );
 	virtual void DeleteTemporaryFiles();
@@ -63,14 +64,24 @@ protected:
 
 	struct Statistics{
 		NodeID numberOfNodes;
-		NodeID numberOfEdges;
 		NodeID numberOfWays;
+		NodeID numberOfRelations;
+		NodeID numberOfRestrictions;
+		NodeID numberOfEdges;
+		NodeID numberOfUsedNodes;
+		NodeID numberOfSegments;
 		NodeID numberOfPlaces;
 		NodeID numberOfOutlines;
 		NodeID numberOfMaxspeed;
 		NodeID numberOfZeroSpeed;
 		NodeID numberOfDefaultCitySpeed;
 		NodeID numberOfCityEdges;
+		NodeID numberOfTurningPenalties;
+		NodeID numberOfRestrictionsApplied;
+		double maxTurningPenalty;
+		double averageLeftPenalty;
+		double averageRightPenalty;
+		double averageStraightPenalty;
 
 		Statistics() {
 			memset( this, 0, sizeof( Statistics ) );
@@ -114,8 +125,17 @@ protected:
 		int accessPriority;
 	};
 
-	struct Relation {
+	struct Restriction {
+		enum { None, No, Only } type;
+		unsigned from;
+		unsigned to;
+		unsigned via;
+		bool access;
+	};
 
+	struct Relation {
+		enum { TypeNone, TypeRestriction } type;
+		Restriction restriction;
 	};
 
 	struct NodeLocation {
@@ -188,6 +208,12 @@ protected:
 		};
 	};
 
+	struct RelationTags {
+		enum Key {
+			Type = 0, Restriction = 1, Except = 2, MaxTag = 3
+		};
+	};
+
 	struct NodePenalty {
 		unsigned id;
 		int seconds;
@@ -210,15 +236,51 @@ protected:
 		}
 	};
 
+	// contains information usefull for determening turing costs
+	struct EdgeInfo {
+		unsigned node;
+		char type;
+		char id;
+		bool forward : 1;
+		bool backward : 1;
+		bool crossing : 1;
+		unsigned oldID;
+		double angle; // [-M_PI,+M_PI]
+		double length;
+		double speed;
+
+		bool operator<( const EdgeInfo& right ) const
+		{
+			return node < right.node;
+		}
+	};
+
+	struct RestrictionInfo {
+		unsigned from;
+		unsigned to;
+		unsigned via;
+		bool exclude; // false == only
+
+		bool operator<( const RestrictionInfo& right ) const
+		{
+			return via < right.via;
+		}
+	};
+
+	void clear();
+	void printStats();
+
 	bool read( const QString& inputFilename, const QString& filename );
 	void readWay( Way* way, const IEntityReader::Way& inputWay );
 	void readNode( Node* node, const IEntityReader::Node& inputNode );
+	void readRelation( Relation* relation, const IEntityReader::Relation& inputRelation );
 	Place::Type parsePlaceType( const QString& type );
 	void setRequiredTags( IEntityReader* reader );
 
 	bool preprocessData( const QString& filename );
 	bool computeInCityFlags( QString filename, std::vector< NodeLocation >* nodeLocation, const std::vector< UnsignedCoordinate >& nodeCoordinates, const std::vector< UnsignedCoordinate >& outlineCoordinates );
 	bool remapEdges( QString filename, const std::vector< UnsignedCoordinate >& nodeCoordinates, const std::vector< NodeLocation >& nodeLocation );
+	bool computeTurningPenalties( QString filename );
 
 	Statistics m_statistics;
 	QString m_outputDirectory;
@@ -239,6 +301,10 @@ protected:
 	std::vector< unsigned > m_outlineNodes;
 	QHash< QString, unsigned > m_wayNames;
 	QHash< QString, unsigned > m_wayRefs;
+
+	std::vector< char > m_inDegree;
+	std::vector< char > m_outDegree;
+	std::vector< EdgeInfo > m_edgeInfo;
 };
 
 #endif // OSMIMPORTER_H

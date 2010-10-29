@@ -41,8 +41,10 @@ public:
 	struct RoutingEdge {
 		NodeID source;
 		NodeID target;
+		unsigned short edgeIDAtSource; // uniquely identifies this edge among all outgoing edges adjacent to the source, at most degree( source ) - 1
+		unsigned short edgeIDAtTarget; // uniquely identifies this edge among all incoming edges adjacent to the target, at most degree( target ) - 1
 		double distance; // travel time metric -> seconds
-		bool bidirectional : 1; // can the edge be traversed in both directions?
+		bool bidirectional : 1; // can the edge be traversed in both directions? edgeIDAtSource / edgeIDAtTarget are also unique for incoming / outgoing edges in this case.
 		bool branchingPossible : 1; // is there more than one subsequent edge to traverse ( turing around and traversing this edge in the opposite direction does not count )
 		unsigned nameID; // id of the way's name
 		unsigned pathID; // id of the way's path's description
@@ -91,9 +93,9 @@ public:
 	virtual bool Preprocess( QString filename ) = 0;
 	// IRouter is allowed to remap node ids and must set the resulting id map
 	virtual bool SetIDMap( const std::vector< NodeID >& idMap ) = 0;
-	// IGPSLookup has to use to router's id map
+	// IGPSLookup has to use the router's id map
 	virtual bool GetIDMap( std::vector< NodeID >* idMap ) = 0;
-	// IRouter is allowd to remap edge ids and must set the resulting id map
+	// IRouter is allowed to remap edge ids and must set the resulting id map
 	virtual bool SetEdgeIDMap( const std::vector< NodeID >& idMap ) = 0;
 	// IGPSLookup has to use the router's edge id map
 	virtual bool GetEdgeIDMap( std::vector< NodeID >* idMap ) = 0;
@@ -107,6 +109,10 @@ public:
 	virtual bool GetRoutingWayNames( std::vector< QString >* data ) = 0;
 	// get all way names
 	virtual bool GetRoutingWayTypes( std::vector< QString >* data ) = 0;
+	// get all turning penalties. Each node has a table inDegree[node] * outDegree[node] of penalties.
+	// the tables are serialized in the penalties vector
+	// access a penalty for turning from edgeID "a" into edgeID "b" with penalties[a * outDegree[node] + b + beginTable]
+	virtual bool GetRoutingPenalties( std::vector< char >* inDegree, std::vector< char >* outDegree, std::vector< double >* penalties ) = 0;
 	// get address data
 	virtual bool GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer, std::vector< QString >* addressNames ) = 0;
 	// get the bounding bos of all routing coordinates ( routing nodes + way descriptions )

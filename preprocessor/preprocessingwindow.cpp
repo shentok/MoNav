@@ -470,37 +470,31 @@ bool PreprocessingWindow::preprocessAll()
 		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 		return false;
 	}
-	QCoreApplication::processEvents();
 	qDebug() << "===Router===";
 	if ( !routerPreprocessing() ) {
 		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 		return false;
 	}
-	QCoreApplication::processEvents();
 	qDebug() << "===Renderer===";
 	if ( !rendererPreprocessing() ) {
 		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 		return false;
 	}
-	QCoreApplication::processEvents();
 	qDebug() << "===GPS Lookup===";
 	if ( !gpsLookupPreprocessing() ) {
 		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 		return false;
 	}
-	QCoreApplication::processEvents();
 	qDebug() << "===Address Lookup===";
 	if ( !addressLookupPreprocessing() ) {
 		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 		return false;
 	}
-	QCoreApplication::processEvents();
 	qDebug() << "===Config File===";
 	if ( !writeConfig() )  {
 		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 		return false;
 	}
-	QCoreApplication::processEvents();
 	qDebug() << "===Delete Temporary Files===";
 	if ( !deleteTemporary() )  {
 		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
@@ -521,25 +515,21 @@ bool PreprocessingWindow::preprocessDaemon()
 		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 		return false;
 	}
-	QCoreApplication::processEvents();
 	qDebug() << "===Router===";
 	if ( !routerPreprocessing() ) {
 		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 		return false;
 	}
-	QCoreApplication::processEvents();
 	qDebug() << "===GPS Lookup===";
 	if ( !gpsLookupPreprocessing() ) {
 		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 		return false;
 	}
-	QCoreApplication::processEvents();
 	qDebug() << "===Config File===";
 	if ( !writeConfig() )  {
 		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
 		return false;
 	}
-	QCoreApplication::processEvents();
 	qDebug() << "===Delete Temporary Files===";
 	if ( !deleteTemporary() )  {
 		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
