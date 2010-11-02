@@ -21,6 +21,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "descriptiongenerator.h"
 #include "mapdata.h"
 #include "utils/qthelpers.h"
+#include "logger.h"
 
 #include <QtDebug>
 #include <QSettings>
@@ -73,6 +74,8 @@ RoutingLogic::RoutingLogic() :
 		connect( d->gpsSource, SIGNAL(positionUpdated(QGeoPositionInfo)), this, SLOT(positionUpdated(QGeoPositionInfo)) );
 	}
 #endif
+
+	connect( this, SIGNAL(gpsInfoChanged()), Logger::instance(), SLOT(positionChanged()) );
 }
 
 RoutingLogic::~RoutingLogic()
