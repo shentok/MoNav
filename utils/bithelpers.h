@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cstring>
 #include <algorithm>
+#include <vector>
 
 template< class T >
 static inline T readUnaligned( const char* buffer ) {
@@ -196,8 +197,50 @@ static unsigned encode_integer( unsigned x )
 
 	if ( diffFirst < diffSecond )
 		return value->second;
-	else
-		return ( value + 1 )->second;
+	return ( value + 1 )->second;
+}
+
+// computes a minimal encoder table that can encode [min,max] with at most a factor ( 1 + 'error' ) error.
+// uses the last table entry as min; has to be >= 0
+// return the amount of bits needed to address a table entry
+static int compute_encoder_table( std::vector< int >* encoderTable, int max, double error )
+{
+	assert( encoderTable != NULL );
+	assert( encoderTable->size() != 0 );
+
+	while ( true ) {
+		double maxValue = encoderTable->back() * ( 1 + error );
+		if ( maxValue > max ) // safe <= double comparison
+			break;
+		double nextValue = ( ( int ) maxValue + 1 ) * ( 1 + error );
+		if ( nextValue >= max ) {
+			encoderTable->push_back( max );
+			break;
+		} else {
+			encoderTable->push_back( nextValue );
+		}
+	}
+
+	return bits_needed( encoderTable->size() );
+}
+
+// encode a value using a sorted encoder table
+// return the corresponding value with the least rounding error
+// rounds up if possible
+static unsigned table_encode( unsigned x, const std::vector< int >& encoderTable )
+{
+	assert( !encoderTable.empty() );
+
+	std::vector< int >::const_iterator value = std::lower_bound( encoderTable.begin(), encoderTable.end(), x );
+	if ( value >= encoderTable.end() - 1 )
+		return encoderTable.back();
+
+	unsigned diffFirst = x - *value;
+	unsigned diffSecond = *( value + 1 ) - x;
+
+	if ( diffFirst < diffSecond )
+		return *value;
+	return *( value + 1 );
 }
 
 #endif // BITHELPERS_H
