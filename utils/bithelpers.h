@@ -240,7 +240,7 @@ static unsigned table_encode( int x, const std::vector< int >& encoderTable )
 	if ( value == encoderTable.begin() )
 		return 0;
 	if ( value == encoderTable.end() )
-		return encoderTable.size();
+		return encoderTable.size() - 1;
 
 	int diffFirst = x - *( value - 1 );
 	int diffSecond = *value - x;
