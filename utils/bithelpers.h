@@ -189,15 +189,20 @@ static unsigned encode_integer( unsigned x )
 
 	Lookup* value = std::lower_bound( lookup, lookup + numEncoded, Lookup( x, 0 ) );
 
-	if ( value >= lookup + numEncoded - 1 )
+	if ( value == lookup )
+		return lookup[0].second;
+	if ( value == lookup + numEncoded )
 		return lookup[numEncoded - 1].second;
 
-	unsigned diffFirst = x - value->first;
-	unsigned diffSecond = ( value + 1 )->first - x;
+	int diffFirst = x - ( value - 1 )->first;
+	int diffSecond = value->first - x;
+
+	assert( diffFirst >= 0 );
+	assert( diffSecond >= 0 );
 
 	if ( diffFirst < diffSecond )
-		return value->second;
-	return ( value + 1 )->second;
+		return ( value - 1 )->second;
+	return value->second;
 }
 
 // computes a minimal encoder table that can encode [min,max] with at most a factor ( 1 + 'error' ) error.
@@ -227,20 +232,25 @@ static int compute_encoder_table( std::vector< int >* encoderTable, int max, dou
 // encode a value using a sorted encoder table
 // return the corresponding value with the least rounding error
 // rounds up if possible
-static unsigned table_encode( unsigned x, const std::vector< int >& encoderTable )
+static unsigned table_encode( int x, const std::vector< int >& encoderTable )
 {
 	assert( !encoderTable.empty() );
 
 	std::vector< int >::const_iterator value = std::lower_bound( encoderTable.begin(), encoderTable.end(), x );
-	if ( value >= encoderTable.end() - 1 )
-		return encoderTable.back();
+	if ( value == encoderTable.begin() )
+		return 0;
+	if ( value == encoderTable.end() )
+		return encoderTable.size();
 
-	unsigned diffFirst = x - *value;
-	unsigned diffSecond = *( value + 1 ) - x;
+	int diffFirst = x - *( value - 1 );
+	int diffSecond = *value - x;
+
+	assert( diffFirst >= 0 );
+	assert( diffSecond >= 0 );
 
 	if ( diffFirst < diffSecond )
-		return *value;
-	return *( value + 1 );
+		return value - encoderTable.begin() - 1;
+	return value - encoderTable.begin();
 }
 
 #endif // BITHELPERS_H
