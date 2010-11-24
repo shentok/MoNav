@@ -7,17 +7,19 @@
 TEMPLATE = lib
 CONFIG += plugin static
 
+INCLUDEPATH += ../..
+
 DESTDIR = ../../bin/plugins_client
 
 HEADERS += \
-    utils/coordinates.h \
-    utils/config.h \
-    cell.h \
-    interfaces/igpslookup.h \
-    gpsgridclient.h \
-    table.h \
-    utils/bithelpers.h \
-    utils/qthelpers.h
+	 utils/coordinates.h \
+	 utils/config.h \
+	 cell.h \
+	 interfaces/igpslookup.h \
+	 gpsgridclient.h \
+	 table.h \
+	 utils/bithelpers.h \
+	 utils/qthelpers.h
 
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -27,4 +29,4 @@ unix {
 }
 
 SOURCES += \
-    gpsgridclient.cpp
+	 gpsgridclient.cpp

@@ -6,22 +6,25 @@
 
 TARGET = unicodetournamenttrie
 DESTDIR = ../../bin/plugins_preprocessor
+
+INCLUDEPATH += ../..
+
 TEMPLATE = lib
 CONFIG += plugin static
 
 SOURCES += unicodetournamenttrie.cpp \
-    uttsettingsdialog.cpp
+	 uttsettingsdialog.cpp
 
 HEADERS += unicodetournamenttrie.h \
-    utils/coordinates.h \
-    utils/config.h \
-    interfaces/iimporter.h \
-    interfaces/ipreprocessor.h \
-    trie.h \
-    uttsettingsdialog.h \
-    utils/bithelpers.h \
-    utils/qthelpers.h \
-    utils/edgeconnector.h
+	 utils/coordinates.h \
+	 utils/config.h \
+	 interfaces/iimporter.h \
+	 interfaces/ipreprocessor.h \
+	 trie.h \
+	 uttsettingsdialog.h \
+	 utils/bithelpers.h \
+	 utils/qthelpers.h \
+	 utils/edgeconnector.h
 
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -30,4 +33,4 @@ unix {
 }
 
 FORMS += \
-    uttsettingsdialog.ui
+	 uttsettingsdialog.ui

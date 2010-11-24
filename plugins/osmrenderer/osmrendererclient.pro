@@ -1,5 +1,8 @@
 TEMPLATE = lib
 CONFIG += plugin static
+
+INCLUDEPATH += ../..
+
 DESTDIR = ../../bin/plugins_client
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -8,16 +11,16 @@ unix {
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
 HEADERS += osmrendererclient.h \
-    interfaces/irenderer.h \
-    utils/coordinates.h \
-    utils/config.h \
-    rendererbase.h \
-    brsettingsdialog.h \
-    utils/intersection.h
+	 interfaces/irenderer.h \
+	 utils/coordinates.h \
+	 utils/config.h \
+	 rendererbase.h \
+	 brsettingsdialog.h \
+	 utils/intersection.h
 SOURCES += osmrendererclient.cpp \
-    rendererbase.cpp \
-    brsettingsdialog.cpp
+	 rendererbase.cpp \
+	 brsettingsdialog.cpp
 QT += network
 
 FORMS += \
-    brsettingsdialog.ui
+	 brsettingsdialog.ui

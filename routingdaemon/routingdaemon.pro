@@ -1,5 +1,8 @@
 TEMPLATE = app
 DESTDIR = ../bin
+
+INCLUDEPATH += ..
+
 TARGET = MoNavD
 QT -= gui
 QT +=network

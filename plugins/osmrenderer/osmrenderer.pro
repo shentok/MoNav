@@ -1,14 +1,16 @@
 TEMPLATE = lib
 CONFIG += plugin static
 
+INCLUDEPATH += ../..
+
 HEADERS += osmrenderer.h \
-    interfaces/ipreprocessor.h \
-    interfaces/iimporter.h \
-    utils/coordinates.h \
-    utils/config.h \
-    orsettingsdialog.h
+	 interfaces/ipreprocessor.h \
+	 interfaces/iimporter.h \
+	 utils/coordinates.h \
+	 utils/config.h \
+	 orsettingsdialog.h
 SOURCES += osmrenderer.cpp \
-    orsettingsdialog.cpp
+	 orsettingsdialog.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -19,4 +21,4 @@ unix {
 }
 
 FORMS += \
-    orsettingsdialog.ui
+	 orsettingsdialog.ui

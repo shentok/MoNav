@@ -3,6 +3,9 @@
 # -------------------------------------------------
 TEMPLATE = app
 CONFIG += link_pkgconfig
+
+INCLUDEPATH += ..
+
 PKGCONFIG += libxml-2.0
 PKGCONFIG += protobuf
 SOURCES += main.cpp \

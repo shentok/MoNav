@@ -7,23 +7,25 @@
 TEMPLATE = lib static
 CONFIG += plugin static
 
+INCLUDEPATH += ../..
+
 DESTDIR = ../../bin/plugins_preprocessor
 
 SOURCES += gpsgrid.cpp \
-    ggdialog.cpp
+	 ggdialog.cpp
 
 HEADERS += gpsgrid.h \
-    interfaces/ipreprocessor.h \
-    interfaces/iimporter.h \
-    utils/coordinates.h \
-    utils/config.h \
-    ggdialog.h \
-    cell.h \
-    table.h \
-    utils/bithelpers.h \
-    utils/intersection.h \
-    utils/qthelpers.h \
-    utils/edgeconnector.h
+	 interfaces/ipreprocessor.h \
+	 interfaces/iimporter.h \
+	 utils/coordinates.h \
+	 utils/config.h \
+	 ggdialog.h \
+	 cell.h \
+	 table.h \
+	 utils/bithelpers.h \
+	 utils/intersection.h \
+	 utils/qthelpers.h \
+	 utils/edgeconnector.h
 
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -34,4 +36,4 @@ unix {
 }
 
 FORMS += \
-    ggdialog.ui
+	 ggdialog.ui

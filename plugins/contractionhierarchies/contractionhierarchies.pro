@@ -1,5 +1,8 @@
 TEMPLATE = lib
 CONFIG += plugin static
+
+INCLUDEPATH += ../..
+
 DESTDIR = ../../bin/plugins_preprocessor
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -17,15 +20,15 @@ HEADERS += contractionhierarchies.h \
 	 blockcache.h \
 	 binaryheap.h \
 	 contractor.h \
-    interfaces/ipreprocessor.h \
-    utils/coordinates.h \
-    utils/config.h \
-    chsettingsdialog.h \
-    compressedgraph.h \
-    compressedgraphbuilder.h \
-    utils/bithelpers.h \
-    utils/qthelpers.h \
-    interfaces/irouter.h
+	 interfaces/ipreprocessor.h \
+	 utils/coordinates.h \
+	 utils/config.h \
+	 chsettingsdialog.h \
+	 compressedgraph.h \
+	 compressedgraphbuilder.h \
+	 utils/bithelpers.h \
+	 utils/qthelpers.h \
+	 interfaces/irouter.h
 SOURCES += contractionhierarchies.cpp \
-    chsettingsdialog.cpp
+	 chsettingsdialog.cpp
 FORMS += chsettingsdialog.ui

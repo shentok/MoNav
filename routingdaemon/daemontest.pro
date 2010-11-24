@@ -1,5 +1,8 @@
 TEMPLATE = app
 DESTDIR = ../bin
+
+INCLUDEPATH += ..
+
 TARGET = DaemonTest
 QT -= gui
 QT +=network
@@ -11,7 +14,7 @@ unix {
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
 SOURCES += \
-    test.cpp
+	 test.cpp
 
 HEADERS += \
-    signals.h
+	 signals.h

@@ -8,12 +8,14 @@ DESTDIR = ../../bin/plugins_client
 TEMPLATE = lib
 CONFIG += plugin static
 
+INCLUDEPATH += ../..
+
 HEADERS += utils/coordinates.h \
-    utils/config.h \
-    interfaces/iaddresslookup.h \
-    trie.h \
-    unicodetournamenttrieclient.h \
-    utils/qthelpers.h
+	 utils/config.h \
+	 interfaces/iaddresslookup.h \
+	 trie.h \
+	 unicodetournamenttrieclient.h \
+	 utils/qthelpers.h
 
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -22,4 +24,4 @@ unix {
 }
 
 SOURCES += \
-    unicodetournamenttrieclient.cpp
+	 unicodetournamenttrieclient.cpp

@@ -1,5 +1,8 @@
 TEMPLATE = lib
 CONFIG += plugin static
+
+INCLUDEPATH += ../..
+
 DESTDIR = ../../bin/plugins_client
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -8,16 +11,16 @@ unix {
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
 HEADERS += mapnikrendererclient.h \
-    interfaces/irenderer.h \
-    utils/coordinates.h \
-    utils/config.h \
-    rendererbase.h \
-    brsettingsdialog.h \
-    utils/intersection.h \
-    utils/qthelpers.h
+	 interfaces/irenderer.h \
+	 utils/coordinates.h \
+	 utils/config.h \
+	 rendererbase.h \
+	 brsettingsdialog.h \
+	 utils/intersection.h \
+	 utils/qthelpers.h
 SOURCES += mapnikrendererclient.cpp \
-    rendererbase.cpp \
-    brsettingsdialog.cpp
+	 rendererbase.cpp \
+	 brsettingsdialog.cpp
 
 FORMS += \
-    brsettingsdialog.ui
+	 brsettingsdialog.ui

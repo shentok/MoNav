@@ -1,5 +1,8 @@
 TEMPLATE = lib
 CONFIG += plugin static
+
+INCLUDEPATH += ../..
+
 CONFIG += link_pkgconfig
 PKGCONFIG += libxml-2.0
 PKGCONFIG += protobuf
@@ -17,25 +20,25 @@ HEADERS += osmimporter.h \
 	 pbfreader.h \
 	 "protobuff definitions/osmformat.pb.h" \
 	 "protobuff definitions/fileformat.pb.h" \
-    lzma/Types.h \
-    lzma/LzmaDec.h \
-    waymodificatorwidget.h \
-    nodemodificatorwidget.h \
-    types.h \
-    highwaytypewidget.h
+	 lzma/Types.h \
+	 lzma/LzmaDec.h \
+	 waymodificatorwidget.h \
+	 nodemodificatorwidget.h \
+	 types.h \
+	 highwaytypewidget.h
 SOURCES += osmimporter.cpp \
 	 oisettingsdialog.cpp \
 	 "protobuff definitions/osmformat.pb.cc" \
 	 "protobuff definitions/fileformat.pb.cc" \
-    lzma/LzmaDec.c \
-    waymodificatorwidget.cpp \
-    nodemodificatorwidget.cpp \
-    highwaytypewidget.cpp
+	 lzma/LzmaDec.c \
+	 waymodificatorwidget.cpp \
+	 nodemodificatorwidget.cpp \
+	 highwaytypewidget.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 FORMS += oisettingsdialog.ui \
-    waymodificatorwidget.ui \
-    nodemodificatorwidget.ui \
-    highwaytypewidget.ui
+	 waymodificatorwidget.ui \
+	 nodemodificatorwidget.ui \
+	 highwaytypewidget.ui
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
 	QMAKE_CXXFLAGS_RELEASE += -O3 -march=native -Wno-unused-function

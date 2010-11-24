@@ -5,6 +5,8 @@
 TARGET = MoNavClient
 TEMPLATE = app
 
+INCLUDEPATH += ..
+
 SOURCES += main.cpp \
 	mapview.cpp \
 	paintwidget.cpp \
