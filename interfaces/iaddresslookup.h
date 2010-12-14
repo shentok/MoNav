@@ -37,15 +37,13 @@ public:
 	// for a given user input's prefix get a list of place name suggestions as well as partial input suggestions
 	virtual bool GetPlaceSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions ) = 0;
 	// for a given user input's prefix get a list of street name suggestions as well as partial input suggestions
-	virtual bool GetStreetSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions ) = 0;
+	virtual bool GetStreetSuggestions( int placeID, const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions ) = 0;
 	// for a given place name get a list of places and their coordinates
 	virtual bool GetPlaceData( QString input, QVector< int >* placeIDs, QVector< UnsignedCoordinate >* placeCoordinates ) = 0;
-	// selects a place by it's id
-	virtual bool SelectPlace( int placeID ) = 0;
 	// uses the selected place to provide street name suggestions and partial input suggestions
-	virtual bool GetStreetData( QString input, QVector< int >* segmentLength, QVector< UnsignedCoordinate >* coordinates ) = 0;
+	virtual bool GetStreetData( int placeID, QString input, QVector< int >* segmentLength, QVector< UnsignedCoordinate >* coordinates ) = 0;
 };
 
-Q_DECLARE_INTERFACE( IAddressLookup, "monav.IAddressLookup/1.1" )
+Q_DECLARE_INTERFACE( IAddressLookup, "monav.IAddressLookup/1.2" )
 
 #endif // IADDRESSLOOKUP_H

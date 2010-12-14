@@ -41,10 +41,9 @@ public:
 	 virtual bool IsCompatible( int fileFormatVersion );
 	 virtual bool LoadData();
 	 virtual bool GetPlaceSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions );
-	 virtual bool GetStreetSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions );
-	 virtual bool SelectPlace( int placeID );
+	 virtual bool GetStreetSuggestions( int placeID, const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions );
 	 virtual bool GetPlaceData( QString input, QVector< int >* placeIDs, QVector< UnsignedCoordinate >* placeCoordinates );
-	 virtual bool GetStreetData( QString input, QVector< int >* segmentLength, QVector< UnsignedCoordinate >* coordinates );
+	 virtual bool GetStreetData( int placeID, QString input, QVector< int >* segmentLength, QVector< UnsignedCoordinate >* coordinates );
 
 signals:
 
@@ -72,8 +71,6 @@ protected:
 	QFile* dataFile;
 	const char* trieData;
 	const char* subTrieData;
-
-	int placeID;
 
 };
 

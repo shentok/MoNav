@@ -109,12 +109,11 @@ void AddressDialog::suggestionClicked( QListWidgetItem * item )
 		m_ui->streetEdit->setFocus();
 		m_ui->resetStreet->setEnabled( true );
 		m_mode = Street;
-		addressLookup->SelectPlace( m_placeID );
 		streetTextChanged( m_ui->streetEdit->text() );
 	} else {
 		QVector< int > segmentLength;
 		QVector< UnsignedCoordinate > coordinates;
-		if ( !addressLookup->GetStreetData( text, &segmentLength, &coordinates ) )
+		if ( !addressLookup->GetStreetData( m_placeID, text, &segmentLength, &coordinates ) )
 			return;
 		if ( coordinates.size() == 0 )
 			return;
@@ -167,7 +166,7 @@ void AddressDialog::streetTextChanged( QString text)
 	QStringList characters;
 
 	Timer time;
-	bool found = addressLookup->GetStreetSuggestions( text, 10, &suggestions, &characters );
+	bool found = addressLookup->GetStreetSuggestions( m_placeID, text, 10, &suggestions, &characters );
 	qDebug() << "Street Lookup:" << time.elapsed() << "ms";
 
 	if ( !found )
