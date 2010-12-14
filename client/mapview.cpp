@@ -102,6 +102,9 @@ MapView::~MapView()
 	settings.setValue( "customIconSize", m_customIconSize );
 	settings.setValue( "useMenus", m_menuMode == GeneralSettingsDialog::MenuPopup );
 
+	MapData::instance()->unload();
+	MapData::instance()->deleteStaticPlugins();
+
 	delete m_ui;
 }
 

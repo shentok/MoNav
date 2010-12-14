@@ -17,35 +17,35 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef BRSETTINGSDIALOG_H
-#define BRSETTINGSDIALOG_H
+#ifndef OSMRSETTINGSDIALOG_H
+#define OSMRSETTINGSDIALOG_H
 
 #include <QDialog>
 
 namespace Ui {
-	class BRSettingsDialog;
+	class OSMRSettingsDialog;
 }
 
-class BRSettingsDialog : public QDialog
+class OSMRSettingsDialog : public QDialog
 {
 	Q_OBJECT
 
 public:
-	explicit BRSettingsDialog( QWidget* parent = 0 );
-	~BRSettingsDialog();
+	explicit OSMRSettingsDialog( QWidget* parent = 0 );
+	~OSMRSettingsDialog();
 
 	struct Settings {
-		bool antiAliasing;
-		bool hqAntiAliasing;
-		bool filter;
-		int cacheSize;
+		QString tileURL;
 	};
 
-	void setAdvanced( QDialog* dialog );
 	bool getSettings( Settings* settings );
 
-private:
-	Ui::BRSettingsDialog* m_ui;
+public slots:
+
+	void serverChanged( int index );
+
+protected:
+	Ui::OSMRSettingsDialog *m_ui;
 };
 
-#endif // BRSETTINGSDIALOG_H
+#endif // OSMRSETTINGSDIALOG_H

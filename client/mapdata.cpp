@@ -115,11 +115,14 @@ MapData::MapData() :
 
 MapData::~MapData()
 {
+	delete d;
+}
+
+void MapData::deleteStaticPlugins()
+{
 	//delete static plugins
 	foreach ( QObject *plugin, QPluginLoader::staticInstances() )
 		delete plugin;
-
-	delete d;
 }
 
 MapData* MapData::instance()

@@ -32,10 +32,13 @@ RendererBase::RendererBase()
 	setupPolygons();
 	m_tileSize = 256;
 	m_settingsDialog = NULL;
+	m_advancedSettings = NULL;
 }
 
 RendererBase::~RendererBase()
 {
+	if ( m_advancedSettings != NULL )
+		delete m_advancedSettings;
 	if ( m_settingsDialog != NULL )
 		delete m_settingsDialog;
 }
@@ -70,10 +73,17 @@ void RendererBase::SetInputDirectory( const QString& dir )
 void RendererBase::ShowSettings()
 {
 	assert( m_loaded );
+	m_settingsDialog->setAdvanced( m_advancedSettings );
 	m_settingsDialog->exec();
 	if ( !m_settingsDialog->getSettings( &m_settings ) )
 		return;
 	m_cache.setMaxCost( 1024 * 1024 * m_settings.cacheSize );
+	advancedSettingsChanged();
+}
+
+void RendererBase::advancedSettingsChanged()
+{
+
 }
 
 bool RendererBase::LoadData()

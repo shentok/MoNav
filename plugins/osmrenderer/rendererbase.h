@@ -51,6 +51,7 @@ signals:
 
 protected:
 
+	virtual void advancedSettingsChanged();
 	virtual bool loadTile( int x, int y, int zoom, QPixmap** tile ) = 0;
 	virtual bool load() = 0;
 	virtual void unload() = 0;
@@ -62,6 +63,8 @@ protected:
 	void drawIndicator( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, int virtualZoom, QColor outer, QColor inner );
 	void drawPolyline( QPainter* painter, const QRect& boundingBox, QVector< ProjectedCoordinate > line, QColor color );
 
+	// should be used by derived classes to add additional settings
+	QDialog* m_advancedSettings;
 	int m_tileSize;
 	std::vector< int > m_zoomLevels;
 

@@ -24,6 +24,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QFile>
 
 #include "osmrendererclient.h"
+#include "osmrsettingsdialog.h"
 
 OSMRendererClient::OSMRendererClient()
 {
@@ -55,8 +56,26 @@ bool OSMRendererClient::IsCompatible( int fileFormatVersion )
 	return false;
 }
 
+void OSMRendererClient::advancedSettingsChanged()
+{
+	assert( m_advancedSettings != NULL );
+	OSMRSettingsDialog* dialog = qobject_cast< OSMRSettingsDialog* >( m_advancedSettings );
+	if ( dialog == NULL )
+		return;
+	OSMRSettingsDialog::Settings settings;
+	dialog->getSettings( &settings );
+	if ( m_server != settings.tileURL ) {
+		m_cache.clear();
+		emit changed();
+	}
+	m_server = settings.tileURL;
+}
+
 bool OSMRendererClient::load()
 {
+	if ( m_advancedSettings == NULL )
+		m_advancedSettings = new OSMRSettingsDialog();
+	advancedSettingsChanged();
 	network = new QNetworkAccessManager( this );
 	diskCache = new QNetworkDiskCache( this );
 	QString cacheDir = QDesktopServices::storageLocation( QDesktopServices::CacheLocation );
@@ -111,8 +130,8 @@ bool OSMRendererClient::loadTile( int x, int y, int zoom, QPixmap** tile )
 {
 	long long id = tileID( x, y, zoom );
 
-	QString path = "http://tile.openstreetmap.org/%1/%2/%3.png";
-	QUrl url = QUrl( path.arg( zoom ).arg( x ).arg( y ) );
+	//QString path = "http://tile.openstreetmap.org/%1/%2/%3.png";
+	QUrl url = QUrl( m_server.arg( zoom ).arg( x ).arg( y ) );
 
 	QIODevice* cacheItem = diskCache->data( url );
 	if ( cacheItem != NULL ) {

@@ -16,11 +16,14 @@ HEADERS += osmrendererclient.h \
 	 utils/config.h \
 	 rendererbase.h \
 	 brsettingsdialog.h \
-	 utils/intersection.h
+	 utils/intersection.h \
+    osmrsettingsdialog.h
 SOURCES += osmrendererclient.cpp \
 	 rendererbase.cpp \
-	 brsettingsdialog.cpp
+	 brsettingsdialog.cpp \
+    osmrsettingsdialog.cpp
 QT += network
 
 FORMS += \
-	 brsettingsdialog.ui
+	 brsettingsdialog.ui \
+    osmrsettingsdialog.ui
