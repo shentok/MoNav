@@ -109,6 +109,7 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer, QString dir )
 	for ( std::vector< IImporter::Place >::const_iterator i = inputPlaces.begin(), e = inputPlaces.end(); i != e; ++i ) {
 		PlaceImportance temp;
 		temp.population  = i->population;
+		temp.id = i - inputPlaces.begin();
 		temp.name = i->name;
 		switch ( i->type ) {
 		case IImporter::Place::City:
@@ -146,9 +147,9 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer, QString dir )
 	}
 
 	std::sort( importanceOrder.begin(), importanceOrder.end() );
-	QHash< QString, unsigned > importance;
+	std::vector< unsigned > importance( inputPlaces.size() );
 	for ( int i = 0; i < ( int ) importanceOrder.size(); i++ )
-		importance[importanceOrder[i].name] = i;
+		importance[importanceOrder[i].id] = i;
 	std::vector< PlaceImportance >().swap( importanceOrder );
 
 	std::sort( inputAddress.begin(), inputAddress.end() );
@@ -267,8 +268,7 @@ bool UnicodeTournamentTrie::Preprocess( IImporter* importer, QString dir )
 
 		data.length = subTrieFile.pos() - data.start;
 
-		assert( importance.contains( inputPlaces[place].name ) );
-		insert( &trie, importance[inputPlaces[place].name], inputPlaces[place].name, data );
+		insert( &trie, importance[place], inputPlaces[place].name, data );
 	}
 	assert( address == inputAddress.size() );
 	qDebug() << "Unicode Tournament Trie: build tries and tournament trees:" << time.restart() << "ms";
@@ -290,6 +290,7 @@ void UnicodeTournamentTrie::insert( std::vector< utt::Node >* trie, unsigned imp
 	unsigned node = 0;
 	QString lowerName = name.toLower();
 	int position = 0;
+	bool moreImportant = false;
 	while ( position < lowerName.length() ) {
 		bool found = false;
 		for ( int c = 0; c < ( int ) trie->at( node ).labelList.size(); c++ ) {
@@ -311,15 +312,19 @@ void UnicodeTournamentTrie::insert( std::vector< utt::Node >* trie, unsigned imp
 					label.index = trie->size();
 					node = label.index;
 
-					if ( label.importance < importance )
+					if ( label.importance < importance ) {
 						label.importance = importance;
+						moreImportant = true;
+					}
 
 					trie->push_back( utt::Node() ); //invalidates label reference!!!
 					trie->back().labelList.push_back( newEdge );
 				} else {
 					node = label.index;
-					if ( label.importance < importance )
+					if ( label.importance < importance ) {
 						label.importance = importance;
+						moreImportant = true;
+					}
 				}
 
 				position += diffPos;
@@ -344,7 +349,11 @@ void UnicodeTournamentTrie::insert( std::vector< utt::Node >* trie, unsigned imp
 		}
 	}
 
-	(*trie)[node].dataList.push_back( data );
+	if ( !moreImportant ) {
+		(*trie)[node].dataList.push_back( data );
+	} else {
+		(*trie)[node].dataList.insert( (*trie)[node].dataList.begin(), data );
+	}
 }
 
 void UnicodeTournamentTrie::writeTrie( std::vector< utt::Node >* trie, QFile& file )

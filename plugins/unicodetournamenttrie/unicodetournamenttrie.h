@@ -49,9 +49,10 @@ protected:
 	void writeTrie( std::vector< utt::Node >* trie, QFile& file );
 
 	struct PlaceImportance {
-		QString name;
+		unsigned id;
 		int population;
 		unsigned type;
+		QString name;
 		bool operator<( const PlaceImportance& right ) const {
 			if ( population != right.population )
 				return population < right.population;
