@@ -29,6 +29,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 #include <time.h>
 #include "xmlreader.h"
+#include "pbfreader.h"
 
 #define NEED_QTILE_WRITE //Need this before including quadtile.h
 #include "quadtile.h"
@@ -222,6 +223,7 @@ class qindexTree {
             offset += off;
             for(int i=0;i<4;i++) if(child[i]) child[i]->increase_offsets(off);
         };
+		  void deleteRecursive();
 
     private:
         bool contains(quadtile testq) {
@@ -277,6 +279,19 @@ void qindexTree::recursive_fill_nulls()
             child[i] = new qindexTree(newq, qmask >> 2, level+1, this);
         }
     }
+}
+
+/* deletes the whole tree */
+void qindexTree::deleteRecursive()
+{
+	if ( level >= MAX_INDEX_DEPTH )
+		return;
+
+	for ( int i = 0; i < 4; i++ ) {
+		if ( child[i] != NULL )
+			child[i]->deleteRecursive();
+		delete child[i];
+	}
 }
 
 /* Calls the recursive addIndex function if it will make a difference. */
@@ -594,8 +609,9 @@ class OSMReader {
   public:
     OSMReader() {};
     bool load(const QString &filename);
-    list<class osm_way *> &get_ways() {return ways;};
+	 list<class osm_way *> &get_ways() {return ways;};
     void delete_non_motorways();
+	 void delete_ways();
     
   private:
     bool load_xml(const QString &filename);
@@ -606,7 +622,7 @@ class OSMReader {
     static bool nodesorter(const struct node &n1, const struct node &n2);
 
     vector<struct node> nodes;
-    list<class osm_way *> ways;
+	 list<class osm_way *> ways;
 };
 
 bool OSMReader::load(const QString &filename)
@@ -616,7 +632,7 @@ bool OSMReader::load(const QString &filename)
 
     //Ways are all loaded - no longer need the nodes so clear them for memory.
     TIMELOG("clear nodes");
-    nodes.clear();
+	 std::vector< struct node >().swap( nodes );
 
     TIMELOG("sorting ways");
     ways.sort(osm_way::sorter);
@@ -627,22 +643,33 @@ bool OSMReader::load(const QString &filename)
 
 bool OSMReader::load_xml(const QString &filename)
 {
-    XMLReader reader;
-    if(!reader.open(filename)) {
+	IEntityReader* reader = NULL;
+	if ( filename.endsWith( "osm.bz2" ) || filename.endsWith( ".osm" ) )
+		reader = new XMLReader();
+	else if ( filename.endsWith( ".pbf" ) )
+		reader = new PBFReader();
+
+	if ( reader == NULL ) {
+		qCritical() << "File format not supported";
+		return false;
+	}
+
+	 if(!reader->open(filename)) {
         fprintf(stderr, "Failed to open file\n");
+		  delete reader;
         return false;
     }
 
     QStringList list;
     for(osm_rules_t *rule=osm_rules; rule->subrules;rule++)
         list.push_back(rule->key);
-    reader.setWayTags(list);
+	 reader->setWayTags(list);
 
     IEntityReader::EntityType etype;
     bool first_way=true;
+	 IEntityReader::Node n; IEntityReader::Way w; IEntityReader::Relation r;
     do {
-        IEntityReader::Node n; IEntityReader::Way w; IEntityReader::Relation r;
-        etype = reader.getEntitiy(&n, &w, &r);
+		  etype = reader->getEntitiy(&n, &w, &r);
         switch(etype) {
         case IEntityReader::EntityNode:
             add_node(n);
@@ -659,6 +686,8 @@ bool OSMReader::load_xml(const QString &filename)
             break;
         }
     } while(etype!=IEntityReader::EntityNone);
+
+	 delete reader;
 
     return true;
 }
@@ -754,10 +783,11 @@ bool OSMReader::get_node(int id, unsigned long *x, unsigned long *y)
 
 void OSMReader::delete_non_motorways()
 {
-    for(list<class osm_way *>::iterator i = ways.begin();
-                           i!=ways.end(); i++) {
-        while(i!=ways.end() && !(*i)->is_worth_saving(true))
-            i=ways.erase(i);
+	 for(list<class osm_way *>::iterator i = ways.begin(); i!=ways.end(); i++) {
+	while(i!=ways.end() && !(*i)->is_worth_saving(true)) {
+		delete *i;
+		i=ways.erase(i);
+	}
 
         //We're keeping the way. Instead, delete any intermediate points
         //which are too close together to bother with. FIXME not implemented
@@ -771,17 +801,25 @@ void OSMReader::delete_non_motorways()
     }
 }
 
+void OSMReader::delete_ways()
+{
+	// delete remaining ways
+	for( list<class osm_way* >::iterator i = ways.begin(); i!=ways.end(); i++ )
+		delete *i;
+
+	// free memory reserved by the way list
+	std::list< class osm_way* >().swap( ways );
+}
+
 QtileRenderer::QtileRenderer()
 {
 	m_settingsDialog = NULL;
-        m_osr = new OSMReader;
 }
 
 QtileRenderer::~QtileRenderer()
 {
 	if ( m_settingsDialog != NULL )
-		delete m_settingsDialog;
-        delete m_osr;
+	delete m_settingsDialog;
 }
 
 QString QtileRenderer::GetName()
@@ -828,6 +866,8 @@ bool QtileRenderer::Preprocess( IImporter*, QString dir )
 	if ( !m_settingsDialog->getSettings( &settings ) )
 		return false;
 
+	m_osr = new OSMReader;
+
         fprintf(stderr, "Qtile renderer preprocessing\n");
         m_osr->load(settings.inputFile);
         write_ways(dir, false);
@@ -835,7 +875,10 @@ bool QtileRenderer::Preprocess( IImporter*, QString dir )
         m_osr->delete_non_motorways();
         write_ways(dir, true);
         TIMELOGDONE;
+		  m_osr->delete_ways();
         fprintf(stderr, "Qtile renderer preprocessing: done\n");
+
+	delete m_osr;
 
 	return true;
 }
@@ -869,19 +912,27 @@ void QtileRenderer::write_ways(QString &dir, bool motorway)
 
     qidx.increase_offsets(strlen(tmp));
     qidx.print(way_fp);
+	 qidx.deleteRecursive();
 
     //fprintf(stderr, "Writing ways\n");
     if(motorway) TIMELOG("Writing motorways")
     else TIMELOG("Writing ways");
+
+	unsigned char *buf=(unsigned char *) malloc( 1024 );
+	unsigned bufferLength = 1024;
     for(list<class osm_way *>::iterator i = m_osr->get_ways().begin();
                            i!=m_osr->get_ways().end(); i++) {
         osm_way *w = *i;
-        unsigned char *buf=(unsigned char *) malloc(w->buf_len());
+		  unsigned length = w->buf_len();
+		  if ( length > bufferLength ) {
+			  bufferLength = length;
+			  buf = (unsigned char *) realloc(buf, length);
+		  }
         w->get_buf(buf);
-        if(fwrite(buf, w->buf_len(), 1, way_fp)!=1)
+		  if(fwrite(buf, length, 1, way_fp)!=1)
             throw("Failed write\n");
-        free(buf);
     }
+	free(buf);
     fclose(way_fp);
 }
 
