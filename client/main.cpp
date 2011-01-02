@@ -34,6 +34,8 @@ Q_IMPORT_PLUGIN( contractionhierarchiesclient );
 Q_IMPORT_PLUGIN( gpsgridclient );
 Q_IMPORT_PLUGIN( unicodetournamenttrieclient );
 Q_IMPORT_PLUGIN( osmrendererclient );
+Q_IMPORT_PLUGIN( qtilerendererclient );
+
 
 void MessageBoxHandler(QtMsgType type, const char *msg)
 {

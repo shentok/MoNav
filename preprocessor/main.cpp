@@ -29,6 +29,7 @@ Q_IMPORT_PLUGIN( contractionhierarchies );
 Q_IMPORT_PLUGIN( gpsgrid );
 Q_IMPORT_PLUGIN( unicodetournamenttrie );
 Q_IMPORT_PLUGIN( osmrenderer );
+Q_IMPORT_PLUGIN( qtilerenderer );
 Q_IMPORT_PLUGIN( osmimporter );
 
 bool isSilent = false;
