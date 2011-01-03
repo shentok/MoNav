@@ -41,10 +41,6 @@ public:
 
 	~MapData();
 
-	// call before the QApplication object is destroyed
-	// neccessary as Qt does not delete static instances itself // CHECK WHENEVER QT VERSION CHANGES!!!
-	void deleteStaticPlugins();
-
 	// returns the instance of MapData
 	static MapData* instance();
 	// the path of the current directory
@@ -103,6 +99,10 @@ signals:
 	void informationChanged();
 
 public slots:
+
+	// call before the QApplication object is destroyed
+	// neccessary as Qt does not delete static instances itself // CHECK WHENEVER QT VERSION CHANGES!!!
+	void deleteStaticPlugins();
 
 private:
 
