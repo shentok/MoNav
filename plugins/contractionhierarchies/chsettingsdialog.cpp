@@ -1,7 +1,9 @@
 #include "chsettingsdialog.h"
 #include "ui_chsettingsdialog.h"
 #include <QSettings>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 CHSettingsDialog::CHSettingsDialog(QWidget *parent) :
 	 QWidget(parent),

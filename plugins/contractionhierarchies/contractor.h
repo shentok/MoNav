@@ -20,7 +20,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef CONTRACTOR_H_INCLUDED
 #define CONTRACTOR_H_INCLUDED
 #include <vector>
+
+#ifndef _OPENMP
+#define omp_get_thread_num() (0)
+#define omp_get_max_threads() (1)
+#else
 #include <omp.h>
+#endif
 #include <limits>
 #include "utils/qthelpers.h"
 #include "dynamicgraph.h"
