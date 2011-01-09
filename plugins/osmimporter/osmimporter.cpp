@@ -965,9 +965,9 @@ bool OSMImporter::computeTurningPenalties( QString filename )
 			//qDebug() << restrictions[i].from << restrictions[i].to;
 			for ( unsigned j = edge; j < m_edgeInfo.size() && m_edgeInfo[j].node == node; j++ ) {
 				//qDebug() << m_edgeInfo[j].oldID;
-				if ( m_edgeInfo[j].oldID == restrictions[i].from )
+                                if ( m_edgeInfo[j].oldID == restrictions[i].from && m_edgeInfo[j].backward )
 					from = m_edgeInfo[j].id;
-				if ( m_edgeInfo[j].oldID == restrictions[i].to )
+                                if ( m_edgeInfo[j].oldID == restrictions[i].to && m_edgeInfo[j].forward )
 					to = m_edgeInfo[j].id;
 				if ( from != std::numeric_limits< unsigned >::max() && to != std::numeric_limits< unsigned >::max() ) {
 					table[from * m_outDegree[node] + to] = -1; // infinity == not allowed
