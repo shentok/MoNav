@@ -23,6 +23,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "ientityreader.h"
 #include "bz2input.h"
 #include <libxml/xmlreader.h>
+#include <clocale>
 #include <QHash>
 
 class XMLReader: public IEntityReader {
@@ -31,6 +32,8 @@ public:
 
 	XMLReader()
 	{
+            m_oldLocale = setlocale( LC_NUMERIC, NULL );
+            setlocale( LC_NUMERIC, "C" );
 	}
 
 	virtual bool open( QString filename )
@@ -52,6 +55,7 @@ public:
 	{
 		if ( m_inputReader != NULL )
 			xmlFreeTextReader( m_inputReader );
+                setlocale( LC_NUMERIC, m_oldLocale );
 	}
 
 	virtual void setNodeTags( QStringList tags )
@@ -346,6 +350,8 @@ protected:
 	QHash< QString, int > m_nodeTags;
 	QHash< QString, int > m_wayTags;
 	QHash< QString, int > m_relationTags;
+
+        const char* m_oldLocale;
 };
 
 #endif // XMLREADER_H
