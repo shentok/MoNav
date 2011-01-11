@@ -146,7 +146,7 @@ void MapView::setupMenu()
 	m_sourceByTapAction = m_sourceMenu->addAction( QIcon( ":/images/map.png" ), tr( "Tap on Map" ), this, SLOT(setModeSourceSelection()) );
 	m_sourceByBookmarkAction = m_sourceMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmark" ), this, SLOT(sourceByBookmark()) );
 	m_sourceByAddressAction = m_sourceMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address" ), this, SLOT(sourceByAddress()) );
-	m_sourceByAddressAction = m_sourceMenu->addAction( QIcon( ":/images/oxygen/network-wireless.png" ), tr( "GPS Reciever" ), this, SLOT(sourceByGPS()) );
+	m_sourceByAddressAction = m_sourceMenu->addAction( QIcon( ":/images/oxygen/network-wireless.png" ), tr( "GPS Receiver" ), this, SLOT(sourceByGPS()) );
 
 	m_sourceOverlay = new OverlayWidget( this, tr( "Departure" ) );
 	m_sourceOverlay->addActions( m_sourceMenu->actions() );
@@ -173,7 +173,7 @@ void MapView::setupMenu()
 	m_settingsRenderer = m_settingsMenu->addAction( QIcon( ":/images/map.png" ), tr( "Renderer" ), this, SLOT(settingsRenderer()) );
 	m_settingsRouter = m_settingsMenu->addAction( QIcon( ":/images/route.png" ), tr( "Router" ), this, SLOT(settingsRouter()) );
 	m_settingsAddressLookup = m_settingsMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address Lookup" ), this, SLOT(settingsAddressLookup()) );
-	m_settingsGPS = m_settingsMenu->addAction( QIcon( ":/images/oxygen/hwinfo.png" ), tr( "GPS Reciever" ), this, SLOT(settingsGPS()) );
+	m_settingsGPS = m_settingsMenu->addAction( QIcon( ":/images/oxygen/hwinfo.png" ), tr( "GPS Receiver" ), this, SLOT(settingsGPS()) );
 
 	m_settingsOverlay = new OverlayWidget( this, tr( "Settings" ) );
 	m_settingsOverlay->addActions( m_settingsMenu->actions() );
