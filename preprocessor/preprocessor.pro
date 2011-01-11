@@ -9,14 +9,21 @@ INCLUDEPATH += ..
 PKGCONFIG += libxml-2.0
 PKGCONFIG += protobuf
 SOURCES += main.cpp \
-	 preprocessingwindow.cpp
+	 preprocessingwindow.cpp \
+    ../utils/commandlineparser.cpp \
+    pluginmanager.cpp
 HEADERS += preprocessingwindow.h \
 	 interfaces/iimporter.h \
 	 utils/coordinates.h \
 	 utils/config.h \
 	 interfaces/ipreprocessor.h \
 	 interfaces/ipreprocessor.h \
-	 interfaces/iimporter.h
+	 interfaces/iimporter.h \
+    ../interfaces/iguisettings.h \
+    ../interfaces/iconsolesettings.h \
+    ../utils/commandlineparser.h \
+    ../utils/formattedoutput.h \
+    pluginmanager.h
 DESTDIR = ../bin
 TARGET = MoNavP
 FORMS += preprocessingwindow.ui

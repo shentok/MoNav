@@ -33,6 +33,7 @@ RendererBase::RendererBase()
 	m_tileSize = 256;
 	m_settingsDialog = NULL;
 	m_advancedSettings = NULL;
+	m_magnification = 1;
 }
 
 RendererBase::~RendererBase()
@@ -151,6 +152,10 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 		return false;
 	if ( request.zoom < 0 || request.zoom >= ( int ) m_zoomLevels.size() )
 		return false;
+	if ( m_magnification != request.virtualZoom ) {
+		m_cache.clear();
+		m_magnification = request.virtualZoom;
+	}
 
 	int zoom = m_zoomLevels[request.zoom];
 
@@ -184,13 +189,18 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 	const int xWidth = 1 << zoom;
 	const int yWidth = 1 << zoom;
 
-	QRect boundingBox = inverseTransform.mapRect( QRect(0, 0, sizeX, sizeY ) );
+	QRect boundingBox = inverseTransform.mapRect( QRect( 0, 0, sizeX, sizeY ) );
 
 	int minX = floor( ( double ) boundingBox.x() / m_tileSize + request.center.x * tileFactor );
 	int maxX = ceil( ( double ) boundingBox.right() / m_tileSize + request.center.x * tileFactor );
 	int minY = floor( ( double ) boundingBox.y() / m_tileSize + request.center.y * tileFactor );
 	int maxY = ceil( ( double ) boundingBox.bottom() / m_tileSize + request.center.y * tileFactor );
 
+	painter->resetTransform();
+	painter->translate( sizeX / 2, sizeY / 2 );
+	painter->rotate( rotation );
+
+	int scaledTileSize = m_tileSize * request.virtualZoom;
 	int posX = ( minX - request.center.x * tileFactor ) * m_tileSize;
 	for ( int x = minX; x < maxX; ++x ) {
 		int posY = ( minY - request.center.y * tileFactor ) * m_tileSize;
@@ -200,32 +210,37 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 			if ( x >= 0 && x < xWidth && y >= 0 && y < yWidth ) {
 				long long id = tileID( x, y, zoom );
 				if ( !m_cache.contains( id ) ) {
-					if ( !loadTile( x, y, zoom, &tile ) ) {
-						tile = new QPixmap( m_tileSize, m_tileSize );
+					if ( !loadTile( x, y, zoom, request.virtualZoom, &tile ) ) {
+						tile = new QPixmap( scaledTileSize, scaledTileSize );
 						tile->fill( QColor( 241, 238 , 232, 255 ) );
 					}
 
-					long long minCacheSize = 2 * m_tileSize * m_tileSize * tile->depth() / 8 * ( maxX - minX ) * ( maxY - minY );
+					long long minCacheSize = 2 * scaledTileSize * scaledTileSize * tile->depth() / 8 * ( maxX - minX ) * ( maxY - minY );
 					if ( m_cache.maxCost() < minCacheSize ) {
 						qDebug() << "had to increase cache size to accommodate all tiles for at least two images: " << minCacheSize / 1024 / 1024 << " MB";
 						m_cache.setMaxCost( minCacheSize );
 					}
 
-					m_cache.insert( id, tile, m_tileSize * m_tileSize * tile->depth() / 8 );
+					m_cache.insert( id, tile, scaledTileSize * scaledTileSize * tile->depth() / 8 );
 				}
 				else {
 					tile = m_cache.object( id );
 				}
 			}
 
-			if ( tile != NULL )
-				painter->drawPixmap( posX, posY, *tile );
-			else
-				painter->fillRect( posX, posY,  m_tileSize, m_tileSize, QColor( 241, 238 , 232, 255 ) );
+			if ( tile != NULL ) {
+				if ( tile->width() != scaledTileSize || tile->height() != scaledTileSize )
+					*tile = tile->scaled( scaledTileSize, scaledTileSize, Qt::IgnoreAspectRatio, m_settings.filter ? Qt::SmoothTransformation : Qt::FastTransformation );
+				painter->drawPixmap( posX * request.virtualZoom, posY * request.virtualZoom, *tile );
+			} else {
+				painter->fillRect( posX * request.virtualZoom, posY * request.virtualZoom,  scaledTileSize, scaledTileSize, QColor( 241, 238 , 232, 255 ) );
+			}
 			posY += m_tileSize;
 		}
 		posX += m_tileSize;
 	}
+
+	painter->setTransform( transform );
 
 	if ( m_settings.antiAliasing )
 		painter->setRenderHint( QPainter::Antialiasing );

@@ -17,42 +17,31 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MAPNIKRENDERER_H
-#define MAPNIKRENDERER_H
+#ifndef IGUISETTINGS_H
+#define IGUISETTINGS_H
 
-#include <QDataStream>
-#include <QFile>
-#include "rendererbase.h"
+#include <QtPlugin>
 
-class MapnikRendererClient : public RendererBase
+class IImporter;
+class QWidget;
+
+// plugins can support this interface to provide the user
+// with a graphical interface for its settings
+class IGUISettings
 {
-	Q_OBJECT
 
 public:
 
-	MapnikRendererClient();
-	virtual ~MapnikRendererClient();
-	virtual QString GetName();
-	virtual bool IsCompatible( int fileFormatVersion );
+	// has to return a valid pointer to a settings window
+	// the window can be displayed modal and nonmodal
+	// the implementation should be able to cope with this
+	// if the window feature settings it should display the following buttons:
+	// "Ok", "Apply" and "Cancel"
+	virtual bool GetSettingsWindow( QWidget** window ) = 0;
 
-protected:
-
-	virtual bool loadTile( int x, int y, int zoom, int magnification, QPixmap** tile );
-	virtual bool load();
-	virtual void unload();
-
-	struct Box
-	{
-		int minX;
-		int maxX;
-		int minY;
-		int maxY;
-	};
-
-	QVector< Box > m_boxes;
-	QFile* m_indexFile;
-	QFile* m_tileFile;
-	int m_fileZoom;
+	virtual ~IGUISettings() {}
 };
 
-#endif // MAPNIKRENDERER_H
+Q_DECLARE_INTERFACE( IGuiSettings, "monav.IGUISettings/1.0" )
+
+#endif // IGUISETTINGS_H

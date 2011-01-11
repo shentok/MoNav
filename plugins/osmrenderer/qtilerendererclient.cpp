@@ -70,10 +70,10 @@ int QtileRendererClient::GetMaxZoom()
 	return 18;
 }
 
-bool QtileRendererClient::loadTile( int x, int y, int zoom, QPixmap** tile )
+bool QtileRendererClient::loadTile( int x, int y, int zoom, int magnification, QPixmap** tile )
 {
-        twriter->draw_image("", x, y, zoom);
-        QImage img(twriter->get_img_data(), tileSize, tileSize,
+		  twriter->draw_image("", x, y, zoom, magnification);
+		  QImage img(twriter->get_img_data(), tileSize * magnification , tileSize * magnification,
                    QImage::Format_RGB888);
         *tile = new QPixmap(QPixmap::fromImage(img));
         return true;

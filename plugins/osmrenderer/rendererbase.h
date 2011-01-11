@@ -51,30 +51,56 @@ signals:
 
 protected:
 
+	//CALLBACKS FOR DERIVED CLASSES:
+
+	// gets called after the user changed advanced settings
 	virtual void advancedSettingsChanged();
-	virtual bool loadTile( int x, int y, int zoom, QPixmap** tile ) = 0;
+	// gets called whenever a tile cache miss occurs
+	// has to load / draw tile with coordinates (x,y)
+	// magnification is passed as a hint. If the derived class can draw higher resolution tiles,
+	// it may increase the tile size by this factor to match screen resolution
+	virtual bool loadTile( int x, int y, int zoom, int magnification, QPixmap** tile ) = 0;
+	// gets called when loading the map data
 	virtual bool load() = 0;
+	// gets called to unload the map data
 	virtual void unload() = 0;
 
+	// computes the tileID from x,y and zoom level
 	long long tileID( int x, int y, int zoom );
+	// resets the class
 	void reset();
+	// sets up basic polygons for source / target / arrows
 	void setupPolygons();
+	// draws an arrow at position x,y with direction rotation
 	void drawArrow( QPainter* painter, int x, int y, double rotation, QColor outer, QColor inner );
+	// draws an indicator for a place / source / target
+	// gets replaced by an arrow if it is outside the screen
 	void drawIndicator( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, int virtualZoom, QColor outer, QColor inner );
+	// draws a polyline, clipping it if necessary and applying basic LOD
 	void drawPolyline( QPainter* painter, const QRect& boundingBox, QVector< ProjectedCoordinate > line, QColor color );
 
 	// should be used by derived classes to add additional settings
 	QDialog* m_advancedSettings;
+	// should be set by the derived class
 	int m_tileSize;
+	// has to be filled by the derived class with all possible zoom levels
 	std::vector< int > m_zoomLevels;
 
+	// the current map data directory
 	QString m_directory;
+	// the tile cache
 	QCache< long long, QPixmap > m_cache;
+	// is a map package loaded?
 	bool m_loaded;
+	// polygon for the arrow indicator
 	QPolygonF m_arrow;
 
+	// basic settings
 	BRSettingsDialog::Settings m_settings;
+	// basic settings dialog
 	BRSettingsDialog* m_settingsDialog;
+	// the last magnification factor
+	int m_magnification;
 };
 
 #endif // RENDERERBASE_H

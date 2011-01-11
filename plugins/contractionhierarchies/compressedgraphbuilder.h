@@ -458,8 +458,8 @@ private:
 		testBlock( firstEdges );
 #endif
 
-		assert( buffer - m_blockBuffer < m_settings.blockSize );
-		assert( ( buffer - beginBuffer ) * 8 + offset - beginOffset == m_block.size );
+		assert( ( unsigned ) ( buffer - m_blockBuffer ) < m_settings.blockSize );
+		assert( ( unsigned ) ( ( buffer - beginBuffer ) * 8 + offset - beginOffset ) == m_block.size );
 		blockFile.write( ( const char* ) m_blockBuffer, m_settings.blockSize );
 	}
 

@@ -88,7 +88,7 @@ bool MapnikRendererClient::load()
 	return true;
 }
 
-bool MapnikRendererClient::loadTile( int x, int y, int zoom, QPixmap** tile )
+bool MapnikRendererClient::loadTile( int x, int y, int zoom, int /*magnification*/, QPixmap** tile )
 {
 	const Box& box = m_boxes[zoom];
 	if ( x < box.minX || x >= box.maxX )

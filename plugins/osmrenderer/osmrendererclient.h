@@ -40,7 +40,7 @@ public slots:
 protected:
 
 	virtual void advancedSettingsChanged();
-	virtual bool loadTile( int x, int y, int zoom, QPixmap** tile );
+	virtual bool loadTile( int x, int y, int zoom, int magnification, QPixmap** tile );
 	virtual bool load();
 	virtual void unload();
 

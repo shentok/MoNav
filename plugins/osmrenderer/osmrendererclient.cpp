@@ -126,7 +126,7 @@ void OSMRendererClient::finished( QNetworkReply* reply ) {
 	emit changed();
 }
 
-bool OSMRendererClient::loadTile( int x, int y, int zoom, QPixmap** tile )
+bool OSMRendererClient::loadTile( int x, int y, int zoom, int /*magnification*/, QPixmap** tile )
 {
 	long long id = tileID( x, y, zoom );
 

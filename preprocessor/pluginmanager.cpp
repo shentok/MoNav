@@ -17,42 +17,8 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MAPNIKRENDERER_H
-#define MAPNIKRENDERER_H
+#include "pluginmanager.h"
 
-#include <QDataStream>
-#include <QFile>
-#include "rendererbase.h"
-
-class MapnikRendererClient : public RendererBase
-{
-	Q_OBJECT
-
-public:
-
-	MapnikRendererClient();
-	virtual ~MapnikRendererClient();
-	virtual QString GetName();
-	virtual bool IsCompatible( int fileFormatVersion );
-
-protected:
-
-	virtual bool loadTile( int x, int y, int zoom, int magnification, QPixmap** tile );
-	virtual bool load();
-	virtual void unload();
-
-	struct Box
-	{
-		int minX;
-		int maxX;
-		int minY;
-		int maxY;
-	};
-
-	QVector< Box > m_boxes;
-	QFile* m_indexFile;
-	QFile* m_tileFile;
-	int m_fileZoom;
-};
-
-#endif // MAPNIKRENDERER_H
+//PluginManager::PluginManager()
+//{
+//}

@@ -134,7 +134,7 @@ class Way {
     bool init(FILE *fp);
     void print();
     bool draw(ImgWriter &img, unsigned long tilex, unsigned long tiley,
-              int zoom, int pass);
+				  int zoom, int magnification, int pass);
   //private:
     std::vector<coord> coords;
     osm_type_t type;
@@ -182,7 +182,7 @@ bool Way::init(FILE *fp)
 static int g_nways=0, g_ndrawnways=0;
 //Draw this way to an img tile.
 bool Way::draw(ImgWriter &img, unsigned long tilex, unsigned long tiley,
-                                 int zoom, int pass)
+											int zoom, int magnification, int pass)
 {
     g_nways++;
     char flags;
@@ -190,8 +190,8 @@ bool Way::draw(ImgWriter &img, unsigned long tilex, unsigned long tiley,
         if(type>=w->type_from && type<=w->type_to && 
            zoom>=w->zoom_from && zoom<=w->zoom_to) {
             if((pass==0 && w->r1==-1) || (pass==1 && w->r2==-1)) return false;
-            if(pass==0) img.SetPen(w->r1, w->g1, w->b1, w->w1);
-            else img.SetPen(w->r2, w->g2, w->b2, w->w2);
+				if(pass==0) img.SetPen(w->r1, w->g1, w->b1, w->w1 * magnification);
+				else img.SetPen(w->r2, w->g2, w->b2, w->w2 * magnification);
             flags = w->flags;
             goto pen_set;
         }
@@ -223,6 +223,8 @@ bool Way::draw(ImgWriter &img, unsigned long tilex, unsigned long tiley,
         //signed number before subtracting.
         newx = (long) ((i->x) >> (31-8-zoom)) - (long) (tilex >> (31-8-zoom));
         newy = (long) ((i->y) >> (31-8-zoom)) - (long) (tiley >> (31-8-zoom));
+		  newx *= magnification;
+		  newy *= magnification;
         if(flags!=POLY && i!=coords.begin()) {
             img.DrawLine(oldx, oldy, newx, newy);
         }
@@ -383,7 +385,7 @@ bool TileWriter::need_next_pass(int type1, int type2)
 //The main entry point into the class. Draw the map tile described by x, y
 //and zoom, and save it into _imgname if it is not an empty string. The tile
 //is held in memory and the raw image data can be accessed by get_img_data()
-bool TileWriter::draw_image(const std::string &_imgname, int x, int y, int zoom)
+bool TileWriter::draw_image(const std::string &_imgname, int x, int y, int zoom, int magnification)
 {
     TIMELOGINIT("Draw_image");
     //FILE *fp = fopen(filename.c_str(), "rb");
@@ -415,7 +417,7 @@ bool TileWriter::draw_image(const std::string &_imgname, int x, int y, int zoom)
 
     //Initialise the image.
     Log(LOG_VERBOSE, "Seek point %ld (%d ways)\nInitialising image\n", offset, nways);
-    img->NewImage(256, 256, _imgname);
+	 img->NewImage(256 * magnification, 256 * magnification, _imgname);
     img->SetBG(242, 238, 232);
     TIMELOG("Image initialisation");
 
@@ -456,15 +458,15 @@ bool TileWriter::draw_image(const std::string &_imgname, int x, int y, int zoom)
     for(i=waylist.begin(); i!=waylist.end(); i++) {
         if(need_next_pass((*i)->type, current_type)) { //Do the second pass.
             for(j=cur_type_start; j!=i; j++) 
-                if(!(*j)->draw(*img, itilex, itiley, zoom, 1)) break;
+					 if(!(*j)->draw(*img, itilex, itiley, zoom, magnification, 1)) break;
             current_type = (*i)->type;
             cur_type_start = i;
         }
-        (*i)->draw(*img, itilex, itiley, zoom, 0);
+		  (*i)->draw(*img, itilex, itiley, zoom, magnification, 0);
     }
     //Do second pass for the last type.
     for(j=cur_type_start; j!=waylist.end(); j++)
-        if(!(*j)->draw(*img, itilex, itiley, zoom, 1)) break;;
+		  if(!(*j)->draw(*img, itilex, itiley, zoom, magnification, 1)) break;;
     TIMELOG("Drawing");
     
     Log(LOG_VERBOSE, "Saving img\n");
