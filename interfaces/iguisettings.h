@@ -39,6 +39,17 @@ public:
 	// "Ok", "Apply" and "Cancel"
 	virtual bool GetSettingsWindow( QWidget** window ) = 0;
 
+	// should fill a settings window gotten from GetSettingsWindow
+	// the settings window should represent the internal settings
+	virtual bool FillSettingsWindow( QWidget* window ) = 0;
+
+	// reads settings from a settings window fotten from GetSettingsWindow
+	// the internal settings should be exactly restored if read from a
+	// window filled with FillSettingsWindow
+	virtual bool ReadSettingsWindow( QWidget* window ) = 0;
+
+	// virtual descructor
+	// must not free settings windows itseld
 	virtual ~IGUISettings() {}
 };
 
