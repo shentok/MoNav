@@ -20,7 +20,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "orsettingsdialog.h"
 #include "ui_orsettingsdialog.h"
 #include <cassert>
-#include <QSettings>
 #include <QtDebug>
 
 ORSettingsDialog::ORSettingsDialog( QWidget *parent ) :
@@ -35,10 +34,30 @@ ORSettingsDialog::~ORSettingsDialog()
 	delete m_ui;
 }
 
-bool ORSettingsDialog::getSettings( Settings* settings )
+bool ORSettingsDialog::readSettings( const OSMRenderer::Settings& settings )
+{
+	int index = 0;
+	for ( int zoom = 0; zoom < 19; zoom++ ) {
+		QString name = QString( "zoom%1" ).arg( zoom );
+		QCheckBox* checkbox = findChild< QCheckBox* >( name );
+		assert( checkbox != NULL );
+
+		bool included = false;
+		if ( index < ( int ) settings.zoomLevels.size() && settings.zoomLevels[index] == zoom ) {
+			included = true;
+			index++;
+		}
+
+		checkbox->setChecked( included );
+	}
+	return true;
+}
+
+bool ORSettingsDialog::fillSettings( OSMRenderer::Settings* settings )
 {
 	if ( settings == NULL )
 		return false;
+	settings->zoomLevels.clear();
 	for ( int zoom = 0; zoom < 19; zoom++ ) {
 		QString name = QString( "zoom%1" ).arg( zoom );
 		QCheckBox* checkbox = findChild< QCheckBox* >( name );
@@ -46,35 +65,6 @@ bool ORSettingsDialog::getSettings( Settings* settings )
 		if ( checkbox->isChecked() )
 			settings->zoomLevels.push_back( zoom );
 	}
-	if ( settings->zoomLevels.size() == 0 ) {
-		qCritical() << "No Zoom Level Selected";
-		return false;
-	}
 	return true;
 }
 
-bool ORSettingsDialog::loadSettings( QSettings* settings )
-{
-	settings->beginGroup( "OSMRenderer" );
-	for ( int zoom = 0; zoom < 19; zoom++ ) {
-		QString name = QString( "zoom%1" ).arg( zoom );
-		QCheckBox* checkbox = findChild< QCheckBox* >( name );
-		assert( checkbox != NULL );
-		checkbox->setChecked( settings->value( name, true ).toBool() );
-	}
-	settings->endGroup();
-	return true;
-}
-
-bool ORSettingsDialog::saveSettings( QSettings* settings )
-{
-	settings->beginGroup( "OSMRenderer" );
-	for ( int zoom = 0; zoom < 19; zoom++ ) {
-		QString name = QString( "zoom%1" ).arg( zoom );
-		QCheckBox* checkbox = findChild< QCheckBox* >( name );
-		assert( checkbox != NULL );
-		settings->setValue( name, checkbox->isChecked() );
-	}
-	settings->endGroup();
-	return true;
-}

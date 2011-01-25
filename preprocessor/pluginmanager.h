@@ -23,7 +23,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QVector>
 #include <QObject>
 #include <QStringList>
-#include <QSettings>
+
+class QSettings;
 
 class PluginManager : public QObject
 {
@@ -33,13 +34,6 @@ public:
 
 	// returns the single instance of this class
 	static PluginManager* instance();
-
-	// loads dynamic plugins and initializes dynamic and static plugins
-	bool loadPlugins();
-
-	// unloads all plugins, including static ones
-	// static plugins will not be available after this
-	bool unloadPlugins();
 
 	// returns a list of plugins
 	// plugins are uniquely identified by their name
@@ -56,8 +50,6 @@ public:
 	QString inputFile();
 	// name of the data set to be created
 	QString name();
-	// description of the data set to be created
-	QString displayName();
 	// image filename of the data set to be created
 	QString image();
 	// map data directory that will contain everything
@@ -75,9 +67,15 @@ public:
 
 public slots:
 
+	// loads dynamic plugins and initializes dynamic and static plugins
+	bool loadPlugins();
+
+	// unloads all plugins, including static ones
+	// static plugins will not be available after this
+	bool unloadPlugins();
+
 	void setInputFile( QString filename );
 	void setName( QString name );
-	void setDisplayName( QString displayName );
 	void setImage( QString image );
 	void setOutputDirectory( QString directory );
 
@@ -99,8 +97,6 @@ signals:
 
 	// finished preprocessing
 	void finished( bool success );
-	// log a debug / warning / error message
-	void log( QtMsgType type, QString text );
 
 private:
 
@@ -113,6 +109,7 @@ private:
 
 private slots:
 
+	// for internal use only
 	void finish();
 };
 

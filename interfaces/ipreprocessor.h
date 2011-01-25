@@ -37,13 +37,12 @@ public:
 	virtual QString GetName() = 0;
 	virtual int GetFileFormatVersion() = 0;
 	virtual Type GetType() = 0;
-	virtual QWidget* GetSettings() = 0;
 	virtual bool LoadSettings( QSettings* settings ) = 0;
 	virtual bool SaveSettings( QSettings* settings ) = 0;
 	virtual bool Preprocess( IImporter* importer, QString dir ) = 0;
 	virtual ~IPreprocessor() {}
 };
 
-Q_DECLARE_INTERFACE( IPreprocessor, "monav.IPreprocessor/1.0" )
+Q_DECLARE_INTERFACE( IPreprocessor, "monav.IPreprocessor/1.2" )
 
 #endif // IPREPROCESSING_H

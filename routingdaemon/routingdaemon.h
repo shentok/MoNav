@@ -201,9 +201,9 @@ protected:
 	bool loadPlugins( QString dataDirectory )
 	{
 		QDir dir( dataDirectory );
-		QString configFilename = dir.filePath( "MoNav.ini" );
+		QString configFilename = dir.filePath( "Module.ini" );
 		if ( !QFile::exists( configFilename ) ) {
-			qCritical() << "Not a valid data directory: Missing MoNav.ini";
+			qCritical() << "Not a valid routing module directory: Missing Module.ini";
 			return false;
 		}
 		QSettings pluginSettings( configFilename, QSettings::IniFormat );

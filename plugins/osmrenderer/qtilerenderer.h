@@ -22,31 +22,53 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QObject>
 #include "interfaces/ipreprocessor.h"
-#include "qrsettingsdialog.h"
+#include "interfaces/iguisettings.h"
 
-class QtileRenderer : public QObject, public IPreprocessor
+class QtileRenderer :
+		public QObject,
+#ifndef NOGUI
+		public IGUISettings,
+#endif
+		public IPreprocessor
 {
 	Q_OBJECT
 	Q_INTERFACES( IPreprocessor )
+#ifndef NOGUI
+	Q_INTERFACES( IGUISettings )
+#endif
 
 public:
 
+	struct Settings {
+		QString inputFile;
+		bool unused;
+	};
+
 	QtileRenderer();
+	virtual ~QtileRenderer();
+
+	// IPreprocessor
 	virtual QString GetName();
 	virtual int GetFileFormatVersion();
 	virtual Type GetType();
-	virtual QWidget* GetSettings();
 	virtual bool LoadSettings( QSettings* settings );
 	virtual bool SaveSettings( QSettings* settings );
 	virtual bool Preprocess( IImporter* importer, QString dir );
-	virtual ~QtileRenderer();
+
+#ifndef NOGUI
+	// IGUISettings
+	virtual bool GetSettingsWindow( QWidget** window );
+	virtual bool FillSettingsWindow( QWidget* window );
+	virtual bool ReadSettingsWindow( QWidget* window );
+#endif
 
 protected:
-        void write_ways(QString &dir, bool motorway);
 
-        class OSMReader *m_osr;
+	void write_ways(QString &dir, bool motorway);
+
+	class OSMReader *m_osr;
 	QString m_directory;
-	QRSettingsDialog* m_settingsDialog;
+	Settings m_settings;
 };
 
 #endif // QtileRENDERER_H

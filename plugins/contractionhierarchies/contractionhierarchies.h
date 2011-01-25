@@ -22,26 +22,48 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QObject>
 #include "interfaces/ipreprocessor.h"
-#include "chsettingsdialog.h"
+#include "interfaces/iguisettings.h"
 
-class ContractionHierarchies : public QObject, public IPreprocessor
+class ContractionHierarchies :
+		public QObject,
+#ifndef NOGUI
+		public IGUISettings,
+#endif
+		public IPreprocessor
 {
 	Q_OBJECT
 	Q_INTERFACES( IPreprocessor )
+#ifndef NOGUI
+	Q_INTERFACES( IGUISettings )
+#endif
+
 public:
+
+	struct Settings
+	{
+		int blockSize;
+	};
+
 	ContractionHierarchies();
+
+	// IPreprocessor
 	virtual QString GetName();
 	virtual int GetFileFormatVersion();
 	virtual Type GetType();
-	virtual QWidget* GetSettings();
 	virtual bool LoadSettings( QSettings* settings );
 	virtual bool SaveSettings( QSettings* settings );
 	virtual bool Preprocess( IImporter* importer, QString dir );
 	virtual ~ContractionHierarchies();
 
+#ifndef NOGUI
+	// IGUISettings
+	virtual bool GetSettingsWindow( QWidget** window );
+	virtual bool FillSettingsWindow( QWidget* window );
+	virtual bool ReadSettingsWindow( QWidget* window );
+#endif
+
 protected:
-	CHSettingsDialog* m_settingsDialog;
-	CHSettingsDialog::Settings m_settings;
+	Settings m_settings;
 };
 
 #endif // ContractionHierarchies_H

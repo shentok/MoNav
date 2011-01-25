@@ -21,6 +21,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define MAPDATAWIDGET_H
 
 #include <QDialog>
+#include "mapdata.h"
 
 namespace Ui {
 	class MapDataWidget;
@@ -39,14 +40,24 @@ public:
 protected slots:
 
 	void directoryChanged( QString dir );
+	void modulesChanged();
 	void browse();
-	void load();
+	bool load();
 
 protected:
 
+	int findModule( const QVector< MapData::Module >& modules, QString path );
 	void connectSlots();
 	virtual void resizeEvent( QResizeEvent * event );
 	virtual void showEvent( QShowEvent* event );
+
+	QString m_lastRoutingModule;
+	QString m_lastRenderingModule;
+	QString m_lastAddressLookupModule;
+
+	QVector< MapData::Module > m_routingModules;
+	QVector< MapData::Module > m_renderingModules;
+	QVector< MapData::Module > m_addressLookupModules;
 
 	Ui::MapDataWidget *m_ui;
 	QStringList m_directories;

@@ -22,17 +22,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QSettings>
 #include <QPluginLoader>
 #include <QApplication>
+#include <QDir>
 
 struct MapData::PrivateImplementation {
 
-	enum { ConfigVersion = 1 };
+	enum { ConfigVersion = 2 };
 
 	QString path;
-
-	bool addressLookupRequired;
-	bool gpsLookupRequired;
-	bool rendererRequired;
-	bool routerRequired;
 
 	bool loaded;
 	bool informationLoaded;
@@ -53,16 +49,17 @@ struct MapData::PrivateImplementation {
 	// stores a pointer to the current router plugin
 	IRouter* router;
 
-	int addressLookupFileFormatVersion;
-	int gpsLookupFileFormatVersion;
-	int rendererFileFormatVersion;
-	int routerFileFormatVersion;
-
 	QString name;
-	QString description;
 	QImage image;
 
+	QVector< MapData::Module > routingModules;
+	QVector< MapData::Module > renderingModules;
+	QVector< MapData::Module > addressLookupModules;
+
 	bool testPlugin( QObject* plugin );
+	void findRoutingModules();
+	void findRenderingModules();
+	void findAddressLookupModules();
 };
 
 bool MapData::PrivateImplementation::testPlugin( QObject* plugin )
@@ -99,11 +96,6 @@ bool MapData::PrivateImplementation::testPlugin( QObject* plugin )
 MapData::MapData() :
 	QObject( NULL ), d( new PrivateImplementation )
 {
-	d->addressLookupRequired = true;
-	d->gpsLookupRequired = true;
-	d->rendererRequired = true;
-	d->routerRequired = true;
-
 	d->loaded = false;
 	d->informationLoaded = false;
 
@@ -142,39 +134,6 @@ void MapData::setPath( QString path )
 	d->path = path;
 }
 
-bool MapData::pluginRequired( PluginType plugin ) const
-{
-	switch( plugin ) {
-	case AddressLookup:
-		return d->addressLookupRequired;
-	case GPSLookup:
-		return d->gpsLookupRequired;
-	case Renderer:
-		return d->rendererRequired;
-	case Router:
-		return d->routerRequired;
-	}
-	return false;
-}
-
-void MapData::setPluginRequired( PluginType plugin, bool required )
-{
-	switch( plugin ) {
-	case AddressLookup:
-		d->addressLookupRequired = required;
-		break;
-	case GPSLookup:
-		d->gpsLookupRequired = required;
-		break;
-	case Renderer:
-		d->rendererRequired = required;
-		break;
-	case Router:
-		d->routerRequired = required;
-		break;
-	}
-}
-
 bool MapData::containsMapData() const
 {
 	QString configFilename = fileInDirectory( d->path, "MoNav.ini" );
@@ -186,33 +145,137 @@ bool MapData::loaded() const
 	return d->loaded;
 }
 
-bool MapData::load()
+bool MapData::load( const Module& routingModule, const Module& renderingModule, const Module& addressLookupModule )
 {
-	if ( !loadInformation() )
+	if ( !informationLoaded() ) {
+		qCritical() << "Information not loaded";
 		return false;
+	}
 
-	if ( !canBeLoaded() )
+	if ( routingModule.plugins.size() != 2 ) {
+		qCritical() << "Illegal routing module passed";
 		return false;
+	}
+	d->routerName = routingModule.plugins[0];
+	d->gpsLookupName = routingModule.plugins[1];
 
-	if ( d->addressLookupRequired ) {
-		d->addressLookup->SetInputDirectory( d->path );
-		if ( !d->addressLookup->LoadData() )
-			return false;
+	if ( renderingModule.plugins.size() != 1 ) {
+		qCritical() << "Illegal rendering module passed";
+		return false;
 	}
-	if ( d->gpsLookupRequired ) {
-		d->gpsLookup->SetInputDirectory( d->path );
-		if ( !d->gpsLookup->LoadData() )
-			return false;
+	d->rendererName = renderingModule.plugins[0];
+
+	if ( addressLookupModule.plugins.size() != 1 ) {
+		qCritical() << "Illegal address lookup module passed";
+		return false;
 	}
-	if ( d->rendererRequired ) {
-		d->renderer->SetInputDirectory( d->path );
-		if ( !d->renderer->LoadData() )
-			return false;
+	d->addressLookupName = addressLookupModule.plugins[0];
+
+	QDir pluginDir( QApplication::applicationDirPath() );
+	if ( pluginDir.cd( "plugins_client" ) ) {
+		foreach ( QString fileName, pluginDir.entryList( QDir::Files ) ) {
+			QPluginLoader* loader = new QPluginLoader( pluginDir.absoluteFilePath( fileName ) );
+			if ( !loader->load() )
+				qDebug( "%s", loader->errorString().toAscii().constData() );
+			if ( d->testPlugin( loader->instance() ) )
+				d->plugins.append( loader );
+			else {
+				loader->unload();
+				delete loader;
+			}
+		}
 	}
-	if ( d->routerRequired ) {
-		d->router->SetInputDirectory( d->path );
-		if ( !d->router->LoadData() )
-			return false;
+
+	foreach ( QObject *plugin, QPluginLoader::staticInstances() )
+		d->testPlugin( plugin );
+
+	// check for success and unload plugins otherwise
+
+	// check if all plugins were found
+	bool success = true;
+	if ( d->router == NULL ) {
+		qCritical() << "Router plugin missing:" << d->routerName;
+		success = false;
+	}
+	if ( d->gpsLookup == NULL ) {
+		qCritical() << "GPS Lookup plugin missing:" << d->gpsLookupName;
+		success = false;
+	}
+	if ( d->renderer == NULL ) {
+		qCritical() << "Renderer plugin missing:" << d->rendererName;
+		success = false;
+	}
+	if ( d->addressLookup == NULL ) {
+		qCritical() << "Address lookup plugin missing:" << d->addressLookupName;
+	}
+
+	// check if file formats are compatible
+	if ( success ) {
+		if ( !d->router->IsCompatible( routingModule.fileFormats[0] ) ) {
+			qCritical() << "Router file format not compatible";
+			success = false;
+		}
+		if ( !d->gpsLookup->IsCompatible( routingModule.fileFormats[1] ) ) {
+			qCritical() << "GPS Lookup file format not compatible";
+			success = false;
+		}
+		if ( !d->renderer->IsCompatible( renderingModule.fileFormats[0] ) ) {
+			qCritical() << "Renderer file format not compatible";
+			success = false;
+		}
+		if ( !d->addressLookup->IsCompatible( addressLookupModule.fileFormats[0] ) ) {
+			qCritical() << "Address Lookup file format not compatible";
+			success = false;
+		}
+	}
+
+	// check if data can be loaded
+	if ( success ) {
+		d->router->SetInputDirectory( routingModule.path );
+		d->gpsLookup->SetInputDirectory( routingModule.path );
+		d->renderer->SetInputDirectory( renderingModule.path );
+		d->addressLookup->SetInputDirectory( addressLookupModule.path );
+		if ( !d->router->LoadData() ) {
+			qCritical() << "Failed to load router data";
+			success = false;
+		}
+		if ( !d->gpsLookup->LoadData() ) {
+			qCritical() << "Failed to load gps lookup data";
+			success = false;
+		}
+		if ( !d->renderer->LoadData() ) {
+			qCritical() << "Failed to load renderer data";
+			success = false;
+		}
+		if ( !d->addressLookup->LoadData() ) {
+			qCritical() << "Failed to load address lookup data";
+			success = false;
+		}
+
+		/*
+		if ( !success ) {
+			d->router->Unload();
+			d->gpsLookup->Unload();
+			d->renderer->Unload();
+			d->addressLookup->Unload();
+		}
+		*/
+	}
+
+	if ( !success ) {
+		d->addressLookup = NULL;
+		d->gpsLookup = NULL;
+		d->renderer = NULL;
+		d->router = NULL;
+
+		foreach( QPluginLoader* pluginLoader, d->plugins )
+		{
+			pluginLoader->unload();
+			delete pluginLoader;
+		}
+		d->plugins.clear();
+
+		return false;
 	}
 
 	d->loaded = true;
@@ -261,6 +324,104 @@ bool MapData::informationLoaded() const
 	return d->informationLoaded;
 }
 
+void MapData::PrivateImplementation::findRoutingModules()
+{
+	routingModules.clear();
+	// get potentially interesting subdirs
+	QDir dir( path );
+	dir.setNameFilters( QStringList( "routing_*" ) );
+	QStringList subDirs = dir.entryList( QDir::Dirs, QDir::Name );
+
+	// check each dir whether it contains suitable data
+	for ( int i = 0; i < subDirs.size(); i++ ) {
+		QString configFilename = fileInDirectory( dir.filePath( subDirs[i] ), "Module.ini" );
+		if ( !QFile::exists( configFilename ) )
+			continue;
+
+		QSettings config( configFilename, QSettings::IniFormat );
+
+		int configVersion = config.value( "configVersion" ).toInt();
+		if ( configVersion != ConfigVersion ) {
+			qCritical() << "config version found in" << configFilename << "not compatible:" << configVersion << "vs" << ConfigVersion;
+			continue;
+		}
+
+		MapData::Module module;
+		module.name = config.value( "name", "No Name" ).toString();
+		module.path = dir.filePath( subDirs[i] );
+		module.plugins.push_back( config.value( "router" ).toString() );
+		module.plugins.push_back( config.value( "gpsLookup" ).toString() );
+		module.fileFormats.push_back( config.value( "routerFileFormat", -1 ).toInt() );
+		module.fileFormats.push_back( config.value( "gpsLookupFileFormat", -1 ).toInt() );
+
+		routingModules.push_back( module );
+	}
+}
+
+void MapData::PrivateImplementation::findRenderingModules()
+{
+	renderingModules.clear();
+	// get potentially interesting subdirs
+	QDir dir( path );
+	dir.setNameFilters( QStringList( "rendering_*" ) );
+	QStringList subDirs = dir.entryList( QDir::Dirs, QDir::Name );
+
+	// check each dir whether it contains suitable data
+	for ( int i = 0; i < subDirs.size(); i++ ) {
+		QString configFilename = fileInDirectory( dir.filePath( subDirs[i] ), "Module.ini" );
+		if ( !QFile::exists( configFilename ) )
+			continue;
+
+		QSettings config( configFilename, QSettings::IniFormat );
+
+		int configVersion = config.value( "configVersion" ).toInt();
+		if ( configVersion != ConfigVersion ) {
+			qCritical() << "config version found in" << configFilename << "not compatible:" << configVersion << "vs" << ConfigVersion;
+			continue;
+		}
+
+		MapData::Module module;
+		module.name = config.value( "name", "No Name" ).toString();
+		module.path = dir.filePath( subDirs[i] );
+		module.plugins.push_back( config.value( "renderer" ).toString() );
+		module.fileFormats.push_back( config.value( "rendererFileFormat", -1 ).toInt() );
+
+		renderingModules.push_back( module );
+	}
+}
+
+void MapData::PrivateImplementation::findAddressLookupModules()
+{
+	addressLookupModules.clear();
+	// get potentially interesting subdirs
+	QDir dir( path );
+	dir.setNameFilters( QStringList( "address_*" ) );
+	QStringList subDirs = dir.entryList( QDir::Dirs, QDir::Name );
+
+	// check each dir whether it contains suitable data
+	for ( int i = 0; i < subDirs.size(); i++ ) {
+		QString configFilename = fileInDirectory( dir.filePath( subDirs[i] ), "Module.ini" );
+		if ( !QFile::exists( configFilename ) )
+			continue;
+
+		QSettings config( configFilename, QSettings::IniFormat );
+
+		int configVersion = config.value( "configVersion" ).toInt();
+		if ( configVersion != ConfigVersion ) {
+			qCritical() << "config version found in" << configFilename << "not compatible:" << configVersion << "vs" << ConfigVersion;
+			continue;
+		}
+
+		MapData::Module module;
+		module.name = config.value( "name", "No Name" ).toString();
+		module.path = dir.filePath( subDirs[i] );
+		module.plugins.push_back( config.value( "addressLookup" ).toString() );
+		module.fileFormats.push_back( config.value( "addressLookupFileFormat", -1 ).toInt() );
+
+		addressLookupModules.push_back( module );
+	}
+}
+
 bool MapData::loadInformation()
 {
 	if ( !unload() )
@@ -281,73 +442,35 @@ bool MapData::loadInformation()
 	}
 
 	d->name = config.value( "name" ).toString();
-	d->description = config.value( "description" ).toString();
 	d->image = config.value( "image" ).value< QImage >();
 	if ( d->image.isNull() ) {
 		d->image.load( ":images/map.png" );
 	}
 
-	d->addressLookupName = config.value( "addressLookup" ).toString();
-	d->gpsLookupName = config.value( "gpsLookup" ).toString();
-	d->rendererName = config.value( "renderer" ).toString();
-	d->routerName = config.value( "router" ).toString();
-
-	d->addressLookupFileFormatVersion = config.value( "addressLookupFileFormatVersion" ).toInt();
-	d->gpsLookupFileFormatVersion = config.value( "gpsLookupFileFormatVersion" ).toInt();
-	d->rendererFileFormatVersion = config.value( "rendererFileFormatVersion" ).toInt();
-	d->routerFileFormatVersion = config.value( "routerFileFormatVersion" ).toInt();
-
-	QDir pluginDir( QApplication::applicationDirPath() );
-	if ( pluginDir.cd( "plugins_client" ) ) {
-		foreach ( QString fileName, pluginDir.entryList( QDir::Files ) ) {
-			QPluginLoader* loader = new QPluginLoader( pluginDir.absoluteFilePath( fileName ) );
-			if ( !loader->load() )
-				qDebug( "%s", loader->errorString().toAscii().constData() );
-			if ( d->testPlugin( loader->instance() ) )
-				d->plugins.append( loader );
-			else {
-				loader->unload();
-				delete loader;
-			}
-		}
-	}
-
-	foreach ( QObject *plugin, QPluginLoader::staticInstances() )
-		d->testPlugin( plugin );
+	// search for modules
+	d->findRoutingModules();
+	d->findRenderingModules();
+	d->findAddressLookupModules();
 
 	d->informationLoaded = true;
 	emit informationChanged();
 	return true;
 }
 
-bool MapData::canBeLoaded() const
+QVector< MapData::Module > MapData::modules( ModuleType plugin ) const
 {
-	if ( d->addressLookupRequired ) {
-		if ( !pluginPresent( AddressLookup ) )
-			return false;
-		if ( !fileFormatCompatible( AddressLookup ) )
-			return false;
+	if ( !d->informationLoaded )
+		return QVector< MapData::Module >();
+	switch ( plugin ) {
+	case Routing:
+		return d->routingModules;
+	case Rendering:
+		return d->renderingModules;
+	case AddressLookup:
+		return d->addressLookupModules;
 	}
-	if ( d->gpsLookupRequired ) {
-		if ( !pluginPresent( GPSLookup ) )
-			return false;
-		if ( !fileFormatCompatible( GPSLookup ) )
-			return false;
-	}
-	if ( d->rendererRequired ) {
-		if ( !pluginPresent( Renderer ) )
-			return false;
-		if ( !fileFormatCompatible( Renderer ) )
-			return false;
-	}
-	if ( d->routerRequired ) {
-		if ( !pluginPresent( Router ) )
-			return false;
-		if ( !fileFormatCompatible( Router ) )
-			return false;
-	}
-
-	return true;
+	// should never reach this code
+	return QVector< MapData::Module >();
 }
 
 QString MapData::name() const
@@ -355,82 +478,9 @@ QString MapData::name() const
 	return d->name;
 }
 
-QString MapData::description() const
-{
-	return d->description;
-}
-
 QImage MapData::image() const
 {
 	return d->image;
-}
-
-QString MapData::pluginName( PluginType plugin ) const
-{
-	switch( plugin ) {
-	case AddressLookup:
-		return d->addressLookupName;
-	case GPSLookup:
-		return d->gpsLookupName;
-	case Renderer:
-		return d->rendererName;
-	case Router:
-		return d->routerName;
-	}
-	return "";
-}
-
-bool MapData::pluginPresent( PluginType plugin ) const
-{
-	switch( plugin ) {
-	case AddressLookup:
-		return d->addressLookup != NULL;
-	case GPSLookup:
-		return d->gpsLookup != NULL;
-	case Renderer:
-		return d->renderer != NULL;
-	case Router:
-		return d->router != NULL;
-	}
-	return false;
-}
-
-int MapData::fileFormatVersion( PluginType plugin ) const
-{
-	switch( plugin ) {
-	case AddressLookup:
-		return d->addressLookupFileFormatVersion;
-	case GPSLookup:
-		return d->gpsLookupFileFormatVersion;
-	case Renderer:
-		return d->rendererFileFormatVersion;
-	case Router:
-		return d->routerFileFormatVersion;
-	}
-	return -1;
-}
-
-bool MapData::fileFormatCompatible( PluginType plugin ) const
-{
-	return true;
-	switch( plugin ) {
-	case AddressLookup:
-		if ( pluginPresent( AddressLookup ) )
-			return false;
-		return d->addressLookup->IsCompatible( d->addressLookupFileFormatVersion );
-	case GPSLookup:
-		if ( pluginPresent( GPSLookup ) )
-			return false;
-		return d->gpsLookup->IsCompatible( d->gpsLookupFileFormatVersion );
-	case Renderer:
-		if ( pluginPresent( Renderer ) )
-			return false;
-		return d->renderer->IsCompatible( d->rendererFileFormatVersion );
-	case Router:
-		if ( pluginPresent( Router ) )
-			return false;
-		return d->router->IsCompatible( d->routerFileFormatVersion );
-	}
 }
 
 IAddressLookup* MapData::addressLookup()

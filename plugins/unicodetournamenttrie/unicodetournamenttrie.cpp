@@ -22,6 +22,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils/edgeconnector.h"
 #include "interfaces/iimporter.h"
 
+#include "uttsettingsdialog.h"
+
 #include <algorithm>
 #include <QMultiHash>
 #include <QList>
@@ -29,13 +31,10 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 UnicodeTournamentTrie::UnicodeTournamentTrie()
 {
-	m_settingsDialog = NULL;
 }
 
 UnicodeTournamentTrie::~UnicodeTournamentTrie()
 {
-	if ( m_settingsDialog != NULL )
-		delete m_settingsDialog;
 }
 
 QString UnicodeTournamentTrie::GetName()
@@ -53,35 +52,18 @@ UnicodeTournamentTrie::Type UnicodeTournamentTrie::GetType()
 	return AddressLookup;
 }
 
-QWidget* UnicodeTournamentTrie::GetSettings()
+bool UnicodeTournamentTrie::LoadSettings( QSettings* /*settings*/ )
 {
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new UTTSettingsDialog();
-	return m_settingsDialog;
+	return true;
 }
 
-bool UnicodeTournamentTrie::LoadSettings( QSettings* settings )
+bool UnicodeTournamentTrie::SaveSettings( QSettings* /*settings*/ )
 {
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new UTTSettingsDialog();
-	return m_settingsDialog->loadSettings( settings );
-}
-
-bool UnicodeTournamentTrie::SaveSettings( QSettings* settings )
-{
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new UTTSettingsDialog();
-	return m_settingsDialog->saveSettings( settings );
+	return true;
 }
 
 bool UnicodeTournamentTrie::Preprocess( IImporter* importer, QString dir )
 {
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new UTTSettingsDialog();
-
-	UTTSettingsDialog::Settings settings;
-	if ( !m_settingsDialog->getSettings( &settings ) )
-		return false;
 	QString filename = fileInDirectory( dir, "Unicode Tournament Trie" );
 
 	QFile subTrieFile( filename + "_sub" );
@@ -401,5 +383,24 @@ void UnicodeTournamentTrie::writeTrie( std::vector< utt::Node >* trie, QFile& fi
 
 	delete[] buffer;
 }
+
+#ifndef NOGUI
+bool UnicodeTournamentTrie::GetSettingsWindow( QWidget** window )
+{
+	*window =  new UTTSettingsDialog();
+	return true;
+}
+
+bool UnicodeTournamentTrie::FillSettingsWindow( QWidget* /*window*/ )
+{
+	return true;
+}
+
+bool UnicodeTournamentTrie::ReadSettingsWindow( QWidget* /*window*/ )
+{
+	return true;
+}
+
+#endif
 
 Q_EXPORT_PLUGIN2(unicodetournamenttrie, UnicodeTournamentTrie)

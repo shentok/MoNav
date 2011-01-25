@@ -20,6 +20,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "mapnikrenderer.h"
 #include "utils/qthelpers.h"
 #include "interfaces/iimporter.h"
+#include "mrsettingsdialog.h"
 
 #include <mapnik/map.hpp>
 #include <mapnik/datasource_cache.hpp>
@@ -31,17 +32,19 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QFile>
 #include <QTemporaryFile>
 #include <QtDebug>
+#include <QSettings>
 #include <stdlib.h>
 
 MapnikRenderer::MapnikRenderer()
 {
-	m_settingsDialog = NULL;
 }
 
 MapnikRenderer::~MapnikRenderer()
 {
-	if ( m_settingsDialog != NULL )
-		delete m_settingsDialog;
+	qDebug() << "HMHM";
+	static int count = 0;
+	count++;
+	qDebug() << count;
 }
 
 QString MapnikRenderer::GetName()
@@ -59,44 +62,74 @@ MapnikRenderer::Type MapnikRenderer::GetType()
 	return Renderer;
 }
 
-QWidget* MapnikRenderer::GetSettings()
-{
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new MRSettingsDialog();
-	return m_settingsDialog;
-}
-
 bool MapnikRenderer::LoadSettings( QSettings* settings )
 {
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new MRSettingsDialog();
-	return m_settingsDialog->loadSettings( settings );
+	settings->beginGroup( "Mapnik Renderer" );
+	m_settings.fonts = settings->value( "fontDirectory" ).toString();
+	m_settings.theme = settings->value( "themeDirectory" ).toString();
+	m_settings.plugins = settings->value( "pluginDirectory" ).toString();
+	m_settings.tileSize = settings->value( "tileSize", 256 ).toInt();
+	m_settings.metaTileSize = settings->value( "metaTileSize", 8 ).toInt();
+	m_settings.fullZoom = settings->value( "minZoom", 6 ).toInt();
+	m_settings.margin = settings->value( "margin", 128 ).toInt();
+	m_settings.tileMargin = settings->value( "tileMargin", 1 ).toInt();
+	m_settings.reduceColors = settings->value( "colorReduction", true ).toBool();
+	m_settings.deleteTiles = settings->value( "removeTiles", false ).toBool();
+	m_settings.pngcrush = settings->value( "pngcrush", false ).toBool();
+
+	m_settings.zoomLevels.clear();
+	for ( int zoom = 0; zoom < 19; zoom++ ) {
+		QString name = QString( "zoom%1" ).arg( zoom );
+		if ( settings->value( name, true ).toBool() )
+			m_settings.zoomLevels.push_back( zoom );
+	}
+
+	settings->endGroup();
+	return true;
 }
 
 bool MapnikRenderer::SaveSettings( QSettings* settings )
 {
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new MRSettingsDialog();
-	return m_settingsDialog->saveSettings( settings );
+	settings->beginGroup( "Mapnik Renderer" );
+	settings->setValue( "fontDirectory", m_settings.fonts );
+	settings->setValue( "themeDirectory", m_settings.theme );
+	settings->setValue( "pluginDirectory", m_settings.plugins );
+	settings->setValue( "tileSize", m_settings.tileSize );
+	settings->setValue( "metaTileSize", m_settings.metaTileSize );
+	settings->setValue( "minZoom", m_settings.fullZoom );
+	settings->setValue( "margin", m_settings.margin );
+	settings->setValue( "tileMargin", m_settings.tileMargin );
+	settings->setValue( "colorReduction", m_settings.reduceColors );
+	settings->setValue( "removeTiles", m_settings.deleteTiles );
+	settings->setValue( "pngcrush", m_settings.pngcrush );
+
+	int index = 0;
+	for ( int zoom = 0; zoom < 19; zoom++ ) {
+		QString name = QString( "zoom%1" ).arg( zoom );
+		bool included = false;
+		if ( index < ( int ) m_settings.zoomLevels.size() && m_settings.zoomLevels[index] == zoom ) {
+			included = true;
+			index++;
+		}
+		settings->setValue( name, included );
+	}
+
+	settings->endGroup();
+	return true;
 }
 
 bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
 {
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new MRSettingsDialog();
 	QString filename = fileInDirectory( dir, "Mapnik Renderer" );
 
 	try {
-		MRSettingsDialog::Settings settings;
-		if ( !m_settingsDialog->getSettings( &settings ) )
-			return false;
 		IImporter::BoundingBox box;
 		if ( !importer->GetBoundingBox( &box ) )
 			return false;
 		std::vector< IImporter::RoutingEdge > inputEdges;
 		std::vector< IImporter::RoutingNode > inputNodes;
 		std::vector< IImporter::RoutingNode > inputPaths;
-		if ( settings.deleteTiles ) {
+		if ( m_settings.deleteTiles ) {
 			if ( !importer->GetRoutingEdges( &inputEdges ) ) {
 				qCritical() << "Mapnik Renderer: failed to read routing edges";
 				return false;
@@ -112,8 +145,8 @@ bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
 
 		Timer time;
 
-		mapnik::datasource_cache::instance()->register_datasources( settings.plugins.toAscii().constData() );
-		QDir fonts( settings.fonts );
+		mapnik::datasource_cache::instance()->register_datasources( m_settings.plugins.toAscii().constData() );
+		QDir fonts( m_settings.fonts );
 		mapnik::projection projection;
 		projection = mapnik::projection( "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over" );
 		mapnik::freetype_engine::register_font( fonts.filePath( "DejaVuSans.ttf" ).toAscii().constData() );
@@ -133,33 +166,33 @@ bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
 		if ( !configData.open( QIODevice::WriteOnly ) )
 			return false;
 
-		configData << quint32( settings.tileSize ) << quint32( settings.zoomLevels.size() );
+		configData << quint32( m_settings.tileSize ) << quint32( m_settings.zoomLevels.size() );
 
 		long long tilesSkipped = 0;
 		long long tiles = 0;
 		long long metaTilesRendered = 0;
 		long long pngcrushSaved = 0;
 
-		std::vector< ZoomInfo > zoomInfo( settings.zoomLevels.size() );
+		std::vector< ZoomInfo > zoomInfo( m_settings.zoomLevels.size() );
 		std::vector< MetaTile > tasks;
 
-		for ( int zoomLevel = 0; zoomLevel < ( int ) settings.zoomLevels.size(); zoomLevel++ ) {
+		for ( int zoomLevel = 0; zoomLevel < ( int ) m_settings.zoomLevels.size(); zoomLevel++ ) {
 			ZoomInfo& info = zoomInfo[zoomLevel];
-			int zoom = settings.zoomLevels[zoomLevel];
+			int zoom = m_settings.zoomLevels[zoomLevel];
 
 			info.minX = box.min.GetTileX( zoom );
 			info.maxX = box.max.GetTileX( zoom ) + 1;
 			info.minY = box.min.GetTileY( zoom );
 			info.maxY = box.max.GetTileY( zoom ) + 1;
 
-			if ( zoom <= settings.fullZoom ) {
+			if ( zoom <= m_settings.fullZoom ) {
 				info.minX = info.minY = 0;
 				info.maxX = info.maxY = 1 << zoom;
 			} else {
-				info.minX = std::max( 0 , info.minX - settings.tileMargin );
-				info.maxX = std::min ( 1 << zoom, info.maxX + settings.tileMargin );
-				info.minY = std::max( 0, info.minY - settings.tileMargin );
-				info.maxY = std::min ( 1 << zoom, info.maxY + settings.tileMargin );
+				info.minX = std::max( 0 , info.minX - m_settings.tileMargin );
+				info.maxX = std::min ( 1 << zoom, info.maxX + m_settings.tileMargin );
+				info.minY = std::max( 0, info.minY - m_settings.tileMargin );
+				info.maxY = std::min ( 1 << zoom, info.maxY + m_settings.tileMargin );
 			}
 
 			tiles += ( info.maxX - info.minX ) * ( info.maxY - info.minY );
@@ -207,10 +240,10 @@ bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
 			if ( !openQFile( info.tilesFile, QIODevice::WriteOnly ) )
 				return false;
 
-			for ( int x = info.minX; x < info.maxX; x+= settings.metaTileSize ) {
-				int metaTileSizeX = std::min( settings.metaTileSize, info.maxX - x );
-				for ( int y = info.minY; y < info.maxY; y+= settings.metaTileSize ) {
-					int metaTileSizeY = std::min( settings.metaTileSize, info.maxY - y );
+			for ( int x = info.minX; x < info.maxX; x+= m_settings.metaTileSize ) {
+				int metaTileSizeX = std::min( m_settings.metaTileSize, info.maxX - x );
+				for ( int y = info.minY; y < info.maxY; y+= m_settings.metaTileSize ) {
+					int metaTileSizeY = std::min( m_settings.metaTileSize, info.maxY - y );
 					MetaTile tile;
 					tile.zoom = zoomLevel;
 					tile.x = x;
@@ -226,13 +259,13 @@ bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
 #pragma omp parallel
 		{
 			int threadID = omp_get_thread_num();
-			const int metaTileSize = settings.metaTileSize * settings.tileSize + 2 * settings.margin;
+			const int metaTileSize = m_settings.metaTileSize * m_settings.tileSize + 2 * m_settings.margin;
 
 			mapnik::Map map;
 			mapnik::Image32 image( metaTileSize, metaTileSize );
 			QTemporaryFile tempOut;
 			QTemporaryFile tempIn;
-			mapnik::load_map( map, settings.theme.toLocal8Bit().constData() );
+			mapnik::load_map( map, m_settings.theme.toLocal8Bit().constData() );
 
 #pragma omp for schedule( dynamic )
 			for ( int i = 0; i < ( int ) tasks.size(); i++ ) {
@@ -242,13 +275,13 @@ bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
 				int x = tasks[i].x;
 				int y = tasks[i].y;
 				int zoomLevel = tasks[i].zoom;
-				int zoom = settings.zoomLevels[zoomLevel];
+				int zoom = m_settings.zoomLevels[zoomLevel];
 				ZoomInfo& info = zoomInfo[zoomLevel];
 
-				map.resize( metaTileSizeX * settings.tileSize + 2 * settings.margin, metaTileSizeY * settings.tileSize + 2 * settings.margin );
+				map.resize( metaTileSizeX * m_settings.tileSize + 2 * m_settings.margin, metaTileSizeY * m_settings.tileSize + 2 * m_settings.margin );
 
-				ProjectedCoordinate drawTopLeft( x - 1.0 * settings.margin / settings.tileSize, y - 1.0 * settings.margin / settings.tileSize, zoom );
-				ProjectedCoordinate drawBottomRight( x + metaTileSizeX + 1.0 * settings.margin / settings.tileSize, y + metaTileSizeY + 1.0 * settings.margin / settings.tileSize, zoom );
+				ProjectedCoordinate drawTopLeft( x - 1.0 * m_settings.margin / m_settings.tileSize, y - 1.0 * m_settings.margin / m_settings.tileSize, zoom );
+				ProjectedCoordinate drawBottomRight( x + metaTileSizeX + 1.0 * m_settings.margin / m_settings.tileSize, y + metaTileSizeY + 1.0 * m_settings.margin / m_settings.tileSize, zoom );
 				GPSCoordinate drawTopLeftGPS = drawTopLeft.ToGPSCoordinate();
 				GPSCoordinate drawBottomRightGPS = drawBottomRight.ToGPSCoordinate();
 				projection.forward( drawTopLeftGPS.longitude, drawBottomRightGPS.latitude );
@@ -264,15 +297,15 @@ bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
 				for ( int subX = 0; subX < metaTileSizeX; ++subX ) {
 					for ( int subY = 0; subY < metaTileSizeY; ++subY ) {
 						int indexNumber = ( y + subY - info.minY ) * ( info.maxX - info.minX ) + x + subX - info.minX;
-						mapnik::image_view<mapnik::ImageData32> view = image.get_view( subX * settings.tileSize + settings.margin, subY * settings.tileSize + settings.margin, settings.tileSize, settings.tileSize );
+						mapnik::image_view<mapnik::ImageData32> view = image.get_view( subX * m_settings.tileSize + m_settings.margin, subY * m_settings.tileSize + m_settings.margin, m_settings.tileSize, m_settings.tileSize );
 						std::string result;
-						if ( !settings.deleteTiles || info.index[( x + subX - info.minX ) + ( y + subY - info.minY ) * ( info.maxX - info.minX )].size == 1 ) {
-							if ( settings.reduceColors )
+						if ( !m_settings.deleteTiles || info.index[( x + subX - info.minX ) + ( y + subY - info.minY ) * ( info.maxX - info.minX )].size == 1 ) {
+							if ( m_settings.reduceColors )
 								result = mapnik::save_to_string( view, "png256" );
 							else
 								result = mapnik::save_to_string( view, "png" );
 
-							if ( settings.pngcrush ) {
+							if ( m_settings.pngcrush ) {
 								tempOut.open();
 								tempOut.write( result.data(), result.size() );
 								tempOut.flush();
@@ -315,9 +348,9 @@ bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
 			}
 		}
 
-		for ( int zoomLevel = 0; zoomLevel < ( int ) settings.zoomLevels.size(); zoomLevel++ ) {
+		for ( int zoomLevel = 0; zoomLevel < ( int ) m_settings.zoomLevels.size(); zoomLevel++ ) {
 			const ZoomInfo& info = zoomInfo[zoomLevel];
-			int zoom = settings.zoomLevels[zoomLevel];
+			int zoom = m_settings.zoomLevels[zoomLevel];
 			QFile indexFile( filename + QString( "_%1_index" ).arg( zoom ) );
 			if ( !openQFile( &indexFile, QIODevice::WriteOnly ) )
 				return false;
@@ -328,9 +361,9 @@ bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
 			delete info.tilesFile;
 		}
 
-		if ( settings.deleteTiles )
+		if ( m_settings.deleteTiles )
 			qDebug() << "Mapnik Renderer: removed" << tilesSkipped << "tiles";
-		if ( settings.pngcrush )
+		if ( m_settings.pngcrush )
 			qDebug() << "Mapnik Renderer: PNGcrush saved" << pngcrushSaved / 1024 / 1024 << "MB";
 
 		qDebug() << "Mapnik Renderer: finished:" << time.restart() << "ms";
@@ -347,5 +380,31 @@ bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
 	}
 	return true;
 }
+
+#ifndef NOGUI
+bool MapnikRenderer::GetSettingsWindow( QWidget** window )
+{
+	if ( window == NULL )
+		return false;
+	*window = new MRSettingsDialog();
+	return true;
+}
+
+bool MapnikRenderer::FillSettingsWindow( QWidget* window )
+{
+	MRSettingsDialog* settings = qobject_cast< MRSettingsDialog* >( window );
+	if ( settings == NULL )
+		return false;
+	return settings->readSettings( m_settings );
+}
+
+bool MapnikRenderer::ReadSettingsWindow( QWidget* window )
+{
+	MRSettingsDialog* settings = qobject_cast< MRSettingsDialog* >( window );
+	if ( settings == NULL )
+		return false;
+	return settings->fillSettings( &m_settings );
+}
+#endif
 
 Q_EXPORT_PLUGIN2( mapnikrenderer, MapnikRenderer )

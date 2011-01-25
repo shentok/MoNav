@@ -21,8 +21,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define OSMIMPORTER_H
 
 #include "interfaces/iimporter.h"
+#include "interfaces/iguisettings.h"
 #include "ientityreader.h"
-#include "oisettingsdialog.h"
 #include "statickdtree.h"
 #include "types.h"
 #include "utils/intersection.h"
@@ -31,17 +31,32 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QHash>
 #include <cstring>
 
-class OSMImporter : public QObject, public IImporter
+class OSMImporter :
+		public QObject,
+#ifndef NOGUI
+		public IGUISettings,
+#endif
+		public IImporter
 {
 	Q_OBJECT
 	Q_INTERFACES( IImporter )
+#ifndef NOGUI
+	Q_INTERFACES( IGUISettings )
+#endif
 
 public:
 
+	struct Settings {
+		QString speedProfile;
+		QStringList languageSettings;
+	};
+
 	OSMImporter();
+	virtual ~OSMImporter();
+
+	// IPreprocessor
 	virtual QString GetName();
 	virtual void SetOutputDirectory( const QString& dir );
-	virtual QWidget* GetSettings();
 	virtual bool LoadSettings( QSettings* settings );
 	virtual bool SaveSettings( QSettings* settings );
 	virtual bool Preprocess( QString filename );
@@ -58,7 +73,13 @@ public:
 	virtual bool GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer, std::vector< QString >* addressNames );
 	virtual bool GetBoundingBox( BoundingBox* box );
 	virtual void DeleteTemporaryFiles();
-	virtual ~OSMImporter();
+
+#ifndef NOGUI
+	// IGUISettings
+	virtual bool GetSettingsWindow( QWidget** window );
+	virtual bool FillSettingsWindow( QWidget* window );
+	virtual bool ReadSettingsWindow( QWidget* window );
+#endif
 
 protected:
 
@@ -284,9 +305,10 @@ protected:
 
 	Statistics m_statistics;
 	QString m_outputDirectory;
-	OISettingsDialog* m_settingsDialog;
 
-	OISettingsDialog::Settings m_settings;
+	Settings m_settings;
+	MoNav::SpeedProfile m_profile;
+
 	std::vector< QString > m_kmhStrings;
 	std::vector< QString > m_mphStrings;
 

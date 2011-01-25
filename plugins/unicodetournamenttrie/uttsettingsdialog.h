@@ -36,17 +36,8 @@ public:
 	explicit UTTSettingsDialog( QWidget *parent = 0 );
 	~UTTSettingsDialog();
 
-	struct Settings
-	{
-
-	};
-
-	bool getSettings( Settings* settings );
-	bool loadSettings( QSettings* settings );
-	bool saveSettings( QSettings* settings );
-
 private:
-	Ui::UTTSettingsDialog *ui;
+	Ui::UTTSettingsDialog *m_ui;
 };
 
 #endif // UTTSETTINGSDIALOG_H

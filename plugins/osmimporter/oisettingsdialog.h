@@ -20,9 +20,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef SETTINGSDIALOG_H
 #define SETTINGSDIALOG_H
 
-#include "waymodificatorwidget.h"
-#include "nodemodificatorwidget.h"
-#include "types.h"
+#include "osmimporter.h"
 
 #include <QWidget>
 #include <vector>
@@ -34,52 +32,32 @@ namespace Ui {
 class QSettings;
 
 class OISettingsDialog : public QWidget {
+
 	 Q_OBJECT
+
 public:
+
 	 OISettingsDialog(QWidget *parent = 0);
 	 ~OISettingsDialog();
 
-	struct Settings {
-		QVector< MoNav::Highway > highways;
-		QVector< MoNav::WayModificator > wayModificators;
-		QVector< MoNav::NodeModificator > nodeModificators;
-
-		double acceleration;
-		double decceleration;
-		double tangentialAcceleration;
-		int pedestrian;
-		int otherCars;
-
-		QStringList accessList;
-		bool defaultCitySpeed;
-		bool ignoreOneway;
-		bool ignoreMaxspeed;
-
-		QStringList languageSettings;
-	};
-
-	bool getSettings( Settings* settings );
-	bool loadSettings( QSettings* settings );
-	bool saveSettings( QSettings* settings );
+	bool readSettings( const OSMImporter::Settings& settings );
+	bool fillSettings( OSMImporter::Settings* settings ) const;
 
 public slots:
-	void addSpeed();
-	void save();
-	void load();
-	void currentIndexChanged();
+
 	void currentLanguageChanged ( int currentRow );
+	void currentIndexChanged();
 	void addLanguage();
 	void deleteLanguage();
-	void addWayModificator();
-	void addNodeModificator();
+	void edit();
+	void filenameChanged( QString text );
 
 protected:
+
 	void connectSlots();
-	QString load( const QString& filename, bool nameOnly = false );
-	void save( const QString& filename, QString name );
 
 	Ui::OISettingsDialog *m_ui;
-	QString m_lastFilename;
+
 	QStringList m_speedProfiles;
 };
 

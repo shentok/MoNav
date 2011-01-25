@@ -17,42 +17,30 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MRSettingsDialog_H
-#define MRSettingsDialog_H
+#ifndef LOGWINDOW_H
+#define LOGWINDOW_H
 
-#include <QWidget>
-#include "mapnikrenderer.h"
+#include <QMainWindow>
 
 namespace Ui {
-	 class MRSettingsDialog;
+	class LogWindow;
 }
 
-class QSettings;
-
-class MRSettingsDialog : public QWidget {
-
+class LogWindow : public QMainWindow
+{
 	Q_OBJECT
 
 public:
-
-	MRSettingsDialog(QWidget *parent = 0);
-	~MRSettingsDialog();
-
-	bool readSettings( const MapnikRenderer::Settings& settings );
-	bool fillSettings( MapnikRenderer::Settings* settings );
+	explicit LogWindow( QWidget* parent = 0 );
+	~LogWindow();
 
 public slots:
-	void browseFont();
-	void browseTheme();
-	void browsePlugins();
 
-protected:
-
-	void connectSlots();
+	void addItem( QString text );
+	void clear();
 
 private:
-
-	 Ui::MRSettingsDialog* m_ui;
+	Ui::LogWindow* m_ui;
 };
 
-#endif // MRSettingsDialog_H
+#endif // LOGWINDOW_H

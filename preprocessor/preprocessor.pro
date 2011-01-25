@@ -10,8 +10,10 @@ PKGCONFIG += libxml-2.0
 PKGCONFIG += protobuf
 SOURCES += main.cpp \
 	 preprocessingwindow.cpp \
-    ../utils/commandlineparser.cpp \
-    pluginmanager.cpp
+	 ../utils/commandlineparser.cpp \
+	 pluginmanager.cpp \
+	 ../utils/log.cpp \
+	 ../utils/logwindow.cpp
 HEADERS += preprocessingwindow.h \
 	 interfaces/iimporter.h \
 	 utils/coordinates.h \
@@ -19,14 +21,17 @@ HEADERS += preprocessingwindow.h \
 	 interfaces/ipreprocessor.h \
 	 interfaces/ipreprocessor.h \
 	 interfaces/iimporter.h \
-    ../interfaces/iguisettings.h \
-    ../interfaces/iconsolesettings.h \
-    ../utils/commandlineparser.h \
-    ../utils/formattedoutput.h \
-    pluginmanager.h
+	 ../interfaces/iguisettings.h \
+	 ../interfaces/iconsolesettings.h \
+	 ../utils/commandlineparser.h \
+	 ../utils/formattedoutput.h \
+	 pluginmanager.h \
+	 ../utils/log.h \
+	 ../utils/logwindow.h
 DESTDIR = ../bin
 TARGET = MoNavP
-FORMS += preprocessingwindow.ui
+FORMS += preprocessingwindow.ui \
+	 ../utils/logwindow.ui
 RESOURCES += images.qrc
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2

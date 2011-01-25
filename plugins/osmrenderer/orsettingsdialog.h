@@ -20,13 +20,12 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef ORSETTINGSDIALOG_H
 #define ORSETTINGSDIALOG_H
 
+#include "osmrenderer.h"
 #include <QWidget>
 
 namespace Ui {
 	class ORSettingsDialog;
 }
-
-class QSettings;
 
 class ORSettingsDialog : public QWidget
 {
@@ -34,16 +33,11 @@ class ORSettingsDialog : public QWidget
 
 public:
 
-	struct Settings {
-		std::vector< int > zoomLevels;
-	};
-
-	explicit ORSettingsDialog(QWidget *parent = 0);
+	explicit ORSettingsDialog(QWidget* parent = 0);
 	~ORSettingsDialog();
 
-	bool getSettings( Settings* settings );
-	bool loadSettings( QSettings* settings );
-	bool saveSettings( QSettings* settings );
+	bool readSettings( const OSMRenderer::Settings& settings );
+	bool fillSettings( OSMRenderer::Settings* settings );
 
 protected:
 

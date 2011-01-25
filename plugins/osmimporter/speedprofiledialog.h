@@ -17,42 +17,41 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MRSettingsDialog_H
-#define MRSettingsDialog_H
+#ifndef SPEEDPROFILEDIALOG_H
+#define SPEEDPROFILEDIALOG_H
 
-#include <QWidget>
-#include "mapnikrenderer.h"
+#include "waymodificatorwidget.h"
+#include "nodemodificatorwidget.h"
+#include <QDialog>
 
 namespace Ui {
-	 class MRSettingsDialog;
+	class SpeedProfileDialog;
 }
 
-class QSettings;
-
-class MRSettingsDialog : public QWidget {
-
+class SpeedProfileDialog : public QDialog
+{
 	Q_OBJECT
 
 public:
+	explicit SpeedProfileDialog( QWidget* parent = 0, QString filename = "" );
+	~SpeedProfileDialog();
 
-	MRSettingsDialog(QWidget *parent = 0);
-	~MRSettingsDialog();
+protected slots:
 
-	bool readSettings( const MapnikRenderer::Settings& settings );
-	bool fillSettings( MapnikRenderer::Settings* settings );
-
-public slots:
-	void browseFont();
-	void browseTheme();
-	void browsePlugins();
+	void addSpeed();
+	void save();
+	void load();
+	void addWayModificator();
+	void addNodeModificator();
 
 protected:
 
 	void connectSlots();
 
-private:
+	bool load( const QString& filename );
+	bool save( const QString& filename );
 
-	 Ui::MRSettingsDialog* m_ui;
+	Ui::SpeedProfileDialog* m_ui;
 };
 
-#endif // MRSettingsDialog_H
+#endif // SPEEDPROFILEDIALOG_H

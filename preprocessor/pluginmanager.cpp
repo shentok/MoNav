@@ -33,6 +33,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QFutureWatcher>
 #include <QtConcurrentRun>
 #include <QtDebug>
+#include <QSettings>
 
 struct PluginManager::PrivateImplementation {
 
@@ -50,7 +51,6 @@ struct PluginManager::PrivateImplementation {
 	QString inputFilename;
 	QString outputDirectory;
 	QString name;
-	QString displayName;
 	QString image;
 
 	QFuture< bool > processingFuture;
@@ -77,6 +77,7 @@ int PluginManager::PrivateImplementation::findPlugin( QVector< IPlugin > plugins
 				qCritical() << "Plugin name not unique:" << name;
 				return -1;
 			}
+			index = i;
 		}
 	}
 	if ( index == -1 )
@@ -160,6 +161,8 @@ bool PluginManager::PrivateImplementation::testPlugin( QObject* plugin )
 			addressLookupPlugins.append( interface );
 		needed = true;
 	}
+	if ( needed )
+		plugins.push_back( plugin );
 	return needed;
 }
 
@@ -238,11 +241,6 @@ QString PluginManager::name()
 {
 	return d->name;
 }
-// description of the data set to be created
-QString PluginManager::description()
-{
-	return d->displayName;
-}
 // image filename of the data set to be created
 QString PluginManager::image()
 {
@@ -278,11 +276,6 @@ void PluginManager::setName( QString name )
 	d->name = name;
 }
 
-void PluginManager::setDisplayName( QString displayName )
-{
-	d->displayName = displayName;
-}
-
 void PluginManager::setImage( QString image )
 {
 	d->image = image;
@@ -299,7 +292,6 @@ bool PluginManager::saveSettings( QSettings* settings )
 	settings->setValue( "input", d->inputFilename );
 	settings->setValue( "output", d->outputDirectory );
 	settings->setValue( "name", d->name );
-	settings->setValue( "displayName", d->displayName );
 	settings->setValue( "image", d->image );
 
 	foreach ( IImporter* plugin, d->importerPlugins ) {
@@ -332,7 +324,6 @@ bool PluginManager::loadSettings( QSettings* settings )
 	d->inputFilename = settings->value( "input" ).toString();
 	d->outputDirectory = settings->value( "output" ).toString();
 	d->name = settings->value( "name" ).toString();
-	d->displayName = settings->value( "displayName" ).toString();
 	d->image = settings->value( "image" ).toString();
 
 	foreach ( IImporter* plugin, d->importerPlugins ) {
@@ -359,24 +350,44 @@ bool PluginManager::loadSettings( QSettings* settings )
 	return true;
 }
 
-bool runImporter( IImporter* importer )
+bool runImporter( QString inputFile, IImporter* importer )
 {
-	return false;
+	if ( !importer->Preprocess( inputFile ) ) {
+		qCritical() << "Importer failed";
+		return false;
+	}
+	return true;
 }
 
 bool runRouting( QString directory, IImporter* importer, IPreprocessor* router, IPreprocessor* gpsLookup )
 {
-	return false;
+	if ( !router->Preprocess( importer, directory ) ) {
+		qCritical() << "Router failed";
+		return false;
+	}
+	if ( !gpsLookup->Preprocess( importer, directory ) ) {
+		qCritical() << "GPS Lookup failed";
+		return false;
+	}
+	return true;
 }
 
 bool runRendering( QString directory, IImporter* importer, IPreprocessor* renderer )
 {
-	return false;
+	if ( !renderer->Preprocess( importer, directory ) ) {
+		qCritical() << "Renderer failed";
+		return false;
+	}
+	return true;
 }
 
 bool runAddressLookup( QString directory, IImporter* importer, IPreprocessor* addressLookup )
 {
-	return false;
+	if ( !addressLookup->Preprocess( importer, directory ) ) {
+		qCritical() << "Address Lookup failed";
+		return false;
+	}
+	return true;
 }
 
 // process plugins asynchronously, fails if processing is underway
@@ -390,17 +401,21 @@ bool PluginManager::processImporter( QString plugin, bool async )
 
 	// find / create importer directory
 	QDir dir( d->outputDirectory );
-	if ( !dir.exists( "tmp" ) )
-		dir.mkdir( "tmp" );
+	if ( !dir.exists( "tmp" ) ) {
+		if ( !dir.mkdir( "tmp" ) ) {
+			qCritical() << "Could not create importer directory: tmp";
+			return false;
+		}
+	}
 	dir.cd( "tmp" );
 	d->importerPlugins[index]->SetOutputDirectory( dir.path() );
 
 	if ( !async ) {
-		return runImporter( d->importerPlugins[index] );
+		return runImporter( d->inputFilename, d->importerPlugins[index] );
 	}
 
 	// run async and return
-	d->processingFuture = QtConcurrent::run( runImporter, d->importerPlugins[index] );
+	d->processingFuture = QtConcurrent::run( runImporter, d->inputFilename, d->importerPlugins[index] );
 	d->processingWatcher.setFuture( d->processingFuture );
 	return true;
 }
@@ -416,10 +431,24 @@ bool PluginManager::processRoutingModule( QString moduleName, QString importer, 
 	d->importerPlugins[importerIndex]->SetOutputDirectory( fileInDirectory( d->outputDirectory, "tmp") );
 
 	// find / create module directory
+	QString dirName = "routing_" + moduleName.toLower().replace( ' ', '_' );
 	QDir dir( d->outputDirectory );
-	if ( !dir.exists( moduleName ) )
-		dir.mkdir( moduleName );
-	dir.cd( moduleName );
+	if ( !dir.exists( dirName ) ) {
+		if ( !dir.mkdir( dirName ) ) {
+			qCritical() << "Could not create module directory:" << moduleName;
+			return false;
+		}
+	}
+	dir.cd( dirName );
+
+	QSettings settings( fileInDirectory( dir.path(), "Module.ini" ), QSettings::IniFormat );
+
+	settings.setValue( "configVersion", 2 );
+	settings.setValue( "name", moduleName );
+	settings.setValue( "router", router );
+	settings.setValue( "gpsLookup", gpsLookup );
+	settings.setValue( "routerFileFormat", d->routerPlugins[routerIndex]->GetFileFormatVersion() );
+	settings.setValue( "gpsLookupFileFormat", d->gpsLookupPlugins[gpsLookupIndex]->GetFileFormatVersion() );
 
 	if ( !async ) {
 		return runRouting( dir.path(), d->importerPlugins[importerIndex], d->routerPlugins[routerIndex], d->gpsLookupPlugins[gpsLookupIndex] );
@@ -441,10 +470,22 @@ bool PluginManager::processRenderingModule( QString moduleName, QString importer
 	d->importerPlugins[importerIndex]->SetOutputDirectory( fileInDirectory( d->outputDirectory, "tmp") );
 
 	// find / create module directory
+	QString dirName = "rendering_" + moduleName.toLower().replace( ' ', '_' );
 	QDir dir( d->outputDirectory );
-	if ( !dir.exists( moduleName ) )
-		dir.mkdir( moduleName );
-	dir.cd( moduleName );
+	if ( !dir.exists( dirName ) ) {
+		if ( !dir.mkdir( dirName ) ) {
+			qCritical() << "Could not create module directory:" << moduleName;
+			return false;
+		}
+	}
+	dir.cd( dirName );
+
+	QSettings settings( fileInDirectory( dir.path(), "Module.ini" ), QSettings::IniFormat );
+
+	settings.setValue( "configVersion", 2 );
+	settings.setValue( "name", moduleName );
+	settings.setValue( "renderer", renderer );
+	settings.setValue( "rendererFileFormat", d->rendererPlugins[rendererIndex]->GetFileFormatVersion() );
 
 	if ( !async ) {
 		return runRendering( dir.path(), d->importerPlugins[importerIndex], d->rendererPlugins[rendererIndex] );
@@ -459,17 +500,29 @@ bool PluginManager::processRenderingModule( QString moduleName, QString importer
 bool PluginManager::processAddressLookupModule( QString moduleName, QString importer, QString addressLookup, bool async )
 {
 	int importerIndex = d->findPlugin( d->importerPlugins, importer );
-	int addressLookupIndex = d->findPlugin( d->rendererPlugins, addressLookup );
+	int addressLookupIndex = d->findPlugin( d->addressLookupPlugins, addressLookup );
 	if ( importerIndex == -1 || addressLookupIndex == -1 )
 		return false;
 
 	d->importerPlugins[importerIndex]->SetOutputDirectory( fileInDirectory( d->outputDirectory, "tmp") );
 
 	// find / create module directory
+	QString dirName = "address_" + moduleName.toLower().replace( ' ', '_' );
 	QDir dir( d->outputDirectory );
-	if ( !dir.exists( moduleName ) )
-		dir.mkdir( moduleName );
-	dir.cd( moduleName );
+	if ( !dir.exists( dirName ) ) {
+		if ( !dir.mkdir( dirName ) ) {
+			qCritical() << "Could not create module directory:" << moduleName;
+			return false;
+		}
+	}
+	dir.cd( dirName );
+
+	QSettings settings( fileInDirectory( dir.path(), "Module.ini" ), QSettings::IniFormat );
+
+	settings.setValue( "configVersion", 2 );
+	settings.setValue( "name", moduleName );
+	settings.setValue( "addressLookup", addressLookup );
+	settings.setValue( "addressLookupFileFormat", d->addressLookupPlugins[addressLookupIndex]->GetFileFormatVersion() );
 
 	if ( !async ) {
 		return runAddressLookup( dir.path(), d->importerPlugins[importerIndex], d->addressLookupPlugins[addressLookupIndex] );
@@ -490,7 +543,6 @@ bool PluginManager::writeConfig()
 	pluginSettings.setValue( "configVersion", 2 );
 
 	pluginSettings.setValue( "name", d->name );
-	pluginSettings.setValue( "description", d->displayName );
 	QImage image( d->image );
 	if ( !image.isNull() )
 		pluginSettings.setValue( "image", image );
@@ -511,6 +563,8 @@ bool PluginManager::deleteTemporaryFiles()
 	foreach ( QString filename, dir.entryList() ) {
 		QFile::remove( dir.absoluteFilePath( filename ) );
 	}
+	dir.cdUp();
+	dir.rmdir( "tmp" );
 	return true;
 }
 

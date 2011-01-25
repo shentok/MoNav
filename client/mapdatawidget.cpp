@@ -19,7 +19,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "mapdatawidget.h"
 #include "ui_mapdatawidget.h"
-#include "mapdata.h"
 
 #include <QFile>
 #include <QLineEdit>
@@ -37,6 +36,12 @@ MapDataWidget::MapDataWidget( QWidget *parent ) :
 	setWindowFlags( windowFlags() | Qt::WindowCancelButtonHint );
 
 	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "Map Data Widget" );
+
+	restoreGeometry( settings.value( "geometry", saveGeometry() ).toByteArray() );
+	m_lastRoutingModule = settings.value( "routing" ).toString();
+	m_lastRenderingModule = settings.value( "rendering" ).toString();
+	m_lastAddressLookupModule = settings.value( "addressLookup" ).toString();
 	QStringList directories = settings.value( "directories" ).toStringList();
 	foreach ( QString directory, directories ) {
 		if ( QFile::exists( directory ) )
@@ -53,7 +58,7 @@ MapDataWidget::MapDataWidget( QWidget *parent ) :
 	else
 		m_ui->directory->setCurrentIndex( index );
 
-	m_ui->table->hide();
+	m_ui->name->hide();
 
 	connectSlots();
 }
@@ -61,6 +66,11 @@ MapDataWidget::MapDataWidget( QWidget *parent ) :
 MapDataWidget::~MapDataWidget()
 {
 	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "Map Data Widget" );
+	settings.setValue( "geometry", saveGeometry() );
+	settings.setValue( "routing", m_lastRoutingModule );
+	settings.setValue( "rendering", m_lastRenderingModule );
+	settings.setValue( "addressLookup", m_lastAddressLookupModule );
 	settings.setValue( "directories", m_directories );
 	settings.setValue( "dataDirectory", MapData::instance()->path() );
 	delete m_ui;
@@ -69,6 +79,9 @@ MapDataWidget::~MapDataWidget()
 void MapDataWidget::connectSlots()
 {
 	connect( m_ui->directory, SIGNAL(editTextChanged(QString)), this, SLOT(directoryChanged(QString)) );
+	connect( m_ui->routing, SIGNAL(currentIndexChanged(int)), this, SLOT(modulesChanged()) );
+	connect( m_ui->rendering, SIGNAL(currentIndexChanged(int)), this, SLOT(modulesChanged()) );
+	connect( m_ui->addressLookup, SIGNAL(currentIndexChanged(int)), this, SLOT(modulesChanged()) );
 	connect( m_ui->browse, SIGNAL(clicked()), this, SLOT(browse()) );
 	connect( m_ui->load, SIGNAL(clicked()), this, SLOT(load()) );
 }
@@ -81,18 +94,35 @@ int MapDataWidget::exec( bool autoLoad )
 	if ( autoLoad ) {
 		if ( !mapData->loaded() ) {
 			directoryChanged( m_ui->directory->currentText() );
-			if ( mapData->containsMapData() && mapData->canBeLoaded() && mapData->load() )
-						return QDialog::Accepted;
+			int routingIndex = findModule( m_routingModules, m_lastRoutingModule );
+			int renderingIndex = findModule( m_renderingModules, m_lastRenderingModule );
+			int addressLookupIndex = findModule( m_addressLookupModules, m_lastAddressLookupModule );
+			if ( routingIndex != -1 &&
+				  renderingIndex != -1 &&
+				  addressLookupIndex != -1 &&
+				  mapData->containsMapData() &&
+				  mapData->informationLoaded() &&
+				  load() )
+				return QDialog::Accepted;
 		}
 	}
 	directoryChanged( m_ui->directory->currentText() );
 	int result = QDialog::exec();
 	if ( result != QDialog::Accepted || !mapData->loaded() ) {
 		mapData->setPath( oldPath );
-		if ( mapData->containsMapData() && mapData->canBeLoaded() )
-			mapData->load();
+		if ( mapData->containsMapData() && mapData->loadInformation() )
+			load();
 	}
 	return result;
+}
+
+int MapDataWidget::findModule( const QVector< MapData::Module >& modules, QString path )
+{
+	for ( int i = 0; i < modules.size(); i++ ) {
+		if ( modules[i].path == path )
+			return i;
+	}
+	return -1;
 }
 
 void MapDataWidget::directoryChanged( QString dir )
@@ -108,63 +138,50 @@ void MapDataWidget::directoryChanged( QString dir )
 	successPalette.setColor( QPalette::WindowText, Qt::green );
 	if ( !QFile::exists( dir ) || !mapData->containsMapData() || !mapData->loadInformation() ) {
 		m_ui->directory->setPalette( failPalette );
-		m_ui->details->setEnabled( false );
 		m_ui->load->setDisabled( true );
+		m_ui->name->hide();
 		return;
 	}
 
-	m_ui->details->setEnabled( true );
-
 	m_ui->directory->setPalette( normalPalette );
-	m_ui->name->setText( mapData->name() );
-	m_ui->description->setText( mapData->description() );
+	m_ui->name->setWindowTitle( mapData->name() );
 	m_ui->image->setPixmap( QPixmap::fromImage( mapData->image().scaled( QSize( m_ui->image->size() ), Qt::KeepAspectRatio ) ) );
 
-	m_ui->rendererName->setText( mapData->pluginName( MapData::Renderer ) );
-	m_ui->routerName->setText( mapData->pluginName( MapData::Router ) );
-	m_ui->addressLookupName->setText( mapData->pluginName( MapData::AddressLookup ) );
-	m_ui->gpsLookupName->setText( mapData->pluginName( MapData::GPSLookup ) );
+	m_routingModules = mapData->modules( MapData::Routing );
+	m_renderingModules = mapData->modules( MapData::Rendering );
+	m_addressLookupModules = mapData->modules( MapData::AddressLookup );
 
-	if ( mapData->pluginPresent( MapData::Renderer ) )
-		m_ui->rendererName->setPalette( successPalette );
-	else
-		m_ui->rendererName->setPalette( failPalette );
-	if ( mapData->pluginPresent( MapData::Router ) )
-		m_ui->routerName->setPalette( successPalette );
-	else
-		m_ui->routerName->setPalette( failPalette );
-	if ( mapData->pluginPresent( MapData::AddressLookup ) )
-		m_ui->addressLookupName->setPalette( successPalette );
-	else
-		m_ui->addressLookupName->setPalette( failPalette );
-	if ( mapData->pluginPresent( MapData::GPSLookup ) )
-		m_ui->gpsLookupName->setPalette( successPalette );
-	else
-		m_ui->gpsLookupName->setPalette( failPalette );
+	m_ui->routing->clear();
+	m_ui->rendering->clear();
+	m_ui->addressLookup->clear();
 
-	m_ui->rendererFileFormatVersion->setText( QString::number( mapData->fileFormatVersion( MapData::Renderer ) ) );
-	m_ui->routerFileFormatVersion->setText( QString::number( mapData->fileFormatVersion( MapData::Router ) ) );
-	m_ui->addressLookupFileFormatVersion->setText( QString::number( mapData->fileFormatVersion( MapData::AddressLookup ) ) );
-	m_ui->gpsLookupFileFormatVersion->setText( QString::number( mapData->fileFormatVersion( MapData::GPSLookup ) ) );
+	foreach( const MapData::Module& module, m_routingModules )
+		m_ui->routing->addItem( module.name );
+	foreach( const MapData::Module& module, m_renderingModules )
+		m_ui->rendering->addItem( module.name );
+	foreach( const MapData::Module& module, m_addressLookupModules )
+		m_ui->addressLookup->addItem( module.name );
 
-	if ( mapData->fileFormatCompatible( MapData::Renderer ) )
-		m_ui->rendererFileFormatVersion->setPalette( successPalette );
-	else
-		m_ui->rendererFileFormatVersion->setPalette( failPalette );
-	if ( mapData->fileFormatCompatible( MapData::Router ) )
-		m_ui->routerFileFormatVersion->setPalette( successPalette );
-	else
-		m_ui->routerFileFormatVersion->setPalette( failPalette );
-	if ( mapData->fileFormatCompatible( MapData::AddressLookup ) )
-		m_ui->addressLookupFileFormatVersion->setPalette( successPalette );
-	else
-		m_ui->addressLookupFileFormatVersion->setPalette( failPalette );
-	if ( mapData->fileFormatCompatible( MapData::GPSLookup ) )
-		m_ui->gpsLookupFileFormatVersion->setPalette( successPalette );
-	else
-		m_ui->gpsLookupFileFormatVersion->setPalette( failPalette );
+	int routingIndex = findModule( m_routingModules, m_lastRoutingModule );
+	int renderingIndex = findModule( m_renderingModules, m_lastRoutingModule );
+	int addressLookupIndex = findModule( m_addressLookupModules, m_lastRoutingModule );
 
-	m_ui->load->setEnabled( true );
+	m_ui->routing->setCurrentIndex( std::max( routingIndex, 0 ) );
+	m_ui->rendering->setCurrentIndex( std::max( renderingIndex, 0 ) );
+	m_ui->addressLookup->setCurrentIndex( std::max( addressLookupIndex, 0 ) );
+
+	m_ui->name->show();
+}
+
+void MapDataWidget::modulesChanged()
+{
+	if ( m_ui->routing->currentIndex() != -1 &&
+		  m_ui->rendering->currentIndex() != -1 &&
+		  m_ui->addressLookup->currentIndex() != -1 )
+		m_ui->load->setEnabled( true );
+	else {
+		m_ui->load->setEnabled( false );
+	}
 }
 
 void MapDataWidget::showEvent( QShowEvent* /*event*/ )
@@ -186,17 +203,25 @@ void MapDataWidget::browse()
 		m_ui->directory->lineEdit()->setText( dir );
 }
 
-void MapDataWidget::load()
+bool MapDataWidget::load()
 {
-	if ( !MapData::instance()->load() ) {
+	bool success = MapData::instance()->load(
+			m_routingModules[m_ui->routing->currentIndex()],
+			m_renderingModules[m_ui->rendering->currentIndex()],
+			m_addressLookupModules[m_ui->addressLookup->currentIndex()] );
+	if ( !success ) {
 		QMessageBox::warning( this, "Loading Map Data", "Could Not Load Map Data" );
-		return;
+		return false;
 	}
+	m_lastRoutingModule = m_routingModules[m_ui->routing->currentIndex()].path;
+	m_lastRenderingModule = m_renderingModules[m_ui->rendering->currentIndex()].path;
+	m_lastAddressLookupModule = m_addressLookupModules[m_ui->addressLookup->currentIndex()].path;
 	QString path = MapData::instance()->path();
 	if ( !m_directories.contains( path ) ) {
 		m_directories.push_back( path );
 		m_directories.sort();
 	}
 	accept();
+	return true;
 }
 

@@ -25,7 +25,8 @@ HEADERS += osmimporter.h \
 	 waymodificatorwidget.h \
 	 nodemodificatorwidget.h \
 	 types.h \
-	 highwaytypewidget.h
+	 highwaytypewidget.h \
+    speedprofiledialog.h
 SOURCES += osmimporter.cpp \
 	 oisettingsdialog.cpp \
 	 "protobuff definitions/osmformat.pb.cc" \
@@ -33,12 +34,15 @@ SOURCES += osmimporter.cpp \
 	 lzma/LzmaDec.c \
 	 waymodificatorwidget.cpp \
 	 nodemodificatorwidget.cpp \
-	 highwaytypewidget.cpp
+	 highwaytypewidget.cpp \
+    types.cpp \
+    speedprofiledialog.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 FORMS += oisettingsdialog.ui \
 	 waymodificatorwidget.ui \
 	 nodemodificatorwidget.ui \
-	 highwaytypewidget.ui
+	 highwaytypewidget.ui \
+    speedprofiledialog.ui
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
 	QMAKE_CXXFLAGS_RELEASE += -O3 -march=native -Wno-unused-function

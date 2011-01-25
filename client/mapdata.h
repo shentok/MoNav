@@ -27,6 +27,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QObject>
 #include <QString>
 #include <QImage>
+#include <QList>
 
 class MapData : public QObject
 {
@@ -35,8 +36,15 @@ class MapData : public QObject
 
 public:
 
-	enum PluginType {
-		AddressLookup = 0, GPSLookup = 1, Renderer = 2, Router = 3
+	enum ModuleType {
+		AddressLookup = 0, Rendering = 2, Routing = 3
+	};
+
+	struct Module {
+		QString name;
+		QString path;
+		QStringList plugins;
+		QVector< int > fileFormats;
 	};
 
 	~MapData();
@@ -48,16 +56,11 @@ public:
 	void setPath( QString path );
 	// does the current directory contain MapData?
 	bool containsMapData() const;
-	// is a certain plugin type necessary for the application?
-	// default value is true for all types
-	// changes require that load() or loadInformation() have to be called again
-	bool pluginRequired( PluginType plugin ) const;
-	void setPluginRequired( PluginType plugin, bool required );
 	// is a map loaded?
 	bool loaded() const;
 	// tries to load the current directory
 	// automatically calls loadInformation()
-	bool load();
+	bool load( const Module& routingModule, const Module& renderingModule, const Module& addressLookupModule );
 	// tries to unload the map data
 	bool unload();
 	// is the map information loaded?
@@ -68,22 +71,12 @@ public:
 	// Information about the current directory
 	// only valid after loadInformation() or load() was called successfully
 
-	// can the required plugins load the present file formats?
-	bool canBeLoaded() const;
 	// the name of the MapData
 	QString name() const;
-	// the description of the MapData
-	QString description() const;
 	// an representative image of the MapData
 	QImage image() const;
 	// returns the name of required plugins
-	QString pluginName( PluginType plugin ) const;
-	// could the plugin be found?
-	bool pluginPresent( PluginType plugin ) const;
-	// returns the file format version of MapData for certain plugins
-	int fileFormatVersion( PluginType plugin ) const;
-	// is the file format version compatible with the currently loaded plugin?
-	bool fileFormatCompatible( PluginType plugin ) const;
+	QVector< Module > modules( ModuleType plugin ) const;
 
 	// returns an instance of a required plugin
 	// only available after a successfull call to load()

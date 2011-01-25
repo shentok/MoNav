@@ -87,7 +87,6 @@ public:
 
 	virtual QString GetName() = 0;
 	virtual void SetOutputDirectory( const QString& dir ) = 0;
-	virtual QWidget* GetSettings() = 0;
 	virtual bool LoadSettings( QSettings* settings ) = 0;
 	virtual bool SaveSettings( QSettings* settings ) = 0;
 	virtual bool Preprocess( QString filename ) = 0;

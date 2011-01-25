@@ -35,8 +35,10 @@ public:
 	// has to return a valid pointer to a settings window
 	// the window can be displayed modal and nonmodal
 	// the implementation should be able to cope with this
-	// if the window feature settings it should display the following buttons:
-	// "Ok", "Apply" and "Cancel"
+	// the settings window should never be accessed outside
+	// FillSettingsWindow and ReadSettingsWindow!
+	// the ownership of the settings window is transferred to
+	// the caller
 	virtual bool GetSettingsWindow( QWidget** window ) = 0;
 
 	// should fill a settings window gotten from GetSettingsWindow
@@ -49,10 +51,10 @@ public:
 	virtual bool ReadSettingsWindow( QWidget* window ) = 0;
 
 	// virtual descructor
-	// must not free settings windows itseld
+	// must not free settings windows itself
 	virtual ~IGUISettings() {}
 };
 
-Q_DECLARE_INTERFACE( IGuiSettings, "monav.IGUISettings/1.0" )
+Q_DECLARE_INTERFACE( IGUISettings, "monav.IGUISettings/1.0" )
 
 #endif // IGUISETTINGS_H

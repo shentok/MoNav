@@ -21,34 +21,31 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define CHSettingsDialog_H
 
 #include <QWidget>
+#include "contractionhierarchies.h"
 
 class QSettings;
 
 namespace Ui {
-	 class CHSettingsDialog;
+	class CHSettingsDialog;
 }
 
 class CHSettingsDialog : public QWidget {
 
-	 Q_OBJECT
+	Q_OBJECT
 
 public:
 
-	 CHSettingsDialog( QWidget *parent = 0 );
-	 ~CHSettingsDialog();
+	CHSettingsDialog( QWidget *parent = 0 );
+	~CHSettingsDialog();
 
-	struct Settings
-	{
-		int blockSize;
-	};
 
-	bool getSettings( Settings* settings );
-	bool loadSettings( QSettings* settings );
-	bool saveSettings( QSettings* settings );
+
+	bool readSettings( const ContractionHierarchies::Settings& settings );
+	bool fillSettings( ContractionHierarchies::Settings* settings ) const;
 
 protected:
 
-	 Ui::CHSettingsDialog *m_ui;
+	Ui::CHSettingsDialog *m_ui;
 };
 
 #endif // CHSettingsDialog_H

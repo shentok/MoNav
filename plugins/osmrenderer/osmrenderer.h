@@ -21,30 +21,51 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define OSMRENDERER_H
 
 #include <QObject>
+#include <vector>
 #include "interfaces/ipreprocessor.h"
-#include "orsettingsdialog.h"
+#include "interfaces/iguisettings.h"
 
-class OSMRenderer : public QObject, public IPreprocessor
+class OSMRenderer :
+		public QObject,
+#ifndef NOGUI
+		public IGUISettings,
+#endif
+		public IPreprocessor
 {
 	Q_OBJECT
 	Q_INTERFACES( IPreprocessor )
+#ifndef NOGUI
+	Q_INTERFACES( IGUISettings )
+#endif
 
 public:
 
+	struct Settings {
+		std::vector< int > zoomLevels;
+	};
+
 	OSMRenderer();
+	virtual ~OSMRenderer();
+
+	// Ipreprocessor
 	virtual QString GetName();
 	virtual int GetFileFormatVersion();
 	virtual Type GetType();
-	virtual QWidget* GetSettings();
 	virtual bool LoadSettings( QSettings* settings );
 	virtual bool SaveSettings( QSettings* settings );
 	virtual bool Preprocess( IImporter* importer, QString dir );
-	virtual ~OSMRenderer();
+
+#ifndef NOGUI
+	// IGUISettings
+	virtual bool GetSettingsWindow( QWidget** window );
+	virtual bool FillSettingsWindow( QWidget* window );
+	virtual bool ReadSettingsWindow( QWidget* window );
+#endif
 
 protected:
 
 	QString m_directory;
-	ORSettingsDialog* m_settingsDialog;
+	Settings m_settings;
 };
 
 #endif // OSMRENDERER_H

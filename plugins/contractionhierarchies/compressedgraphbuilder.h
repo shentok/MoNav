@@ -323,7 +323,7 @@ private:
 				qCritical() << "ERROR: a node requires more space than a single block can suffice\n"
 						<< "block:" << m_block.id << "node:" << node << "size:" << size << "maxSize:" << m_settings.blockSize << "\n"
 						<< "try increasing the block size";
-				exit( -1 );
+				exit( -1 ); // TODO return gracefully!
 			}
 			return false;
 		}

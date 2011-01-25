@@ -22,8 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QMainWindow>
 #include <QPluginLoader>
-#include "interfaces/iimporter.h"
-#include "interfaces/ipreprocessor.h"
+#include "interfaces/iguisettings.h"
 
 namespace Ui {
 	class PreprocessingWindow;
@@ -40,8 +39,8 @@ public:
 
 public slots:
 
-	bool preprocessAll();
-	bool preprocessDaemon();
+	void preprocessAll();
+	void preprocessDaemon();
 
 protected slots:
 
@@ -52,35 +51,39 @@ protected slots:
 	void imageChanged( QString text );
 	void outputChanged( QString text );
 	void threadsChanged( int threads );
-	bool importerPreprocessing();
-	bool rendererPreprocessing();
-	bool routerPreprocessing();
-	bool gpsLookupPreprocessing();
-	bool addressLookupPreprocessing();
-	bool writeConfig();
-	bool deleteTemporary();
+	void importerPreprocessing();
+	void rendererPreprocessing();
+	void routerPreprocessing();
+	void addressLookupPreprocessing();
+	void writeConfig();
+	void deleteTemporary();
 	void saveSettingsToFile();
+	void loadSettingsFromFile();
+
+	void nextTask();
+	void taskFinished( bool result );
 
 protected:
+
+	enum TaskType {
+		TaskImporting, TaskRouting, TaskRendering, TaskAddressLookup, TaskConfig, TaskDeleteTemporary
+	};
 
 	void connectSlots();
 	void loadPlugins();
 	bool testPlugin( QObject* plugin );
 	void unloadPlugins();
 	bool saveSettings( QString configFile = "" );
-	void parseArguments();
+	bool loadSettings( QString configFile = "");
+	bool readSettingsWidgets();
+	bool fillSettingsWidgets();
 
 	virtual void closeEvent( QCloseEvent* event );
 
-	QList< IImporter* > m_importerPlugins;
-	QList< IPreprocessor* > m_rendererPlugins;
-	QList< IPreprocessor* > m_routerPlugins;
-	QList< IPreprocessor* > m_gpsLookupPlugins;
-	QList< IPreprocessor* > m_addressLookupPlugins;
-
-	QList< QPluginLoader* > m_plugins;
-
 	Ui::PreprocessingWindow* m_ui;
+	QList< TaskType > m_tasks;
+	QVector< QWidget* > m_settings;
+	QVector< IGUISettings* > m_settingPlugins;
 };
 
 #endif // PREPROCESSINGWINDOW_H

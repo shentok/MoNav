@@ -19,7 +19,12 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "qtilerenderer.h"
 #include "utils/qthelpers.h"
+#include "xmlreader.h"
+#include "pbfreader.h"
+#include "qrsettingsdialog.h"
+
 #include <QFile>
+#include <QSettings>
 #include <stdio.h>
 #include <string.h>
 #include <map>
@@ -28,8 +33,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <algorithm>
 #include <time.h>
-#include "xmlreader.h"
-#include "pbfreader.h"
 
 #define NEED_QTILE_WRITE //Need this before including quadtile.h
 #include "quadtile.h"
@@ -813,13 +816,10 @@ void OSMReader::delete_ways()
 
 QtileRenderer::QtileRenderer()
 {
-	m_settingsDialog = NULL;
 }
 
 QtileRenderer::~QtileRenderer()
 {
-	if ( m_settingsDialog != NULL )
-	delete m_settingsDialog;
 }
 
 QString QtileRenderer::GetName()
@@ -837,39 +837,36 @@ QtileRenderer::Type QtileRenderer::GetType()
 	return Renderer;
 }
 
-QWidget* QtileRenderer::GetSettings()
-{
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new QRSettingsDialog();
-	return m_settingsDialog;
-}
-
 bool QtileRenderer::LoadSettings( QSettings* settings )
 {
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new QRSettingsDialog();
-	return m_settingsDialog->loadSettings( settings );
+	if ( settings == NULL )
+		return false;
+	settings->beginGroup( "Qtile Renderer" );
+	m_settings.inputFile = settings->value( "input" ).toString();
+	m_settings.unused = settings->value( "unused" ).toBool();
+	settings->endGroup();
+
+	return true;
 }
 
 bool QtileRenderer::SaveSettings( QSettings* settings )
 {
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new QRSettingsDialog();
-	return m_settingsDialog->saveSettings( settings );
+	if ( settings == NULL )
+		return false;
+	settings->beginGroup( "Qtile Renderer" );
+	settings->setValue( "input", m_settings.inputFile );
+	settings->setValue( "unused", m_settings.unused );
+	settings->endGroup();
+
+	return true;
 }
 
 bool QtileRenderer::Preprocess( IImporter*, QString dir )
 {
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new QRSettingsDialog;
-	QRSettingsDialog::Settings settings;
-	if ( !m_settingsDialog->getSettings( &settings ) )
-		return false;
-
 	m_osr = new OSMReader;
 
         fprintf(stderr, "Qtile renderer preprocessing\n");
-        m_osr->load(settings.inputFile);
+		  m_osr->load(m_settings.inputFile);
         write_ways(dir, false);
         TIMELOG("Deleting non motorways");
         m_osr->delete_non_motorways();
@@ -936,6 +933,31 @@ void QtileRenderer::write_ways(QString &dir, bool motorway)
     fclose(way_fp);
 }
 
+#ifndef NOGUI
+bool QtileRenderer::GetSettingsWindow( QWidget** window )
+{
+	*window = new QRSettingsDialog();
+	return true;
+}
+
+bool QtileRenderer::FillSettingsWindow( QWidget* window )
+{
+	QRSettingsDialog* settings = qobject_cast< QRSettingsDialog* >( window );
+	if ( settings == NULL )
+		return false;
+
+	return settings->readSettings( m_settings );
+}
+
+bool QtileRenderer::ReadSettingsWindow( QWidget* window )
+{
+	QRSettingsDialog* settings = qobject_cast< QRSettingsDialog* >( window );
+	if ( settings == NULL )
+		return false;
+
+	return settings->fillSettings( &m_settings );
+}
+#endif
 
 Q_EXPORT_PLUGIN2( qtilerenderer, QtileRenderer )
 

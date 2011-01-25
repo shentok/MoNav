@@ -22,16 +22,16 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "contractor.h"
 #include "contractioncleanup.h"
 #include "utils/qthelpers.h"
+#include "chsettingsdialog.h"
+
+#include <QSettings>
 
 ContractionHierarchies::ContractionHierarchies()
 {
-	m_settingsDialog = NULL;
 }
 
 ContractionHierarchies::~ContractionHierarchies()
 {
-	if ( m_settingsDialog != NULL )
-		delete m_settingsDialog;
 }
 
 QString ContractionHierarchies::GetName()
@@ -41,16 +41,19 @@ QString ContractionHierarchies::GetName()
 
 bool ContractionHierarchies:: LoadSettings( QSettings* settings )
 {
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new CHSettingsDialog();
-	return m_settingsDialog->loadSettings( settings );
+	settings->beginGroup( "ContractionHierarchies" );
+	bool ok = false;
+	m_settings.blockSize = settings->value( "blockSize", 12 ).toInt( &ok );
+	settings->endGroup();
+	return ok;
 }
 
 bool ContractionHierarchies::SaveSettings( QSettings* settings )
 {
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new CHSettingsDialog();
-	return m_settingsDialog->saveSettings( settings );
+	settings->beginGroup( "ContractionHierarchies" );
+	settings->setValue( "blockSize", m_settings.blockSize );
+	settings->endGroup();
+	return true;
 }
 
 int ContractionHierarchies::GetFileFormatVersion()
@@ -63,19 +66,8 @@ ContractionHierarchies::Type ContractionHierarchies::GetType()
 	return Router;
 }
 
-QWidget* ContractionHierarchies::GetSettings()
-{
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new CHSettingsDialog();
-	return m_settingsDialog;
-}
-
 bool ContractionHierarchies::Preprocess( IImporter* importer, QString dir )
 {
-	if ( m_settingsDialog == NULL )
-		m_settingsDialog = new CHSettingsDialog();
-	m_settingsDialog->getSettings( &m_settings );
-
 	QString filename = fileInDirectory( dir, "Contraction Hierarchies" );
 
 	std::vector< IImporter::RoutingNode > inputNodes;
@@ -214,5 +206,30 @@ bool ContractionHierarchies::Preprocess( IImporter* importer, QString dir )
 
 	return true;
 }
+
+#ifndef NOGUI
+bool ContractionHierarchies::GetSettingsWindow( QWidget** window )
+{
+	*window = new CHSettingsDialog();
+	return true;
+}
+
+bool ContractionHierarchies::FillSettingsWindow( QWidget* window )
+{
+	CHSettingsDialog* settings = qobject_cast< CHSettingsDialog* >( window );
+	if ( settings == NULL )
+		return false;
+	return settings->readSettings( m_settings );
+}
+
+bool ContractionHierarchies::ReadSettingsWindow( QWidget* window )
+{
+	CHSettingsDialog* settings = qobject_cast< CHSettingsDialog* >( window );
+	if ( settings == NULL )
+		return false;
+	return settings->fillSettings( &m_settings );
+}
+
+#endif
 
 Q_EXPORT_PLUGIN2( contractionhierarchies, ContractionHierarchies )

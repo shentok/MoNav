@@ -27,72 +27,62 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 MRSettingsDialog::MRSettingsDialog( QWidget *parent ) :
 	 QWidget( parent ),
-	 ui( new Ui::MRSettingsDialog )
+	 m_ui( new Ui::MRSettingsDialog )
 {
-	 ui->setupUi(this);
+	 m_ui->setupUi(this);
 	connectSlots();
 }
 
 MRSettingsDialog::~MRSettingsDialog()
 {
-	delete ui;
+	delete m_ui;
 }
 
 void MRSettingsDialog::connectSlots()
 {
-	connect( ui->fontBrowse, SIGNAL(clicked()), this, SLOT(browseFont()) );
-	connect( ui->themeBrowse, SIGNAL(clicked()), this, SLOT(browseTheme()) );
-	connect( ui->modulesBrowse, SIGNAL(clicked()), this, SLOT(browsePlugins()) );
-}
-
-void MRSettingsDialog::changeEvent(QEvent *e)
-{
-	 QWidget::changeEvent(e);
-	 switch (e->type()) {
-	 case QEvent::LanguageChange:
-		  ui->retranslateUi(this);
-		  break;
-	 default:
-		  break;
-	 }
+	connect( m_ui->fontBrowse, SIGNAL(clicked()), this, SLOT(browseFont()) );
+	connect( m_ui->themeBrowse, SIGNAL(clicked()), this, SLOT(browseTheme()) );
+	connect( m_ui->modulesBrowse, SIGNAL(clicked()), this, SLOT(browsePlugins()) );
 }
 
 void MRSettingsDialog::browseFont()
 {
-	QString dir = ui->fontEdit->text();
+	QString dir = m_ui->fontEdit->text();
 	dir = QFileDialog::getExistingDirectory(this, tr( "Open Font Directory" ), dir );
 	if ( dir != "" )
-		ui->fontEdit->setText( dir );
+		m_ui->fontEdit->setText( dir );
 }
 
 void MRSettingsDialog::browseTheme()
 {
-	QString file = ui->themeEdit->text();
+	QString file = m_ui->themeEdit->text();
 	file = QFileDialog::getOpenFileName( this, tr("Enter OSM Theme Filename"), file, "*.xml" );
 	if ( file != "" )
-		ui->themeEdit->setText( file );
+		m_ui->themeEdit->setText( file );
 }
 
 void MRSettingsDialog::browsePlugins()
 {
-	QString dir = ui->modulesEdit->text();
+	QString dir = m_ui->modulesEdit->text();
 	dir = QFileDialog::getExistingDirectory(this, tr( "Open Mapnik Plugin Directory" ), dir );
 	if ( dir != "" )
-		ui->modulesEdit->setText( dir );
+		m_ui->modulesEdit->setText( dir );
 }
 
-bool MRSettingsDialog::getSettings( Settings* settings ) {
-	settings->fonts = ui->fontEdit->text();
-	settings->theme = ui->themeEdit->text();
-	settings->plugins = ui->modulesEdit->text();
-	settings->tileSize = ui->tileSize->value();
-	settings->metaTileSize = ui->metaTileSize->value();
-	settings->fullZoom = ui->minZoom->value();
-	settings->margin = ui->margin->value();
-	settings->tileMargin = ui->tileMargin->value();
-	settings->reduceColors = ui->colorReduction->isChecked();
-	settings->deleteTiles = ui->removeTiles->isChecked();
-	settings->pngcrush = ui->pngcrush->isChecked();
+bool MRSettingsDialog::fillSettings( MapnikRenderer::Settings* settings ) {
+	settings->fonts = m_ui->fontEdit->text();
+	settings->theme = m_ui->themeEdit->text();
+	settings->plugins = m_ui->modulesEdit->text();
+	settings->tileSize = m_ui->tileSize->value();
+	settings->metaTileSize = m_ui->metaTileSize->value();
+	settings->fullZoom = m_ui->minZoom->value();
+	settings->margin = m_ui->margin->value();
+	settings->tileMargin = m_ui->tileMargin->value();
+	settings->reduceColors = m_ui->colorReduction->isChecked();
+	settings->deleteTiles = m_ui->removeTiles->isChecked();
+	settings->pngcrush = m_ui->pngcrush->isChecked();
+
+	settings->zoomLevels.clear();
 
 	for ( int zoom = 0; zoom < 19; zoom++ ) {
 		QString name = QString( "zoom%1" ).arg( zoom );
@@ -101,61 +91,38 @@ bool MRSettingsDialog::getSettings( Settings* settings ) {
 		if ( checkbox->isChecked() )
 			settings->zoomLevels.push_back( zoom );
 	}
-	if ( settings->zoomLevels.size() == 0 ) {
-		qCritical() << "No Zoom Level Selected";
-		return false;
-	}
+
 	return true;
 }
 
-bool MRSettingsDialog::loadSettings( QSettings* settings )
+bool MRSettingsDialog::readSettings( const MapnikRenderer::Settings& settings )
 {
-	settings->beginGroup( "Mapnik Renderer" );
-	ui->fontEdit->setText( settings->value( "fontDirectory" ).toString() );
-	ui->themeEdit->setText( settings->value( "themeDirectory" ).toString() );
-	ui->modulesEdit->setText( settings->value( "pluginDirectory" ).toString() );
-	ui->tileSize->setValue( settings->value( "tileSize", 256 ).toInt() );
-	ui->metaTileSize->setValue( settings->value( "metaTileSize", 8 ).toInt() );
-	ui->minZoom->setValue( settings->value( "minZoom", 6 ).toInt() );
-	ui->margin->setValue( settings->value( "margin", 128 ).toInt() );
-	ui->tileMargin->setValue( settings->value( "tileMargin", 1 ).toInt() );
-	ui->colorReduction->setChecked( settings->value( "colorReduction", true ).toBool() );
-	ui->removeTiles->setChecked( settings->value( "removeTiles", false ).toBool() );
-	ui->pngcrush->setChecked( settings->value( "pngcrush", false ).toBool() );
+	m_ui->fontEdit->setText( settings.fonts );
+	m_ui->themeEdit->setText( settings.theme );
+	m_ui->modulesEdit->setText( settings.plugins );
+	m_ui->tileSize->setValue( settings.tileSize );
+	m_ui->metaTileSize->setValue( settings.metaTileSize );
+	m_ui->minZoom->setValue( settings.fullZoom );
+	m_ui->margin->setValue( settings.margin );
+	m_ui->tileMargin->setValue( settings.tileMargin );
+	m_ui->colorReduction->setChecked( settings.reduceColors );
+	m_ui->removeTiles->setChecked( settings.deleteTiles );
+	m_ui->pngcrush->setChecked( settings.pngcrush );
 
+	int index = 0;
 	for ( int zoom = 0; zoom < 19; zoom++ ) {
 		QString name = QString( "zoom%1" ).arg( zoom );
 		QCheckBox* checkbox = findChild< QCheckBox* >( name );
 		assert( checkbox != NULL );
-		checkbox->setChecked( settings->value( name, true ).toBool() );
+
+		bool included = false;
+		if ( index < ( int ) settings.zoomLevels.size() && settings.zoomLevels[index] == zoom ) {
+			included = true;
+			index++;
+		}
+
+		checkbox->setChecked( included );
 	}
 
-	settings->endGroup();
-	return true;
-}
-
-bool MRSettingsDialog::saveSettings( QSettings* settings )
-{
-	settings->beginGroup( "Mapnik Renderer" );
-	settings->setValue( "fontDirectory", ui->fontEdit->text() );
-	settings->setValue( "themeDirectory", ui->themeEdit->text() );
-	settings->setValue( "pluginDirectory", ui->modulesEdit->text() );
-	settings->setValue( "tileSize", ui->tileSize->value() );
-	settings->setValue( "metaTileSize", ui->metaTileSize->value() );
-	settings->setValue( "minZoom", ui->minZoom->value() );
-	settings->setValue( "margin", ui->margin->value() );
-	settings->setValue( "tileMargin", ui->tileMargin->value() );
-	settings->setValue( "colorReduction", ui->colorReduction->isChecked() );
-	settings->setValue( "removeTiles", ui->removeTiles->isChecked() );
-	settings->setValue( "pngcrush", ui->pngcrush->isChecked() );
-
-	for ( int zoom = 0; zoom < 19; zoom++ ) {
-		QString name = QString( "zoom%1" ).arg( zoom );
-		QCheckBox* checkbox = findChild< QCheckBox* >( name );
-		assert( checkbox != NULL );
-		settings->setValue( name, checkbox->isChecked() );
-	}
-
-	settings->endGroup();
 	return true;
 }

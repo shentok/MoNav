@@ -17,15 +17,16 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "pluginmanager.h"
+#include "utils/qthelpers.h"
 #include "preprocessingwindow.h"
 #include "ui_preprocessingwindow.h"
-#include "utils/qthelpers.h"
+#include "utils/logwindow.h"
 
 #include <omp.h>
 #include <QFileDialog>
 #include <QSettings>
 #include <QtDebug>
-#include <QDir>
 #include <QMessageBox>
 #include <QDesktopServices>
 #include <QCloseEvent>
@@ -38,8 +39,60 @@ PreprocessingWindow::PreprocessingWindow( QWidget* parent, QString configFile ) 
 
 	setWindowIcon( QIcon( ":/images/target.png" ) );
 
+	LogWindow* log = new LogWindow();
+	log->setWindowIcon( QIcon( ":/images/target.png" ) );
+	log->show();
+
 	connectSlots();
-	loadPlugins();
+
+	PluginManager* pluginManager = PluginManager::instance();
+	pluginManager->loadPlugins();
+
+	m_ui->importerComboBox->addItems( pluginManager->importerPlugins() );
+	m_ui->routerComboBox->addItems( pluginManager->routerPlugins() );
+	m_ui->rendererComboBox->addItems( pluginManager->rendererPlugins() );
+	m_ui->gpsLookupComboBox->addItems( pluginManager->gpsLookupPlugins() );
+	m_ui->addressLookupComboBox->addItems( pluginManager->addressLookupPlugins() );
+
+	foreach( QObject* plugin, pluginManager->plugins() ) {
+		IGUISettings* guiSettings = qobject_cast< IGUISettings* >( plugin );
+		if ( guiSettings != NULL ) {
+			QWidget* settings = NULL;
+			if ( guiSettings->GetSettingsWindow( &settings ) ) {
+				m_settings.push_back( settings );
+				m_settingPlugins.push_back( guiSettings );
+				m_ui->pageList->addItem( settings->windowTitle() );
+				m_ui->pages->addWidget( settings );
+			}
+		}
+	}
+
+	loadSettings( configFile );
+
+}
+
+bool PreprocessingWindow::readSettingsWidgets()
+{
+	for ( int i = 0; i < m_settings.size(); i++ ) {
+		if ( !m_settingPlugins[i]->ReadSettingsWindow( m_settings[i] ) )
+			return false;
+	}
+	return true;
+}
+
+bool PreprocessingWindow::fillSettingsWidgets()
+{
+	for ( int i = 0; i < m_settings.size(); i++ ) {
+		if ( !m_settingPlugins[i]->FillSettingsWindow( m_settings[i] ) )
+			return false;
+	}
+	return true;
+}
+
+bool PreprocessingWindow::saveSettings( QString configFile )
+{
+	if ( !readSettingsWidgets() )
+		return false;
 
 	QSettings* settings;
 	if ( configFile.isEmpty() )
@@ -47,9 +100,62 @@ PreprocessingWindow::PreprocessingWindow( QWidget* parent, QString configFile ) 
 	else
 		settings = new QSettings( configFile, QSettings::IniFormat );
 
-	m_ui->input->setText( settings->value( "input" ).toString() );
-	m_ui->output->setText( settings->value( "output" ).toString() );
+	if ( !PluginManager::instance()->saveSettings( settings ) )
+		return false;
 
+	if ( !configFile.isEmpty() )
+		return true;
+
+	settings->beginGroup( "GUI" );
+
+	settings->setValue( "importer", m_ui->importerComboBox->currentText() );
+	settings->setValue( "router", m_ui->routerComboBox->currentText() );
+	settings->setValue( "renderer", m_ui->rendererComboBox->currentText() );
+	settings->setValue( "gpsLookup", m_ui->gpsLookupComboBox->currentText() );
+	settings->setValue( "addressLookup", m_ui->addressLookupComboBox->currentText() );
+
+	settings->setValue( "routingModuleName", m_ui->routingName->text() );
+	settings->setValue( "renderingModuleName", m_ui->renderingName->text() );
+	settings->setValue( "addressLookupModuleName", m_ui->addressLookupName->text() );
+
+	settings->setValue( "threads", m_ui->threads->value() );
+
+	settings->setValue( "geometry", saveGeometry() );
+	settings->setValue( "splitter", m_ui->splitter->saveState() );
+
+	delete settings;
+	return true;
+}
+
+bool PreprocessingWindow::loadSettings( QString configFile )
+{
+	QSettings* settings;
+	if ( configFile.isEmpty() )
+		settings = new QSettings( "MoNav" );
+	else
+		settings = new QSettings( configFile, QSettings::IniFormat );
+
+	PluginManager* pluginManager = PluginManager::instance();
+	if ( !pluginManager->loadSettings( settings ) )
+		return false;
+
+	if ( !fillSettingsWidgets() )
+		return false;
+
+	m_ui->input->setText( pluginManager->inputFile() );
+	m_ui->output->setText( pluginManager->outputDirectory() );
+
+	m_ui->name->setText( pluginManager->name() );
+	m_ui->image->setText( pluginManager->image() );
+
+	delete settings;
+
+	if ( !configFile.isEmpty() )
+		return true;
+
+	settings = new QSettings( "MoNav" );
+
+	settings->beginGroup( "GUI" );
 	QString importerName = settings->value( "importer", m_ui->importerComboBox->currentText() ).toString();
 	QString routerName = settings->value( "router", m_ui->routerComboBox->currentText() ).toString();
 	QString rendererName = settings->value( "renderer", m_ui->rendererComboBox->currentText() ).toString();
@@ -62,9 +168,9 @@ PreprocessingWindow::PreprocessingWindow( QWidget* parent, QString configFile ) 
 	m_ui->gpsLookupComboBox->setCurrentIndex( m_ui->gpsLookupComboBox->findText( gpsLookupName ) );
 	m_ui->addressLookupComboBox->setCurrentIndex( m_ui->addressLookupComboBox->findText( addressLookupName ) );
 
-	m_ui->name->setText( settings->value( "name", tr( "MyMap" ) ).toString() );
-	m_ui->description->setText( settings->value( "description", tr( "This is my map data" ) ).toString() );
-	m_ui->image->setText( settings->value( "image", ":/images/about.png" ).toString() );
+	m_ui->routingName->setText( settings->value( "routingModuleName" ).toString() );
+	m_ui->renderingName->setText( settings->value( "renderingModuleName" ).toString() );
+	m_ui->addressLookupName->setText( settings->value( "addressLookupModuleName" ).toString() );
 
 	m_ui->threads->setMaximum( omp_get_max_threads() );
 	m_ui->threads->setValue( settings->value( "threads", omp_get_max_threads() ).toInt() );
@@ -77,93 +183,6 @@ PreprocessingWindow::PreprocessingWindow( QWidget* parent, QString configFile ) 
 	m_ui->splitter->setSizes( splitterSizes );
 	m_ui->splitter->restoreState( settings->value( "splitter" ).toByteArray() );
 
-	foreach ( IImporter* plugin, m_importerPlugins )
-		plugin->LoadSettings( settings );
-	foreach ( IPreprocessor* plugin, m_routerPlugins )
-		plugin->LoadSettings( settings );
-	foreach ( IPreprocessor* plugin, m_rendererPlugins )
-		plugin->LoadSettings( settings );
-	foreach ( IPreprocessor* plugin, m_gpsLookupPlugins )
-		plugin->LoadSettings( settings );
-	foreach ( IPreprocessor* plugin, m_addressLookupPlugins )
-		plugin->LoadSettings( settings );
-
-	delete settings;
-
-	parseArguments();
-}
-
-void PreprocessingWindow::parseArguments()
-{
-	QStringList args = QCoreApplication::arguments();
-	int index = args.indexOf( QRegExp( "--name=.*" ) );
-	if ( index != -1 )
-		m_ui->name->setText( args[index].section( '=', 1 ) );
-	index = args.indexOf( QRegExp( "--description=.*" ) );
-	if ( index != -1 )
-		m_ui->description->setText( args[index].section( '=', 1 ) );
-	index = args.indexOf( QRegExp( "--image=.*" ) );
-	if ( index != -1 )
-		m_ui->image->setText( args[index].section( '=', 1 ) );
-	index = args.indexOf( QRegExp( "--input=.*" ) );
-	if ( index != -1 )
-		m_ui->input->setText( args[index].section( '=', 1 ) );
-	index = args.indexOf( QRegExp( "--output=.*" ) );
-	if ( index != -1 )
-		m_ui->output->setText( args[index].section( '=', 1 ) );
-	index = args.indexOf( QRegExp( "--threads=.*" ) );
-	if ( index != -1 )
-		m_ui->threads->setValue( args[index].section( '=', 1 ).toInt() );
-}
-
-bool PreprocessingWindow::saveSettings( QString configFile )
-{
-	QSettings* settings;
-	if ( configFile.isEmpty() )
-		settings = new QSettings( "MoNav" );
-	else
-		settings = new QSettings( configFile, QSettings::IniFormat );
-
-	settings->setValue( "input", m_ui->input->text() );
-	settings->setValue( "output", m_ui->output->text() );
-
-	settings->setValue( "importer", m_ui->importerComboBox->currentText() );
-	settings->setValue( "router", m_ui->routerComboBox->currentText() );
-	settings->setValue( "renderer", m_ui->rendererComboBox->currentText() );
-	settings->setValue( "gpsLookup", m_ui->gpsLookupComboBox->currentText() );
-	settings->setValue( "addressLookup", m_ui->addressLookupComboBox->currentText() );
-
-	settings->setValue( "name", m_ui->name->text() );
-	settings->setValue( "description", m_ui->description->toPlainText() );
-	settings->setValue( "image", m_ui->image->text() );
-
-	settings->setValue( "threads", m_ui->threads->value() );
-
-	settings->setValue( "geometry", saveGeometry() );
-	settings->setValue( "splitter", m_ui->splitter->saveState() );
-
-	foreach ( IImporter* plugin, m_importerPlugins ) {
-		if ( !plugin->SaveSettings( settings ) )
-			return false;
-	}
-	foreach ( IPreprocessor* plugin, m_routerPlugins ) {
-		if ( !plugin->SaveSettings( settings ) )
-			return false;
-	}
-	foreach ( IPreprocessor* plugin, m_rendererPlugins ) {
-		if ( !plugin->SaveSettings( settings ) )
-			return false;
-	}
-	foreach ( IPreprocessor* plugin, m_gpsLookupPlugins ) {
-		if ( !plugin->SaveSettings( settings ) )
-			return false;
-	}
-	foreach ( IPreprocessor* plugin, m_addressLookupPlugins ) {
-		if ( !plugin->SaveSettings( settings ) )
-			return false;
-	}
-
-	delete settings;
 	return true;
 }
 
@@ -176,17 +195,20 @@ void PreprocessingWindow::closeEvent( QCloseEvent* event )
 		}
 	}
 	event->accept();
+	QApplication::closeAllWindows();
+	//PluginManager::instance()->unloadPlugins();
 	return;
 }
 
 PreprocessingWindow::~PreprocessingWindow()
 {
-	unloadPlugins();
 	delete m_ui;
 }
 
 void PreprocessingWindow::connectSlots()
 {
+	connect( PluginManager::instance(), SIGNAL(finished(bool)), this, SLOT(taskFinished(bool)) );
+
 	connect( m_ui->inputBrowse, SIGNAL(clicked()), this, SLOT(inputBrowse()) );
 	connect( m_ui->input, SIGNAL(textChanged(QString)), this, SLOT(inputChanged(QString)) );
 
@@ -199,95 +221,16 @@ void PreprocessingWindow::connectSlots()
 	connect( m_ui->threads, SIGNAL(valueChanged(int)), this, SLOT(threadsChanged(int)) );
 
 	connect( m_ui->saveSettings, SIGNAL(clicked()), this, SLOT(saveSettingsToFile()) );
+	connect( m_ui->loadSettings, SIGNAL(clicked()), this, SLOT(loadSettingsFromFile()) );
 
 	connect( m_ui->importerPreprocessButton, SIGNAL(clicked()), this, SLOT(importerPreprocessing()) );
 	connect( m_ui->rendererPreprocessButton, SIGNAL(clicked()), this, SLOT(rendererPreprocessing()) );
 	connect( m_ui->routerPreprocessButton, SIGNAL(clicked()), this, SLOT(routerPreprocessing()) );
-	connect( m_ui->gpsLookupPreprocessButton, SIGNAL(clicked()), this, SLOT(gpsLookupPreprocessing()) );
 	connect( m_ui->addressLookupPreprocessButton, SIGNAL(clicked()), this, SLOT(addressLookupPreprocessing()) );
 	connect( m_ui->deleteTemporaryButton, SIGNAL(clicked()), this, SLOT(deleteTemporary()) );
 	connect( m_ui->writeConfigButton, SIGNAL(clicked()), this, SLOT(writeConfig()) );
 
 	connect( m_ui->allPreprocessButton, SIGNAL(clicked()), this, SLOT(preprocessAll()) );
-}
-
-void PreprocessingWindow::loadPlugins()
-{
-	QDir pluginDir( QApplication::applicationDirPath() );
-	if ( pluginDir.cd("plugins_preprocessor") ) {
-		foreach ( QString fileName, pluginDir.entryList( QDir::Files ) ) {
-			QPluginLoader* loader = new QPluginLoader( pluginDir.absoluteFilePath( fileName ) );
-			loader->setLoadHints( QLibrary::ExportExternalSymbolsHint );
-			if ( !loader->load() )
-				qDebug() << loader->errorString();
-
-			if ( testPlugin( loader->instance() ) ) {
-				m_plugins.push_back( loader );
-			} else {
-				loader->unload();
-				delete loader;
-			}
-		}
-	}
-
-	foreach ( QObject *plugin, QPluginLoader::staticInstances() )
-		testPlugin( plugin );
-
-	if ( m_importerPlugins.size() == 0  || m_rendererPlugins.size() == 0  || m_routerPlugins.size() == 0 || m_gpsLookupPlugins.size() == 0  || m_addressLookupPlugins.size() == 0 )
-		qFatal( "plugin types are missing" );
-}
-
-bool PreprocessingWindow::testPlugin( QObject* plugin )
-{
-	bool needed = false;
-	if ( IImporter *interface = qobject_cast< IImporter* >( plugin ) )
-	{
-		m_importerPlugins.append( interface );
-		m_ui->importerComboBox->addItem( interface->GetName() );
-		m_ui->importerSettings->addTab( interface->GetSettings(), interface->GetName() );
-		needed = true;
-	}
-	if ( IPreprocessor *interface = qobject_cast< IPreprocessor* >( plugin ) )
-	{
-		QString name = interface->GetName();
-		if ( interface->GetType() == IPreprocessor::Renderer )
-		{
-			m_rendererPlugins.append( interface );
-			m_ui->rendererComboBox->addItem( name );
-			m_ui->rendererSettings->addTab( interface->GetSettings(), interface->GetName() );
-		}
-		if ( interface->GetType() == IPreprocessor::Router )
-		{
-			m_routerPlugins.append( interface );
-			m_ui->routerComboBox->addItem( name );
-			m_ui->routerSettings->addTab( interface->GetSettings(), interface->GetName() );
-		}
-		if ( interface->GetType() == IPreprocessor::GPSLookup )
-		{
-			m_gpsLookupPlugins.append( interface );
-			m_ui->gpsLookupComboBox->addItem( name );
-			m_ui->gpsLookupSettings->addTab( interface->GetSettings(), interface->GetName() );
-		}
-		if ( interface->GetType() == IPreprocessor::AddressLookup )
-		{
-			m_addressLookupPlugins.append( interface );
-			m_ui->addressLookupComboBox->addItem( name );
-			m_ui->addressLookupSettings->addTab( interface->GetSettings(), interface->GetName() );
-		}
-		needed = true;
-	}
-	return needed;
-}
-
-void PreprocessingWindow::unloadPlugins()
-{
-	foreach( QPluginLoader* pluginLoader, m_plugins )
-	{
-		pluginLoader->unload();
-		delete pluginLoader;
-	}
-	foreach ( QObject *plugin, QPluginLoader::staticInstances() )
-		delete plugin;
 }
 
 void PreprocessingWindow::saveSettingsToFile()
@@ -299,6 +242,15 @@ void PreprocessingWindow::saveSettingsToFile()
 		filename += ".ini";
 	if ( !saveSettings( filename ) )
 		qCritical() << "Failed To Save Settings";
+}
+
+void PreprocessingWindow::loadSettingsFromFile()
+{
+	QString filename = QFileDialog::getOpenFileName( this, "Config File", QString(), "*.ini" );
+	if ( filename.isEmpty() )
+		return;
+	if ( !loadSettings( filename ) )
+		qCritical() << "Failed to load settings";
 }
 
 void PreprocessingWindow::inputBrowse()
@@ -331,6 +283,8 @@ void PreprocessingWindow::inputChanged( QString text )
 	if ( !QFile::exists( text ) )
 		pal.setColor( QPalette::Text, Qt::red );
 	m_ui->input->setPalette( pal );
+
+	PluginManager::instance()->setInputFile( text );
 }
 
 void PreprocessingWindow::imageChanged( QString text )
@@ -351,6 +305,8 @@ void PreprocessingWindow::imageChanged( QString text )
 		pal.setColor( QPalette::Text, Qt::red );
 	}
 	m_ui->image->setPalette( pal );
+
+	PluginManager::instance()->setImage( text );
 }
 
 void PreprocessingWindow::outputChanged( QString text )
@@ -359,6 +315,93 @@ void PreprocessingWindow::outputChanged( QString text )
 	if ( !QFile::exists( text ) )
 		pal.setColor( QPalette::Text, Qt::red );
 	m_ui->output->setPalette( pal );
+
+	PluginManager::instance()->setOutputDirectory( text );
+}
+
+void PreprocessingWindow::taskFinished( bool result )
+{
+	if ( result == false ) {
+		qCritical() << "Task failed, aborting";
+		m_tasks.clear();
+		setEnabled( true );
+		return;
+	}
+	switch( m_tasks.front() ) {
+	case TaskImporting:
+		m_ui->importerLabel->setPixmap( QPixmap( result ? ":/images/ok.png" : ":/images/notok.png" ) );
+		break;
+	case TaskRouting:
+		m_ui->routerLabel->setPixmap( QPixmap( result ? ":/images/ok.png" : ":/images/notok.png" ) );
+		break;
+	case TaskRendering:
+		m_ui->rendererLabel->setPixmap( QPixmap( result ? ":/images/ok.png" : ":/images/notok.png" ) );
+		break;
+	case TaskAddressLookup:
+		m_ui->addressLookupLabel->setPixmap( QPixmap( result ? ":/images/ok.png" : ":/images/notok.png" ) );
+		break;
+	case TaskConfig:
+		m_ui->configLabel->setPixmap( QPixmap( result ? ":/images/ok.png" : ":/images/notok.png" ) );
+		break;
+	case TaskDeleteTemporary:
+		m_ui->deleteTemporaryLabel->setPixmap( QPixmap( result ? ":/images/ok.png" : ":/images/notok.png" ) );
+		break;
+	}
+
+	m_tasks.pop_front();
+	nextTask();
+}
+
+void PreprocessingWindow::nextTask()
+{
+	if ( m_tasks.isEmpty() ) {
+		setEnabled( true );
+		return;
+	}
+
+	setEnabled( false );
+
+	switch ( m_tasks.front() ) {
+	case TaskImporting:
+		if ( !PluginManager::instance()->processImporter( m_ui->importerComboBox->currentText(), true ) )
+			taskFinished( false );
+		break;
+	case TaskRouting:
+		if ( !PluginManager::instance()->processRoutingModule(
+				m_ui->routingName->text(),
+				m_ui->importerComboBox->currentText(),
+				m_ui->routerComboBox->currentText(),
+				m_ui->gpsLookupComboBox->currentText(),
+				true ) )
+			taskFinished( false );
+		break;
+	case TaskRendering:
+		if ( !PluginManager::instance()->processRenderingModule(
+				m_ui->renderingName->text(),
+				m_ui->importerComboBox->currentText(),
+				m_ui->rendererComboBox->currentText(),
+				true ) )
+			taskFinished( false );
+		break;
+	case TaskAddressLookup:
+		if ( !PluginManager::instance()->processAddressLookupModule(
+				m_ui->addressLookupName->text(),
+				m_ui->importerComboBox->currentText(),
+				m_ui->addressLookupComboBox->currentText(),
+				true ) )
+			taskFinished( false );
+		break;
+	case TaskConfig:
+		if ( !PluginManager::instance()->writeConfig() )
+			taskFinished( false );
+		taskFinished( true );
+		break;
+	case TaskDeleteTemporary:
+		if ( !PluginManager::instance()->deleteTemporaryFiles() )
+			taskFinished( false );
+		taskFinished( true );
+		break;
+	}
 }
 
 void PreprocessingWindow::threadsChanged( int threads )
@@ -366,221 +409,59 @@ void PreprocessingWindow::threadsChanged( int threads )
 	omp_set_num_threads( threads );
 }
 
-bool PreprocessingWindow::importerPreprocessing()
+void PreprocessingWindow::importerPreprocessing()
 {
-	if ( !QFile::exists( m_ui->input->text() ) ) {
-		qCritical() << "Input File Does not Exist";
-		return false;
-	}
-	if ( !QFile::exists( m_ui->output->text() ) ) {
-		qCritical() << "Output Directory Does Not Exist";
-		return false;
-	}
-	int index = m_ui->importerComboBox->currentIndex();
-	m_importerPlugins[index]->SetOutputDirectory( m_ui->output->text() );
-	bool result = m_importerPlugins[index]->Preprocess( m_ui->input->text() );
-	if ( result )
-		m_ui->importerLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
-	else
-		m_ui->importerLabel->setPixmap( QPixmap( ":/images/reload.png" ) );
-	m_ui->rendererLabel->setPixmap( QPixmap( ":/images/reload.png" ) );
-	m_ui->routerLabel->setPixmap( QPixmap( ":/images/reload.png" ) );
-	m_ui->gpsLookupLabel->setPixmap( QPixmap( ":/images/reload.png" ) );
-	m_ui->addressLookupLabel->setPixmap( QPixmap( ":/images/reload.png" ) );
-	return result;
+	m_tasks.push_back( TaskImporting );
+	nextTask();
 }
 
-bool PreprocessingWindow::rendererPreprocessing()
+void PreprocessingWindow::rendererPreprocessing()
 {
-	if ( !QFile::exists( m_ui->output->text() ) ) {
-		qCritical() << "Output Directory Does Not Exist";
-		return false;
-	}
-	int importerIndex = m_ui->importerComboBox->currentIndex();
-	m_importerPlugins[importerIndex]->SetOutputDirectory( m_ui->output->text() );
-	int index = m_ui->rendererComboBox->currentIndex();
-	bool result = m_rendererPlugins[index]->Preprocess( m_importerPlugins[importerIndex], m_ui->output->text() );
-	if ( result )
-		m_ui->rendererLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
-	else
-		m_ui->rendererLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-	return result;
+	m_tasks.push_back( TaskRendering );
+	nextTask();
 }
 
-bool PreprocessingWindow::routerPreprocessing()
+void PreprocessingWindow::routerPreprocessing()
 {
-	if ( !QFile::exists( m_ui->output->text() ) ) {
-		qCritical() << "Output Directory Does Not Exist";
-		return false;
-	}
-	int importerIndex = m_ui->importerComboBox->currentIndex();
-	m_importerPlugins[importerIndex]->SetOutputDirectory( m_ui->output->text() );
-	int index = m_ui->routerComboBox->currentIndex();
-	bool result = m_routerPlugins[index]->Preprocess( m_importerPlugins[importerIndex], m_ui->output->text() );
-	if ( result )
-		m_ui->routerLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
-	else
-		m_ui->routerLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-	m_ui->gpsLookupLabel->setPixmap( QPixmap( ":/images/reload.png" ) );
-	return result;
+	m_tasks.push_back( TaskRouting );
+	nextTask();
 }
 
-bool PreprocessingWindow::gpsLookupPreprocessing()
+void PreprocessingWindow::addressLookupPreprocessing()
 {
-	if ( !QFile::exists( m_ui->output->text() ) ) {
-		qCritical() << "Output Directory Does Not Exist";
-		return false;
-	}
-	int importerIndex = m_ui->importerComboBox->currentIndex();
-	m_importerPlugins[importerIndex]->SetOutputDirectory( m_ui->output->text() );
-	int index = m_ui->gpsLookupComboBox->currentIndex();
-	bool result = m_gpsLookupPlugins[index]->Preprocess( m_importerPlugins[importerIndex], m_ui->output->text() );
-	if ( result )
-		m_ui->gpsLookupLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
-	else
-		m_ui->gpsLookupLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-	return result;
+	m_tasks.push_back( TaskAddressLookup );
+	nextTask();
 }
 
-bool PreprocessingWindow::addressLookupPreprocessing()
+void PreprocessingWindow::writeConfig()
 {
-	if ( !QFile::exists( m_ui->output->text() ) ) {
-		qCritical() << "Output Directory Does Not Exist";
-		return false;
-	}
-	int importerIndex = m_ui->importerComboBox->currentIndex();
-	m_importerPlugins[importerIndex]->SetOutputDirectory( m_ui->output->text() );
-	int index = m_ui->addressLookupComboBox->currentIndex();
-	bool result = m_addressLookupPlugins[index]->Preprocess( m_importerPlugins[importerIndex], m_ui->output->text() );
-	if ( result )
-		m_ui->addressLookupLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
-	else
-		m_ui->addressLookupLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-	return result;
+	m_tasks.push_back( TaskConfig );
+	nextTask();
 }
 
-bool PreprocessingWindow::preprocessAll()
+void PreprocessingWindow::deleteTemporary()
 {
-	if ( !QFile::exists( m_ui->output->text() ) ) {
-		qCritical() << "Output Directory Does Not Exist";
-		return false;
-	}
-	qDebug() << "===Importer===";
-	if ( !importerPreprocessing() ) {
-		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-		return false;
-	}
-	qDebug() << "===Router===";
-	if ( !routerPreprocessing() ) {
-		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-		return false;
-	}
-	qDebug() << "===Renderer===";
-	if ( !rendererPreprocessing() ) {
-		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-		return false;
-	}
-	qDebug() << "===GPS Lookup===";
-	if ( !gpsLookupPreprocessing() ) {
-		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-		return false;
-	}
-	qDebug() << "===Address Lookup===";
-	if ( !addressLookupPreprocessing() ) {
-		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-		return false;
-	}
-	qDebug() << "===Config File===";
-	if ( !writeConfig() )  {
-		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-		return false;
-	}
-	qDebug() << "===Delete Temporary Files===";
-	if ( !deleteTemporary() )  {
-		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-		return false;
-	}
-	m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
-	return true;
+	m_tasks.push_back( TaskDeleteTemporary );
+	nextTask();
 }
 
-bool PreprocessingWindow::preprocessDaemon()
+void PreprocessingWindow::preprocessAll()
 {
-	if ( !QFile::exists( m_ui->output->text() ) ) {
-		qCritical() << "Output Directory Does Not Exist";
-		return false;
-	}
-	qDebug() << "===Importer===";
-	if ( !importerPreprocessing() ) {
-		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-		return false;
-	}
-	qDebug() << "===Router===";
-	if ( !routerPreprocessing() ) {
-		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-		return false;
-	}
-	qDebug() << "===GPS Lookup===";
-	if ( !gpsLookupPreprocessing() ) {
-		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-		return false;
-	}
-	qDebug() << "===Config File===";
-	if ( !writeConfig() )  {
-		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-		return false;
-	}
-	qDebug() << "===Delete Temporary Files===";
-	if ( !deleteTemporary() )  {
-		m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-		return false;
-	}
-	m_ui->buildAllLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
-	return true;
+	m_tasks.push_back( TaskImporting );
+	m_tasks.push_back( TaskRouting );
+	m_tasks.push_back( TaskRendering );
+	m_tasks.push_back( TaskAddressLookup );
+	m_tasks.push_back( TaskConfig );
+	m_tasks.push_back( TaskDeleteTemporary );
+	nextTask();
 }
 
-bool PreprocessingWindow::writeConfig()
+void PreprocessingWindow::preprocessDaemon()
 {
-	QSettings pluginSettings( fileInDirectory( m_ui->output->text(), "MoNav.ini" ), QSettings::IniFormat );
-
-	pluginSettings.setValue( "configVersion", 1 );
-
-	pluginSettings.setValue( "router", m_ui->routerComboBox->currentText() );
-	pluginSettings.setValue( "renderer", m_ui->rendererComboBox->currentText() );
-	pluginSettings.setValue( "gpsLookup", m_ui->gpsLookupComboBox->currentText() );
-	pluginSettings.setValue( "addressLookup", m_ui->addressLookupComboBox->currentText() );
-
-	int index = m_ui->routerComboBox->currentIndex();
-	pluginSettings.setValue( "routerFileFormatVersion", m_routerPlugins[index]->GetFileFormatVersion() );
-	index = m_ui->rendererComboBox->currentIndex();
-	pluginSettings.setValue( "rendererFileFormatVersion", m_rendererPlugins[index]->GetFileFormatVersion() );
-	index = m_ui->gpsLookupComboBox->currentIndex();
-	pluginSettings.setValue( "gpsLookupFileFormatVersion", m_gpsLookupPlugins[index]->GetFileFormatVersion() );
-	index = m_ui->addressLookupComboBox->currentIndex();
-	pluginSettings.setValue( "addressLookupFileFormatVersion", m_addressLookupPlugins[index]->GetFileFormatVersion() );
-
-	pluginSettings.setValue( "name", m_ui->name->text() );
-	pluginSettings.setValue( "description", m_ui->description->toPlainText() );
-	QImage image( m_ui->image->text() );
-	if ( !image.isNull() )
-		pluginSettings.setValue( "image", image );
-
-	pluginSettings.sync();
-	if ( pluginSettings.status() != QSettings::NoError ) {
-		m_ui->configLabel->setPixmap( QPixmap( ":/images/notok.png" ) );
-		return false;
-	}
-
-	m_ui->configLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
-	return true;
-}
-
-bool PreprocessingWindow::deleteTemporary()
-{
-	int index = m_ui->importerComboBox->currentIndex();
-	m_importerPlugins[index]->SetOutputDirectory( m_ui->output->text() );
-	m_importerPlugins[index]->DeleteTemporaryFiles();
-	m_ui->deleteTemporaryLabel->setPixmap( QPixmap( ":/images/ok.png" ) );
-	return true;
+	m_tasks.push_back( TaskImporting );
+	m_tasks.push_back( TaskRouting );
+	m_tasks.push_back( TaskConfig );
+	m_tasks.push_back( TaskDeleteTemporary );
+	nextTask();
 }
 

@@ -21,27 +21,41 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define GPSGRID_H
 
 #include "interfaces/ipreprocessor.h"
-#include "ggdialog.h"
-#include "cell.h"
-#include "table.h"
-#include <vector>
+#include "interfaces/iguisettings.h"
+#include "utils/coordinates.h"
 
-
-class GPSGrid : public QObject, public IPreprocessor {
+class GPSGrid :
+		public QObject,
+#ifndef NOGUI
+		public IGUISettings,
+#endif
+		public IPreprocessor
+{
 	Q_OBJECT
 	Q_INTERFACES( IPreprocessor )
+#ifndef NOGUI
+	Q_INTERFACES( IGUISettings )
+#endif
 
 public:
 
 	GPSGrid();
 	virtual ~GPSGrid();
+
+	// IPreprocessor
 	virtual QString GetName();
 	virtual int GetFileFormatVersion();
 	virtual Type GetType();
-	virtual QWidget* GetSettings();
 	virtual bool LoadSettings( QSettings* settings );
 	virtual bool SaveSettings( QSettings* settings );
 	virtual bool Preprocess( IImporter* importer, QString dir );
+
+#ifndef NOGUI
+	// IGUISettings
+	virtual bool GetSettingsWindow( QWidget** window );
+	virtual bool FillSettingsWindow( QWidget* window );
+	virtual bool ReadSettingsWindow( QWidget* window );
+#endif
 
 protected:
 
@@ -58,8 +72,6 @@ protected:
 
 	bool clipHelper( double directedProjection, double directedDistance, double* tMinimum, double* tMaximum );
 	bool clipEdge( ProjectedCoordinate source, ProjectedCoordinate target, ProjectedCoordinate min, ProjectedCoordinate max );
-
-	GGDialog* m_settingsDialog;
 };
 
 #endif // GPSGRID_H

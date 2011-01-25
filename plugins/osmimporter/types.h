@@ -21,7 +21,10 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define TYPES_H
 
 #include <QString>
+#include <QStringList>
 #include <QVariant>
+#include <QVector>
+#include <QHash>
 
 namespace MoNav {
 
@@ -78,6 +81,35 @@ namespace MoNav {
 				return priority;
 			return value < right.value;
 		}
+	};
+
+	struct SpeedProfile {
+		QVector< MoNav::Highway > highways;
+		QVector< MoNav::WayModificator > wayModificators;
+		QVector< MoNav::NodeModificator > nodeModificators;
+
+		double acceleration;
+		double decceleration;
+		double tangentialAcceleration;
+		int pedestrian;
+		int otherCars;
+
+		QStringList accessList;
+		bool defaultCitySpeed;
+		bool ignoreOneway;
+		bool ignoreMaxspeed;
+
+		SpeedProfile();
+		bool load( QString filename );
+		bool save( QString filename );
+		bool setAccess( QString type );
+		QStringList accessTypes();
+
+	private:
+
+		bool loadAccessTree( QString filename );
+
+		QHash< QString, QString > m_accessTree;
 	};
 }
 

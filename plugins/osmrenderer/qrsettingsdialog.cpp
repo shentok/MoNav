@@ -20,7 +20,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "qrsettingsdialog.h"
 #include "ui_qrsettingsdialog.h"
 #include <cassert>
-#include <QSettings>
 #include <QtDebug>
 #include <QFileDialog>
 
@@ -29,7 +28,7 @@ QRSettingsDialog::QRSettingsDialog( QWidget *parent ) :
 		m_ui( new Ui::QRSettingsDialog )
 {
 	m_ui->setupUi(this);
-        connectSlots();
+	connectSlots();
 }
 
 QRSettingsDialog::~QRSettingsDialog()
@@ -39,30 +38,20 @@ QRSettingsDialog::~QRSettingsDialog()
 
 void QRSettingsDialog::connectSlots()
 {
-        connect(m_ui->inputBrowse, SIGNAL(clicked()), this, SLOT(browseInput()));
+	connect(m_ui->inputBrowse, SIGNAL(clicked()), this, SLOT(browseInput()));
 }
 
-bool QRSettingsDialog::getSettings( Settings* settings )
+bool QRSettingsDialog::readSettings( const QtileRenderer::Settings& settings )
+{
+	m_ui->inputEdit->setText( settings.inputFile );
+	return true;
+}
+
+bool QRSettingsDialog::fillSettings( QtileRenderer::Settings* settings )
 {
 	if ( settings == NULL )
 		return false;
-        settings->inputFile = m_ui->inputEdit->text();
-	return true;
-}
-
-bool QRSettingsDialog::loadSettings( QSettings* settings )
-{
-	settings->beginGroup( "QtileRenderer" );
-        m_ui->inputEdit->setText(settings->value("InputFile").toString());
-	settings->endGroup();
-	return true;
-}
-
-bool QRSettingsDialog::saveSettings( QSettings* settings )
-{
-	settings->beginGroup( "QtileRenderer" );
-        settings->setValue("InputFile", m_ui->inputEdit->text());
-	settings->endGroup();
+	settings->inputFile = m_ui->inputEdit->text();
 	return true;
 }
 

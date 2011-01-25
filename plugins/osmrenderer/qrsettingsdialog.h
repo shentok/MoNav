@@ -20,13 +20,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef QRSETTINGSDIALOG_H
 #define QRSETTINGSDIALOG_H
 
+#include "qtilerenderer.h"
+
 #include <QWidget>
 
 namespace Ui {
 	class QRSettingsDialog;
 }
-
-class QSettings;
 
 class QRSettingsDialog : public QWidget
 {
@@ -34,24 +34,19 @@ class QRSettingsDialog : public QWidget
 
 public:
 
-	struct Settings {
-                QString inputFile;
-		bool unused;
-	};
-
 	explicit QRSettingsDialog(QWidget *parent = 0);
 	~QRSettingsDialog();
 
-	bool getSettings( Settings* settings );
-	bool loadSettings( QSettings* settings );
-	bool saveSettings( QSettings* settings );
+	bool readSettings( const QtileRenderer::Settings& settings );
+	bool fillSettings( QtileRenderer::Settings* settings );
 
-public slots:
-        void browseInput();
+protected slots:
+
+	void browseInput();
 
 protected:
 
-        void connectSlots();
+	void connectSlots();
 	Ui::QRSettingsDialog* m_ui;
 };
 
