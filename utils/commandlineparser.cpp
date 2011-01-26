@@ -18,6 +18,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "commandlineparser.h"
+#include "formattedoutput.h"
 
 #include <cassert>
 #include <QVector>
@@ -29,10 +30,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 struct Location {
 	IConsoleSettings* dataSink;
 	int id;
-	QVariant::Type type;
 
-	Location( IConsoleSettings* dataSink, int id, QVariant::Type type )
-		: dataSink( dataSink ), id ( id ), type( type )
+	Location( IConsoleSettings* dataSink, int id )
+		: dataSink( dataSink ), id ( id )
 	{
 	}
 };
@@ -42,6 +42,10 @@ struct CommandLineParser::PrivateImplementation {
 	QVector< IConsoleSettings* > dataSinks;
 	QMultiHash< QString, Location > shortIDs;
 	QMultiHash< QString, Location > longIDs;
+
+	void displayHelp();
+	QVector< QStringList > helpList;
+	QStringList helpHeaders;
 };
 
 CommandLineParser::CommandLineParser()
@@ -65,12 +69,32 @@ void CommandLineParser::registerDataSink( IConsoleSettings *dataSink )
 	}
 	QString name = dataSink->GetModuleName();
 
+	d->helpHeaders << name;
+	QStringList help;
+
 	// add settings
 	for ( int id = 0; id < settings.size(); id++ ) {
+		if ( settings[id].longID == "--help" ) {
+			qWarning() << "--help already registered for the internal help display";
+			continue;
+		}
 		if ( !settings[id].shortID.isEmpty() )
-			d->shortIDs.insert( settings[id].shortID, Location( dataSink, id, settings[id].type ) );
-		d->longIDs.insert( settings[id].longID, Location( dataSink, id, settings[id].type ) );
+			d->shortIDs.insert( settings[id].shortID, Location( dataSink, id ) );
+		d->longIDs.insert( settings[id].longID, Location( dataSink, id ) );
+
+		if ( settings[id].shortID.isEmpty() )
+			help << "";
+		else
+			help << "-" + settings[id].shortID;
+		if ( settings[id].longID.isEmpty() )
+			help << "";
+		else
+			help << "--" + settings[id].longID;
+
+		help << settings[id].description << settings[id].type;
 	}
+
+	d->helpList.push_back( help );
 }
 
 void CommandLineParser::clean()
@@ -80,10 +104,17 @@ void CommandLineParser::clean()
 	d->longIDs.clear();
 }
 
+void CommandLineParser::PrivateImplementation::displayHelp()
+{
+	for ( int i = 0; i < this->helpList.size(); i++ ) {
+		printf( "%s\n\n", printStringTable( helpList[i], 4, helpHeaders[i] ).toUtf8().constData() );
+	}
+}
+
 bool CommandLineParser::parse()
 {
 	QStringList args = QCoreApplication::arguments();
-	for ( int i = 0; i < args.size(); i++ ) {
+	for ( int i = 1; i < args.size(); i++ ) {
 
 		QString argument = args[i];
 		QString data = "yes";
@@ -93,13 +124,18 @@ bool CommandLineParser::parse()
 			argument = argument.left( separatorIndex );
 		}
 
+		if ( argument == "--help" ) {
+			d->displayHelp();
+			return false;
+		}
+
 		// long or short setting?
 		QList< Location > settings;
 		if ( argument.startsWith( "--" ) ) {
 			argument = argument.mid( 2 );
 			settings = d->longIDs.values( argument );
 		} else if ( argument.startsWith( '-' ) ) {
-			argument = argument.mid( 2 );
+			argument = argument.mid( 1 );
 			settings = d->shortIDs.values( argument );
 		} else {
 			qWarning() << "Invalid command line option:" << args[i];

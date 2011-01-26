@@ -57,7 +57,7 @@ FORMS += \
 
 DESTDIR = ../bin
 
-TARGET = MoNavC
+TARGET = monav
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
 	QMAKE_CXXFLAGS_RELEASE += -O3 \

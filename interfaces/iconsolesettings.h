@@ -48,13 +48,13 @@ public:
 		// the data type
 		// not every type is supported, look at CommandLineParser's header to see a
 		// list of supported types. Double, int and string are garantued to be supported
-		QVariant::Type type;
+		QString type;
 
 		Setting()
 		{
 		}
 
-		Setting( QString shortID, QString longID, QString description, QVariant::Type type )
+		Setting( QString shortID, QString longID, QString description, QString type )
 			: shortID( shortID ), longID( longID ), description( description), type( type )
 		{
 		}

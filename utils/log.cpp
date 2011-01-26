@@ -157,13 +157,14 @@ void Log::pushItem( QtMsgType type, QString text )
 		message += " ";
 	message += text;
 
-	if ( d->console )
-		printf( "%s\n", message.toUtf8().constData() );
-	if ( type == QtCriticalMsg || type == QtFatalMsg )
-		emit newError( text );
-
 	if ( d->disabled.contains( type ) )
 		return;
+
+	if ( d->console )
+		printf( "%s\n", message.toUtf8().constData() );
+
+	if ( type == QtCriticalMsg || type == QtFatalMsg )
+		emit newError( text );
 
 	emit newLogItem( message );
 	emit newLogItem( type, message );

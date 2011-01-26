@@ -95,18 +95,15 @@ bool PreprocessingWindow::saveSettings( QString configFile )
 		return false;
 
 	QSettings* settings;
-	if ( configFile.isEmpty() )
+	if ( configFile.isEmpty() ) {
 		settings = new QSettings( "MoNav" );
-	else
+	} else {
 		settings = new QSettings( configFile, QSettings::IniFormat );
+		settings->clear();
+	}
 
 	if ( !PluginManager::instance()->saveSettings( settings ) )
 		return false;
-
-	if ( !configFile.isEmpty() )
-		return true;
-
-	settings->beginGroup( "GUI" );
 
 	settings->setValue( "importer", m_ui->importerComboBox->currentText() );
 	settings->setValue( "router", m_ui->routerComboBox->currentText() );
@@ -114,11 +111,16 @@ bool PreprocessingWindow::saveSettings( QString configFile )
 	settings->setValue( "gpsLookup", m_ui->gpsLookupComboBox->currentText() );
 	settings->setValue( "addressLookup", m_ui->addressLookupComboBox->currentText() );
 
+	if ( !configFile.isEmpty() )
+		return true;
+
+	settings->beginGroup( "GUI" );
+
+	settings->setValue( "threads", m_ui->threads->value() );
+
 	settings->setValue( "routingModuleName", m_ui->routingName->text() );
 	settings->setValue( "renderingModuleName", m_ui->renderingName->text() );
 	settings->setValue( "addressLookupModuleName", m_ui->addressLookupName->text() );
-
-	settings->setValue( "threads", m_ui->threads->value() );
 
 	settings->setValue( "geometry", saveGeometry() );
 	settings->setValue( "splitter", m_ui->splitter->saveState() );
@@ -148,14 +150,6 @@ bool PreprocessingWindow::loadSettings( QString configFile )
 	m_ui->name->setText( pluginManager->name() );
 	m_ui->image->setText( pluginManager->image() );
 
-	delete settings;
-
-	if ( !configFile.isEmpty() )
-		return true;
-
-	settings = new QSettings( "MoNav" );
-
-	settings->beginGroup( "GUI" );
 	QString importerName = settings->value( "importer", m_ui->importerComboBox->currentText() ).toString();
 	QString routerName = settings->value( "router", m_ui->routerComboBox->currentText() ).toString();
 	QString rendererName = settings->value( "renderer", m_ui->rendererComboBox->currentText() ).toString();
@@ -167,6 +161,15 @@ bool PreprocessingWindow::loadSettings( QString configFile )
 	m_ui->rendererComboBox->setCurrentIndex( m_ui->rendererComboBox->findText( rendererName ) );
 	m_ui->gpsLookupComboBox->setCurrentIndex( m_ui->gpsLookupComboBox->findText( gpsLookupName ) );
 	m_ui->addressLookupComboBox->setCurrentIndex( m_ui->addressLookupComboBox->findText( addressLookupName ) );
+
+	delete settings;
+
+	if ( !configFile.isEmpty() )
+		return true;
+
+	settings = new QSettings( "MoNav" );
+
+	settings->beginGroup( "GUI" );
 
 	m_ui->routingName->setText( settings->value( "routingModuleName" ).toString() );
 	m_ui->renderingName->setText( settings->value( "renderingModuleName" ).toString() );

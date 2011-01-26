@@ -40,6 +40,9 @@ OSMImporter::OSMImporter()
 
 	m_mphStrings.push_back( "mph" );
 	m_mphStrings.push_back( " mph" );
+
+	m_settings.speedProfile = ":/speed profiles/motorcar.spp";
+	m_settings.languageSettings << "name";
 }
 
 void OSMImporter::setRequiredTags( IEntityReader *reader )

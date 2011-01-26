@@ -3,18 +3,19 @@
 # -------------------------------------------------
 TEMPLATE = app
 CONFIG += link_pkgconfig
-CONFIG += console
-#QT -= gui
 
 INCLUDEPATH += ..
 
 PKGCONFIG += libxml-2.0
 PKGCONFIG += protobuf
-SOURCES += ../utils/commandlineparser.cpp \
+SOURCES += main.cpp \
+	 preprocessingwindow.cpp \
+	 ../utils/commandlineparser.cpp \
 	 pluginmanager.cpp \
 	 ../utils/log.cpp \
-	 console-main.cpp
-HEADERS += interfaces/iimporter.h \
+	 ../utils/logwindow.cpp
+HEADERS += preprocessingwindow.h \
+	 interfaces/iimporter.h \
 	 utils/coordinates.h \
 	 utils/config.h \
 	 interfaces/ipreprocessor.h \
@@ -25,10 +26,12 @@ HEADERS += interfaces/iimporter.h \
 	 ../utils/commandlineparser.h \
 	 ../utils/formattedoutput.h \
 	 pluginmanager.h \
-	 ../utils/log.h
+	 ../utils/log.h \
+	 ../utils/logwindow.h
 DESTDIR = ../bin
-TARGET = monav-preprocessor
-
+TARGET = monav-preprocessor-gui
+FORMS += preprocessingwindow.ui \
+	 ../utils/logwindow.ui
 RESOURCES += images.qrc
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2

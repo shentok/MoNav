@@ -27,7 +27,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <cassert>
 #include <algorithm>
 
-QString printStringTable( QStringList table, int width = 2 )
+static QString printStringTable( QStringList table, int width = 2, QString header = "" )
 {
 	if ( table.size() % width != 0 ) {
 		qWarning() << "printTable: table size does not match width";
@@ -38,17 +38,32 @@ QString printStringTable( QStringList table, int width = 2 )
 	std::vector< int > size( width );
 	for ( int string = 0; string < table.size(); string++ ) {
 		int column = string % width;
-		size[column] = std::max( size[column], table[string].size() );
+		size[column] = std::max( size[column], table[string].size() + 3 );
 	}
+
+	int numChars = 0;
+	for ( int i = 0; i < width; i++ )
+		numChars += size[i];
+
+	header = "= " + header + " =";
+
+	QString left;
+	QString right;
+	left.fill( '=', ( numChars - header.size() ) / 2 );
+	right.fill( '=', numChars - header.size() - left.size() );
+	header = left + header + right;
 
 	QString result;
 	QTextStream stream( &result );
+	stream << header << "\n";
 	for ( int string = 0; string < table.size(); string++ ) {
 		if ( string != 0 && ( string % width ) == 0 )
 			stream << "\n";
 		QString entry = table[string];
 		stream << entry.leftJustified( size[string % width], ' ' );
 	}
+
+	return result;
 }
 
 #endif // FORMATTEDOUTPUT_H
