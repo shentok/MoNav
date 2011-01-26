@@ -232,4 +232,30 @@ bool ContractionHierarchies::ReadSettingsWindow( QWidget* window )
 
 #endif
 
+// IConsoleSettings
+QString ContractionHierarchies::GetModuleName()
+{
+	return GetName();
+}
+
+bool ContractionHierarchies::GetSettingsList( QVector< Setting >* settings )
+{
+	settings->push_back( Setting( "", "block-size", "sets block size of compressed graph to 2^x", "integer > 7" ) );
+	return true;
+}
+
+bool ContractionHierarchies::SetSetting( int id, QVariant data )
+{
+	bool ok = true;
+	switch( id ) {
+	case 0:
+		m_settings.blockSize = data.toInt( &ok );
+		break;
+	default:
+		return false;
+	}
+
+	return ok;
+}
+
 Q_EXPORT_PLUGIN2( contractionhierarchies, ContractionHierarchies )

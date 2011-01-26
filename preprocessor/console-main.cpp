@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "pluginmanager.h"
 #include "interfaces/iconsolesettings.h"
 #include "utils/log.h"
+#include "omp.h"
 
 #include <QtPlugin>
 #include <QSettings>
@@ -43,10 +44,11 @@ public:
 	Commands()
 	{
 		listPlugins = false;
-		importing = true;
+		importing = false;
 		config = false;
 		del = false;
 		verbose = false;
+		help = false;
 	}
 
 	virtual QString GetModuleName()
@@ -83,23 +85,29 @@ public:
 
 		settings->push_back( Setting( "v", "verbose", "verbose logging", "" ) );
 
+		settings->push_back( Setting( "t", "threads", "number of threads", "integer" ) );
+
+		settings->push_back( Setting( "h", "help", "displays this help page", "" ) );
+
 		return true;
 	}
 
 	virtual bool SetSetting( int id, QVariant data )
 	{
+		PluginManager* pluginManager = PluginManager::instance();
+		bool ok = true;
 		switch ( id ) {
 		case 0:
-			input = data.toString();
+			pluginManager->setInputFile( data.toString() );
 			break;
 		case 1:
-			output = data.toString();
+			pluginManager->setOutputDirectory( data.toString() );
 			break;
 		case 2:
-			name = data.toString();
+			pluginManager->setName( data.toString() );
 			break;
 		case 3:
-			image = data.toString();
+			pluginManager->setImage( data.toString() );
 			break;
 		case 4:
 			listPlugins = true;
@@ -146,21 +154,23 @@ public:
 		case 18:
 			verbose = true;
 			break;
+		case 19:
+			omp_set_num_threads( data.toInt( &ok ) );
+			break;
+		case 20:
+			help = true;
+			break;
 		default:
 			return false;
 		}
 
-		return true;
+		return ok;
 	}
 
 	virtual ~Commands()
 	{
 	}
 
-	QString input;
-	QString output;
-	QString name;
-	QString image;
 	bool listPlugins;
 	QString importer;
 	QString router;
@@ -175,6 +185,7 @@ public:
 	bool del;
 	QString settings;
 	bool verbose;
+	bool help;
 
 };
 
@@ -188,7 +199,7 @@ int main(int argc, char *argv[])
 	parser.registerDataSink( &commands );
 	if ( !parser.parse() ) {
 		a.quit();
-		return 0;
+		return -1;
 	}
 
 	Log::instance()->setMessageTypeEnabled( QtDebugMsg, commands.verbose );
@@ -208,26 +219,33 @@ int main(int argc, char *argv[])
 		QSettings settings( commands.settings, QSettings::IniFormat );
 		pluginManager->loadSettings( &settings );
 
-		if ( commands.importer.isEmpty() )
-			commands.importer = settings.value( "importer" ).toString();
-		if ( commands.router.isEmpty() )
-			commands.router = settings.value( "router" ).toString();
-		if ( commands.gpsLookup.isEmpty() )
-			commands.gpsLookup = settings.value( "gpsLookup" ).toString();
-		if ( commands.renderer.isEmpty() )
-			commands.renderer = settings.value( "renderer" ).toString();
-		if ( commands.addressLookup.isEmpty() )
-			commands.addressLookup = settings.value( "addressLookup" ).toString();
+		commands.importer = settings.value( "importer" ).toString();
+		commands.router = settings.value( "router" ).toString();
+		commands.gpsLookup = settings.value( "gpsLookup" ).toString();
+		commands.renderer = settings.value( "renderer" ).toString();
+		commands.addressLookup = settings.value( "addressLookup" ).toString();
 	}
 
-	if ( !commands.input.isEmpty() )
-		pluginManager->setInputFile( commands.input );
-	if ( !commands.output.isEmpty() )
-		pluginManager->setOutputDirectory( commands.output );
-	if ( !commands.name.isEmpty() )
-		pluginManager->setName( commands.name );
-	if ( commands.image.isEmpty() )
-		pluginManager->setImage( commands.image );
+	// parse a second time including all plugins
+	// otherwise console settings would be overwritten by the settings file
+	QVector< QObject* > plugins = pluginManager->plugins();
+	foreach( QObject* plugin, plugins ) {
+		IConsoleSettings* settings = qobject_cast< IConsoleSettings* >( plugin );
+		if ( settings!= NULL ) {
+			parser.registerDataSink( settings );
+		}
+	}
+
+	if ( !parser.parse() ) {
+		a.quit();
+		return -1;
+	}
+
+	if ( commands.help ) {
+		parser.displayHelp();
+		a.quit();
+		return 0;
+	}
 
 	if ( commands.config ) {
 		if ( !pluginManager->writeConfig() ) {

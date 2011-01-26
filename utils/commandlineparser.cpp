@@ -43,7 +43,6 @@ struct CommandLineParser::PrivateImplementation {
 	QMultiHash< QString, Location > shortIDs;
 	QMultiHash< QString, Location > longIDs;
 
-	void displayHelp();
 	QVector< QStringList > helpList;
 	QStringList helpHeaders;
 };
@@ -74,10 +73,6 @@ void CommandLineParser::registerDataSink( IConsoleSettings *dataSink )
 
 	// add settings
 	for ( int id = 0; id < settings.size(); id++ ) {
-		if ( settings[id].longID == "--help" ) {
-			qWarning() << "--help already registered for the internal help display";
-			continue;
-		}
 		if ( !settings[id].shortID.isEmpty() )
 			d->shortIDs.insert( settings[id].shortID, Location( dataSink, id ) );
 		d->longIDs.insert( settings[id].longID, Location( dataSink, id ) );
@@ -104,11 +99,12 @@ void CommandLineParser::clean()
 	d->longIDs.clear();
 }
 
-void CommandLineParser::PrivateImplementation::displayHelp()
+bool CommandLineParser::displayHelp()
 {
-	for ( int i = 0; i < this->helpList.size(); i++ ) {
-		printf( "%s\n\n", printStringTable( helpList[i], 4, helpHeaders[i] ).toUtf8().constData() );
+	for ( int i = 0; i < d->helpList.size(); i++ ) {
+		printf( "%s\n\n", printStringTable( d->helpList[i], 4, d->helpHeaders[i] ).toUtf8().constData() );
 	}
+	return true;
 }
 
 bool CommandLineParser::parse()
@@ -122,11 +118,6 @@ bool CommandLineParser::parse()
 		if ( separatorIndex != -1 ) {
 			data = argument.mid( separatorIndex + 1 );
 			argument = argument.left( separatorIndex );
-		}
-
-		if ( argument == "--help" ) {
-			d->displayHelp();
-			return false;
 		}
 
 		// long or short setting?

@@ -46,6 +46,8 @@ public:
 	// or if a ambigious setting was used
 	bool parse();
 
+	bool displayHelp();
+
 private:
 
 	struct PrivateImplementation;
