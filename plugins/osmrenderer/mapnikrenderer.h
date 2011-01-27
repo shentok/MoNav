@@ -25,16 +25,19 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QVector>
 #include "interfaces/ipreprocessor.h"
 #include "interfaces/iguisettings.h"
+#include "interfaces/iconsolesettings.h"
 
 class MapnikRenderer :
 		public QObject,
 #ifndef NOGUI
 		public IGUISettings,
 #endif
+		public IConsoleSettings,
 		public IPreprocessor
 {
 	Q_OBJECT
 	Q_INTERFACES( IPreprocessor )
+	Q_INTERFACES( IConsoleSettings )
 #ifndef NOGUI
 	Q_INTERFACES( IGUISettings )
 #endif
@@ -74,6 +77,11 @@ public:
 	virtual bool FillSettingsWindow( QWidget* window );
 	virtual bool ReadSettingsWindow( QWidget* window );
 #endif
+
+	// IConsoleSettings
+	virtual QString GetModuleName();
+	virtual bool GetSettingsList( QVector< Setting >* settings );
+	virtual bool SetSetting( int id, QVariant data );
 
 protected:
 

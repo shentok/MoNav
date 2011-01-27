@@ -407,4 +407,29 @@ bool MapnikRenderer::ReadSettingsWindow( QWidget* window )
 }
 #endif
 
+// IConsoleSettings
+QString MapnikRenderer::GetModuleName()
+{
+	return GetName();
+}
+
+bool MapnikRenderer::GetSettingsList( QVector< Setting >* settings )
+{
+	settings->push_back( Setting( "", "mapnik-theme", "mapnik theme file", "filename" ) );
+	return true;
+}
+
+bool MapnikRenderer::SetSetting( int id, QVariant data )
+{
+	switch( id ) {
+	case 0:
+		m_settings.theme = data.toString();
+		break;
+	default:
+		return false;
+	}
+
+	return true;
+}
+
 Q_EXPORT_PLUGIN2( mapnikrenderer, MapnikRenderer )

@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
 	Commands commands;
 
 	parser.registerDataSink( &commands );
-	if ( !parser.parse() ) {
+	if ( !parser.parse( true ) ) {
 		a.quit();
 		return -1;
 	}

@@ -44,7 +44,7 @@ public:
 	// tries to parse command line arguments
 	// will fail if a data sink fails to set a settings
 	// or if a ambigious setting was used
-	bool parse();
+	bool parse( bool ignoreMissing = false );
 
 	bool displayHelp();
 

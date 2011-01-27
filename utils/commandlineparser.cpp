@@ -107,7 +107,7 @@ bool CommandLineParser::displayHelp()
 	return true;
 }
 
-bool CommandLineParser::parse()
+bool CommandLineParser::parse( bool ignoreMissing )
 {
 	QStringList args = QCoreApplication::arguments();
 	for ( int i = 1; i < args.size(); i++ ) {
@@ -135,6 +135,9 @@ bool CommandLineParser::parse()
 
 		// setting available and uniquely identifiable?
 		if ( settings.empty() ) {
+			if ( ignoreMissing )
+				continue;
+
 			qWarning() << "Invalid command line option:" << args[i];
 			return false;
 		}

@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmlreader.h"
 #include "pbfreader.h"
 #include "utils/qthelpers.h"
+#include "utils/formattedoutput.h"
 #include <algorithm>
 #include <QtDebug>
 #include <QSettings>
@@ -1876,5 +1877,55 @@ bool OSMImporter::ReadSettingsWindow( QWidget* window )
 	return settings->fillSettings( &m_settings );
 }
 #endif
+
+// IConsoleSettings
+QString OSMImporter::GetModuleName()
+{
+	return GetName();
+}
+
+bool OSMImporter::GetSettingsList( QVector< Setting >* settings )
+{
+	settings->push_back( Setting( "", "profile", "build in speed profile", "speed profile name" ) );
+	settings->push_back( Setting( "", "profile-file", "read speed profile from file", "speed profile filename" ) );
+	settings->push_back( Setting( "", "list-profiles", "lists build in speed profiles", "" ) );
+	settings->push_back( Setting( "", "add-language", "adds a language to the language list", "name[:XXX]" ) );
+
+	return true;
+}
+
+bool OSMImporter::SetSetting( int id, QVariant data )
+{
+	switch( id ) {
+	case 0:
+		m_settings.speedProfile = ":/speed profiles/" + data.toString() + ".spp";
+		break;
+	case 1:
+		m_settings.speedProfile = data.toString();
+		break;
+	case 2:
+		{
+			QDir dir( ":speed profiles/" );
+			dir.setNameFilters( QStringList( "*.spp" ) );
+			QStringList profiles = dir.entryList( QDir::Files, QDir::Name );
+			profiles.replaceInStrings( ".spp", "" );
+			printf( "%s\n\n", printStringTable( profiles, 1, "Speed Profiles" ).toUtf8().constData() );
+			break;
+		}
+	case 3:
+		{
+			QString language = data.toString();
+			if ( !language.startsWith( "name" ) ) {
+				qCritical() << "language entry has to start with \"name\"";
+				return false;
+			}
+			m_settings.languageSettings.push_back( language );
+		}
+	default:
+		return false;
+	}
+
+	return true;
+}
 
 Q_EXPORT_PLUGIN2( osmimporter, OSMImporter )
