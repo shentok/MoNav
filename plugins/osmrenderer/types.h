@@ -19,6 +19,7 @@ enum osm_type_t {
     AREA_RETAIL =          15,
     AREA_INDUSTRIAL =      16,
     AREA_PARKING =         16,
+    AREA_BUILDING =        17,
    
     HW_PEDESTRIAN =       101,
     HW_PATH =             102,

@@ -36,6 +36,20 @@ quadtile mux(quadtile x, quadtile y)
     return t;
 }
 
+void demux(quadtile tile, quadtile *x, quadtile *y)
+{
+    *x = 0; *y = 0;
+    for(int i=0;i<31;i++) {
+    //binary_printf(tile); binary_printf(*x); binary_printf(*y);printf("\n");
+        (*y) <<= 1; (*x) <<= 1;
+        if(tile & (1ULL<<61)) (*x)|=1;
+        tile <<= 1;
+        if(tile & (1ULL<<61)) (*y)|=1;
+        tile <<= 1;
+    }
+    //binary_printf(tile); binary_printf(*x); binary_printf(*y);printf("\n");
+}
+
 /* Store a pair of doubles in the range (0.0->1.0) as integers with alternating
    binary bits */
 quadtile xy2q(double fx, double fy)
@@ -77,20 +91,6 @@ unsigned char *l2buf(unsigned long l)
         l >>= 8;
     }
     return result;
-}
-
-void demux(quadtile tile, quadtile *x, quadtile *y)
-{
-    *x = 0; *y = 0;
-    for(int i=0;i<31;i++) {
-    //binary_printf(tile); binary_printf(*x); binary_printf(*y);printf("\n");
-        (*y) <<= 1; (*x) <<= 1;
-        if(tile & (1ULL<<61)) (*x)|=1;
-        tile <<= 1;
-        if(tile & (1ULL<<61)) (*y)|=1;
-        tile <<= 1;
-    }
-    //binary_printf(tile); binary_printf(*x); binary_printf(*y);printf("\n");
 }
 
 /* Horrible name! Assume a line drawn between q1 and q2.

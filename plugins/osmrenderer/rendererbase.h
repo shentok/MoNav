@@ -27,7 +27,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils/coordinates.h"
 #include "brsettingsdialog.h"
 
-class RendererBase : public QObject, IRenderer
+class RendererBase : public QObject, public IRenderer
 {
 	Q_OBJECT
 	Q_INTERFACES( IRenderer )

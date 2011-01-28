@@ -94,6 +94,7 @@ struct WriteRule write_rules[] = {
 {AREA_RETAIL,      AREA_RETAIL,      POLY, 6, 20, 0xde, 0xd1, 0xd5, -1,NO_PASS},
 {AREA_PARKING,     AREA_PARKING,     POLY, 6, 20, 0xf7, 0xef, 0xb7, -1,NO_PASS},
 {AREA_INDUSTRIAL,  AREA_INDUSTRIAL,  POLY, 6, 20, 0xdf, 0xd1, 0xd6, -1,NO_PASS},
+{AREA_BUILDING,    AREA_BUILDING,    POLY, 6, 20, 0xbc, 0xa9, 0xa9, -1,NO_PASS},
 {DONE, DONE, 0, -1, -1, NO_PASS, NO_PASS }
 };
 
@@ -130,19 +131,20 @@ struct coord {
 };
 class Way {
   public:
-    Way() {};
+    Way() {ncoords=0;};
     bool init(FILE *fp);
     void print();
     bool draw(ImgWriter &img, unsigned long tilex, unsigned long tiley,
 				  int zoom, int magnification, int pass);
-  //private:
-    std::vector<coord> coords;
+    static bool sort_by_type(Way w1, Way w2) {return w1.type<w2.type;};
+    static void new_tile() {allcoords.clear();};
     osm_type_t type;
-
-    static bool sort_by_type(Way *w1, Way *w2) {return w1->type<w2->type;};
   private:
-    unsigned long namep;
+    int coordi, ncoords;
+    static std::vector<coord> allcoords; //Coords for all loaded ways.
 };
+
+std::vector<coord> Way::allcoords;
 
 //Initialise a way from the database. fp has been seeked to the start of the
 //way we wish to read.
@@ -157,11 +159,13 @@ bool Way::init(FILE *fp)
     type = (osm_type_t) buf[0];
     int nqtiles = (((int) buf[1]) << 8) | buf[2];
 
-    coords.clear();
     coord c;
     c.x = buf2l(buf+3);
     c.y = buf2l(buf+7);
-    coords.push_back(c);
+    coordi = allcoords.size();
+    ncoords = 1;
+    allcoords.push_back(c);
+    
 
     //Add the cordinates
     for(int i=1;i<nqtiles;i++) {
@@ -174,7 +178,8 @@ bool Way::init(FILE *fp)
         dx -= 1<<19; dy -= 1<<19;
         c.x += (dx);
         c.y += (dy);
-        coords.push_back(c);
+        allcoords.push_back(c);
+        ncoords++;
     }
     return true;
 }
@@ -207,12 +212,14 @@ bool Way::draw(ImgWriter &img, unsigned long tilex, unsigned long tiley,
     
     ImgWriter::coord *c=NULL;
     if(flags==POLY) {
-        c = new ImgWriter::coord[coords.size()];
+        c = new ImgWriter::coord[ncoords];
     }
     int j=0;
-    for(std::vector<coord>::iterator i=coords.begin(); i!=coords.end();i++){
+    for(std::vector<coord>::iterator i=allcoords.begin() + coordi;
+        i!=allcoords.begin() + coordi + ncoords; i++){
         int newx, newy;
-        if(zoom<10 && i!=coords.begin()) i = coords.end()-1;
+        if(zoom<10 && i!=allcoords.begin() + coordi)
+            i = allcoords.begin() + coordi + ncoords -1;
         //The coords are in the range 0 to 1ULL<<31
         //We want to divide by 2^31 and multiply by 2^zoom and multiply
         //by 2^8 (=256 - the no of pixels in a tile) to get to pixel
@@ -225,14 +232,14 @@ bool Way::draw(ImgWriter &img, unsigned long tilex, unsigned long tiley,
         newy = (long) ((i->y) >> (31-8-zoom)) - (long) (tiley >> (31-8-zoom));
 		  newx *= magnification;
 		  newy *= magnification;
-        if(flags!=POLY && i!=coords.begin()) {
+        if(flags!=POLY && i!=allcoords.begin() + coordi) {
             img.DrawLine(oldx, oldy, newx, newy);
         }
         if(flags==POLY) {c[j].x = newx; c[j++].y = newy;}
         oldx=newx; oldy=newy;
     }
     if(flags==POLY) {
-        img.FillPoly(c, coords.size());
+        img.FillPoly(c, ncoords);
         delete [] c;
     }
     return true;
@@ -356,13 +363,14 @@ long qindex::get_index(quadtile _q, int _level, int *_nways)
     return offset;
 }
 
-TileWriter::TileWriter(const std::string &_filename, const std::string &_filename2)
+TileWriter::TileWriter(const std::string &_filename, const std::string &_filename2, const std::string &_filename3)
 {
     img = new ImgWriter;
-    filename[0] = _filename; filename[1]=_filename2;
-    for(int i=0;i<2;i++) {
+    filename[0] = _filename; filename[1]=_filename2; filename[2] = _filename3;
+    for(int i=0;i<3;i++) {
         db[i] = fopen(filename[i].c_str(), "rb");
         qidx[i] = qindex::load(db[i]);
+        printf("Opening %s\n", filename[i].c_str());
     }
 }
 
@@ -382,6 +390,31 @@ bool TileWriter::need_next_pass(int type1, int type2)
     return true;
 }
 
+//For tile x/y/zoom use the index to seek to the relavent part of the db file,
+//and return in nways the number of ways needed to load. Factored out from
+//draw_image() as it's also needed for place names.
+bool TileWriter::query_index(int x, int y, int zoom, int cur_db, int *nways)
+{
+    if(!db[cur_db]) return false;
+    //Work out which quadtile to load.
+    long z = 1UL << zoom;
+    double xf = ((double)x)/z;
+    double yf = ((double)y)/z;
+    quadtile qmask, q;
+    qmask = 0x3FFFFFFFFFFFFFFFLL >> ((zoom>qidx[cur_db]->max_safe_zoom ? qidx[cur_db]->max_safe_zoom : zoom)*2);
+    //binary_printf(qmask); binary_printf(q);
+    q = xy2q(xf, yf);
+
+    Log(LOG_VERBOSE, "Finding seek point\n");
+    //Seek to the relevant point in the db.
+    long offset = qidx[cur_db]->get_index(q & ~qmask, zoom, nways);
+    if(offset==-1 || fseek(db[cur_db], offset, SEEK_SET)==-1) {
+        Log(LOG_ERROR, "Failed to find index\n");
+        return false;
+    }
+    return true;
+}
+
 //The main entry point into the class. Draw the map tile described by x, y
 //and zoom, and save it into _imgname if it is not an empty string. The tile
 //is held in memory and the raw image data can be accessed by get_img_data()
@@ -390,49 +423,27 @@ bool TileWriter::draw_image(const std::string &_imgname, int x, int y, int zoom,
     TIMELOGINIT("Draw_image");
     //FILE *fp = fopen(filename.c_str(), "rb");
     int current_db = zoom>12 ? 0 : 1;
-    if(!db[current_db]) return false;
     Log(LOG_DEBUG, "Write %s, %d, %d, %d\n", _imgname.c_str(), x, y, zoom);
 
-    //Work out which quadtile to load.
-    long z = 1UL << zoom;
-    double xf = ((double)x)/z;
-    double yf = ((double)y)/z;
-    //unsigned long itilex = xf * (1UL<<31), itiley = yf * (1UL<<31);
-    unsigned long itilex = x << (31-zoom), itiley = y << (31-zoom);
-    quadtile qmask, q;
-    qmask = 0x3FFFFFFFFFFFFFFFLL >> ((zoom>qidx[current_db]->max_safe_zoom ? qidx[current_db]->max_safe_zoom : zoom)*2);
-    //binary_printf(qmask); binary_printf(q);
-    q = xy2q(xf, yf);
-
-    TIMELOG("Setup");
-    Log(LOG_VERBOSE, "Finding seek point\n");
-    //Seek to the relevant point in the db.
     int nways;
-    long offset = qidx[current_db]->get_index(q & ~qmask, zoom, &nways);
-    if(offset==-1 || fseek(db[current_db], offset, SEEK_SET)==-1) {
-        Log(LOG_ERROR, "Failed to find index\n");
-        return false;
-    }
-    TIMELOG("DB seeking");
+    if(!query_index(x, y, zoom, current_db, &nways)) return false;
 
     //Initialise the image.
-    Log(LOG_VERBOSE, "Seek point %ld (%d ways)\nInitialising image\n", offset, nways);
-	 img->NewImage(256 * magnification, 256 * magnification, _imgname);
+    Log(LOG_VERBOSE, "Initialising image\n");
+    img->NewImage(256 * magnification, 256 * magnification, _imgname);
     img->SetBG(242, 238, 232);
     TIMELOG("Image initialisation");
 
     //load the ways.
+    Way::new_tile();
     Log(LOG_VERBOSE, "Loading ways\n");
     Way s;
-    typedef std::vector<Way *> WayList;
+    typedef std::vector<Way> WayList;
     WayList waylist;
 
     for(int i=0; i<nways;i++) {
-        Way *s = new Way;
-        if(!s->init(db[current_db])) {
-            delete s;
-            break;
-        }
+        Way s;
+        if(!s.init(db[current_db])) continue;
         waylist.push_back(s);
     }
     TIMELOG("Loading ways");
@@ -449,24 +460,25 @@ bool TileWriter::draw_image(const std::string &_imgname, int x, int y, int zoom,
     std::sort(waylist.begin(), waylist.end(), Way::sort_by_type);
     TIMELOG("Sorting ways");
     
+    unsigned long itilex = x << (31-zoom), itiley = y << (31-zoom);
     //This is a pain. We have to do both passes of one type before moving on to
     //the next type.
     Log(LOG_VERBOSE, "Drawing ways\n");
-    int current_type = (*waylist.begin())->type;
-    std::vector<Way *>::iterator cur_type_start, i, j;
+    int current_type = waylist.begin()->type;
+    std::vector<Way>::iterator cur_type_start, i, j;
     cur_type_start = waylist.begin();
     for(i=waylist.begin(); i!=waylist.end(); i++) {
-        if(need_next_pass((*i)->type, current_type)) { //Do the second pass.
+        if(need_next_pass(i->type, current_type)) { //Do the second pass.
             for(j=cur_type_start; j!=i; j++) 
-					 if(!(*j)->draw(*img, itilex, itiley, zoom, magnification, 1)) break;
-            current_type = (*i)->type;
+                if(!j->draw(*img, itilex, itiley, zoom, magnification, 1)) break;
+            current_type = i->type;
             cur_type_start = i;
         }
-		  (*i)->draw(*img, itilex, itiley, zoom, magnification, 0);
+        i->draw(*img, itilex, itiley, zoom, magnification, 0);
     }
     //Do second pass for the last type.
     for(j=cur_type_start; j!=waylist.end(); j++)
-		  if(!(*j)->draw(*img, itilex, itiley, zoom, magnification, 1)) break;;
+        if(!j->draw(*img, itilex, itiley, zoom, magnification, 1)) break;
     TIMELOG("Drawing");
     
     Log(LOG_VERBOSE, "Saving img\n");
@@ -474,10 +486,48 @@ bool TileWriter::draw_image(const std::string &_imgname, int x, int y, int zoom,
     Log(LOG_VERBOSE, "Done\n");
     TIMELOG("Saving");
     
-    for(i=waylist.begin();i!=waylist.end();i++) delete *i;
+    //for(i=waylist.begin();i!=waylist.end();i++) delete *i;
     TIMELOG("Cleanup");
     printf("Drew %d/%d ways\n", g_ndrawnways, g_nways);
     return true;
+}
+
+//x,y,zoom refer to an osm map tile. Return all placenames within this
+//tile. The data will be drawn at actualzoom, so adjust tilex/tiley and
+//select which places to draw based on this.
+void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
+         std::vector<struct placename> &result)
+{
+
+    int placenamedb = 2;
+    int nways;
+    if(!query_index(x, y, zoom, placenamedb, &nways)) return;
+    char buf[256];
+    unsigned char ubuf[10];
+    for(int i=0; i<nways;i++) {
+        fread(ubuf, 10, 1, db[placenamedb]);
+
+        struct placename p;
+        p.type = ubuf[9];
+        int namelen = ubuf[8];
+        quadtile q = buf2ll(ubuf);
+        quadtile x, y;
+        demux(q, &x, &y);
+        p.tilex = (double) x / (double) (1ULL<<(31-actualzoom));
+        p.tiley = (double) y / (double) (1ULL<<(31-actualzoom));
+
+        fread(buf, namelen, 1, db[placenamedb]);
+
+        buf[namelen]=0;
+        if(p.type>=5 && actualzoom<16) continue; //ignore hamlets
+        if(p.type>=4 && actualzoom<15) continue; //and suburbs
+        if(p.type>=3 && actualzoom<14) continue; //and stations
+        if(p.type>=2 && actualzoom<13) continue; //and villages
+        if(p.type>=1 && actualzoom<11) continue;  //and towns
+
+        p.name = std::string(buf);
+        result.push_back(p);
+    }
 }
 
 //Stuff for ease of profiling

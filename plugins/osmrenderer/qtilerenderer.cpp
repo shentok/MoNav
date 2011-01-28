@@ -152,6 +152,10 @@ struct osm_subrule_t natural_rules[] = {
  {"field",             AREA_FIELD},
  {0, DONE}
 };
+struct osm_subrule_t building_rules[] = {
+ {"yes",              AREA_BUILDING},
+ {0, DONE}
+};
 struct osm_subrule_t highway_rules[] = {
  { "pedestrian",       HW_PEDESTRIAN },
  { "path",             HW_PATH },
@@ -187,6 +191,7 @@ struct osm_rules_t osm_rules[] = {
   {"tourism", tourism_rules},
   {"military", military_rules},
   {"natural", natural_rules},
+  {"building", building_rules},
   {"highway", highway_rules},
   {0, 0}
 };
@@ -203,6 +208,7 @@ class osm_way {
 	 vector<struct projectedxy> nodes;
 	 unsigned long offset;
 	 unsigned char m_type;
+	 std::string name;
 	 quadtile _q; //The point that will be used to insert this way in the index.
 
 	 int store(list<class osm_way *> &wlist, int splitlevel,
@@ -608,11 +614,21 @@ struct node {
 	 unsigned long x, y;
 };
 
+class placename {
+  public:
+	 enum {CITY=0, TOWN=1, VILLAGE=2, STATION=3, SUBURB=4, HAMLET=5}  type;
+	 quadtile position;
+	 QString name;
+	 static bool sorter(const placename &p1, const placename &p2)
+		{return (p1.position<p2.position);};
+};
+
 class OSMReader {
   public:
 	 OSMReader() {};
 	 bool load(const QString &filename);
 	 list<class osm_way *> &get_ways() {return ways;};
+	 vector<placename> &get_places() {return placenames;};
 	 void delete_non_motorways();
 	 void delete_ways();
 
@@ -626,6 +642,7 @@ class OSMReader {
 
 	 vector<struct node> nodes;
 	 list<class osm_way *> ways;
+    vector<placename> placenames;
 };
 
 bool OSMReader::load(const QString &filename)
@@ -640,6 +657,9 @@ bool OSMReader::load(const QString &filename)
 	 TIMELOG("sorting ways");
 	 ways.sort(osm_way::sorter);
 	 //std::sort(ways.begin(), ways.end(), osm_way::sorter);
+
+	 TIMELOG("sorting places");
+	 std::sort(placenames.begin(), placenames.end(), placename::sorter);
 
 	 return true;
 }
@@ -664,9 +684,15 @@ bool OSMReader::load_xml(const QString &filename)
 	 }
 
 	 QStringList list;
+	 list.push_back("name");
 	 for(osm_rules_t *rule=osm_rules; rule->subrules;rule++)
 		  list.push_back(rule->key);
 	 reader->setWayTags(list);
+	 list.clear();
+	 list.push_back("place");
+	 list.push_back("name");
+	 list.push_back("railway");
+	 reader->setNodeTags(list);
 
 	 IEntityReader::EntityType etype;
 	 bool first_way=true;
@@ -716,7 +742,8 @@ void OSMReader::add_way(IEntityReader::Way &way)
 				i!=way.tags.end(); i++) {
 		  std::string s(i->value.toAscii());
 		  if(!s.size()) continue;
-		  tagMap[osm_rules[i->key].key] = s;
+		  if(i->key) tagMap[osm_rules[i->key - 1].key] = s;
+		  else tagMap["name"] = s;
 	 }
 	 for(osm_rules_t *rules=osm_rules; rules->subrules && !w->m_type;rules++) {
 		  const char *key = rules->key;
@@ -753,6 +780,36 @@ void OSMReader::add_node(IEntityReader::Node &node)
 	 n.x = n.x & (~0xFULL);
 	 n.y = n.y & (~0xFULL);
 	 nodes.push_back(n);
+
+std::map<QString, QString> tagMap;
+	 for(std::vector<IEntityReader::Tag>::iterator i = node.tags.begin();
+				i!=node.tags.end(); i++) {
+		  if(!i->value.size()) continue;
+		  switch(i->key) {
+		  case 0:
+				tagMap["place"] = i->value;
+				break;
+		  case 1:
+				tagMap["name"] = i->value;
+				break;
+		  case 2:
+				tagMap["railway"] = i->value;
+				break;
+		  }
+	 }
+	 if((tagMap["place"].size() > 0 || tagMap["railway"]=="station")
+		  && tagMap["name"].size() > 0) {
+		  placename place;
+		  if(tagMap["place"]=="city") place.type = placename::CITY;
+		  else if(tagMap["place"]=="town") place.type = placename::TOWN;
+		  else if(tagMap["place"]=="village") place.type = placename::VILLAGE;
+		  else if(tagMap["place"]=="suburb") place.type = placename::SUBURB;
+		  else if(tagMap["place"]=="hamlet") place.type = placename::HAMLET;
+		  else if(tagMap["railway"]=="station") place.type = placename::STATION;
+		  place.name = tagMap["name"];
+		  place.position = mux(n.x, n.y);
+		  placenames.push_back(place);
+	 }
 }
 
 /*This gets a node by id from the nodes list. Assume no nodes are added
@@ -786,11 +843,11 @@ bool OSMReader::get_node(int id, unsigned long *x, unsigned long *y)
 
 void OSMReader::delete_non_motorways()
 {
-	 for(list<class osm_way *>::iterator i = ways.begin(); i!=ways.end(); i++) {
-	while(i!=ways.end() && !(*i)->is_worth_saving(true)) {
-		delete *i;
-		i=ways.erase(i);
-	}
+	for(list<class osm_way *>::iterator i = ways.begin(); i!=ways.end(); i++) {
+	    while(i!=ways.end() && !(*i)->is_worth_saving(true)) {
+		    delete *i;
+		    i=ways.erase(i);
+	    }
 
 		  //We're keeping the way. Instead, delete any intermediate points
 		  //which are too close together to bother with. FIXME not implemented
@@ -871,6 +928,8 @@ bool QtileRenderer::Preprocess( IImporter*, QString dir )
 		  TIMELOG("Deleting non motorways");
 		  m_osr->delete_non_motorways();
 		  write_ways(dir, true);
+		  TIMELOG("Writing place names");
+		  write_placenames(dir);
 		  TIMELOGDONE;
 		  m_osr->delete_ways();
 		  fprintf(stderr, "Qtile renderer preprocessing: done\n");
@@ -932,6 +991,47 @@ void QtileRenderer::write_ways(QString &dir, bool motorway)
 	free(buf);
 	 fclose(way_fp);
 }
+
+void QtileRenderer::write_placenames(QString &dir)
+{
+	long file_offset = 0;
+	qindexTree qidx;
+	for(vector<placename>::iterator i = m_osr->get_places().begin();
+		i!=m_osr->get_places().end(); i++) {
+		int len = i->name.size();
+		if(len>100) len=100;
+		qidx.addIndex(i->position, file_offset);
+		file_offset += len+10;
+	}
+	QString outfile = dir;
+	outfile += "/places.pqdb";
+	FILE *place_fp = fopen(outfile.toAscii(), "wb");
+	char buf[115];
+	time_t t;
+	time(&t);
+	struct tm *_tm = gmtime(&t);
+	sprintf(buf, "%s depth=%d places %04d-%02d-%02d\n", DB_VERSION, 
+		g_waysplit_tiledepth, _tm->tm_year+1900, _tm->tm_mon+1,
+		_tm->tm_mday);
+	fprintf(place_fp, "%s", buf);
+
+	qidx.increase_offsets(strlen(buf));
+	qidx.print(place_fp);
+	qidx.deleteRecursive();
+
+	for(vector<placename>::iterator i = m_osr->get_places().begin();
+		i!=m_osr->get_places().end(); i++) {
+		memcpy(buf, ll2buf(i->position), 8);
+		int len = i->name.size();
+		if(len>100) len=100;
+		buf[8] = len>100 ? 100 : len;
+		buf[9] = (unsigned char) i->type;
+		strncpy(buf+10, i->name.toAscii(), 100);
+		fwrite(buf, len+10, 1, place_fp);
+	}
+	fclose(place_fp);
+}
+
 
 #ifndef NOGUI
 bool QtileRenderer::GetSettingsWindow( QWidget** window )

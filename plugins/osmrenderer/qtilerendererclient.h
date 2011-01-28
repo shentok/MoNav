@@ -23,6 +23,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QObject>
 #include "brsettingsdialog.h"
 #include "rendererbase.h"
+#include "interfaces/irenderer.h"
+#include <map>
 
 class QtileRendererClient : public RendererBase
 {
@@ -34,6 +36,7 @@ public:
 	virtual QString GetName();
 	virtual bool IsCompatible( int fileFormatVersion );
 	virtual int GetMaxZoom();
+        virtual bool Paint( QPainter* painter, const IRenderer::PaintRequest& request );
 
 signals:
 	void abort();
@@ -46,6 +49,9 @@ protected:
 
 	int tileSize;
         class TileWriter *twriter;
+        typedef std::map<long long, struct place_cache_e*> place_cache_t;
+        place_cache_t place_cache;
+        int place_cache_zoom;
 };
 
 #endif // QTILERENDERER_H
