@@ -806,6 +806,7 @@ std::map<QString, QString> tagMap;
 		  else if(tagMap["place"]=="suburb") place.type = placename::SUBURB;
 		  else if(tagMap["place"]=="hamlet") place.type = placename::HAMLET;
 		  else if(tagMap["railway"]=="station") place.type = placename::STATION;
+		  else return;
 		  place.name = tagMap["name"];
 		  place.position = mux(n.x, n.y);
 		  placenames.push_back(place);
