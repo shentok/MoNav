@@ -25,6 +25,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QSettings>
+#include <QtDebug>
 
 MapDataWidget::MapDataWidget( QWidget *parent ) :
 		QDialog( parent ),
@@ -97,6 +98,9 @@ int MapDataWidget::exec( bool autoLoad )
 			int routingIndex = findModule( m_routingModules, m_lastRoutingModule );
 			int renderingIndex = findModule( m_renderingModules, m_lastRenderingModule );
 			int addressLookupIndex = findModule( m_addressLookupModules, m_lastAddressLookupModule );
+			m_ui->routing->setCurrentIndex( routingIndex );
+			m_ui->rendering->setCurrentIndex( renderingIndex );
+			m_ui->addressLookup->setCurrentIndex( addressLookupIndex );
 			if ( routingIndex != -1 &&
 				  renderingIndex != -1 &&
 				  addressLookupIndex != -1 &&
