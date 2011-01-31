@@ -6,6 +6,8 @@ CONFIG += link_pkgconfig
 
 INCLUDEPATH += ..
 
+DEFINES+=_7ZIP_ST
+
 PKGCONFIG += libxml-2.0
 PKGCONFIG += protobuf
 SOURCES += main.cpp \
@@ -13,7 +15,10 @@ SOURCES += main.cpp \
 	 ../utils/commandlineparser.cpp \
 	 pluginmanager.cpp \
 	 ../utils/log.cpp \
-	 ../utils/logwindow.cpp
+	 ../utils/logwindow.cpp \
+	 ../utils/lzma/LzmaEnc.c \
+	 ../utils/lzma/LzFind.c \
+    ../utils/directorypacker.cpp
 HEADERS += preprocessingwindow.h \
 	 interfaces/iimporter.h \
 	 utils/coordinates.h \
@@ -27,7 +32,12 @@ HEADERS += preprocessingwindow.h \
 	 ../utils/formattedoutput.h \
 	 pluginmanager.h \
 	 ../utils/log.h \
-	 ../utils/logwindow.h
+	 ../utils/logwindow.h \
+	 ../utils/lzma/Types.h \
+	 ../utils/lzma/LzmaEnc.h \
+	 ../utils/lzma/LzHash.h \
+	 ../utils/lzma/LzFind.h \
+    ../utils/directorypacker.h
 DESTDIR = ../bin
 TARGET = monav-preprocessor-gui
 FORMS += preprocessingwindow.ui \

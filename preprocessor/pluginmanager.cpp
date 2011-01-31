@@ -24,6 +24,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "interfaces/iimporter.h"
 #include "interfaces/ipreprocessor.h"
 #include "utils/qthelpers.h"
+#include "utils/directorypacker.h"
 #include <QPluginLoader>
 #include <QDir>
 #include <QCoreApplication>
@@ -52,6 +53,7 @@ struct PluginManager::PrivateImplementation {
 	QString outputDirectory;
 	QString name;
 	QString image;
+	bool packaging;
 
 	QFuture< bool > processingFuture;
 	QFutureWatcher< bool > processingWatcher;
@@ -89,6 +91,7 @@ int PluginManager::PrivateImplementation::findPlugin( QVector< IPlugin > plugins
 PluginManager::PluginManager()
 {
 	d = new PrivateImplementation;
+	d->packaging = false;
 	connect( &d->processingWatcher, SIGNAL(finished()), this, SLOT(finish()) );
 }
 PluginManager::~PluginManager()
@@ -253,6 +256,11 @@ QString PluginManager::outputDirectory()
 	return d->outputDirectory;
 }
 
+bool PluginManager::packaging()
+{
+	return d->packaging;
+}
+
 // waits until all current processing step is finished
 void PluginManager::waitForFinish()
 {
@@ -286,6 +294,11 @@ void PluginManager::setOutputDirectory( QString directory )
 	d->outputDirectory = directory;
 }
 
+void PluginManager::setPackaging( bool enabled )
+{
+	d->packaging = enabled;
+}
+
 // saves settings
 bool PluginManager::saveSettings( QSettings* settings )
 {
@@ -293,6 +306,7 @@ bool PluginManager::saveSettings( QSettings* settings )
 	settings->setValue( "output", d->outputDirectory );
 	settings->setValue( "name", d->name );
 	settings->setValue( "image", d->image );
+	settings->setValue( "packaging", d->packaging );
 
 	foreach ( IImporter* plugin, d->importerPlugins ) {
 		if ( !plugin->SaveSettings( settings ) )
@@ -325,6 +339,7 @@ bool PluginManager::loadSettings( QSettings* settings )
 	d->outputDirectory = settings->value( "output" ).toString();
 	d->name = settings->value( "name" ).toString();
 	d->image = settings->value( "image" ).toString();
+	d->packaging = settings->value( "packaging", false ).toBool();
 
 	foreach ( IImporter* plugin, d->importerPlugins ) {
 		if ( !plugin->LoadSettings( settings ) )
@@ -369,6 +384,11 @@ bool runRouting( QString directory, IImporter* importer, IPreprocessor* router, 
 		qCritical() << "GPS Lookup failed";
 		return false;
 	}
+	DirectoryPacker packer( directory );
+	if ( !packer.compress( 16 * 1024, 1024 * 16 ) ) {
+		qCritical() << "Map module packaging failed";
+		return false;
+	}
 	return true;
 }
 
@@ -378,6 +398,11 @@ bool runRendering( QString directory, IImporter* importer, IPreprocessor* render
 		qCritical() << "Renderer failed";
 		return false;
 	}
+	DirectoryPacker packer( directory );
+	if ( !packer.compress( 16 * 1024, 1024 * 16 ) ) {
+		qCritical() << "Map module packaging failed";
+		return false;
+	}
 	return true;
 }
 
@@ -385,6 +410,11 @@ bool runAddressLookup( QString directory, IImporter* importer, IPreprocessor* ad
 {
 	if ( !addressLookup->Preprocess( importer, directory ) ) {
 		qCritical() << "Address Lookup failed";
+		return false;
+	}
+	DirectoryPacker packer( directory );
+	if ( !packer.compress( 16 * 1024, 1024 * 16 ) ) {
+		qCritical() << "Map module packaging failed";
 		return false;
 	}
 	return true;

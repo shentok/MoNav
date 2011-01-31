@@ -6,6 +6,8 @@ CONFIG += link_pkgconfig
 CONFIG += console
 #QT -= gui
 
+DEFINES+=_7ZIP_ST
+
 INCLUDEPATH += ..
 
 PKGCONFIG += libxml-2.0
@@ -13,7 +15,10 @@ PKGCONFIG += protobuf
 SOURCES += ../utils/commandlineparser.cpp \
 	 pluginmanager.cpp \
 	 ../utils/log.cpp \
-	 console-main.cpp
+	 console-main.cpp \
+	 ../utils/directorypacker.cpp \
+	 ../utils/lzma/LzmaEnc.c \
+	 ../utils/lzma/LzFind.c
 HEADERS += interfaces/iimporter.h \
 	 utils/coordinates.h \
 	 utils/config.h \
@@ -25,7 +30,12 @@ HEADERS += interfaces/iimporter.h \
 	 ../utils/commandlineparser.h \
 	 ../utils/formattedoutput.h \
 	 pluginmanager.h \
-	 ../utils/log.h
+	 ../utils/log.h \
+	 ../utils/directorypacker.h \
+	 ../utils/lzma/Types.h \
+	 ../utils/lzma/LzmaEnc.h \
+	 ../utils/lzma/LzFind.h \
+    ../utils/lzma/LzHash.h
 DESTDIR = ../bin
 TARGET = monav-preprocessor
 

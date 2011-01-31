@@ -54,6 +54,8 @@ public:
 	QString image();
 	// map data directory that will contain everything
 	QString outputDirectory();
+	// package the map modules?
+	bool packaging();
 
 	// waits until all current processing step is finished
 	void waitForFinish();
@@ -78,6 +80,7 @@ public slots:
 	void setName( QString name );
 	void setImage( QString image );
 	void setOutputDirectory( QString directory );
+	void setPackaging( bool enabled );
 
 	// process plugins asynchronously, fails if processing is underway
 	// accessing the plugins during processing is forbidden

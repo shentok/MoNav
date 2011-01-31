@@ -46,6 +46,7 @@ public:
 		listPlugins = false;
 		importing = false;
 		config = false;
+		package = false;
 		del = false;
 		verbose = false;
 		help = false;
@@ -59,7 +60,7 @@ public:
 	virtual bool GetSettingsList( QVector< Setting >* settings )
 	{
 		settings->push_back( Setting( "i", "input", "input file", "filename" ) );
-		settings->push_back( Setting( "o", "ouput", "output directory", "directory" ) );
+		settings->push_back( Setting( "o", "output", "output directory", "directory" ) );
 
 		settings->push_back( Setting( "", "name", "map package name", "string" ) );
 		settings->push_back( Setting( "", "image", "map package image", "image filename" ) );
@@ -78,6 +79,7 @@ public:
 		settings->push_back( Setting( "", "do-address-lookup", "creates address lookup module", "module name" ) );
 		settings->push_back( Setting( "", "do-config", "writes main map config file", "" ) );
 		settings->push_back( Setting( "", "do-del-tmp", "deletes temporary files", "" ) );
+		settings->push_back( Setting( "", "do-package", "packages modules", "" ) );
 
 		settings->push_back( Setting( "", "log", "writes log to file", "filename" ) );
 
@@ -146,18 +148,21 @@ public:
 			del = true;
 			break;
 		case 16:
-			Log::instance()->setLogFile( data.toString() );
+			package = true;
 			break;
 		case 17:
-			settings = data.toString();
+			Log::instance()->setLogFile( data.toString() );
 			break;
 		case 18:
-			verbose = true;
+			settings = data.toString();
 			break;
 		case 19:
-			omp_set_num_threads( data.toInt( &ok ) );
+			verbose = true;
 			break;
 		case 20:
+			omp_set_num_threads( data.toInt( &ok ) );
+			break;
+		case 21:
 			help = true;
 			break;
 		default:
@@ -181,6 +186,7 @@ public:
 	QString routingModule;
 	QString renderingModule;
 	QString addressLookupModule;
+	bool package;
 	bool config;
 	bool del;
 	QString settings;
