@@ -54,6 +54,8 @@ struct PluginManager::PrivateImplementation {
 	QString name;
 	QString image;
 	bool packaging;
+	int dictionarySize;
+	int blockSize;
 
 	QFuture< bool > processingFuture;
 	QFutureWatcher< bool > processingWatcher;
@@ -92,6 +94,8 @@ PluginManager::PluginManager()
 {
 	d = new PrivateImplementation;
 	d->packaging = false;
+	d->dictionarySize = 16 * 1024;
+	d->blockSize = 16 * 1024;
 	connect( &d->processingWatcher, SIGNAL(finished()), this, SLOT(finish()) );
 }
 PluginManager::~PluginManager()
@@ -261,6 +265,16 @@ bool PluginManager::packaging()
 	return d->packaging;
 }
 
+int PluginManager::dictionarySize()
+{
+	return d->dictionarySize;
+}
+
+int PluginManager::blockSize()
+{
+	return d->blockSize;
+}
+
 // waits until all current processing step is finished
 void PluginManager::waitForFinish()
 {
@@ -299,6 +313,16 @@ void PluginManager::setPackaging( bool enabled )
 	d->packaging = enabled;
 }
 
+void PluginManager::setDictionarySize( int size )
+{
+	d->dictionarySize = size;
+}
+
+void PluginManager::setBlockSize( int size )
+{
+	d->blockSize = size;
+}
+
 // saves settings
 bool PluginManager::saveSettings( QSettings* settings )
 {
@@ -307,6 +331,8 @@ bool PluginManager::saveSettings( QSettings* settings )
 	settings->setValue( "name", d->name );
 	settings->setValue( "image", d->image );
 	settings->setValue( "packaging", d->packaging );
+	settings->setValue( "dictionarySize", d->dictionarySize );
+	settings->setValue( "blockSize", d->blockSize );
 
 	foreach ( IImporter* plugin, d->importerPlugins ) {
 		if ( !plugin->SaveSettings( settings ) )
@@ -340,6 +366,8 @@ bool PluginManager::loadSettings( QSettings* settings )
 	d->name = settings->value( "name" ).toString();
 	d->image = settings->value( "image" ).toString();
 	d->packaging = settings->value( "packaging", false ).toBool();
+	d->dictionarySize = settings->value( "dictionarySize", 16 * 1024 ).toInt();
+	d->blockSize = settings->value( "blockSize", 16 * 1024 ).toInt();
 
 	foreach ( IImporter* plugin, d->importerPlugins ) {
 		if ( !plugin->LoadSettings( settings ) )
@@ -374,7 +402,16 @@ bool runImporter( QString inputFile, IImporter* importer )
 	return true;
 }
 
-bool runRouting( QString directory, IImporter* importer, IPreprocessor* router, IPreprocessor* gpsLookup )
+struct PackerInfo {
+	int dict;
+	int block;
+	PackerInfo( int dict, int block ) : dict( dict ), block( block )
+	{
+
+	}
+};
+
+bool runRouting( QString directory, IImporter* importer, IPreprocessor* router, IPreprocessor* gpsLookup, PackerInfo info )
 {
 	if ( !router->Preprocess( importer, directory ) ) {
 		qCritical() << "Router failed";
@@ -385,35 +422,35 @@ bool runRouting( QString directory, IImporter* importer, IPreprocessor* router, 
 		return false;
 	}
 	DirectoryPacker packer( directory );
-	if ( !packer.compress( 16 * 1024, 1024 * 16 ) ) {
+	if ( !packer.compress( info.dict, info.block ) ) {
 		qCritical() << "Map module packaging failed";
 		return false;
 	}
 	return true;
 }
 
-bool runRendering( QString directory, IImporter* importer, IPreprocessor* renderer )
+bool runRendering( QString directory, IImporter* importer, IPreprocessor* renderer, PackerInfo info )
 {
 	if ( !renderer->Preprocess( importer, directory ) ) {
 		qCritical() << "Renderer failed";
 		return false;
 	}
 	DirectoryPacker packer( directory );
-	if ( !packer.compress( 16 * 1024, 1024 * 16 ) ) {
+	if ( !packer.compress( info.dict, info.block ) ) {
 		qCritical() << "Map module packaging failed";
 		return false;
 	}
 	return true;
 }
 
-bool runAddressLookup( QString directory, IImporter* importer, IPreprocessor* addressLookup )
+bool runAddressLookup( QString directory, IImporter* importer, IPreprocessor* addressLookup, PackerInfo info )
 {
 	if ( !addressLookup->Preprocess( importer, directory ) ) {
 		qCritical() << "Address Lookup failed";
 		return false;
 	}
 	DirectoryPacker packer( directory );
-	if ( !packer.compress( 16 * 1024, 1024 * 16 ) ) {
+	if ( !packer.compress( info.dict, info.block ) ) {
 		qCritical() << "Map module packaging failed";
 		return false;
 	}
@@ -481,11 +518,12 @@ bool PluginManager::processRoutingModule( QString moduleName, QString importer, 
 	settings.setValue( "gpsLookupFileFormat", d->gpsLookupPlugins[gpsLookupIndex]->GetFileFormatVersion() );
 
 	if ( !async ) {
-		return runRouting( dir.path(), d->importerPlugins[importerIndex], d->routerPlugins[routerIndex], d->gpsLookupPlugins[gpsLookupIndex] );
+		return runRouting( dir.path(), d->importerPlugins[importerIndex], d->routerPlugins[routerIndex], d->gpsLookupPlugins[gpsLookupIndex], PackerInfo( d->dictionarySize, d->blockSize ) );
 	}
 
 	// run async and return
-	d->processingFuture = QtConcurrent::run( runRouting, dir.path(), d->importerPlugins[importerIndex], d->routerPlugins[routerIndex], d->gpsLookupPlugins[gpsLookupIndex] );
+	d->processingFuture =
+			QtConcurrent::run( runRouting, dir.path(), d->importerPlugins[importerIndex], d->routerPlugins[routerIndex], d->gpsLookupPlugins[gpsLookupIndex], PackerInfo( d->dictionarySize, d->blockSize ) );
 	d->processingWatcher.setFuture( d->processingFuture );
 	return true;
 }
@@ -518,11 +556,11 @@ bool PluginManager::processRenderingModule( QString moduleName, QString importer
 	settings.setValue( "rendererFileFormat", d->rendererPlugins[rendererIndex]->GetFileFormatVersion() );
 
 	if ( !async ) {
-		return runRendering( dir.path(), d->importerPlugins[importerIndex], d->rendererPlugins[rendererIndex] );
+		return runRendering( dir.path(), d->importerPlugins[importerIndex], d->rendererPlugins[rendererIndex], PackerInfo( d->dictionarySize, d->blockSize ) );
 	}
 
 	// run async and return
-	d->processingFuture = QtConcurrent::run( runRendering, dir.path(), d->importerPlugins[importerIndex], d->rendererPlugins[rendererIndex] );
+	d->processingFuture = QtConcurrent::run( runRendering, dir.path(), d->importerPlugins[importerIndex], d->rendererPlugins[rendererIndex], PackerInfo( d->dictionarySize, d->blockSize ) );
 	d->processingWatcher.setFuture( d->processingFuture );
 	return true;
 }
@@ -555,11 +593,11 @@ bool PluginManager::processAddressLookupModule( QString moduleName, QString impo
 	settings.setValue( "addressLookupFileFormat", d->addressLookupPlugins[addressLookupIndex]->GetFileFormatVersion() );
 
 	if ( !async ) {
-		return runAddressLookup( dir.path(), d->importerPlugins[importerIndex], d->addressLookupPlugins[addressLookupIndex] );
+		return runAddressLookup( dir.path(), d->importerPlugins[importerIndex], d->addressLookupPlugins[addressLookupIndex], PackerInfo( d->dictionarySize, d->blockSize ) );
 	}
 
 	// run async and return
-	d->processingFuture = QtConcurrent::run( runAddressLookup, dir.path(), d->importerPlugins[importerIndex], d->addressLookupPlugins[addressLookupIndex] );
+	d->processingFuture = QtConcurrent::run( runAddressLookup, dir.path(), d->importerPlugins[importerIndex], d->addressLookupPlugins[addressLookupIndex], PackerInfo( d->dictionarySize, d->blockSize ) );
 	d->processingWatcher.setFuture( d->processingFuture );
 	return true;
 }

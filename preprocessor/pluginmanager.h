@@ -56,6 +56,10 @@ public:
 	QString outputDirectory();
 	// package the map modules?
 	bool packaging();
+	// dictionary size for lzma packaging
+	int dictionarySize();
+	// block size used for packaging, each block is secured with a CRC-16 checksum
+	int blockSize();
 
 	// waits until all current processing step is finished
 	void waitForFinish();
@@ -81,6 +85,8 @@ public slots:
 	void setImage( QString image );
 	void setOutputDirectory( QString directory );
 	void setPackaging( bool enabled );
+	void setDictionarySize( int size );
+	void setBlockSize( int size );
 
 	// process plugins asynchronously, fails if processing is underway
 	// accessing the plugins during processing is forbidden

@@ -272,7 +272,15 @@ bool DirectoryPacker::compress( int dictionarySize, int blockSize )
 {
 	Timer time;
 	d->dictionarySize = dictionarySize;
-	d->blockSize = blockSize;
+	d->blockSize = blockSize - sizeof( int ) - sizeof( quint16 );
+	if ( dictionarySize < 1024 ) {
+		qCritical() << "Dictionary size too small:" << dictionarySize;
+		return false;
+	}
+	if ( blockSize < 1024 ) {
+		qCritical() << "Block size too small:" << blockSize;
+		return false;
+	}
 
 	qDebug() << "Compress directory:" << d->dir << ", block size:" << blockSize << ", dictionary size:" << dictionarySize;
 

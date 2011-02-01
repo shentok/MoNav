@@ -62,28 +62,30 @@ public:
 		settings->push_back( Setting( "i", "input", "input file", "filename" ) );
 		settings->push_back( Setting( "o", "output", "output directory", "directory" ) );
 
-		settings->push_back( Setting( "", "name", "map package name", "string" ) );
-		settings->push_back( Setting( "", "image", "map package image", "image filename" ) );
+		settings->push_back( Setting( "n", "name", "map package name", "string" ) );
+		settings->push_back( Setting( "im", "image", "map package image", "image filename" ) );
 
-		settings->push_back( Setting( "", "plugins", "lists plugins", "" ) );
+		settings->push_back( Setting( "p", "plugins", "lists plugins", "" ) );
 
-		settings->push_back( Setting( "", "importer", "importer plugin", "plugin name" ) );
-		settings->push_back( Setting( "", "router", "router plugin", "plugin name" ) );
-		settings->push_back( Setting( "", "gps-lookup", "gps lookup plugin", "plugin name" ) );
-		settings->push_back( Setting( "", "renderer", "renderer plugin", "plugin name" ) );
-		settings->push_back( Setting( "", "address-lookup", "address lookup plugin", "plugin name" ) );
+		settings->push_back( Setting( "pi", "importer", "importer plugin", "plugin name" ) );
+		settings->push_back( Setting( "pro", "router", "router plugin", "plugin name" ) );
+		settings->push_back( Setting( "pg", "gps-lookup", "gps lookup plugin", "plugin name" ) );
+		settings->push_back( Setting( "pre", "renderer", "renderer plugin", "plugin name" ) );
+		settings->push_back( Setting( "pa", "address-lookup", "address lookup plugin", "plugin name" ) );
 
-		settings->push_back( Setting( "", "do-importing", "runs importer", "" ) );
-		settings->push_back( Setting( "", "do-routing", "creates routing module", "module name" ) );
-		settings->push_back( Setting( "", "do-rendering", "creates rendering module", "module name" ) );
-		settings->push_back( Setting( "", "do-address-lookup", "creates address lookup module", "module name" ) );
-		settings->push_back( Setting( "", "do-config", "writes main map config file", "" ) );
-		settings->push_back( Setting( "", "do-del-tmp", "deletes temporary files", "" ) );
-		settings->push_back( Setting( "", "do-package", "packages modules", "" ) );
+		settings->push_back( Setting( "di", "do-importing", "runs importer", "" ) );
+		settings->push_back( Setting( "dro", "do-routing", "creates routing module", "module name" ) );
+		settings->push_back( Setting( "dre", "do-rendering", "creates rendering module", "module name" ) );
+		settings->push_back( Setting( "da", "do-address-lookup", "creates address lookup module", "module name" ) );
+		settings->push_back( Setting( "dc", "do-config", "writes main map config file", "" ) );
+		settings->push_back( Setting( "dd", "do-del-tmp", "deletes temporary files", "" ) );
+		settings->push_back( Setting( "m", "do-package", "packages modules", "" ) );
+		settings->push_back( Setting( "mb", "module-block-size", "block size used for packaged map modules", "integer" ) );
+		settings->push_back( Setting( "md", "module-dictionary-size", "block size used for packaged map modules", "integer" ) );
 
-		settings->push_back( Setting( "", "log", "writes log to file", "filename" ) );
+		settings->push_back( Setting( "l", "log", "writes log to file", "filename" ) );
 
-		settings->push_back( Setting( "", "settings", "use settings file", "settings filename" ) );
+		settings->push_back( Setting( "s", "settings", "use settings file", "settings filename" ) );
 
 		settings->push_back( Setting( "v", "verbose", "verbose logging", "" ) );
 
@@ -151,18 +153,24 @@ public:
 			package = true;
 			break;
 		case 17:
-			Log::instance()->setLogFile( data.toString() );
+			pluginManager->setBlockSize( data.toInt( &ok ) );
 			break;
 		case 18:
-			settings = data.toString();
+			pluginManager->setDictionarySize( data.toInt( &ok ) );
 			break;
 		case 19:
-			verbose = true;
+			Log::instance()->setLogFile( data.toString() );
 			break;
 		case 20:
-			omp_set_num_threads( data.toInt( &ok ) );
+			settings = data.toString();
 			break;
 		case 21:
+			verbose = true;
+			break;
+		case 22:
+			omp_set_num_threads( data.toInt( &ok ) );
+			break;
+		case 23:
 			help = true;
 			break;
 		default:
