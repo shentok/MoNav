@@ -403,13 +403,29 @@ bool runImporter( QString inputFile, IImporter* importer )
 }
 
 struct PackerInfo {
+	bool enabled;
 	int dict;
 	int block;
-	PackerInfo( int dict, int block ) : dict( dict ), block( block )
+	PackerInfo( bool enabled, int dict, int block ) : enabled( enabled ), dict( dict ), block( block )
 	{
 
 	}
 };
+
+bool deleteDictionary( QString directory )
+{
+	QDir dir( directory );
+	if ( !dir.exists() )
+		return true;
+	foreach ( QString filename, dir.entryList() )
+		QFile::remove( dir.absoluteFilePath( filename ) );
+
+	dir.cdUp();
+	if ( !dir.rmdir( directory ) )
+		return false;
+
+	return true;
+}
 
 bool runRouting( QString directory, IImporter* importer, IPreprocessor* router, IPreprocessor* gpsLookup, PackerInfo info )
 {
@@ -421,10 +437,14 @@ bool runRouting( QString directory, IImporter* importer, IPreprocessor* router, 
 		qCritical() << "GPS Lookup failed";
 		return false;
 	}
-	DirectoryPacker packer( directory );
-	if ( !packer.compress( info.dict, info.block ) ) {
-		qCritical() << "Map module packaging failed";
-		return false;
+	if ( info.enabled ) {
+		DirectoryPacker packer( directory );
+		if ( !packer.compress( info.dict, info.block ) ) {
+			qCritical() << "Map module packaging failed";
+			return false;
+		}
+		if ( !deleteDictionary( directory ) )
+			return false;
 	}
 	return true;
 }
@@ -435,10 +455,14 @@ bool runRendering( QString directory, IImporter* importer, IPreprocessor* render
 		qCritical() << "Renderer failed";
 		return false;
 	}
-	DirectoryPacker packer( directory );
-	if ( !packer.compress( info.dict, info.block ) ) {
-		qCritical() << "Map module packaging failed";
-		return false;
+	if ( info.enabled ) {
+		DirectoryPacker packer( directory );
+		if ( !packer.compress( info.dict, info.block ) ) {
+			qCritical() << "Map module packaging failed";
+			return false;
+		}
+		if ( !deleteDictionary( directory ) )
+			return false;
 	}
 	return true;
 }
@@ -449,10 +473,14 @@ bool runAddressLookup( QString directory, IImporter* importer, IPreprocessor* ad
 		qCritical() << "Address Lookup failed";
 		return false;
 	}
-	DirectoryPacker packer( directory );
-	if ( !packer.compress( info.dict, info.block ) ) {
-		qCritical() << "Map module packaging failed";
-		return false;
+	if ( info.enabled ) {
+		DirectoryPacker packer( directory );
+		if ( !packer.compress( info.dict, info.block ) ) {
+			qCritical() << "Map module packaging failed";
+			return false;
+		}
+		if ( !deleteDictionary( directory ) )
+			return false;
 	}
 	return true;
 }
@@ -518,12 +546,12 @@ bool PluginManager::processRoutingModule( QString moduleName, QString importer, 
 	settings.setValue( "gpsLookupFileFormat", d->gpsLookupPlugins[gpsLookupIndex]->GetFileFormatVersion() );
 
 	if ( !async ) {
-		return runRouting( dir.path(), d->importerPlugins[importerIndex], d->routerPlugins[routerIndex], d->gpsLookupPlugins[gpsLookupIndex], PackerInfo( d->dictionarySize, d->blockSize ) );
+		return runRouting( dir.path(), d->importerPlugins[importerIndex], d->routerPlugins[routerIndex], d->gpsLookupPlugins[gpsLookupIndex], PackerInfo( d->packaging, d->dictionarySize, d->blockSize ) );
 	}
 
 	// run async and return
 	d->processingFuture =
-			QtConcurrent::run( runRouting, dir.path(), d->importerPlugins[importerIndex], d->routerPlugins[routerIndex], d->gpsLookupPlugins[gpsLookupIndex], PackerInfo( d->dictionarySize, d->blockSize ) );
+			QtConcurrent::run( runRouting, dir.path(), d->importerPlugins[importerIndex], d->routerPlugins[routerIndex], d->gpsLookupPlugins[gpsLookupIndex], PackerInfo( d->packaging, d->dictionarySize, d->blockSize ) );
 	d->processingWatcher.setFuture( d->processingFuture );
 	return true;
 }
@@ -556,11 +584,11 @@ bool PluginManager::processRenderingModule( QString moduleName, QString importer
 	settings.setValue( "rendererFileFormat", d->rendererPlugins[rendererIndex]->GetFileFormatVersion() );
 
 	if ( !async ) {
-		return runRendering( dir.path(), d->importerPlugins[importerIndex], d->rendererPlugins[rendererIndex], PackerInfo( d->dictionarySize, d->blockSize ) );
+		return runRendering( dir.path(), d->importerPlugins[importerIndex], d->rendererPlugins[rendererIndex], PackerInfo( d->packaging, d->dictionarySize, d->blockSize ) );
 	}
 
 	// run async and return
-	d->processingFuture = QtConcurrent::run( runRendering, dir.path(), d->importerPlugins[importerIndex], d->rendererPlugins[rendererIndex], PackerInfo( d->dictionarySize, d->blockSize ) );
+	d->processingFuture = QtConcurrent::run( runRendering, dir.path(), d->importerPlugins[importerIndex], d->rendererPlugins[rendererIndex], PackerInfo( d->packaging, d->dictionarySize, d->blockSize ) );
 	d->processingWatcher.setFuture( d->processingFuture );
 	return true;
 }
@@ -593,11 +621,11 @@ bool PluginManager::processAddressLookupModule( QString moduleName, QString impo
 	settings.setValue( "addressLookupFileFormat", d->addressLookupPlugins[addressLookupIndex]->GetFileFormatVersion() );
 
 	if ( !async ) {
-		return runAddressLookup( dir.path(), d->importerPlugins[importerIndex], d->addressLookupPlugins[addressLookupIndex], PackerInfo( d->dictionarySize, d->blockSize ) );
+		return runAddressLookup( dir.path(), d->importerPlugins[importerIndex], d->addressLookupPlugins[addressLookupIndex], PackerInfo( d->packaging, d->dictionarySize, d->blockSize ) );
 	}
 
 	// run async and return
-	d->processingFuture = QtConcurrent::run( runAddressLookup, dir.path(), d->importerPlugins[importerIndex], d->addressLookupPlugins[addressLookupIndex], PackerInfo( d->dictionarySize, d->blockSize ) );
+	d->processingFuture = QtConcurrent::run( runAddressLookup, dir.path(), d->importerPlugins[importerIndex], d->addressLookupPlugins[addressLookupIndex], PackerInfo( d->packaging, d->dictionarySize, d->blockSize ) );
 	d->processingWatcher.setFuture( d->processingFuture );
 	return true;
 }
