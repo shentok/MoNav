@@ -20,7 +20,9 @@ SOURCES += main.cpp \
 	scrollarea.cpp \
 	gpsdialog.cpp \
 	generalsettingsdialog.cpp \
-	logger.cpp
+	logger.cpp \
+    ../utils/directoryunpacker.cpp \
+    ../utils/lzma/LzmaDec.c
 
 HEADERS += \
 	mapview.h \
@@ -43,7 +45,9 @@ HEADERS += \
 	scrollarea.h \
 	gpsdialog.h \
 	generalsettingsdialog.h \
-	logger.h
+	logger.h \
+    ../utils/directoryunpacker.h \
+    ../utils/lzma/LzmaDec.h
 
 FORMS += \
 	mapview.ui \

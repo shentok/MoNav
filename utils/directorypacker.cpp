@@ -101,7 +101,6 @@ struct DirectoryPacker::PrivateImplementation {
 
 		LzmaEncProps_Init( &props );
 		props.dictSize = dictionarySize;
-		props.lc = 4;
 		res = LzmaEnc_SetProps( enc, &props );
 		if ( res != SZ_OK ) {
 			qCritical() << "Error setting LZMA probs";
@@ -158,8 +157,6 @@ struct DirectoryPacker::PrivateImplementation {
 	bool writeFileInfo( QFileInfoList files )
 	{
 		initOutput();
-		storeData( qToLittleEndian( dictionarySize ) );
-		storeData( qToLittleEndian( blockSize ) );
 
 		storeData( qToLittleEndian( ( int ) files.size() ) );
 		for ( int i = 0; i < files.size(); i++ ) {
@@ -190,15 +187,20 @@ struct DirectoryPacker::PrivateImplementation {
 			quint16 checksum = qChecksum( outputBuffer.buffer().constData() + i * blockSize, size );
 			//qDebug() << "store block:" << size << ", checksum:" << checksum;
 
-			if ( outputFile.write( ( const char* ) &size, sizeof( int ) ) != sizeof( int ) )
+			int outSize = qToLittleEndian( size );
+			quint16 outChecksum = qToLittleEndian( checksum );
+
+			if ( outputFile.write( ( const char* ) &outSize, sizeof( int ) ) != sizeof( int ) )
 				return false;
 
-			if ( outputFile.write( ( const char* ) &checksum, sizeof( quint16 ) ) != sizeof( quint16 ) )
+			if ( outputFile.write( ( const char* ) &outChecksum, sizeof( quint16 ) ) != sizeof( quint16 ) )
 				return false;
 
 			if ( outputFile.write( outputBuffer.buffer().constData() + i * blockSize, size ) != size )
 				return false;
 
+			//qDebug() << "block written:" << size;
+			//qDebug() << outputBuffer.buffer().toBase64();
 		}
 
 		if ( !split )
@@ -302,7 +304,10 @@ bool DirectoryPacker::compress( int dictionarySize, int blockSize )
 	if ( !d->compress( files ) )
 		return false;
 
-	qDebug() << "Finished packaging:" << time.elapsed() << "ms";
+	qint64 combinedSize = 0;
+	foreach( const QFileInfo& info, files )
+		combinedSize += info.size();
+	qDebug() << "Finished packaging:" << time.elapsed() / 1000 << "s" << combinedSize / 1024.0 / 1024.0 / ( time.elapsed() / 1000.0 ) << "MB/s";
 
 	return true;
 }
