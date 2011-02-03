@@ -81,7 +81,7 @@
         </sizepolicy>
        </property>
        <property name="currentIndex">
-        <number>5</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="page_5">
         <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -236,6 +236,52 @@
             </widget>
            </item>
           </layout>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="packaging">
+           <property name="title">
+            <string>Packaging</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <layout class="QFormLayout" name="formLayout_3">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_3">
+              <property name="text">
+               <string>LZMA Dictionary Size:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QSpinBox" name="dictionarySize">
+              <property name="maximum">
+               <number>1073741824</number>
+              </property>
+              <property name="singleStep">
+               <number>1024</number>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_9">
+              <property name="text">
+               <string>Block Size</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QSpinBox" name="blockSize">
+              <property name="maximum">
+               <number>1073741824</number>
+              </property>
+              <property name="singleStep">
+               <number>1024</number>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
          </item>
          <item>
           <spacer name="verticalSpacer_3">

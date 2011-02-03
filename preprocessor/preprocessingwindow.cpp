@@ -68,7 +68,6 @@ PreprocessingWindow::PreprocessingWindow( QWidget* parent, QString configFile ) 
 	}
 
 	loadSettings( configFile );
-
 }
 
 bool PreprocessingWindow::readSettingsWidgets()
@@ -150,6 +149,10 @@ bool PreprocessingWindow::loadSettings( QString configFile )
 	m_ui->name->setText( pluginManager->name() );
 	m_ui->image->setText( pluginManager->image() );
 
+	m_ui->packaging->setChecked( pluginManager->packaging() );
+	m_ui->dictionarySize->setValue( pluginManager->dictionarySize() );
+	m_ui->blockSize->setValue( pluginManager->blockSize() );
+
 	QString importerName = settings->value( "importer", m_ui->importerComboBox->currentText() ).toString();
 	QString routerName = settings->value( "router", m_ui->routerComboBox->currentText() ).toString();
 	QString rendererName = settings->value( "renderer", m_ui->rendererComboBox->currentText() ).toString();
@@ -210,7 +213,11 @@ PreprocessingWindow::~PreprocessingWindow()
 
 void PreprocessingWindow::connectSlots()
 {
-	connect( PluginManager::instance(), SIGNAL(finished(bool)), this, SLOT(taskFinished(bool)) );
+	PluginManager* pluginManager = PluginManager::instance();
+	connect( pluginManager, SIGNAL(finished(bool)), this, SLOT(taskFinished(bool)) );
+	connect( m_ui->packaging, SIGNAL(toggled(bool)), pluginManager, SLOT(setPackaging(bool)) );
+	connect( m_ui->dictionarySize, SIGNAL(valueChanged(int)), pluginManager, SLOT(setDictionarySize(int)) );
+	connect( m_ui->blockSize, SIGNAL(valueChanged(int)), pluginManager, SLOT(setBlockSize(int)) );
 
 	connect( m_ui->inputBrowse, SIGNAL(clicked()), this, SLOT(inputBrowse()) );
 	connect( m_ui->input, SIGNAL(textChanged(QString)), this, SLOT(inputChanged(QString)) );
