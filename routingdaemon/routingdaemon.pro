@@ -3,7 +3,9 @@ DESTDIR = ../bin
 
 INCLUDEPATH += ..
 
-TARGET = MoNavD
+DEFINES+=_7ZIP_ST
+
+TARGET = monav-daemon
 QT -= gui
 QT +=network
 
@@ -18,10 +20,14 @@ unix {
 LIBS += -L../bin/plugins_client -lcontractionhierarchiesclient -lgpsgridclient
 
 SOURCES += \
-	 main.cpp
+	 main.cpp \
+	 ../utils/lzma/LzmaDec.c \
+	 ../utils/directoryunpacker.cpp
 
 HEADERS += \
 	 signals.h \
-	 routingdaemon.h
+	 routingdaemon.h \
+	 ../utils/lzma/LzmaDec.h \
+	 ../utils/directoryunpacker.h
 
 include(qtservice-2.6_1-opensource/src/qtservice.pri)

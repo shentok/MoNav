@@ -51,6 +51,8 @@ void MessageBoxHandler( QtMsgType type, const char *msg )
 int main( int argc, char** argv )
 {
 	if ( argc == 2 && argv[1] == QString( "--help" ) ) {
+		qDebug() << "usage:" << argv[0];
+		qDebug() << "\tstarts the service";
 		qDebug() << "usage:" << argv[0] << "-i | -install";
 		qDebug() << "\tinstalls the service";
 		qDebug() << "usage:" << argv[0] << "-u | -uninstall";

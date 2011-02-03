@@ -19,32 +19,45 @@ along with this file. If not, see <http://www.gnu.org/licenses/>.
 #include <QtCore>
 #include <QLocalSocket>
 
-bool processArguments( RoutingDaemonCommand* command, int argc, char** argv ) {
+using namespace MoNav;
+
+bool processArguments( CommandType* type, UnpackCommand* unpack, RoutingCommand* routing, int argc, char** argv ) {
+	if ( argc == 2 ) {
+		type->value = CommandType::UnpackCommand;
+		unpack->mapModuleFile = argv[1];
+		return true;
+	}
 	if ( argc < 6 || ( argc & 1 ) == 1 )
 		return false;
-	command->dataDirectory = argv[1];
+	type->value = CommandType::RoutingCommand;
+	routing->dataDirectory = argv[1];
 	for ( int i = 2; i < argc; i+=2 ) {
 		bool ok;
-		RoutingDaemonNode coordinate;
+		Node coordinate;
 		coordinate.latitude = QString( argv[i] ).toDouble( &ok );
 		if ( !ok )
 			return false;
 		coordinate.longitude = QString( argv[i + 1] ).toDouble( &ok );
 		if ( !ok )
 			return false;
-		command->waypoints.push_back( coordinate );
+		routing->waypoints.push_back( coordinate );
 	}
 	return true;
 }
 
 int main( int argc, char *argv[] ) {
-	RoutingDaemonCommand command;
-	if ( !processArguments( &command, argc, argv ) ) {
+	CommandType commandType;
+	UnpackCommand unpackCommand;
+	RoutingCommand routingCommand;
+	routingCommand.lookupStrings = true;
+
+	if ( !processArguments( &commandType, &unpackCommand, &routingCommand, argc, argv ) ) {
 		qDebug() << "usage:" << argv[0] << "data-directory latitude1 longitude1 latitude2 longitude2 [...latitudeN longitudeN]";
 		qDebug() << "\tcomputes a route using between the specified waypoints";
+		qDebug() << "usage:" << argv[0] << "monav-map-module-file";
+		qDebug() << "\tunpacks a map module";
 		return 1;
 	}
-	command.lookupStrings = true;
 
 	QLocalSocket connection;
 	connection.connectToServer( "MoNavD" );
@@ -53,25 +66,42 @@ int main( int argc, char *argv[] ) {
 		return 2;
 	}
 
-	command.post( &connection );
+	commandType.post( &connection );
+
+	if ( commandType.value == CommandType::UnpackCommand ) {
+		unpackCommand.post( &connection );
+		connection.flush();
+		UnpackResult reply;
+		reply.read( &connection );
+		qDebug() << connection.state();
+
+		if ( reply.type == UnpackResult::FailUnpacking ) {
+			qDebug() << "failed to unpack map file";
+			return 3;
+		}
+		qDebug() << "finished unpacking map file";
+		return 0;
+	}
+
+	routingCommand.post( &connection );
 	connection.flush();
-	RoutingDaemonResult reply;
+	RoutingResult reply;
 	reply.read( &connection );
 	qDebug() << connection.state();
 
-	if ( reply.type == RoutingDaemonResult::LoadFailed ) {
+	if ( reply.type == RoutingResult::LoadFailed ) {
 		qDebug() << "failed to load data directory";
 		return 3;
-	} else if ( reply.type == RoutingDaemonResult::RouteFailed ) {
+	} else if ( reply.type == RoutingResult::RouteFailed ) {
 		qDebug() << "failed to compute route";
 		return 3;
-	} else if ( reply.type == RoutingDaemonResult::NameLookupFailed ) {
+	} else if ( reply.type == RoutingResult::NameLookupFailed ) {
 		qDebug() << "failed to compute route";
 		return 3;
-	} else if ( reply.type == RoutingDaemonResult::TypeLookupFailed ) {
+	} else if ( reply.type == RoutingResult::TypeLookupFailed ) {
 		qDebug() << "failed to compute route";
 		return 3;
-	}else if ( reply.type == RoutingDaemonResult::Success ) {
+	}else if ( reply.type == RoutingResult::Success ) {
 		int seconds = reply.seconds;
 		qDebug() << "distance:" << seconds / 60 / 60 << "h" << ( seconds / 60 ) % 60 << "m" << seconds % 60 << "s";
 		qDebug() << "nodes:" << reply.pathNodes.size();

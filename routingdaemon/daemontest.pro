@@ -3,7 +3,7 @@ DESTDIR = ../bin
 
 INCLUDEPATH += ..
 
-TARGET = DaemonTest
+TARGET = daemon-test
 QT -= gui
 QT +=network
 unix {

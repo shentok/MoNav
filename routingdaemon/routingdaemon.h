@@ -20,6 +20,12 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef ROUTINDDAEMON_H
 #define ROUTINDDAEMON_H
 
+#include "interfaces/irouter.h"
+#include "interfaces/igpslookup.h"
+#include "signals.h"
+#include "qtservice.h"
+#include "utils/directoryunpacker.h"
+
 #include <QtCore>
 #include <QSettings>
 #include <QFile>
@@ -27,15 +33,14 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QLocalServer>
 #include <QLocalSocket>
 
-#include "qtservice.h"
-
-#include "interfaces/irouter.h"
-#include "interfaces/igpslookup.h"
-#include "signals.h"
+using namespace MoNav;
 
 class RoutingDaemon : public QObject, public QtService< QCoreApplication > {
+
 	Q_OBJECT
+
 public:
+
 	RoutingDaemon( int argc, char** argv ) : QtService< QCoreApplication >( argc, argv, "MoNav Routing Daemon" )
 	{
 		 setServiceDescription( "The MoNav Routing Daemon" );
@@ -57,13 +62,49 @@ public slots:
 	{
 		QLocalSocket* connection = m_server->nextPendingConnection();
 		connect( connection, SIGNAL(disconnected()), connection, SLOT(deleteLater()) );
-		RoutingDaemonCommand command;
-		RoutingDaemonResult result;
+		CommandType type;
+
+		if ( !type.read( connection ) )
+			return;
+
+		if ( type.value == CommandType::UnpackCommand ) {
+			unpackCommand( connection );
+		} else if ( type.value == CommandType::RoutingCommand ) {
+			routingCommand( connection );
+		}
+
+	}
+
+protected:
+
+	void unpackCommand( QLocalSocket* connection )
+	{
+		UnpackCommand command;
+		UnpackResult result;
 
 		if ( !command.read( connection ) )
 			return;
 
-		result.type = RoutingDaemonResult::Success;
+		result.type = UnpackResult::Success;
+
+		DirectoryUnpacker unpacker( command.mapModuleFile );
+		if ( !unpacker.decompress( command.deleteFile ) )
+			result.type = UnpackResult::FailUnpacking;
+
+		result.post( connection );
+		connection->flush();
+		connection->disconnectFromServer();
+	}
+
+	void routingCommand( QLocalSocket* connection )
+	{
+		RoutingCommand command;
+		RoutingResult result;
+
+		if ( !command.read( connection ) )
+			return;
+
+		result.type = RoutingResult::Success;
 
 		if ( !m_loaded || command.dataDirectory != m_dataDirectory ) {
 			unloadPlugins();
@@ -91,7 +132,7 @@ public slots:
 				distance += segmentDistance;
 
 				for ( int j = 0; j < pathNodes.size(); j++ ) {
-					RoutingDaemonNode node;
+					Node node;
 					GPSCoordinate gps = pathNodes[j].coordinate.ToGPSCoordinate();
 					node.latitude = gps.latitude;
 					node.longitude = gps.longitude;
@@ -99,7 +140,7 @@ public slots:
 				}
 
 				for ( int j = 0; j < pathEdges.size(); j++ ) {
-					RoutingDaemonEdge edge;
+					Edge edge;
 					edge.length = pathEdges[j].length;
 					edge.name = pathEdges[j].name;
 					edge.type = pathEdges[j].type;
@@ -120,14 +161,14 @@ public slots:
 						if ( lastNameID != result.pathEdges[j].name ) {
 							lastNameID = result.pathEdges[j].name;
 							if ( !m_router->GetName( &lastName, lastNameID ) )
-								result.type = RoutingDaemonResult::NameLookupFailed;
+								result.type = RoutingResult::NameLookupFailed;
 							result.nameStrings.push_back( lastName );
 						}
 
 						if ( lastTypeID != result.pathEdges[j].type ) {
 							lastTypeID = result.pathEdges[j].type;
 							if ( !m_router->GetType( &lastType, lastTypeID ) )
-								result.type = RoutingDaemonResult::TypeLookupFailed;
+								result.type = RoutingResult::TypeLookupFailed;
 							result.typeStrings.push_back( lastType );
 						}
 
@@ -136,10 +177,10 @@ public slots:
 					}
 				}
 			} else {
-				result.type = RoutingDaemonResult::RouteFailed;
+				result.type = RoutingResult::RouteFailed;
 			}
 		} else {
-			result.type = RoutingDaemonResult::LoadFailed;
+			result.type = RoutingResult::LoadFailed;
 		}
 
 		if ( connection->state() != QLocalSocket::ConnectedState )
@@ -149,8 +190,6 @@ public slots:
 		connection->flush();
 		connection->disconnectFromServer();
 	}
-
-protected:
 
 	virtual void start()
 	{
