@@ -6,8 +6,9 @@ PKGCONFIG += protobuf
 
 PROTOS = signals.proto
 include(../utils/osm/protobuf.pri)
+include(../utils/osm/protobuf_python.pri)
 
-PRE_TARGETDEPS += signals.pb.h signals.pb.cc
+PRE_TARGETDEPS += signals.pb.h signals.pb.cc signals_pb2.py
 
 INCLUDEPATH += ..
 
