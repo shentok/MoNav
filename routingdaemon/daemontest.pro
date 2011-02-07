@@ -1,6 +1,14 @@
 TEMPLATE = app
 DESTDIR = ../bin
 
+CONFIG += link_pkgconfig
+PKGCONFIG += protobuf
+
+PROTOS = signals.proto
+include(../utils/osm/protobuf.pri)
+
+PRE_TARGETDEPS += signals.pb.h signals.pb.cc
+
 INCLUDEPATH += ..
 
 TARGET = daemon-test

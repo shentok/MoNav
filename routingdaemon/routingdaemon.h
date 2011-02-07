@@ -21,13 +21,14 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define ROUTINGDAEMON_H
 
 #include "routingcommon.h"
+#include "signals.pb.h"
+#include "signals.h"
 
 #include "qtservice.h"
 
 #include <QLocalServer>
 #include <QLocalSocket>
 
-using namespace MoNav;
 
 class RoutingDaemon : public QObject, public QtService< QCoreApplication >, public RoutingCommon {
 
@@ -48,14 +49,17 @@ public slots:
 	{
 		QLocalSocket* connection = m_server->nextPendingConnection();
 		connect( connection, SIGNAL(disconnected()), connection, SLOT(deleteLater()) );
-		CommandType type;
 
-		if ( !type.read( connection ) )
+		MoNav::CommandType type;
+
+		if ( !MoNav::MessageWrapper<MoNav::CommandType, QLocalSocket>::read( connection, type ) ) {
+			qDebug() << "Could not read CommandType.";
 			return;
+		}
 
-		if ( type.value == CommandType::UnpackCommand ) {
+		if ( type.value() == MoNav::CommandType::UNPACK_COMMAND ) {
 			unpackCommand( connection );
-		} else if ( type.value == CommandType::RoutingCommand ) {
+		} else if ( type.value() == MoNav::CommandType::ROUTING_COMMAND ) {
 			routingCommand( connection );
 		}
 	}
@@ -64,36 +68,46 @@ protected:
 
 	void unpackCommand( QLocalSocket* connection )
 	{
-		UnpackCommand command;
-		UnpackResult result;
+		MoNav::UnpackCommand command;
+		MoNav::UnpackResult result;
 
-		if ( !command.read( connection ) )
+		if ( !MoNav::MessageWrapper<MoNav::UnpackCommand, QLocalSocket>::read( connection, command ) ) {
+			qDebug() << "Could not read UnpackCommand.";
 			return;
+		}
 
 		result = unpack( command );
 
-		if ( connection->state() != QLocalSocket::ConnectedState )
+		if ( connection->state() != QLocalSocket::ConnectedState ) {
+			qDebug() << "Client has disconnected unexpectedly.";
 			return;
+		}
 
-		result.post( connection );
+		MoNav::MessageWrapper<MoNav::UnpackResult, QLocalSocket>::post( connection, result );
+
 		connection->flush();
 		connection->disconnectFromServer();
 	}
 
 	void routingCommand( QLocalSocket* connection )
 	{
-		RoutingCommand command;
-		RoutingResult result;
+		MoNav::RoutingCommand command;
+		MoNav::RoutingResult result;
 
-		if ( !command.read( connection ) )
+		if ( !MoNav::MessageWrapper<MoNav::RoutingCommand, QLocalSocket>::read( connection, command ) ) {
+			qDebug() << "Could not read RoutingCommand.";
 			return;
+		}
 
 		result = route( command );
 
-		if ( connection->state() != QLocalSocket::ConnectedState )
+		if ( connection->state() != QLocalSocket::ConnectedState ) {
+			qDebug() << "Client has disconnected unexpectedly.";
 			return;
+		}
 
-		result.post( connection );
+		MoNav::MessageWrapper<MoNav::RoutingResult, QLocalSocket>::post( connection, result );
+
 		connection->flush();
 		connection->disconnectFromServer();
 	}

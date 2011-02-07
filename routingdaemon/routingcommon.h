@@ -20,17 +20,16 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef ROUTINGCOMMON_H
 #define ROUTINGCOMMON_H
 
-#include "signals.h"
-#include "interfaces/irouter.h"
-#include "interfaces/igpslookup.h"
-#include "utils/directoryunpacker.h"
-
 #include <QtCore>
 #include <QSettings>
 #include <QFile>
 #include <QtDebug>
 
-using namespace MoNav;
+#include "interfaces/irouter.h"
+#include "interfaces/igpslookup.h"
+#include "utils/directoryunpacker.h"
+
+#include "signals.pb.h"
 
 class RoutingCommon {
 
@@ -49,29 +48,31 @@ public:
 
 protected:
 
-	UnpackResult unpack( UnpackCommand command )
+	MoNav::UnpackResult unpack( const MoNav::UnpackCommand command )
 	{
-		UnpackResult result;
+		MoNav::UnpackResult result;
 
-		result.type = UnpackResult::Success;
+		result.set_type( MoNav::UnpackResult::SUCCESS );
 
-		DirectoryUnpacker unpacker( command.mapModuleFile );
-		if ( !unpacker.decompress( command.deleteFile ) )
-			result.type = UnpackResult::FailUnpacking;
+		DirectoryUnpacker unpacker( command.map_module_file().c_str() );
+		if ( !unpacker.decompress( command.delete_file() ) ) {
+			result.set_type( MoNav::UnpackResult::FAIL_UNPACKING );
+		}
 
 		return result;
 	}
 
-	RoutingResult route( RoutingCommand command )
+	MoNav::RoutingResult route( const MoNav::RoutingCommand command )
 	{
-		RoutingResult result;
+		MoNav::RoutingResult result;
 
-		result.type = RoutingResult::Success;
+		result.set_type( MoNav::RoutingResult::SUCCESS );
 
-		if ( !m_loaded || command.dataDirectory != m_dataDirectory ) {
+		QString dataDirectory = command.data_directory().c_str();
+		if ( !m_loaded || dataDirectory != m_dataDirectory ) {
 			unloadPlugins();
-			m_loaded = loadPlugins( command.dataDirectory );
-			m_dataDirectory = command.dataDirectory;
+			m_loaded = loadPlugins( dataDirectory );
+			m_dataDirectory = dataDirectory;
 		}
 
 		if ( m_loaded ) {
@@ -79,92 +80,94 @@ protected:
 			QVector< IRouter::Edge > pathEdges;
 			double distance = 0;
 			bool success = true;
-			for ( int i = 1; i < command.waypoints.size(); i++ ) {
-				if ( i != 1 )
-					result.pathNodes.pop_back();
+			for ( int i = 1; i < command.waypoints_size(); i++ ) {
+				if ( i != 1 ) {
+					// Remove last node.
+					result.mutable_nodes( result.nodes_size() - 1 )->Clear();
+				}
 				double segmentDistance;
 				pathNodes.clear();
 				pathEdges.clear();
-				if ( !computeRoute( &segmentDistance, &pathNodes, &pathEdges, command.waypoints[i-1], command.waypoints[i], command.lookupRadius ) ) {
+				if ( !computeRoute( &segmentDistance, &pathNodes, &pathEdges, command.waypoints( i - 1 ), command.waypoints( i ), command.lookup_radius() ) ) {
 					success = false;
 					break;
 				}
 				distance += segmentDistance;
 
 				for ( int j = 0; j < pathNodes.size(); j++ ) {
-					Node node;
 					GPSCoordinate gps = pathNodes[j].coordinate.ToGPSCoordinate();
-					node.latitude = gps.latitude;
-					node.longitude = gps.longitude;
-					result.pathNodes.push_back( node );
+					MoNav::Node* node = result.add_nodes();
+					node->set_latitude( gps.latitude );
+					node->set_longitude( gps.longitude );
 				}
 
 				for ( int j = 0; j < pathEdges.size(); j++ ) {
-					Edge edge;
-					edge.length = pathEdges[j].length;
-					edge.name = pathEdges[j].name;
-					edge.type = pathEdges[j].type;
-					edge.seconds = pathEdges[j].seconds;
-					edge.branchingPossible = pathEdges[j].branchingPossible;
-					result.pathEdges.push_back( edge );
+					MoNav::Edge* edge = result.add_edges();
+					edge->set_length( pathEdges[j].length );
+					edge->set_name_id( pathEdges[j].name );
+					edge->set_type_id( pathEdges[j].type );
+					edge->set_seconds( pathEdges[j].seconds );
+					edge->set_branching_possible( pathEdges[j].branchingPossible );
 				}
 			}
-			result.seconds = distance;
+			result.set_seconds( distance );
 
 			if ( success ) {
-				if ( command.lookupStrings ) {
+				if ( command.lookup_edge_names() ) {
 					unsigned lastNameID = std::numeric_limits< unsigned >::max();
 					QString lastName;
 					unsigned lastTypeID = std::numeric_limits< unsigned >::max();
 					QString lastType;
-					for ( int j = 0; j < result.pathEdges.size(); j++ ) {
-						if ( lastNameID != result.pathEdges[j].name ) {
-							lastNameID = result.pathEdges[j].name;
+					for ( int j = 0; j < result.edges_size(); j++ ) {
+						MoNav::Edge* edge = result.mutable_edges( j );
+
+						if ( lastNameID != edge->name_id() ) {
+							lastNameID = edge->name_id();
 							if ( !m_router->GetName( &lastName, lastNameID ) )
-								result.type = RoutingResult::NameLookupFailed;
-							result.nameStrings.push_back( lastName );
+								result.set_type( MoNav::RoutingResult::NAME_LOOKUP_FAILED );
+							result.add_edge_names( lastName.toStdString() );
 						}
 
-						if ( lastTypeID != result.pathEdges[j].type ) {
-							lastTypeID = result.pathEdges[j].type;
+						if ( lastTypeID != edge->type_id() ) {
+							lastTypeID = edge->type_id();
 							if ( !m_router->GetType( &lastType, lastTypeID ) )
-								result.type = RoutingResult::TypeLookupFailed;
-							result.typeStrings.push_back( lastType );
+								result.set_type( MoNav::RoutingResult::TYPE_LOOKUP_FAILED );
+							result.add_edge_types( lastType.toStdString() );
 						}
 
-						result.pathEdges[j].name = result.nameStrings.size() - 1;
-						result.pathEdges[j].type = result.typeStrings.size() - 1;
+						edge->set_name_id( result.edge_names_size() - 1 );
+						edge->set_type_id( result.edge_types_size() - 1 );
 					}
 				}
 			} else {
-				result.type = RoutingResult::RouteFailed;
+				result.set_type( MoNav::RoutingResult::ROUTE_FAILED );
 			}
 		} else {
-			result.type = RoutingResult::LoadFailed;
+			result.set_type( MoNav::RoutingResult::LOAD_FAILED );
 		}
 
 		return result;
 	}
 
-	bool computeRoute( double* resultDistance, QVector< IRouter::Node >* resultNodes, QVector< IRouter::Edge >* resultEdge, Node source, Node target, double lookupRadius )
+	bool computeRoute( double* resultDistance, QVector< IRouter::Node >* resultNodes, QVector< IRouter::Edge >* resultEdge, MoNav::Node source, MoNav::Node target, double lookupRadius )
 	{
 		if ( m_gpsLookup == NULL || m_router == NULL ) {
 			qCritical() << "tried to query route before setting valid data directory";
 			return false;
 		}
-		UnsignedCoordinate sourceCoordinate( GPSCoordinate( source.latitude, source.longitude ) );
-		UnsignedCoordinate targetCoordinate( GPSCoordinate( target.latitude, target.longitude ) );
+		UnsignedCoordinate sourceCoordinate( GPSCoordinate( source.latitude(), source.longitude() ) );
+		UnsignedCoordinate targetCoordinate( GPSCoordinate( target.latitude(), target.longitude() ) );
 		IGPSLookup::Result sourcePosition;
 		QTime time;
 		time.start();
-		bool found = m_gpsLookup->GetNearestEdge( &sourcePosition, sourceCoordinate, lookupRadius, source.headingPenalty, source.heading );
+		bool found = m_gpsLookup->GetNearestEdge( &sourcePosition, sourceCoordinate, lookupRadius, source.heading_penalty(), source.heading() );
 		qDebug() << "GPS Lookup:" << time.restart() << "ms";
 		if ( !found ) {
 			qDebug() << "no edge near source found";
 			return false;
 		}
 		IGPSLookup::Result targetPosition;
-		found = m_gpsLookup->GetNearestEdge( &targetPosition, targetCoordinate, lookupRadius, target.headingPenalty, target.heading );
+		found = m_gpsLookup->GetNearestEdge( &targetPosition, targetCoordinate, lookupRadius, target.heading_penalty(), target.heading() );
 		qDebug() << "GPS Lookup:" << time.restart() << "ms";
 		if ( !found ) {
 			qDebug() << "no edge near target found";
