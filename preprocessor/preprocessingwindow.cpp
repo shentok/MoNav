@@ -241,6 +241,7 @@ void PreprocessingWindow::connectSlots()
 	connect( m_ui->writeConfigButton, SIGNAL(clicked()), this, SLOT(writeConfig()) );
 
 	connect( m_ui->allPreprocessButton, SIGNAL(clicked()), this, SLOT(preprocessAll()) );
+	connect( m_ui->daemonPreprocessButton, SIGNAL(clicked()), this, SLOT(preprocessDaemon()) );
 }
 
 void PreprocessingWindow::saveSettingsToFile()

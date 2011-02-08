@@ -860,9 +860,9 @@
             </spacer>
            </item>
            <item>
-            <widget class="QPushButton" name="pushButton">
+            <widget class="QPushButton" name="daemonPreprocessButton">
              <property name="text">
-              <string>Build Deamon Data</string>
+              <string>Build Daemon Data</string>
              </property>
             </widget>
            </item>
