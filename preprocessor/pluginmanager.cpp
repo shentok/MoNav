@@ -542,8 +542,8 @@ bool PluginManager::processRoutingModule( QString moduleName, QString importer, 
 	settings.setValue( "name", moduleName );
 	settings.setValue( "router", router );
 	settings.setValue( "gpsLookup", gpsLookup );
-	settings.setValue( "routerFileFormat", d->routerPlugins[routerIndex]->GetFileFormatVersion() );
-	settings.setValue( "gpsLookupFileFormat", d->gpsLookupPlugins[gpsLookupIndex]->GetFileFormatVersion() );
+	settings.setValue( "routerFileFormatVersion", d->routerPlugins[routerIndex]->GetFileFormatVersion() );
+	settings.setValue( "gpsLookupFileFormatVersion", d->gpsLookupPlugins[gpsLookupIndex]->GetFileFormatVersion() );
 
 	if ( !async ) {
 		return runRouting( dir.path(), d->importerPlugins[importerIndex], d->routerPlugins[routerIndex], d->gpsLookupPlugins[gpsLookupIndex], PackerInfo( d->packaging, d->dictionarySize, d->blockSize ) );
@@ -581,7 +581,7 @@ bool PluginManager::processRenderingModule( QString moduleName, QString importer
 	settings.setValue( "configVersion", 2 );
 	settings.setValue( "name", moduleName );
 	settings.setValue( "renderer", renderer );
-	settings.setValue( "rendererFileFormat", d->rendererPlugins[rendererIndex]->GetFileFormatVersion() );
+	settings.setValue( "rendererFileFormatVersion", d->rendererPlugins[rendererIndex]->GetFileFormatVersion() );
 
 	if ( !async ) {
 		return runRendering( dir.path(), d->importerPlugins[importerIndex], d->rendererPlugins[rendererIndex], PackerInfo( d->packaging, d->dictionarySize, d->blockSize ) );
@@ -618,7 +618,7 @@ bool PluginManager::processAddressLookupModule( QString moduleName, QString impo
 	settings.setValue( "configVersion", 2 );
 	settings.setValue( "name", moduleName );
 	settings.setValue( "addressLookup", addressLookup );
-	settings.setValue( "addressLookupFileFormat", d->addressLookupPlugins[addressLookupIndex]->GetFileFormatVersion() );
+	settings.setValue( "addressLookupFileFormatVersion", d->addressLookupPlugins[addressLookupIndex]->GetFileFormatVersion() );
 
 	if ( !async ) {
 		return runAddressLookup( dir.path(), d->importerPlugins[importerIndex], d->addressLookupPlugins[addressLookupIndex], PackerInfo( d->packaging, d->dictionarySize, d->blockSize ) );

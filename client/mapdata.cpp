@@ -351,8 +351,8 @@ void MapData::PrivateImplementation::findRoutingModules()
 		module.path = dir.filePath( subDirs[i] );
 		module.plugins.push_back( config.value( "router" ).toString() );
 		module.plugins.push_back( config.value( "gpsLookup" ).toString() );
-		module.fileFormats.push_back( config.value( "routerFileFormat", -1 ).toInt() );
-		module.fileFormats.push_back( config.value( "gpsLookupFileFormat", -1 ).toInt() );
+		module.fileFormats.push_back( config.value( "routerFileFormatVersion", -1 ).toInt() );
+		module.fileFormats.push_back( config.value( "gpsLookupFileFormatVersion", -1 ).toInt() );
 
 		routingModules.push_back( module );
 	}
@@ -384,7 +384,7 @@ void MapData::PrivateImplementation::findRenderingModules()
 		module.name = config.value( "name", "No Name" ).toString();
 		module.path = dir.filePath( subDirs[i] );
 		module.plugins.push_back( config.value( "renderer" ).toString() );
-		module.fileFormats.push_back( config.value( "rendererFileFormat", -1 ).toInt() );
+		module.fileFormats.push_back( config.value( "rendererFileFormatVersion", -1 ).toInt() );
 
 		renderingModules.push_back( module );
 	}
@@ -416,7 +416,7 @@ void MapData::PrivateImplementation::findAddressLookupModules()
 		module.name = config.value( "name", "No Name" ).toString();
 		module.path = dir.filePath( subDirs[i] );
 		module.plugins.push_back( config.value( "addressLookup" ).toString() );
-		module.fileFormats.push_back( config.value( "addressLookupFileFormat", -1 ).toInt() );
+		module.fileFormats.push_back( config.value( "addressLookupFileFormatVersion", -1 ).toInt() );
 
 		addressLookupModules.push_back( module );
 	}

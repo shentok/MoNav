@@ -247,7 +247,7 @@ protected:
 		}
 		QSettings pluginSettings( configFilename, QSettings::IniFormat );
 		int iniVersion = pluginSettings.value( "configVersion" ).toInt();
-		if ( iniVersion != 1 ) {
+		if ( iniVersion != 2 ) {
 			qCritical() << "Config File not compatible";
 			return false;
 		}
@@ -263,8 +263,8 @@ protected:
 				qCritical() << "GPSLookup plugin not found:" << gpsLookupName;
 				return false;
 			}
-			int gpsLookupFileFormat = pluginSettings.value( "gpsLookupFileFormatVersion" ).toInt();
-			if ( !m_gpsLookup->IsCompatible( gpsLookupFileFormat ) ) {
+			int gpsLookupFileFormatVersion = pluginSettings.value( "gpsLookupFileFormatVersion" ).toInt();
+			if ( !m_gpsLookup->IsCompatible( gpsLookupFileFormatVersion ) ) {
 				qCritical() << "GPS Lookup file format not compatible";
 				return false;
 			}
@@ -278,9 +278,9 @@ protected:
 				qCritical() << "router plugin not found:" << routerName;
 				return false;
 			}
-			int routerFileFormat = pluginSettings.value( "routerFileFormatVersion" ).toInt();
-			if ( !m_gpsLookup->IsCompatible( routerFileFormat ) ) {
-				qCritical() << "GPS Lookup file format not compatible";
+			int routerFileFormatVersion = pluginSettings.value( "routerFileFormatVersion" ).toInt();
+			if ( !m_gpsLookup->IsCompatible( routerFileFormatVersion ) ) {
+				qCritical() << "Router file format not compatible";
 				return false;
 			}
 			m_router->SetInputDirectory( dataDirectory );
