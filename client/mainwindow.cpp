@@ -84,8 +84,9 @@ MainWindow::MainWindow( QWidget* parent ) :
 
 	setupMenu();
 	m_ui->zoomBar->hide();
-	m_ui->headerWidget->hide();
 	m_ui->infoWidget->hide();
+	m_ui->sourceMode->hide();
+	m_ui->targetMode->hide();
 
 	// ensure that we're painting our background
 	setAutoFillBackground(true);
@@ -150,6 +151,9 @@ void MainWindow::connectSlots()
 	connect( m_ui->settings, SIGNAL(clicked()), this, SLOT(settingsMenu()) );
 	connect( m_ui->source, SIGNAL(clicked()), this, SLOT(sourceMenu()) );
 	connect( m_ui->target, SIGNAL(clicked()), this, SLOT(targetMenu()) );
+
+	connect( m_ui->sourceMode, SIGNAL(clicked()), this, SLOT(setModeNoSelection()) );
+	connect( m_ui->targetMode, SIGNAL(clicked()), this, SLOT(setModeNoSelection()) );
 }
 
 void MainWindow::setupMenu()
@@ -484,16 +488,29 @@ void MainWindow::keyPressEvent( QKeyEvent* event )
 void MainWindow::setModeSourceSelection()
 {
 	d->mode = PrivateImplementation::Source;
+	m_ui->frame->setVisible( false );
+	m_ui->menuWidget->setVisible( false );
+	m_ui->lockButton->setVisible( false );
+	m_ui->sourceMode->setVisible( true );
 }
 
 void MainWindow::setModeTargetSelection()
 {
 	d->mode = PrivateImplementation::Target;
+	m_ui->frame->setVisible( false );
+	m_ui->menuWidget->setVisible( false );
+	m_ui->lockButton->setVisible( false );
+	m_ui->targetMode->setVisible( true );
 }
 
 void MainWindow::setModeNoSelection()
 {
 	d->mode = PrivateImplementation::NoSelection;
+	m_ui->frame->setVisible( true );
+	m_ui->menuWidget->setVisible( true );
+	m_ui->lockButton->setVisible( true );
+	m_ui->sourceMode->setVisible( false );
+	m_ui->targetMode->setVisible( false );
 }
 
 void MainWindow::mouseClicked( ProjectedCoordinate clickPos )
