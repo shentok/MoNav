@@ -22,6 +22,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "mapmoduleswidget.h"
 #include "ui_mapmoduleswidget.h"
 
+#include <QMessageBox>
+#include <QDir>
+#include <QProgressDialog>
+#include <QtConcurrentRun>
+#include <QFuture>
+#include <QFutureWatcher>
+
 struct MapModulesWidget::PrivateImplementation
 {
 	QVector< MapData::Module > rendering;
@@ -53,6 +60,45 @@ void MapModulesWidget::populateData()
 	m_ui->routing->clear();
 	m_ui->rendering->clear();
 	m_ui->addressLookup->clear();
+
+	QDir dir( mapData->path() );
+	dir.setNameFilters( QStringList( "*.mmm" ) );
+	QStringList packedModules = dir.entryList( QDir::Files, QDir::Name );
+
+	if ( packedModules.size() > 0 ) {
+		int button = QMessageBox::question( NULL, "Packed Map Modules", "Found packed map modules, do you want to unpack them?", "Unpack", "Ignore", "Delete" );
+		if ( button == 0 ) {
+			QProgressDialog progress;
+			progress.setWindowModality( Qt::ApplicationModal );
+			progress.setMaximum( packedModules.size() - 1 );
+			for ( int i = 0; i < packedModules.size(); i++ ) {
+				QString filename = dir.filePath( packedModules[i] );
+				QFuture< bool > future = QtConcurrent::run( MapData::unpackModule, filename );
+				QFutureWatcher< bool > watcher;
+				connect( &watcher, SIGNAL(finished()), &progress, SLOT(accept()) );
+				watcher.setFuture( future );
+				progress.setLabelText( "Unpacking Module: " + packedModules[i] );
+				progress.setValue( i );
+				int result = progress.exec();
+				if ( result == QProgressDialog::Rejected ) {
+					future.waitForFinished();
+					break;
+				}
+
+				if ( !future.result() ) {
+					int button = QMessageBox::question( NULL, "Packed Map Modules", "Failed to unpack module: " + packedModules[i], "Ignore", "Delete" );
+					if ( button == 1 ) {
+						QFile::remove( dir.filePath( packedModules[i] ) );
+					}
+				}
+			}
+			mapData->loadInformation();
+		} else if ( button == 3 ) {
+			foreach( QString filename, packedModules ) {
+				QFile::remove( filename );
+			}
+		}
+	}
 
 	if ( !mapData->informationLoaded() )
 		return;

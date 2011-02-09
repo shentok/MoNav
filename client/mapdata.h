@@ -80,6 +80,7 @@ public:
 
 	// searches recursivly in subdirectories for map data
 	static bool searchForMapPackages( QString directory, QVector< MapPackage >* data, int depth = 2 );
+	static bool unpackModule( QString filename );
 
 	// is a map loaded?
 	bool loaded() const;

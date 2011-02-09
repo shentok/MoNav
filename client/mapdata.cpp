@@ -19,6 +19,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "mapdata.h"
 #include "utils/qthelpers.h"
+#include "utils/directoryunpacker.h"
 #include <QSettings>
 #include <QPluginLoader>
 #include <QApplication>
@@ -240,6 +241,15 @@ bool MapData::searchForMapPackages( QString directory, QVector<MapPackage>* data
 		for ( int i = 0; i < subDirs.size(); i++ )
 			dirList.append( subDir.filePath( subDirs[i] ) );
 	}
+
+	return true;
+}
+
+bool MapData::unpackModule( QString filename )
+{
+	DirectoryUnpacker unpacker( filename );
+	if ( !unpacker.decompress() )
+		return false;
 
 	return true;
 }
