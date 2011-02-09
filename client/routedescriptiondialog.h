@@ -20,14 +20,14 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef ROUTEDESCRIPTIONDIALOG_H
 #define ROUTEDESCRIPTIONDIALOG_H
 
-#include <QDialog>
+#include <QWidget>
 #include <QStringList>
 
 namespace Ui {
 	class RouteDescriptionDialog;
 }
 
-class RouteDescriptionWidget : public QDialog
+class RouteDescriptionWidget : public QWidget
 {
 	Q_OBJECT
 

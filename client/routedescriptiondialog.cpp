@@ -25,17 +25,12 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QtDebug>
 
 RouteDescriptionWidget::RouteDescriptionWidget( QWidget *parent ) :
-		QDialog( parent ),
+		QWidget( parent ),
 		m_ui(new Ui::RouteDescriptionDialog)
 {
 	m_ui->setupUi(this);
-	// Windows Mobile Window Flags
-	setWindowFlags( windowFlags() & ( ~Qt::WindowOkButtonHint ) );
-	setWindowFlags( windowFlags() | Qt::WindowCancelButtonHint );
+	connect( m_ui->back, SIGNAL(clicked()), this, SIGNAL(closed()) );
 	instructionsChanged();
-#ifdef Q_WS_MAEMO_5
-	setAttribute( Qt::WA_Maemo5StackedWindow );
-#endif
 }
 
 RouteDescriptionWidget::~RouteDescriptionWidget()

@@ -219,8 +219,7 @@ void MainWindow::showInstructions()
 	RouteDescriptionWidget* widget = new RouteDescriptionWidget( this );
 	int index = m_ui->stacked->addWidget( widget );
 	m_ui->stacked->setCurrentIndex( index );
-	//;connect( widget, SIGNAL(finished(int)),)
-	// TODO CLOSE ROUTE DESCRIPTION
+	connect( widget, SIGNAL(closed()), widget, SLOT(deleteLater()) );
 }
 
 void MainWindow::displayMapChooser()
