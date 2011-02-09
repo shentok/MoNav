@@ -12,7 +12,9 @@ Current issues:
 #include <stdarg.h>
 #include <list>
 #include <vector>
+#include <map>
 #include <algorithm>
+#include <QDebug>
 
 #include "types.h"
 #include "tile-write.h"
@@ -22,83 +24,6 @@ Current issues:
 
 #define DB_VERSION "org.hollo.quadtile.pqdb.03"
 
-struct WriteRule {
-    osm_type_t type_from; //List of types the rule
-    osm_type_t type_to;   //applies to
-    char flags; //0=LINE, 1=POLYGON
-    int zoom_from;
-    int zoom_to;
-    int r1, g1, b1; //Red, Green, Blue, width of first line
-    double w1;
-    int r2, g2, b2; //Red, Green, Blue, width of second line
-    double w2;
-};
-#define ALL_ZOOM 0, 20
-#define NO_PASS -1, -1, -1, -1
-#define WHITE 0xff, 0xff, 0xff
-#define BLACK 0, 0, 0
-#define C_ROAD_YELLOW 253, 253, 179
-#define B_ROAD_ORANGE 253, 214, 164
-#define A_ROAD_RED 236, 152, 154
-#define A_ROAD_GREEN 168, 218, 168
-#define MOTORWAY_BLUE 126, 126, 200
-#define WATER_BLUE 0xb5, 0xd0, 0xd0
-#define RAILWAY_BLACK 100, 100, 100
-#define POLY 1
-
-struct WriteRule write_rules[] = {
-//Low zoom
-{HW_PRIMARY,      HW_PRIMARY,    0, 6, 11, A_ROAD_RED, 2,    NO_PASS},
-{HW_TRUNK,        HW_TRUNK,      0, 6, 11, A_ROAD_GREEN, 3,  NO_PASS},
-{HW_MOTORWAY,     HW_MOTORWAY,   0, 6, 11, MOTORWAY_BLUE, 6, NO_PASS},
-//Higher level zooms
-{HW_PEDESTRIAN,   HW_UNSURFACED, 0, 14, 20, 80, 80, 80, 1,    NO_PASS},
-{HW_UNCLASSIFIED, HW_SERVICE,    0, 13, 13, BLACK, 2,         WHITE, 1.5},
-{HW_UNCLASSIFIED, HW_SERVICE,    0, 14, 14, BLACK, 3.5,       WHITE, 2.5},
-{HW_UNCLASSIFIED, HW_SERVICE,    0, 15, 20, BLACK, 5,         WHITE, 4},
-{HW_TERTIARY,     HW_TERTIARY,   0, 13, 13, C_ROAD_YELLOW, 3, NO_PASS},
-//Big roads without lines
-{HW_SECONDARY,    HW_SECONDARY,  0, 12, 13, B_ROAD_ORANGE, 3, NO_PASS},
-{HW_PRIMARY,      HW_PRIMARY,    0, 12, 13, A_ROAD_RED, 4,    NO_PASS},
-{HW_TRUNK,        HW_TRUNK,      0, 12, 13, A_ROAD_GREEN, 5,  NO_PASS},
-{HW_MOTORWAY,     HW_MOTORWAY,   0, 12, 13, MOTORWAY_BLUE, 5, NO_PASS},
-//Big roads at medium zoom levels
-{HW_TERTIARY,     HW_TERTIARY,   0, 14, 20, BLACK, 5,        C_ROAD_YELLOW, 4},
-{HW_SECONDARY,    HW_SECONDARY,  0, 14, 20, BLACK, 6,        B_ROAD_ORANGE, 5},
-{HW_PRIMARY,      HW_PRIMARY,    0, 14, 15, BLACK, 8,        A_ROAD_RED, 7},
-{HW_TRUNK,        HW_TRUNK,      0, 14, 15, BLACK, 10,        A_ROAD_GREEN, 9},
-{HW_MOTORWAY,     HW_MOTORWAY,   0, 14, 15, BLACK, 10,        MOTORWAY_BLUE, 9},
-//Big roads with lines at high zoom levels.
-{HW_PRIMARY,      HW_PRIMARY,    0, 16, 20, A_ROAD_RED, 7,    BLACK, 1},
-{HW_TRUNK,        HW_TRUNK,      0, 16, 20, A_ROAD_GREEN, 9,  BLACK, 1},
-{HW_MOTORWAY,     HW_MOTORWAY,   0, 16, 20, MOTORWAY_BLUE, 9, BLACK, 1},
-//Water/rail
-{WATERWAY,        WATERWAY,      0, 14, 20, WATER_BLUE, 4,    NO_PASS},
-{RW_RAIL,         RW_RAIL,       0, 12, 13, RAILWAY_BLACK, 1, NO_PASS},
-{RW_RAIL,         RW_RAIL,       0, 14, 20, RAILWAY_BLACK, 2, NO_PASS},
-//Areas
-{AREA_PARK,        AREA_PARK,        POLY, 6, 20, 0xb6, 0xfd, 0xb6, -1,NO_PASS},
-{AREA_CAMPSITE,    AREA_CAMPSITE,    POLY, 6, 20, 0xcc, 0xff, 0x99, -1,NO_PASS},
-{AREA_NATURE,      AREA_NATURE,      POLY, 6, 20, 0xab, 0xdf, 0x96, -1,NO_PASS},
-{AREA_CEMETERY,    AREA_CEMETERY,    POLY, 6, 20, 0xaa, 0xcb, 0xaf, -1,NO_PASS},
-{AREA_RESIDENTIAL, AREA_RESIDENTIAL, POLY, 6, 20,  220,  220,  220, -1,NO_PASS},
-{AREA_BARRACKS,    AREA_BARRACKS,    POLY, 6, 20, 0xff, 0x8f, 0x8f, -1,NO_PASS},
-{AREA_MILITARY,    AREA_MILITARY,    POLY, 6, 20, 0xff, 0xa8, 0xa8, -1,NO_PASS},
-{AREA_FIELD,       AREA_FIELD,       POLY, 6, 20, 0x66, 0x66, 0x00, -1,NO_PASS},
-{AREA_DANGER_AREA, AREA_DANGER_AREA, POLY, 6, 20, 0xf6, 0xa8, 0xb6, -1,NO_PASS},
-{AREA_MEADOW,      AREA_MEADOW,      POLY, 6, 20, 0xcd, 0xf6, 0xc9, -1,NO_PASS},
-{AREA_COMMON,      AREA_COMMON,      POLY, 6, 20, 0xcd, 0xf6, 0xc9, -1,NO_PASS},
-{AREA_FOREST,      AREA_FOREST,      POLY, 6, 20, 0x8d, 0xc5, 0x6c, -1,NO_PASS},
-{AREA_WOOD,        AREA_WOOD,        POLY, 6, 20, 0xae, 0xd1, 0xa0, -1,NO_PASS},
-{AREA_WATER,       AREA_WATER,       POLY, 6, 20, WATER_BLUE,       -1,NO_PASS},
-{AREA_RETAIL,      AREA_RETAIL,      POLY, 6, 20, 0xde, 0xd1, 0xd5, -1,NO_PASS},
-{AREA_PARKING,     AREA_PARKING,     POLY, 6, 20, 0xf7, 0xef, 0xb7, -1,NO_PASS},
-{AREA_INDUSTRIAL,  AREA_INDUSTRIAL,  POLY, 6, 20, 0xdf, 0xd1, 0xd6, -1,NO_PASS},
-{AREA_BUILDING,    AREA_BUILDING,    POLY, 6, 20, 0xbc, 0xa9, 0xa9, -1,NO_PASS},
-{DONE, DONE, 0, -1, -1, NO_PASS, NO_PASS }
-};
-
-#define PROFILELOGGING
 #ifdef PROFILELOGGING
 #include <sys/time.h>
 static char g_timelog_str[256];
@@ -111,6 +36,7 @@ fprintf(stderr, "%s: %-25s %10ldms\n", g_timelog_str, (A), (g_timelog_tz2.tv_sec
 #define TIMELOGINIT(A)
 #define TIMELOG(A)
 #endif
+
 /* Logging stuff - integrate to MoNav*/
 enum logLevel {LOG_VERBOSE, LOG_DEBUG, LOG_ERROR, LOG_CRITICAL};
 static void Log(enum logLevel lvl, const char *fmt, ...)
@@ -134,11 +60,13 @@ class Way {
     Way() {ncoords=0;};
     bool init(FILE *fp);
     void print();
-    bool draw(ImgWriter &img, unsigned long tilex, unsigned long tiley,
-				  int zoom, int magnification, int pass);
+    bool draw(ImgWriter &img, DrawingRules & rules,
+              unsigned long tilex, unsigned long tiley,
+              int zoom, int magnification, int pass);
     static bool sort_by_type(Way w1, Way w2) {return w1.type<w2.type;};
     static void new_tile() {allcoords.clear();};
     osm_type_t type;
+
   private:
     int coordi, ncoords;
     static std::vector<coord> allcoords; //Coords for all loaded ways.
@@ -186,32 +114,22 @@ bool Way::init(FILE *fp)
 
 static int g_nways=0, g_ndrawnways=0;
 //Draw this way to an img tile.
-bool Way::draw(ImgWriter &img, unsigned long tilex, unsigned long tiley,
-											int zoom, int magnification, int pass)
+bool Way::draw(ImgWriter &img, DrawingRules & rules,
+              unsigned long tilex, unsigned long tiley,
+              int zoom, int magnification, int pass)
 {
     g_nways++;
-    char flags;
-    for(struct WriteRule *w = write_rules; w->type_from!=DONE; w++) {
-        if(type>=w->type_from && type<=w->type_to && 
-           zoom>=w->zoom_from && zoom<=w->zoom_to) {
-            if((pass==0 && w->r1==-1) || (pass==1 && w->r2==-1)) return false;
-				if(pass==0) img.SetPen(w->r1, w->g1, w->b1, w->w1 * magnification);
-				else img.SetPen(w->r2, w->g2, w->b2, w->w2 * magnification);
-            flags = w->flags;
-            goto pen_set;
-        }
-    }
-    //printf("Can't find %d\n", type);
-    return false;
-
-    pen_set:
+    int r, g, b;
+    double width;
+    bool polygon;
+    if(!rules.get_rule(type, zoom, pass, &r, &g, &b, &width, &polygon)) return false;
+    img.SetPen(r, g, b, width * magnification);
     g_ndrawnways++;
-
 
     int oldx=0, oldy=0;
     
     ImgWriter::coord *c=NULL;
-    if(flags==POLY) {
+    if(polygon) {
         c = new ImgWriter::coord[ncoords];
     }
     int j=0;
@@ -232,17 +150,197 @@ bool Way::draw(ImgWriter &img, unsigned long tilex, unsigned long tiley,
         newy = (long) ((i->y) >> (31-8-zoom)) - (long) (tiley >> (31-8-zoom));
 		  newx *= magnification;
 		  newy *= magnification;
-        if(flags!=POLY && i!=allcoords.begin() + coordi) {
+        if(!polygon && i!=allcoords.begin() + coordi) {
             img.DrawLine(oldx, oldy, newx, newy);
         }
-        if(flags==POLY) {c[j].x = newx; c[j++].y = newy;}
+        if(polygon) {c[j].x = newx; c[j++].y = newy;}
         oldx=newx; oldy=newy;
     }
-    if(flags==POLY) {
+    if(polygon) {
         img.FillPoly(c, ncoords);
         delete [] c;
     }
     return true;
+}
+
+/* DrawingRules - load from rendering.qrr */
+DrawingRules::DrawingRules(const std::string &_dir)
+{
+    dir = _dir;
+    load_rules();
+}
+
+bool DrawingRules::get_rule(osm_type_t type, int zoom, int pass,
+                  int *r, int *g, int *b, double *width, bool *polygon)
+{
+    if(pass<0 || pass>1) return false;
+
+    for(std::vector<struct DrawingRule>::iterator rule = drawing_rules.begin();
+       rule!=drawing_rules.end(); rule++) {
+       if(type >= rule->type_from && type <= rule->type_to && 
+           zoom>=rule->zoom_from && zoom<=rule->zoom_to) {
+            if(rule->red[pass]==-1) return false;
+            *r = rule->red[pass];
+            *g = rule->green[pass];
+            *b = rule->blue[pass];
+            *width = rule->width[pass];
+            *polygon = rule->polygon;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool DrawingRules::load_rules()
+{
+    static std::map<std::string, osm_type_t> type_table;
+    type_table["AREA_PARK"] = AREA_PARK;
+    type_table["AREA_CAMPSITE"] = AREA_CAMPSITE;
+    type_table["AREA_NATURE"] = AREA_NATURE;
+    type_table["AREA_CEMETERY"] = AREA_CEMETERY;
+    type_table["AREA_RESIDENTIAL"] = AREA_RESIDENTIAL;
+    type_table["AREA_BARRACKS"] = AREA_BARRACKS;
+    type_table["AREA_MILITARY"] = AREA_MILITARY;
+    type_table["AREA_FIELD"] = AREA_FIELD;
+    type_table["AREA_DANGER_AREA"] = AREA_DANGER_AREA;
+    type_table["AREA_MEADOW"] = AREA_MEADOW;
+    type_table["AREA_COMMON"] = AREA_COMMON;
+    type_table["AREA_FOREST"] = AREA_FOREST;
+    type_table["AREA_WATER"] = AREA_WATER;
+    type_table["AREA_WOOD"] = AREA_WOOD;
+    type_table["AREA_RETAIL"] = AREA_RETAIL;
+    type_table["AREA_INDUSTRIAL"] = AREA_INDUSTRIAL;
+    type_table["AREA_PARKING"] = AREA_PARKING;
+    type_table["AREA_BUILDING"] = AREA_BUILDING;
+    type_table["HW_PEDESTRIAN"] = HW_PEDESTRIAN;
+    type_table["HW_PATH"] = HW_PATH;
+    type_table["HW_FOOTWAY"] = HW_FOOTWAY;
+    type_table["HW_STEPS"] = HW_STEPS;
+    type_table["HW_BRIDLEWAY"] = HW_BRIDLEWAY;
+    type_table["HW_CYCLEWAY"] = HW_CYCLEWAY;
+    type_table["HW_PRIVATE"] = HW_PRIVATE;
+    type_table["HW_UNSURFACED"] = HW_UNSURFACED;
+    type_table["HW_UNCLASSIFIED"] = HW_UNCLASSIFIED;
+    type_table["HW_RESIDENTIAL"] = HW_RESIDENTIAL;
+    type_table["HW_LIVING_STREET"] = HW_LIVING_STREET;
+    type_table["HW_SERVICE"] = HW_SERVICE;
+    type_table["HW_TERTIARY"] = HW_TERTIARY;
+    type_table["HW_SECONDARY"] = HW_SECONDARY;
+    type_table["HW_PRIMARY"] = HW_PRIMARY;
+    type_table["HW_TRUNK"] = HW_TRUNK;
+    type_table["HW_MOTORWAY"] = HW_MOTORWAY;
+    type_table["RW_RAIL"] = RW_RAIL;
+    type_table["WATERWAY"] = WATERWAY;
+    type_table["PLACE_TOWN"] = PLACE_TOWN;
+
+    drawing_rules.clear();
+    std::map<std::string, long> colourMap;
+    char buf[4096];
+    FILE *fp = fopen((dir + "/rendering.qrr").c_str(), "r");
+    if(!fp) {
+        qCritical() << "Can't find rendering rules. Please re-run the preprocessor, "
+           "or copy rendering rules (default.qrr) to" << dir.c_str() << "/rendering.qrr";
+        return false;
+    }
+    while(fgets(buf, 4095, fp)) {
+        if(strlen(buf)<1) return false;
+        buf[strlen(buf)-1]=0;
+        std::vector<std::string> tokens;
+        tokenise(buf, tokens);
+        if(tokens.size()<5) continue;
+        int i=1;
+        if(tokens[0] == "Colour:") {
+            if(tokens.size()!=5) continue;
+            int red, green, blue;
+            i++;
+            if(!sscanf(tokens[i++].c_str(), "%i", &red)) continue;
+            if(!sscanf(tokens[i++].c_str(), "%i", &green)) continue;
+            if(!sscanf(tokens[i++].c_str(), "%i", &blue)) continue;
+            printf("%s: %d, %d, %d\n", tokens[1].c_str(), red, green, blue);
+            colourMap[tokens[1]] = (red << 16) | (green << 8)  | (blue + 1);
+        }
+        else if(tokens[0]=="Line:") {
+            if(tokens.size()<7) continue;
+            DrawingRule r;
+            memset(&r, 0, sizeof(DrawingRule));
+            r.red[1] = -1; //Disable 2nd pass by default.
+            r.type_from = type_table[tokens[i++]];
+            r.type_to   = type_table[tokens[i++]];
+            r.polygon = false;
+            r.zoom_from = atoi(tokens[i++].c_str());
+            r.zoom_to = atoi(tokens[i++].c_str());
+            std::string tmp = tokens[i++];
+            if(colourMap[tmp]) {
+                //Colour is stored +1 so we can store black (0) and find it.
+                long col = colourMap[tmp]-1; 
+                r.red[0] = col >> 16;
+                r.green[0] = (col >> 8) & 0xFF;
+                r.blue[0] = (col & 0xFF);
+            } else {
+                if(!sscanf(tmp.c_str(), "%i", &r.red[0])) continue;
+                if(!sscanf(tokens[i++].c_str(), "%i", &r.green[0])) continue;
+                if(!sscanf(tokens[i++].c_str(), "%i", &r.blue[0])) continue;
+            }
+            r.width[0] = atof(tokens[i++].c_str());
+            if(i== (int) tokens.size()) {
+                drawing_rules.push_back(r);
+                continue;
+            }
+            tmp = tokens[i++];
+            if(colourMap[tmp]) {
+                long col = colourMap[tmp]-1; 
+                r.red[1] = col >> 16;
+                r.green[1] = (col >> 8) & 0xFF;
+                r.blue[1] = (col & 0xFF);
+            } else {
+                if(!sscanf(tmp.c_str(), "%i", &r.red[1])) continue;
+                if(!sscanf(tokens[i++].c_str(), "%i", &r.green[1])) continue;
+                if(!sscanf(tokens[i++].c_str(), "%i", &r.blue[1])) continue;
+            }
+            r.width[1] = atof(tokens[i++].c_str());
+            drawing_rules.push_back(r);
+        }
+        else if(tokens[0]=="Area:") {
+            if(tokens.size()<5) continue;
+            DrawingRule r;
+            memset(&r, 0, sizeof(DrawingRule));
+            r.type_from = type_table[tokens[i++]];
+            r.type_to   = r.type_from;
+            r.polygon = true;
+            r.zoom_from = atoi(tokens[i++].c_str());
+            r.zoom_to = atoi(tokens[i++].c_str());
+            std::string tmp = tokens[i++];
+            if(colourMap[tmp]) {
+                //Colour is stored +1 so we can store black (0) and find it.
+                long col = colourMap[tmp]-1; 
+                r.red[0] = col >> 16;
+                r.green[0] = (col >> 8) & 0xFF;
+                r.blue[0] = (col & 0xFF);
+            } else {
+                if(!sscanf(tmp.c_str(), "%i", &r.red[0])) continue;
+                if(!sscanf(tokens[i++].c_str(), "%i", &r.green[0])) continue;
+                if(!sscanf(tokens[i++].c_str(), "%i", &r.blue[0])) continue;
+            }
+            r.width[0] = -1;
+            r.red[1] = -1;
+            drawing_rules.push_back(r);
+        }
+    }
+    fclose(fp);
+    return true;
+}
+
+/* Static helper function */
+void DrawingRules::tokenise(const std::string &input, std::vector<std::string> &output)
+{
+    char *s = strdup(input.c_str());
+    char *p = strtok(s, " ");
+    while(p) {
+        output.push_back(p);
+        p = strtok(NULL, " ");
+    }
+    delete s;
 }
 
 /* A recursive index class into the quadtile way database. */
@@ -363,15 +461,19 @@ long qindex::get_index(quadtile _q, int _level, int *_nways)
     return offset;
 }
 
-TileWriter::TileWriter(const std::string &_filename, const std::string &_filename2, const std::string &_filename3)
+TileWriter::TileWriter(const std::string &_dir)
+    : dr(_dir)
 {
     img = new ImgWriter;
-    filename[0] = _filename; filename[1]=_filename2; filename[2] = _filename3;
+    filename[0] = _dir + "/ways.all.pqdb";
+    filename[1] = _dir + "/ways.motorway.pqdb";
+    filename[2] = _dir + "/places.pqdb";
     for(int i=0;i<3;i++) {
         db[i] = fopen(filename[i].c_str(), "rb");
         qidx[i] = qindex::load(db[i]);
         printf("Opening %s\n", filename[i].c_str());
     }
+
 }
 
 const unsigned char * TileWriter::get_img_data()
@@ -470,15 +572,15 @@ bool TileWriter::draw_image(const std::string &_imgname, int x, int y, int zoom,
     for(i=waylist.begin(); i!=waylist.end(); i++) {
         if(need_next_pass(i->type, current_type)) { //Do the second pass.
             for(j=cur_type_start; j!=i; j++) 
-                if(!j->draw(*img, itilex, itiley, zoom, magnification, 1)) break;
+                if(!j->draw(*img, dr, itilex, itiley, zoom, magnification, 1)) break;
             current_type = i->type;
             cur_type_start = i;
         }
-        i->draw(*img, itilex, itiley, zoom, magnification, 0);
+        i->draw(*img, dr, itilex, itiley, zoom, magnification, 0);
     }
     //Do second pass for the last type.
     for(j=cur_type_start; j!=waylist.end(); j++)
-        if(!j->draw(*img, itilex, itiley, zoom, magnification, 1)) break;
+        if(!j->draw(*img, dr, itilex, itiley, zoom, magnification, 1)) break;
     TIMELOG("Drawing");
     
     Log(LOG_VERBOSE, "Saving img\n");
@@ -488,7 +590,7 @@ bool TileWriter::draw_image(const std::string &_imgname, int x, int y, int zoom,
     
     //for(i=waylist.begin();i!=waylist.end();i++) delete *i;
     TIMELOG("Cleanup");
-    printf("Drew %d/%d ways\n", g_ndrawnways, g_nways);
+    Log(LOG_VERBOSE, "Drew %d/%d ways\n", g_ndrawnways, g_nways);
     return true;
 }
 
@@ -505,7 +607,7 @@ void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
     char buf[256];
     unsigned char ubuf[10];
     for(int i=0; i<nways;i++) {
-        fread(ubuf, 10, 1, db[placenamedb]);
+        if(fread(ubuf, 10, 1, db[placenamedb])!=1) return;
 
         struct placename p;
         p.type = ubuf[9];
@@ -516,7 +618,7 @@ void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
         p.tilex = (double) x / (double) (1ULL<<(31-actualzoom));
         p.tiley = (double) y / (double) (1ULL<<(31-actualzoom));
 
-        fread(buf, namelen, 1, db[placenamedb]);
+        if(fread(buf, namelen, 1, db[placenamedb])!=1) return;
 
         buf[namelen]=0;
         if(p.type>=5 && actualzoom<16) continue; //ignore hamlets
@@ -535,11 +637,13 @@ void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
 //   g++ -DPROFILELOGGING -DTILE_WRITE_MAIN -O3 -pg -o tile-write tile-write.cpp -lagg
 //
 //   expects data files in current dir. Either run with no args to time
-//   building the compiled in area, or with 3 args of x, y, z (to display
+//   building the compiled in area, 1 arg for building the whole area without any
+//   time spent saving/converting image formats, or with 3 args of x, y, z (to display
 //   tile) or 4 args: x,y,z,i to draw the tile i times for profiling.
 #ifdef TILE_WRITE_MAIN
 #include <math.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 void get_tile(double lat, double lon, int zoom, int *x, int *y)
 {
@@ -549,14 +653,18 @@ void get_tile(double lat, double lon, int zoom, int *x, int *y)
     *y = mlat * pow(2, zoom);
 }
 
+
 int main(int argc, char *argv[])
 {
-    TileWriter t("ways.all.pqdb", "ways.motorway.pqdb");
+    TileWriter t("./");
 
-    if(argc==1) {
-        int total_tiles=0, max_tiles=10000000, i;
+    struct timeval tv1, tv2;
+    long totalmsecs[18] = {0};
+    int maxmsecs[18] = {0}, ntiles[18] = {0};
+    int total_tiles=0, max_tiles=10000000, i;
+    if(argc==1 || argc==2) {
         char buf[1024];
-        for(int z=6; z<=16; z++) {
+        for(int z=5; z<=16; z++) {
             sprintf(buf, "mkdir %d >/dev/null 2>&1", z); i=system(buf);
             int x1, y1, x2, y2;
             //get_tile(58, -6, z, &x1, &y1);
@@ -568,25 +676,40 @@ int main(int argc, char *argv[])
                 for(int y=y1; y<=y2; y++) {
                     sprintf(buf, "%d/%d/%d.png", z, x, y);
                     printf("%s\n", buf);
-                    t.draw_image(buf, x, y, z);
-                    if(++total_tiles > max_tiles) return 0;
+                    gettimeofday(&tv1, 0);
+                    t.draw_image(argc==1 ? buf : "", x, y, z, 1);
+                    gettimeofday(&tv2, 0);
+                    int msecs = (tv2.tv_sec-tv1.tv_sec)*1000 + (tv2.tv_usec - tv1.tv_usec)/1000;
+                    if(msecs > maxmsecs[z]) maxmsecs[z] = msecs;
+                    totalmsecs[z] += msecs;
+                    ntiles[z] ++;
+                    if(++total_tiles > max_tiles) goto stats;
                 }
             }
         }
+        goto stats;
     } else {
         int x = atoi(argv[2]);
         int y = atoi(argv[3]);
         int z = atoi(argv[1]);
 
         if(argc==4) {
-            t.draw_image("test.png", x, y, z);
+            t.draw_image("test.png", x, y, z, 1);
             int i = system("eog test.png");
         } else {
             int count = atoi(argv[4]);
             for(int i=0;i<count;i++) {
-                t.draw_image("", x, y, z);
+                t.draw_image("", x, y, z, 1);
             }
         }
+    }
+    return 0;
+
+    stats:
+    for(int z=0;z<18;z++) {
+        if(!ntiles[z]) continue;
+        printf(" Zoom lvl: %2d, n =%5d, total = %5ldms, avg = %3ldms, max = %3dms\n",
+               z, ntiles[z], totalmsecs[z], totalmsecs[z]/ntiles[z], maxmsecs[z]);
     }
     return 0;
 }

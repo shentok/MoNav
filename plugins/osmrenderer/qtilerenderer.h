@@ -44,6 +44,7 @@ public:
 
 	struct Settings {
 		QString inputFile;
+		QString rulesFile;
 		bool unused;
 	};
 

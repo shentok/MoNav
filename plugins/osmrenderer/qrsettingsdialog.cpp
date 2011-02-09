@@ -39,11 +39,13 @@ QRSettingsDialog::~QRSettingsDialog()
 void QRSettingsDialog::connectSlots()
 {
 	connect(m_ui->inputBrowse, SIGNAL(clicked()), this, SLOT(browseInput()));
+	connect(m_ui->rulesFileBrowse, SIGNAL(clicked()), this, SLOT(browseRulesFile()));
 }
 
 bool QRSettingsDialog::readSettings( const QtileRenderer::Settings& settings )
 {
 	m_ui->inputEdit->setText( settings.inputFile );
+	m_ui->rulesFileEdit->setText( settings.rulesFile );
 	return true;
 }
 
@@ -52,6 +54,7 @@ bool QRSettingsDialog::fillSettings( QtileRenderer::Settings* settings )
 	if ( settings == NULL )
 		return false;
 	settings->inputFile = m_ui->inputEdit->text();
+	settings->rulesFile = m_ui->rulesFileEdit->text();
 	return true;
 }
 
@@ -63,4 +66,10 @@ void QRSettingsDialog::browseInput()
 		m_ui->inputEdit->setText( file );
 }
 
-
+void QRSettingsDialog::browseRulesFile()
+{
+	QString file = m_ui->rulesFileEdit->text();
+	file = QFileDialog::getOpenFileName(this, tr( "Open rules file" ), file);
+	if ( file != "" )
+		m_ui->rulesFileEdit->setText( file );
+}

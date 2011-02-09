@@ -25,6 +25,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QFile>
 #include <QSettings>
+#include <QDebug>
 #include <stdio.h>
 #include <string.h>
 #include <map>
@@ -874,6 +875,7 @@ void OSMReader::delete_ways()
 
 QtileRenderer::QtileRenderer()
 {
+        Q_INIT_RESOURCE(rendering_rules);
 }
 
 QtileRenderer::~QtileRenderer()
@@ -897,12 +899,16 @@ QtileRenderer::Type QtileRenderer::GetType()
 
 bool QtileRenderer::LoadSettings( QSettings* settings )
 {
+        m_settings.rulesFile = ":/rendering_rules/default.qrr";
 	if ( settings == NULL )
 		return false;
 	settings->beginGroup( "Qtile Renderer" );
 	m_settings.inputFile = settings->value( "input" ).toString();
+	m_settings.rulesFile = settings->value( "rulesFile" ).toString();
 	m_settings.unused = settings->value( "unused" ).toBool();
 	settings->endGroup();
+        if(m_settings.rulesFile.size()==0)
+            m_settings.rulesFile = ":/rendering_rules/default.qrr";
 
 	return true;
 }
@@ -913,6 +919,7 @@ bool QtileRenderer::SaveSettings( QSettings* settings )
 		return false;
 	settings->beginGroup( "Qtile Renderer" );
 	settings->setValue( "input", m_settings.inputFile );
+	settings->setValue( "rulesFile", m_settings.rulesFile );
 	settings->setValue( "unused", m_settings.unused );
 	settings->endGroup();
 
@@ -924,6 +931,18 @@ bool QtileRenderer::Preprocess( IImporter*, QString dir )
 	m_osr = new OSMReader;
 
 		  fprintf(stderr, "Qtile renderer preprocessing\n");
+                  QString ofile_name = dir + "/rendering.qrr";
+		  QFile infile(m_settings.rulesFile), outfile(ofile_name);
+                  if(!infile.open(QIODevice::ReadOnly)) {
+                          qCritical() << "Failed to open rendering rules: " << m_settings.rulesFile;
+                          return false;
+		  }
+                  if(!outfile.open(QIODevice::WriteOnly)) {
+                          qCritical() << "Failed to open rendering rules output file: " << ofile_name;
+                          return false;
+		  }
+                  while(!infile.atEnd()) outfile.write(infile.readLine());
+                  infile.close(); outfile.close();
 		  m_osr->load(m_settings.inputFile);
 		  write_ways(dir, false);
 		  TIMELOG("Deleting non motorways");
@@ -1068,6 +1087,7 @@ QString QtileRenderer::GetModuleName()
 bool QtileRenderer::GetSettingsList( QVector< Setting >* settings )
 {
 	settings->push_back( Setting( "", "qtile-input", "osm/osm.pbf input file", "filename" ) );
+	settings->push_back( Setting( "", "qtile-rendering-rules", "rendering rules file", "filename" ) );
 	return true;
 }
 
@@ -1076,6 +1096,9 @@ bool QtileRenderer::SetSetting( int id, QVariant data )
 	switch( id ) {
 	case 0 :
 		m_settings.inputFile = data.toString();
+		break;
+	case 1 :
+		m_settings.rulesFile = data.toString();
 		break;
 	default:
 		return false;

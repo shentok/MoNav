@@ -86,9 +86,7 @@ bool QtileRendererClient::load()
         for(int i=0;i<=18;i++) m_zoomLevels.push_back(i);
 
         std::string dir = m_directory.toStdString();
-        twriter = new TileWriter(dir+ "/ways.all.pqdb",
-                                 dir+ "/ways.motorway.pqdb",
-                                 dir+ "/places.pqdb");
+        twriter = new TileWriter(dir);
 	return true;
 }
 

@@ -43,6 +43,7 @@ public:
 protected slots:
 
 	void browseInput();
+	void browseRulesFile();
 
 protected:
 

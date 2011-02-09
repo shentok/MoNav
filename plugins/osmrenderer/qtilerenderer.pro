@@ -24,3 +24,6 @@ unix {
 
 FORMS += \
 	 qrsettingsdialog.ui
+
+RESOURCES += \
+	 rendering_rules.qrc
