@@ -211,10 +211,8 @@ bool MapData::searchForMapPackages( QString directory, QVector<MapPackage>* data
 
 	QDir dir( directory );
 	if ( !dir.exists() ) {
-		if ( !dir.mkdir( directory ) ) {
-			qCritical() << "directory does not exist and cannot be created:" << directory;
-			return false;
-		}
+		qDebug() << "directory does not exist:" << directory;
+		return false;
 	}
 
 	QStringList dirList;

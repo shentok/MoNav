@@ -56,7 +56,8 @@ protected slots:
 
 protected:
 
-	virtual void resizeEvent ( QResizeEvent* event );
+	virtual void resizeEvent( QResizeEvent* event );
+	virtual void showEvent( QShowEvent* event );
 
 	struct PrivateImplementation;
 	PrivateImplementation* d;

@@ -22,11 +22,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "mapdata.h"
 
 #include <QResizeEvent>
+#include <QShowEvent>
 #include <QSettings>
 #include <QStringList>
 #include <QDir>
 #include <QFileDialog>
 #include <QtDebug>
+#include <QMessageBox>
 
 struct MapPackagesWidget::PrivateImplementation {
 	struct Server {
@@ -100,6 +102,13 @@ MapPackagesWidget::~MapPackagesWidget()
 void MapPackagesWidget::resizeEvent ( QResizeEvent* event )
 {
 	// TODO CHANGE ORIENTATION
+}
+
+void MapPackagesWidget::showEvent( QShowEvent* event )
+{
+	if ( !QFile::exists( d->path ) ) {
+		QMessageBox::information( this, "Data Directory", "Before proceeding be sure to select a valid data directory", "Ok" );
+	}
 }
 
 void MapPackagesWidget::mapSelectionChanged()
