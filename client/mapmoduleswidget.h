@@ -17,3 +17,38 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef MAPMODULESWIDGET_H
+#define MAPMODULESWIDGET_H
+
+#include <QWidget>
+
+namespace Ui {
+	class MapModulesWidget;
+}
+
+class MapModulesWidget : public QWidget
+{
+	Q_OBJECT
+
+public:
+	explicit MapModulesWidget( QWidget* parent = 0 );
+	~MapModulesWidget();
+
+signals:
+
+	void cancelled();
+	void selected();
+
+protected slots:
+
+	void populateData();
+	void select();
+
+protected:
+
+	struct PrivateImplementation;
+	PrivateImplementation* d;
+	Ui::MapModulesWidget* m_ui;
+};
+
+#endif // MAPMODULESWIDGET_H

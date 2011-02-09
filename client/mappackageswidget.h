@@ -17,36 +17,50 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ROUTEDESCRIPTIONDIALOG_H
-#define ROUTEDESCRIPTIONDIALOG_H
+#ifndef MAPPACKAGESWIDGET_H
+#define MAPPACKAGESWIDGET_H
 
-#include <QDialog>
-#include <QStringList>
+#include <QWidget>
 
 namespace Ui {
-	class RouteDescriptionDialog;
+	class MapPackagesWidget;
 }
 
-class RouteDescriptionWidget : public QDialog
+class MapPackagesWidget : public QWidget
 {
 	Q_OBJECT
 
 public:
 
-	explicit RouteDescriptionWidget( QWidget *parent = 0 );
-	~RouteDescriptionWidget();
-
-signals:
-
-	void closed();
+	explicit MapPackagesWidget( QWidget* parent = 0 );
+	~MapPackagesWidget();
 
 public slots:
 
-	void instructionsChanged();
+	void mapSelectionChanged();
+	void updateSelectionChanged();
+	void downloadSelectionChanged();
+
+signals:
+
+	void mapChanged();
+	void closed();
+
+protected slots:
+
+	void load();
+	void directory();
+	void check();
+	void update();
+	void download();
 
 protected:
 
-	Ui::RouteDescriptionDialog* m_ui;
+	virtual void resizeEvent ( QResizeEvent* event );
+
+	struct PrivateImplementation;
+	PrivateImplementation* d;
+	Ui::MapPackagesWidget* m_ui;
 };
 
-#endif // ROUTEDESCRIPTIONDIALOG_H
+#endif // MAPPACKAGESWIDGET_H

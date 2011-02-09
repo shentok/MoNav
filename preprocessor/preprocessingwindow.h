@@ -45,11 +45,10 @@ public slots:
 protected slots:
 
 	void inputBrowse();
-	void imageBrowse();
 	void outputBrowse();
 	void inputChanged( QString text );
-	void imageChanged( QString text );
 	void outputChanged( QString text );
+	void nameChanged( QString text );
 	void threadsChanged( int threads );
 	void importerPreprocessing();
 	void rendererPreprocessing();

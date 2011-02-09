@@ -38,6 +38,10 @@ struct MapData::PrivateImplementation {
 	QString rendererName;
 	QString routerName;
 
+	QString lastRoutingModule;
+	QString lastRenderingModule;
+	QString lastAddressLookupModule;
+
 	// stores pointers to all dynamically loaded plugins
 	QList< QPluginLoader* > plugins;
 	// stores a pointer to the current renderer plugin
@@ -49,8 +53,7 @@ struct MapData::PrivateImplementation {
 	// stores a pointer to the current router plugin
 	IRouter* router;
 
-	QString name;
-	QImage image;
+	MapPackage information;
 
 	QVector< MapData::Module > routingModules;
 	QVector< MapData::Module > renderingModules;
@@ -60,6 +63,10 @@ struct MapData::PrivateImplementation {
 	void findRoutingModules();
 	void findRenderingModules();
 	void findAddressLookupModules();
+
+	static int findModule( QString name, QVector< MapData::Module > modules );
+
+	static bool loadInformation( QString directory, MapPackage* data );
 };
 
 bool MapData::PrivateImplementation::testPlugin( QObject* plugin )
@@ -103,6 +110,13 @@ MapData::MapData() :
 	d->gpsLookup = NULL;
 	d->renderer = NULL;
 	d->router = NULL;
+
+	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "MapData" );
+	d->path = settings.value( "path" ).toString();
+	d->lastRoutingModule = settings.value( "routingModule" ).toString();
+	d->lastRenderingModule = settings.value( "renderingModule" ).toString();
+	d->lastAddressLookupModule = settings.value( "addressLookupModule" ).toString();
 }
 
 MapData::~MapData()
@@ -110,11 +124,19 @@ MapData::~MapData()
 	delete d;
 }
 
-void MapData::deleteStaticPlugins()
+void MapData::cleanup()
 {
 	//delete static plugins
+	// neccessary as Qt does not delete static instances itself // CHECK WHENEVER QT VERSION CHANGES!!!
 	foreach ( QObject *plugin, QPluginLoader::staticInstances() )
 		delete plugin;
+
+	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "MapData" );
+	settings.setValue( "path", d->path );
+	settings.setValue( "routingModule", d->lastRoutingModule );
+	settings.setValue( "renderingModule", d->lastRenderingModule );
+	settings.setValue( "addressLookupModule", d->lastAddressLookupModule );
 }
 
 MapData* MapData::instance()
@@ -134,15 +156,140 @@ void MapData::setPath( QString path )
 	d->path = path;
 }
 
-bool MapData::containsMapData() const
+bool MapData::PrivateImplementation::loadInformation( QString directory, MapData::MapPackage* data )
 {
-	QString configFilename = fileInDirectory( d->path, "MoNav.ini" );
-	return QFile::exists( configFilename );
+	QString configFilename = fileInDirectory( directory, "MoNav.ini" );
+	if ( !QFile::exists( configFilename ) )
+		return false;
+
+	QSettings config( configFilename, QSettings::IniFormat );
+
+	int configVersion = config.value( "configVersion" ).toInt();
+	if ( configVersion != ConfigVersion ) {
+		qDebug() << "config version not compatible:" << configVersion << "vs" << ConfigVersion;
+		return false;
+	}
+
+	if ( data == NULL )
+		return true;
+
+	bool ok = true;
+	bool fail = false;
+	data->name = config.value( "name" ).toString();
+	data->path = directory;
+	data->min.x = config.value( "minX" ).toUInt( &ok );
+	fail = fail || !ok;
+	data->max.x = config.value( "maxX" ).toUInt( &ok );
+	fail = fail || !ok;
+	data->min.y = config.value( "minY" ).toUInt( &ok );
+	fail = fail || !ok;
+	data->max.y = config.value( "maxY" ).toUInt( &ok);
+	fail = fail || !ok;
+
+	if ( fail ) {
+		qDebug() << "invalid settings encountered";
+		return false;
+	}
+
+	return true;
+}
+
+bool MapData::containsMapData( QString directory, MapPackage *data )
+{
+	return PrivateImplementation::loadInformation( directory, data );
+}
+
+bool MapData::containsMapData( MapPackage* data ) const
+{
+	return d->loadInformation( d->path, data );
+}
+
+bool MapData::searchForMapPackages( QString directory, QVector<MapPackage>* data, int depth )
+{
+	if ( data == NULL )
+		return false;
+
+	QDir dir( directory );
+	if ( !dir.exists() ) {
+		if ( !dir.mkdir( directory ) ) {
+			qCritical() << "directory does not exist and cannot be created:" << directory;
+			return false;
+		}
+	}
+
+	QStringList dirList;
+	dirList.push_back( directory );
+	int currentDepth = 0;
+	int nextDepthPosition = 1;
+	MapPackage information;
+	for ( int position = 0; position < dirList.size(); position++ ) {
+		if ( position == nextDepthPosition ) {
+			nextDepthPosition = dirList.size();
+			currentDepth++;
+		}
+
+		QString name = dirList[position];
+		if ( containsMapData( name, &information ) ) {
+			data->push_back( information );
+			continue; // explicitly exclude nested map packages
+		}
+
+		if ( currentDepth >= depth )
+			continue;
+
+		QDir subDir( name );
+		QStringList subDirs = subDir.entryList( QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name );
+		for ( int i = 0; i < subDirs.size(); i++ )
+			dirList.append( subDir.filePath( subDirs[i] ) );
+	}
+
+	return true;
 }
 
 bool MapData::loaded() const
 {
 	return d->loaded;
+}
+
+int MapData::PrivateImplementation::findModule( QString name, QVector< MapData::Module > modules )
+{
+	for ( int i = 0; i < modules.size(); i++ ) {
+		if ( modules[i].name == name )
+			return i;
+	}
+
+	return -1;
+}
+
+bool MapData::loadLast()
+{
+	if ( !informationLoaded() ) {
+		qCritical() << "Information not loaded";
+		return false;
+	}
+
+	int routingIndex = d->findModule( d->lastRoutingModule, d->routingModules );
+	if ( routingIndex == -1 ) {
+		qDebug() << "routing module not found:" << d->lastRoutingModule;
+		return false;
+	}
+	int renderingIndex = d->findModule( d->lastRenderingModule, d->renderingModules );
+	if ( renderingIndex == -1 ) {
+		qDebug() << "rendering module not found:" << d->lastRenderingModule;
+		return false;
+	}
+	int addressLookupIndex = d->findModule( d->lastAddressLookupModule, d->addressLookupModules );
+	if ( addressLookupIndex == -1 ) {
+		qDebug() << "address lookup module not found:" << d->lastAddressLookupModule;
+		return false;
+	}
+
+	if ( !load( d->routingModules[routingIndex], d->renderingModules[renderingIndex], d->addressLookupModules[addressLookupIndex] ) ) {
+		qDebug() << "loading last modules failed";
+		return false;
+	}
+
+	return true;
 }
 
 bool MapData::load( const Module& routingModule, const Module& renderingModule, const Module& addressLookupModule )
@@ -278,6 +425,9 @@ bool MapData::load( const Module& routingModule, const Module& renderingModule, 
 		return false;
 	}
 
+	d->lastRoutingModule = routingModule.name;
+	d->lastRenderingModule = renderingModule.name;
+	d->lastAddressLookupModule = addressLookupModule.name;
 	d->loaded = true;
 	emit dataLoaded();
 	return true;
@@ -285,6 +435,9 @@ bool MapData::load( const Module& routingModule, const Module& renderingModule, 
 
 bool MapData::unload()
 {
+	if ( !d->loaded )
+		return true;
+
 	if ( d->loaded ) {
 	/*if ( d->addressLookup != NULL )
 		d->addressLookup->Unload();
@@ -295,11 +448,6 @@ bool MapData::unload()
 	if ( d->router != NULL )
 		d->router->UnloadData();*/
 	}
-
-	d->informationLoaded = false;
-
-	if ( !d->loaded )
-		return true;
 
 	d->addressLookup = NULL;
 	d->gpsLookup = NULL;
@@ -424,27 +572,18 @@ void MapData::PrivateImplementation::findAddressLookupModules()
 
 bool MapData::loadInformation()
 {
-	if ( !unload() )
-		return false;
+	d->informationLoaded = false;
 
-	QString configFilename = fileInDirectory( d->path, "MoNav.ini" );
-	if ( !QFile::exists( configFilename ) ) {
-		qCritical() << "no config file can be found at:" << d->path;
-		return false;
+	if ( d->loaded ) {
+		if ( !unload() ) {
+			qCritical() << "failed to unload current map package";
+			return false;
+		}
 	}
 
-	QSettings config( configFilename, QSettings::IniFormat );
-
-	int configVersion = config.value( "configVersion" ).toInt();
-	if ( configVersion != d->ConfigVersion ) {
-		qCritical() << "config version not compatible:" << configVersion << "vs" << d->ConfigVersion;
+	if ( !d->loadInformation( d->path, &d->information ) ) {
+		qDebug() << "failed to load map information";
 		return false;
-	}
-
-	d->name = config.value( "name" ).toString();
-	d->image = config.value( "image" ).value< QImage >();
-	if ( d->image.isNull() ) {
-		d->image.load( ":images/map.png" );
 	}
 
 	// search for modules
@@ -473,14 +612,9 @@ QVector< MapData::Module > MapData::modules( ModuleType plugin ) const
 	return QVector< MapData::Module >();
 }
 
-QString MapData::name() const
+const MapData::MapPackage& MapData::information() const
 {
-	return d->name;
-}
-
-QImage MapData::image() const
-{
-	return d->image;
+	return d->information;
 }
 
 IAddressLookup* MapData::addressLookup()

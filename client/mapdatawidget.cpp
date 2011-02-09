@@ -148,8 +148,7 @@ void MapDataWidget::directoryChanged( QString dir )
 	}
 
 	m_ui->directory->setPalette( normalPalette );
-	m_ui->name->setWindowTitle( mapData->name() );
-	m_ui->image->setPixmap( QPixmap::fromImage( mapData->image().scaled( QSize( m_ui->image->size() ), Qt::KeepAspectRatio ) ) );
+	m_ui->name->setWindowTitle( mapData->information().name );
 
 	m_routingModules = mapData->modules( MapData::Routing );
 	m_renderingModules = mapData->modules( MapData::Rendering );
@@ -191,12 +190,6 @@ void MapDataWidget::modulesChanged()
 void MapDataWidget::showEvent( QShowEvent* /*event*/ )
 {
 	directoryChanged( MapData::instance()->path() );
-}
-
-void MapDataWidget::resizeEvent( QResizeEvent* /*event*/  )
-{
-	if ( MapData::instance()->informationLoaded() )
-		m_ui->image->setPixmap( QPixmap::fromImage( MapData::instance()->image().scaled( QSize( m_ui->image->size() ), Qt::KeepAspectRatio ) ) );
 }
 
 void MapDataWidget::browse()

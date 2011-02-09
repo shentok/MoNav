@@ -32,21 +32,19 @@ class GeneralSettingsDialog : public QDialog
 
 public:
 
-	enum MenuMode {
-		MenuPopup, MenuOverlay
-	};
-
 	explicit GeneralSettingsDialog( QWidget* parent = 0 );
 	~GeneralSettingsDialog();
 
-	void setIconSize( int size );
-	int iconSize();
-	void setCustomIconSize( bool custom );
-	bool customIconSize();
-	void setMenuMode( MenuMode mode );
-	MenuMode menuMode();
+	// not necessary to call after exec, as ecex does this itself
+	void fillSettings() const;
+
+public slots:
+
+	int exec();
+	void setDefaultIconSize();
 
 private:
+
 	Ui::GeneralSettingsDialog* m_ui;
 };
 

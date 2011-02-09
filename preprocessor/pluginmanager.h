@@ -50,8 +50,6 @@ public:
 	QString inputFile();
 	// name of the data set to be created
 	QString name();
-	// image filename of the data set to be created
-	QString image();
 	// map data directory that will contain everything
 	QString outputDirectory();
 	// package the map modules?
@@ -82,7 +80,6 @@ public slots:
 
 	void setInputFile( QString filename );
 	void setName( QString name );
-	void setImage( QString image );
 	void setOutputDirectory( QString directory );
 	void setPackaging( bool enabled );
 	void setDictionarySize( int size );
@@ -98,7 +95,7 @@ public slots:
 
 	// writes main config file
 	// contains description of the map package
-	bool writeConfig();
+	bool writeConfig( QString importer );
 	// deletes temporary files
 	bool deleteTemporaryFiles();
 

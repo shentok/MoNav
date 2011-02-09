@@ -57,13 +57,38 @@ public:
 		return "Global";
 	}
 
+	enum SettingsID {
+		Input = 0,
+		Output,
+		Name,
+		Plugins,
+		Importer,
+		Router,
+		GPSLookup,
+		Renderer,
+		AddressLookup,
+		DoImporting,
+		DoRouting,
+		DoRendering,
+		DoAddressLookup,
+		DoConfig,
+		DoDelTmp,
+		DoPackage,
+		ModuleBlockSize,
+		ModuleDictionarySize,
+		Log,
+		Settings,
+		Verbose,
+		Threads,
+		Help
+	};
+
 	virtual bool GetSettingsList( QVector< Setting >* settings )
 	{
 		settings->push_back( Setting( "i", "input", "input file", "filename" ) );
 		settings->push_back( Setting( "o", "output", "output directory", "directory" ) );
 
 		settings->push_back( Setting( "n", "name", "map package name", "string" ) );
-		settings->push_back( Setting( "im", "image", "map package image", "image filename" ) );
 
 		settings->push_back( Setting( "p", "plugins", "lists plugins", "" ) );
 
@@ -100,77 +125,75 @@ public:
 	{
 		PluginManager* pluginManager = PluginManager::instance();
 		bool ok = true;
-		switch ( id ) {
-		case 0:
+		SettingsID type = SettingsID( id );
+		switch ( type ) {
+		case Input:
 			pluginManager->setInputFile( data.toString() );
 			break;
-		case 1:
+		case Output:
 			pluginManager->setOutputDirectory( data.toString() );
 			break;
-		case 2:
+		case Name:
 			pluginManager->setName( data.toString() );
 			break;
-		case 3:
-			pluginManager->setImage( data.toString() );
-			break;
-		case 4:
+		case Plugins:
 			listPlugins = true;
 			break;
-		case 5:
+		case Importer:
 			importer = data.toString();
 			break;
-		case 6:
+		case Router:
 			router = data.toString();
 			break;
-		case 7:
+		case GPSLookup:
 			gpsLookup = data.toString();
 			break;
-		case 8:
+		case Renderer:
 			renderer = data.toString();
 			break;
-		case 9:
+		case AddressLookup:
 			addressLookup = data.toString();
 			break;
-		case 10:
+		case DoImporting:
 			importing = true;
 			break;
-		case 11:
+		case DoRouting:
 			routingModule = data.toString();
 			break;
-		case 12:
+		case DoRendering:
 			renderingModule = data.toString();
 			break;
-		case 13:
+		case DoAddressLookup:
 			addressLookupModule = data.toString();
 			break;
-		case 14:
+		case DoConfig:
 			config = true;
 			break;
-		case 15:
+		case DoDelTmp:
 			del = true;
 			break;
-		case 16:
+		case DoPackage:
 			package = true;
 			break;
-		case 17:
+		case ModuleBlockSize:
 			pluginManager->setBlockSize( data.toInt( &ok ) );
 			break;
-		case 18:
+		case ModuleDictionarySize:
 			pluginManager->setDictionarySize( data.toInt( &ok ) );
 			break;
-		case 19:
+		case Log:
 			Log::instance()->setLogFile( data.toString() );
 			break;
-		case 20:
+		case Settings:
 			settings = data.toString();
 			break;
-		case 21:
+		case Verbose:
 			verbose = true;
 			break;
-		case 22:
+		case Threads:
 			omp_set_num_threads( data.toInt( &ok ) );
 			break;
-		case 23:
+		case Help:
 			help = true;
 			break;
 		default:
@@ -261,14 +284,6 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-	if ( commands.config ) {
-		if ( !pluginManager->writeConfig() ) {
-			qCritical() << "Failed to write main map config";
-			a.quit();
-			return -1;
-		}
-	}
-
 	if ( commands.importing ) {
 		if ( !pluginManager->processImporter( commands.importer ) ) {
 			qCritical() << "Failed to import";
@@ -296,6 +311,14 @@ int main(int argc, char *argv[])
 	if ( !commands.addressLookupModule.isEmpty() ) {
 		if ( !pluginManager->processAddressLookupModule( commands.addressLookupModule, commands.importer, commands.addressLookup ) ) {
 			qCritical() << "Failed to preprocess address lookup module";
+			a.quit();
+			return -1;
+		}
+	}
+
+	if ( commands.config ) {
+		if ( !pluginManager->writeConfig( commands.importer ) ) {
+			qCritical() << "Failed to write main map config";
 			a.quit();
 			return -1;
 		}

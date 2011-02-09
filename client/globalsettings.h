@@ -17,3 +17,40 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef GLOBALSETTINGS_H
+#define GLOBALSETTINGS_H
+
+class QSettings;
+
+class GlobalSettings
+{
+
+public:
+
+	static void saveSettings( QSettings* settings );
+	static void loadSettings( QSettings* settings );
+
+	static int iconSize();
+	static void setIconSize( int size );
+	static void setDefaultIconsSize();
+
+	enum MenuMode {
+		MenuPopup, MenuOverlay
+	};
+	static MenuMode menuMode();
+	static void setMenuMode( MenuMode mode );
+
+	static int magnification();
+	static void setMagnification( int factor );
+
+private:
+
+	struct PrivateImplementation;
+	PrivateImplementation* d;
+
+	GlobalSettings();
+	~GlobalSettings();
+	static GlobalSettings* privateInstance();
+};
+
+#endif // GLOBALSETTINGS_H

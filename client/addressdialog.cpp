@@ -19,7 +19,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "addressdialog.h"
 #include "ui_addressdialog.h"
-#include "mapview.h"
+#include "placechooser.h"
+#include "streetchooser.h"
 #include "mapdata.h"
 #include "utils/qthelpers.h"
 
@@ -97,7 +98,7 @@ void AddressDialog::suggestionClicked( QListWidgetItem * item )
 		m_placeID = placeIDs.front();
 		if ( placeIDs.size() > 1 )
 		{
-			int id = MapView::selectPlaces( placeCoordinates, this );
+			int id = PlaceChooser::selectPlaces( placeCoordinates, this );
 			if ( id >= 0 && id < placeIDs.size() )
 				m_placeID = placeIDs[id];
 			else
@@ -122,7 +123,7 @@ void AddressDialog::suggestionClicked( QListWidgetItem * item )
 			accept();
 			return;
 		}
-		if( !MapView::selectStreet( &m_result, segmentLength, coordinates, this ) )
+		if( !StreetChooser::selectStreet( &m_result, segmentLength, coordinates, this ) )
 			return;
 		m_ui->streetEdit->setText( text );
 		accept();

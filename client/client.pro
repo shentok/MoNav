@@ -8,13 +8,11 @@ TEMPLATE = app
 INCLUDEPATH += ..
 
 SOURCES += main.cpp \
-	mapview.cpp \
 	paintwidget.cpp \
 	addressdialog.cpp \
 	bookmarksdialog.cpp \
 	routedescriptiondialog.cpp \
 	mapdata.cpp \
-	mapdatawidget.cpp \
 	routinglogic.cpp \
 	overlaywidget.cpp \
 	scrollarea.cpp \
@@ -22,10 +20,15 @@ SOURCES += main.cpp \
 	generalsettingsdialog.cpp \
 	logger.cpp \
     ../utils/directoryunpacker.cpp \
-    ../utils/lzma/LzmaDec.c
+    ../utils/lzma/LzmaDec.c \
+    mappackageswidget.cpp \
+    mainwindow.cpp \
+    mapmoduleswidget.cpp \
+    placechooser.cpp \
+    globalsettings.cpp \
+    streetchooser.cpp
 
 HEADERS += \
-	mapview.h \
 	paintwidget.h \
 	utils/coordinates.h \
 	utils/config.h \
@@ -38,7 +41,6 @@ HEADERS += \
 	routedescriptiondialog.h \
 	descriptiongenerator.h \
 	mapdata.h \
-	mapdatawidget.h \
 	routinglogic.h \
 	fullscreenexitbutton.h \
 	overlaywidget.h \
@@ -47,17 +49,26 @@ HEADERS += \
 	generalsettingsdialog.h \
 	logger.h \
     ../utils/directoryunpacker.h \
-    ../utils/lzma/LzmaDec.h
+    ../utils/lzma/LzmaDec.h \
+    mappackageswidget.h \
+    mainwindow.h \
+    mapmoduleswidget.h \
+    placechooser.h \
+    globalsettings.h \
+    streetchooser.h
 
 FORMS += \
-	mapview.ui \
 	paintwidget.ui \
 	addressdialog.ui \
 	bookmarksdialog.ui \
 	routedescriptiondialog.ui \
-	mapdatawidget.ui \
 	gpsdialog.ui \
-	generalsettingsdialog.ui
+	generalsettingsdialog.ui \
+    mappackageswidget.ui \
+    mainwindow.ui \
+    mapmoduleswidget.ui \
+    placechooser.ui \
+    streetchooser.ui
 
 DESTDIR = ../bin
 

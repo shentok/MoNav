@@ -19,6 +19,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "generalsettingsdialog.h"
 #include "ui_generalsettingsdialog.h"
+#include "globalsettings.h"
 
 GeneralSettingsDialog::GeneralSettingsDialog( QWidget* parent ) :
 		QDialog( parent ),
@@ -28,40 +29,39 @@ GeneralSettingsDialog::GeneralSettingsDialog( QWidget* parent ) :
 	// Windows Mobile Window Flags
 	setWindowFlags( windowFlags() & ( ~Qt::WindowOkButtonHint ) );
 	setWindowFlags( windowFlags() | Qt::WindowCancelButtonHint );
-}
 
-void GeneralSettingsDialog::setIconSize( int size )
-{
-	m_ui->iconSize->setValue( size );
-}
-
-int GeneralSettingsDialog::iconSize()
-{
-	return m_ui->iconSize->value();
-}
-void GeneralSettingsDialog::setCustomIconSize( bool custom )
-{
-	m_ui->customIconSize->setChecked( custom );
-}
-bool GeneralSettingsDialog::customIconSize()
-{
-	return m_ui->customIconSize->isChecked();
-}
-void GeneralSettingsDialog::setMenuMode( MenuMode mode )
-{
-	if ( mode == MenuPopup )
+	m_ui->iconSize->setValue( GlobalSettings::iconSize() );
+	if ( GlobalSettings::menuMode() == GlobalSettings::MenuPopup )
 		m_ui->popup->setChecked( true );
 	else
 		m_ui->overlay->setChecked( true );
-}
-GeneralSettingsDialog::MenuMode GeneralSettingsDialog::menuMode()
-{
-	if ( m_ui->popup->isChecked() )
-		return MenuPopup;
-	return MenuOverlay;
+	m_ui->magnification->setValue( GlobalSettings::magnification() );
 }
 
 GeneralSettingsDialog::~GeneralSettingsDialog()
 {
 	delete m_ui;
+}
+
+int GeneralSettingsDialog::exec()
+{
+	int value = QDialog::exec();
+	fillSettings();
+	return value;
+}
+
+void GeneralSettingsDialog::fillSettings() const
+{
+	GlobalSettings::setIconSize( m_ui->iconSize->value() );
+	GlobalSettings::setMagnification( m_ui->magnification->value() );
+	if ( m_ui->overlay->isChecked() )
+		GlobalSettings::setMenuMode( GlobalSettings::MenuOverlay );
+	else
+		GlobalSettings::setMenuMode( GlobalSettings::MenuPopup );
+}
+
+void GeneralSettingsDialog::setDefaultIconSize()
+{
+	GlobalSettings::setDefaultIconsSize();
+	m_ui->iconSize->setValue( GlobalSettings::iconSize() );
 }

@@ -29,7 +29,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QDir>
 #include <QCoreApplication>
 #include <QtDebug>
-#include <QImage>
 #include <QFuture>
 #include <QFutureWatcher>
 #include <QtConcurrentRun>
@@ -52,7 +51,6 @@ struct PluginManager::PrivateImplementation {
 	QString inputFilename;
 	QString outputDirectory;
 	QString name;
-	QString image;
 	bool packaging;
 	int dictionarySize;
 	int blockSize;
@@ -248,11 +246,6 @@ QString PluginManager::name()
 {
 	return d->name;
 }
-// image filename of the data set to be created
-QString PluginManager::image()
-{
-	return d->image;
-}
 
 // map data directory that will contain everything
 QString PluginManager::outputDirectory()
@@ -298,11 +291,6 @@ void PluginManager::setName( QString name )
 	d->name = name;
 }
 
-void PluginManager::setImage( QString image )
-{
-	d->image = image;
-}
-
 void PluginManager::setOutputDirectory( QString directory )
 {
 	d->outputDirectory = directory;
@@ -329,7 +317,6 @@ bool PluginManager::saveSettings( QSettings* settings )
 	settings->setValue( "input", d->inputFilename );
 	settings->setValue( "output", d->outputDirectory );
 	settings->setValue( "name", d->name );
-	settings->setValue( "image", d->image );
 	settings->setValue( "packaging", d->packaging );
 	settings->setValue( "dictionarySize", d->dictionarySize );
 	settings->setValue( "blockSize", d->blockSize );
@@ -364,7 +351,6 @@ bool PluginManager::loadSettings( QSettings* settings )
 	d->inputFilename = settings->value( "input" ).toString();
 	d->outputDirectory = settings->value( "output" ).toString();
 	d->name = settings->value( "name" ).toString();
-	d->image = settings->value( "image" ).toString();
 	d->packaging = settings->value( "packaging", false ).toBool();
 	d->dictionarySize = settings->value( "dictionarySize", 16 * 1024 ).toInt();
 	d->blockSize = settings->value( "blockSize", 16 * 1024 ).toInt();
@@ -632,19 +618,28 @@ bool PluginManager::processAddressLookupModule( QString moduleName, QString impo
 
 // writes main config file
 // contains description of the map package
-bool PluginManager::writeConfig()
+bool PluginManager::writeConfig( QString importer )
 {
-	QSettings pluginSettings( fileInDirectory( d->outputDirectory, "MoNav.ini" ), QSettings::IniFormat );
+	int importerIndex = d->findPlugin( d->importerPlugins, importer );
+	if ( importerIndex == -1 )
+		return false;
 
-	pluginSettings.setValue( "configVersion", 2 );
+	IImporter::BoundingBox box;
+	if ( !d->importerPlugins[importerIndex]->GetBoundingBox( &box ) )
+		return false;
 
-	pluginSettings.setValue( "name", d->name );
-	QImage image( d->image );
-	if ( !image.isNull() )
-		pluginSettings.setValue( "image", image );
+	QSettings configFile( fileInDirectory( d->outputDirectory, "MoNav.ini" ), QSettings::IniFormat );
+	configFile.clear();
 
-	pluginSettings.sync();
-	if ( pluginSettings.status() != QSettings::NoError )
+	configFile.setValue( "configVersion", 2 );
+	configFile.setValue( "name", d->name );
+	configFile.setValue( "minX", box.min.x );
+	configFile.setValue( "maxX", box.max.x );
+	configFile.setValue( "minY", box.min.y );
+	configFile.setValue( "maxY", box.max.y );
+
+	configFile.sync();
+	if ( configFile.status() != QSettings::NoError )
 		return false;
 
 	return true;

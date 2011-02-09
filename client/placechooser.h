@@ -17,3 +17,41 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef PLACECHOOSER_H
+#define PLACECHOOSER_H
+
+#include "utils/coordinates.h"
+#include <QDialog>
+#include <QVector>
+
+namespace Ui {
+	class PlaceChooser;
+}
+
+class PlaceChooser : public QDialog
+{
+	Q_OBJECT
+
+public:
+
+	explicit PlaceChooser( QWidget* parent = 0 );
+	~PlaceChooser();
+
+	static int selectPlaces( QVector< UnsignedCoordinate > places, QWidget* p = NULL );
+
+protected slots:
+
+	void addZoom();
+	void substractZoom();
+	void previousPlace();
+	void nextPlace();
+
+private:
+
+	struct PrivateImplementation;
+	PrivateImplementation* d;
+
+	Ui::PlaceChooser* m_ui;
+};
+
+#endif // PLACECHOOSER_H

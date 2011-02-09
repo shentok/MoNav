@@ -48,7 +48,6 @@ protected:
 
 	int findModule( const QVector< MapData::Module >& modules, QString path );
 	void connectSlots();
-	virtual void resizeEvent( QResizeEvent * event );
 	virtual void showEvent( QShowEvent* event );
 
 	QString m_lastRoutingModule;

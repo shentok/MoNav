@@ -17,3 +17,40 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef STREETCHOOSER_H
+#define STREETCHOOSER_H
+
+#include "utils/coordinates.h"
+#include <QDialog>
+
+namespace Ui {
+	class StreetChooser;
+}
+
+class StreetChooser : public QDialog
+{
+	Q_OBJECT
+
+public:
+	explicit StreetChooser( QWidget* parent = 0 );
+	~StreetChooser();
+
+	static bool selectStreet( UnsignedCoordinate* result, QVector< int >segmentLength, QVector< UnsignedCoordinate > coordinates, QWidget* p = NULL );
+
+protected slots:
+
+	void addZoom();
+	void substractZoom();
+	void mouseClicked( ProjectedCoordinate clickPos );
+
+private:
+
+	struct PrivateImplementation;
+	PrivateImplementation* d;
+
+private:
+
+	Ui::StreetChooser* m_ui;
+};
+
+#endif // STREETCHOOSER_H

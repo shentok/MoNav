@@ -18,7 +18,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <QtGui/QApplication>
-#include "mapview.h"
+#include "mainwindow.h"
 #include "mapdata.h"
 #include <QMessageBox>
 #include <QtPlugin>
@@ -84,8 +84,8 @@ int main(int argc, char *argv[])
 {
 	qInstallMsgHandler( MessageBoxHandler );
 	QApplication a(argc, argv);
-	a.connect( &a, SIGNAL(aboutToQuit()), MapData::instance(), SLOT(deleteStaticPlugins()) );
-	MapView w;
+	a.connect( &a, SIGNAL(aboutToQuit()), MapData::instance(), SLOT(cleanup()) );
+	MainWindow w;
 	w.show();
 	return a.exec();
 }

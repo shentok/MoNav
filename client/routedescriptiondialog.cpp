@@ -24,7 +24,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <cassert>
 #include <QtDebug>
 
-RouteDescriptionDialog::RouteDescriptionDialog( QWidget *parent ) :
+RouteDescriptionWidget::RouteDescriptionWidget( QWidget *parent ) :
 		QDialog( parent ),
 		m_ui(new Ui::RouteDescriptionDialog)
 {
@@ -38,12 +38,12 @@ RouteDescriptionDialog::RouteDescriptionDialog( QWidget *parent ) :
 #endif
 }
 
-RouteDescriptionDialog::~RouteDescriptionDialog()
+RouteDescriptionWidget::~RouteDescriptionWidget()
 {
 	delete m_ui;
 }
 
-void RouteDescriptionDialog::instructionsChanged()
+void RouteDescriptionWidget::instructionsChanged()
 {
 	m_ui->descriptionList->clear();
 	QStringList labels;

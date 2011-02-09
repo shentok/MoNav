@@ -24,11 +24,14 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "interfaces/igpslookup.h"
 #include "interfaces/irenderer.h"
 #include "interfaces/irouter.h"
+#include "utils/coordinates.h"
 #include <QObject>
 #include <QString>
-#include <QImage>
-#include <QList>
+#include <QVector>
 
+
+// Manages map data and plugins
+// all settings are stored in MoNav/MapData
 class MapData : public QObject
 {
 
@@ -41,45 +44,69 @@ public:
 	};
 
 	struct Module {
+		// name of the module
 		QString name;
+		// path of the module
+		// mostly used for internal porpuses
 		QString path;
+		// name of plugins required
 		QStringList plugins;
+		// file formats
 		QVector< int > fileFormats;
+	};
+
+	struct MapPackage {
+		// name of the map packge
+		QString name;
+		// path of the map package
+		QString path;
+		// bounding box of the map package
+		UnsignedCoordinate min;
+		UnsignedCoordinate max;
 	};
 
 	~MapData();
 
 	// returns the instance of MapData
 	static MapData* instance();
-	// the path of the current directory
+
+	// the path of the current map package
 	QString path() const;
 	void setPath( QString path );
-	// does the current directory contain MapData?
-	bool containsMapData() const;
+
+	// does the directory contain MapData?
+	static bool containsMapData( QString directory, MapPackage* data = NULL );
+	bool containsMapData( MapPackage* data = NULL ) const;
+
+	// searches recursivly in subdirectories for map data
+	static bool searchForMapPackages( QString directory, QVector< MapPackage >* data, int depth = 2 );
+
 	// is a map loaded?
 	bool loaded() const;
 	// tries to load the current directory
 	// automatically calls loadInformation()
 	bool load( const Module& routingModule, const Module& renderingModule, const Module& addressLookupModule );
+	// tries loading modules by searching for the last used module names
+	bool loadLast();
 	// tries to unload the map data
 	bool unload();
+
 	// is the map information loaded?
 	bool informationLoaded() const;
 	// loads information about the map data
+	// -> module list, map package name, bounding box
 	bool loadInformation();
 
 	// Information about the current directory
 	// only valid after loadInformation() or load() was called successfully
 
-	// the name of the MapData
-	QString name() const;
-	// an representative image of the MapData
-	QImage image() const;
-	// returns the name of required plugins
+	// the information associated with the current map package
+	const MapPackage& information() const;
+	// returns all available modules
 	QVector< Module > modules( ModuleType plugin ) const;
 
 	// returns an instance of a required plugin
-	// only available after a successfull call to load()
+	// only available after a successfull call to load() / loadLast()
 	IAddressLookup* addressLookup();
 	IGPSLookup* gpsLookup();
 	IRenderer* renderer();
@@ -95,11 +122,11 @@ public slots:
 
 	// call before the QApplication object is destroyed
 	// neccessary as Qt does not delete static instances itself // CHECK WHENEVER QT VERSION CHANGES!!!
-	void deleteStaticPlugins();
+	void cleanup();
 
 private:
 
-	explicit MapData();
+	MapData();
 	struct PrivateImplementation;
 	PrivateImplementation* const d;
 

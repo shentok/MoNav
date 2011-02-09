@@ -147,7 +147,6 @@ bool PreprocessingWindow::loadSettings( QString configFile )
 	m_ui->output->setText( pluginManager->outputDirectory() );
 
 	m_ui->name->setText( pluginManager->name() );
-	m_ui->image->setText( pluginManager->image() );
 
 	m_ui->packaging->setChecked( pluginManager->packaging() );
 	m_ui->dictionarySize->setValue( pluginManager->dictionarySize() );
@@ -225,8 +224,7 @@ void PreprocessingWindow::connectSlots()
 	connect( m_ui->outputBrowse, SIGNAL(clicked()), this, SLOT(outputBrowse()) );
 	connect( m_ui->output, SIGNAL(textChanged(QString)), this, SLOT(outputChanged(QString)) );
 
-	connect( m_ui->imageBrowse, SIGNAL(clicked()), this, SLOT(imageBrowse()) );
-	connect( m_ui->image, SIGNAL(textChanged(QString)), this, SLOT(imageChanged(QString)) );
+	connect( m_ui->name, SIGNAL(textChanged(QString)), this, SLOT(nameChanged(QString)) );
 
 	connect( m_ui->threads, SIGNAL(valueChanged(int)), this, SLOT(threadsChanged(int)) );
 
@@ -280,14 +278,6 @@ void PreprocessingWindow::outputBrowse()
 		m_ui->output->setText( dir );
 }
 
-void PreprocessingWindow::imageBrowse()
-{
-	QString file = m_ui->image->text();
-	file = QFileDialog::getOpenFileName( this, tr( "Open Image File" ), file );
-	if ( !file.isEmpty() )
-		m_ui->image->setText( file );
-}
-
 void PreprocessingWindow::inputChanged( QString text )
 {
 	QPalette pal;
@@ -298,28 +288,6 @@ void PreprocessingWindow::inputChanged( QString text )
 	PluginManager::instance()->setInputFile( text );
 }
 
-void PreprocessingWindow::imageChanged( QString text )
-{
-	bool valid = true;
-	QPalette pal;
-	if ( !QFile::exists( text ) ) {
-		valid = false;
-	} else {
-		QPixmap image( text );
-		if ( image.isNull() )
-			valid = false;
-		else
-			m_ui->imagePreview->setPixmap( image );
-	}
-	if ( !valid ) {
-		m_ui->imagePreview->clear();
-		pal.setColor( QPalette::Text, Qt::red );
-	}
-	m_ui->image->setPalette( pal );
-
-	PluginManager::instance()->setImage( text );
-}
-
 void PreprocessingWindow::outputChanged( QString text )
 {
 	QPalette pal;
@@ -328,6 +296,11 @@ void PreprocessingWindow::outputChanged( QString text )
 	m_ui->output->setPalette( pal );
 
 	PluginManager::instance()->setOutputDirectory( text );
+}
+
+void PreprocessingWindow::nameChanged( QString text )
+{
+	PluginManager::instance()->setName( text );
 }
 
 void PreprocessingWindow::taskFinished( bool result )
@@ -403,7 +376,7 @@ void PreprocessingWindow::nextTask()
 			taskFinished( false );
 		break;
 	case TaskConfig:
-		if ( !PluginManager::instance()->writeConfig() )
+		if ( !PluginManager::instance()->writeConfig( m_ui->importerComboBox->currentText() ) )
 			taskFinished( false );
 		taskFinished( true );
 		break;
@@ -422,42 +395,63 @@ void PreprocessingWindow::threadsChanged( int threads )
 
 void PreprocessingWindow::importerPreprocessing()
 {
+	if ( !readSettingsWidgets() )
+		return;
+
 	m_tasks.push_back( TaskImporting );
 	nextTask();
 }
 
 void PreprocessingWindow::rendererPreprocessing()
 {
+	if ( !readSettingsWidgets() )
+		return;
+
 	m_tasks.push_back( TaskRendering );
 	nextTask();
 }
 
 void PreprocessingWindow::routerPreprocessing()
 {
+	if ( !readSettingsWidgets() )
+		return;
+
 	m_tasks.push_back( TaskRouting );
 	nextTask();
 }
 
 void PreprocessingWindow::addressLookupPreprocessing()
 {
+	if ( !readSettingsWidgets() )
+		return;
+
 	m_tasks.push_back( TaskAddressLookup );
 	nextTask();
 }
 
 void PreprocessingWindow::writeConfig()
 {
+	if ( !readSettingsWidgets() )
+		return;
+
 	m_tasks.push_back( TaskConfig );
 	nextTask();
 }
 
 void PreprocessingWindow::deleteTemporary()
 {
+	if ( !readSettingsWidgets() )
+		return;
+
 	m_tasks.push_back( TaskDeleteTemporary );
 	nextTask();
 }
 
 void PreprocessingWindow::preprocessAll()
 {
+	if ( !readSettingsWidgets() )
+		return;
+
 	m_tasks.push_back( TaskImporting );
 	m_tasks.push_back( TaskRouting );
 	m_tasks.push_back( TaskRendering );
@@ -469,6 +463,9 @@ void PreprocessingWindow::preprocessAll()
 
 void PreprocessingWindow::preprocessDaemon()
 {
+	if ( !readSettingsWidgets() )
+		return;
+
 	m_tasks.push_back( TaskImporting );
 	m_tasks.push_back( TaskRouting );
 	m_tasks.push_back( TaskConfig );
