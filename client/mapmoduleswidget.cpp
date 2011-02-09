@@ -70,7 +70,7 @@ void MapModulesWidget::populateData()
 		if ( button == 0 ) {
 			QProgressDialog progress;
 			progress.setWindowModality( Qt::ApplicationModal );
-			progress.setMaximum( packedModules.size() - 1 );
+			progress.setMaximum( packedModules.size() );
 			for ( int i = 0; i < packedModules.size(); i++ ) {
 				QString filename = dir.filePath( packedModules[i] );
 				QFuture< bool > future = QtConcurrent::run( MapData::unpackModule, filename );
