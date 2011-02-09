@@ -32,6 +32,8 @@ class ImgWriter {
         pixf=NULL;
         rbase=NULL;
         renderer=NULL;
+        drawing = NOTHING;
+        _r = _g = _b = -1;
     };
     ~ImgWriter() {
         if(buf) delete [] buf;
@@ -56,6 +58,7 @@ class ImgWriter {
         pixf = new pixfmt_type(*rbuf);
         rbase = new renbase_type(*pixf);
         renderer = new renderer_type(*rbase);
+        drawing = NOTHING;
     };
     void SetBG(int r, int g, int b) {
         rbase->clear(agg::rgba8(r, g, b));
@@ -63,6 +66,11 @@ class ImgWriter {
         //prim->solid_rectangle(0, 0, frame_width, frame_height);
     };
     void SetPen(int r, int g, int b, double w=1) {
+        if(r==_r && g==_g && b==_b && w==pen_width) return;
+
+        if(drawing==LINES) draw_lines();
+
+        _r = r; _g = g; _b = b;
         line_color = agg::rgba8(r, g, b);
         pen_width = w;
     };
@@ -159,7 +167,8 @@ class ImgWriter {
     void FillPoly(struct coord *points, int npoints) {
         if(npoints<2) return;
         if(!polygon_crosses_tile(points, npoints)) return;
-        path_type path;
+        if(drawing==LINES) draw_lines();
+
         path.move_to(points[0].x, points[0].y);
         for(int i=1;i<npoints;i++)
             path.line_to(points[i].x, points[i].y);
@@ -175,13 +184,10 @@ class ImgWriter {
         rasterizer.add_path(poly);
         agg::render_scanlines(rasterizer, scanline, *renderer);
         rasterizer.reset();
+        path.free_all();
     };
-    void DrawLine(int x1, int y1, int x2, int y2) {
-        if(!clip_line_to_img(x1, y1, x2, y2)) return;
-        path_type path;
-        path.move_to(x1, y1);
-        path.line_to(x2, y2);
-
+    void draw_lines() {
+        drawing = NOTHING;
         //FIXME Cargo Cult. Is this all really neaded?
         agg::trans_affine mtx;
         trans_path_type trans(path, mtx);
@@ -193,8 +199,16 @@ class ImgWriter {
         rasterizer.add_path(stroke);
         agg::render_scanlines(rasterizer, scanline, *renderer);
         rasterizer.reset();
+        path.free_all();
+    };
+    void DrawLine(int x1, int y1, int x2, int y2) {
+        if(!clip_line_to_img(x1, y1, x2, y2)) return;
+        path.move_to(x1, y1);
+        path.line_to(x2, y2);
+        drawing = LINES;
     };
     void Save() {
+        if(drawing==LINES) draw_lines();
         FILE* fd = fopen("tmp.ppm", "wb");
         if(fd)
         {
@@ -207,7 +221,10 @@ class ImgWriter {
         s+= name;
         if(system(s.c_str())!=0) printf("Failed convert\n");
     };
-    const unsigned char * get_img_data(){return buf;};
+    const unsigned char * get_img_data() {
+        if(drawing==LINES) draw_lines();
+        return buf;
+    };
 
   private:
     agg::scanline_u8 scanline;
@@ -220,7 +237,10 @@ class ImgWriter {
     renbase_type *rbase;
     renderer_type *renderer;
     color_type line_color;
+    path_type path;
     double pen_width;
+    enum {NOTHING, LINES, POLYGON} drawing;
+    int _r, _g, _b;
 };
 
 //typedef ImgWriter ImgWriter;
