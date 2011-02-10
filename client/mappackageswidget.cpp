@@ -37,6 +37,8 @@ struct MapPackagesWidget::PrivateImplementation {
 		int id;
 	};
 
+	int selected;
+
 	QString path;
 	QVector< MapData::MapPackage > maps;
 	QVector< Server > servers;
@@ -54,6 +56,10 @@ MapPackagesWidget::MapPackagesWidget( QWidget* parent ) :
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "MapPackages" );
 	d->path = settings.value( "path" ).toString();
+	bool worldMap = settings.value( "worldmap", true ).toBool();
+	m_ui->installedList->setVisible( !worldMap );
+	m_ui->worldMap->setVisible( worldMap );
+	m_ui->switchSelection->setChecked( worldMap );
 
 	int entries = settings.beginReadArray( "server" );
 	for ( int i = 0; i < entries; i++ ) {
@@ -77,8 +83,11 @@ MapPackagesWidget::MapPackagesWidget( QWidget* parent ) :
 	connect( m_ui->installedList, SIGNAL(itemSelectionChanged()), this, SLOT(mapSelectionChanged()) );
 	connect( m_ui->updateList, SIGNAL(itemSelectionChanged()), this, SLOT(updateSelectionChanged()) );
 	connect( m_ui->downloadList, SIGNAL(itemSelectionChanged()), this, SLOT(downloadSelectionChanged()) );
+	connect( m_ui->worldMap, SIGNAL(clicked(int)), this, SLOT(selected(int)) );
 
 	d->populateInstalled( m_ui->installedList );
+	m_ui->worldMap->setMaps( d->maps );
+	m_ui->worldMap->setHighlight( d->selected );
 }
 
 MapPackagesWidget::~MapPackagesWidget()
@@ -86,6 +95,7 @@ MapPackagesWidget::~MapPackagesWidget()
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "MapPackages" );
 	settings.setValue( "path", d->path );
+	settings.setValue( "worldmap", m_ui->switchSelection->isChecked() );
 	settings.beginWriteArray( "server", d->servers.size() );
 	for ( int i = 0; i < d->servers.size(); i++ ) {
 		settings.setArrayIndex( i );
@@ -111,9 +121,15 @@ void MapPackagesWidget::showEvent( QShowEvent* /*event*/ )
 	}
 }
 
+void MapPackagesWidget::selected( int id )
+{
+	m_ui->installedList->item( id )->setSelected( true );
+}
+
 void MapPackagesWidget::mapSelectionChanged()
 {
 	bool selected = m_ui->installedList->selectedItems().size() == 1;
+	m_ui->worldMap->setHighlight( m_ui->installedList->selectedItems().first()->data( Qt::UserRole ).toInt() );
 	m_ui->load->setEnabled( selected );
 	m_ui->deleteMap->setEnabled( selected );
 }
@@ -156,6 +172,8 @@ void MapPackagesWidget::directory()
 
 	d->path = newDir;
 	d->populateInstalled( m_ui->installedList );
+	m_ui->worldMap->setMaps( d->maps );
+	m_ui->worldMap->setHighlight( d->selected );
 }
 
 void MapPackagesWidget::check()
@@ -177,6 +195,7 @@ void MapPackagesWidget::PrivateImplementation::populateInstalled( QListWidget* l
 {
 	list->clear();
 	maps.clear();
+	selected = -1;
 
 	MapData* mapData = MapData::instance();
 	if ( !mapData->searchForMapPackages( path, &maps, 2 ) )
@@ -186,7 +205,9 @@ void MapPackagesWidget::PrivateImplementation::populateInstalled( QListWidget* l
 		QListWidgetItem* item = new QListWidgetItem( maps[i].name );
 		item->setData( Qt::UserRole, i );
 		list->addItem( item );
-		if ( maps[i].path == mapData->path() )
+		if ( maps[i].path == mapData->path() ) {
 			item->setSelected( true );
+			selected = i;
+		}
 	}
 }

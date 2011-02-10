@@ -17,52 +17,48 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MAPPACKAGESWIDGET_H
-#define MAPPACKAGESWIDGET_H
+#ifndef WORLDMAPCHOOSER_H
+#define WORLDMAPCHOOSER_H
 
 #include <QWidget>
+#include "mapdata.h"
 
 namespace Ui {
-	class MapPackagesWidget;
+	class WorldMapChooser;
 }
 
-class MapPackagesWidget : public QWidget
+class WorldMapChooser : public QWidget
 {
 	Q_OBJECT
 
 public:
 
-	explicit MapPackagesWidget( QWidget* parent = 0 );
-	~MapPackagesWidget();
+	explicit WorldMapChooser( QWidget* parent = 0 );
+	~WorldMapChooser();
+
+	void setMaps( QVector< MapData::MapPackage > maps );
 
 public slots:
 
-	void mapSelectionChanged();
-	void updateSelectionChanged();
-	void downloadSelectionChanged();
+	void setHighlight( int id );
 
 signals:
 
-	void mapChanged();
-	void closed();
-
-protected slots:
-
-	void load();
-	void directory();
-	void check();
-	void update();
-	void download();
-	void selected( int id );
+	void clicked( int id );
 
 protected:
 
-	virtual void resizeEvent( QResizeEvent* event );
-	virtual void showEvent( QShowEvent* event );
+	void resizeEvent( QResizeEvent* event );
+	void showEvent( QShowEvent* );
+	void hideEvent( QHideEvent* );
+	void mouseReleaseEvent( QMouseEvent* event );
+
+private:
 
 	struct PrivateImplementation;
-	PrivateImplementation* d;
-	Ui::MapPackagesWidget* m_ui;
+	PrivateImplementation*d ;
+
+	Ui::WorldMapChooser* m_ui;
 };
 
-#endif // MAPPACKAGESWIDGET_H
+#endif // WORLDMAPCHOOSER_H

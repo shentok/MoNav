@@ -26,7 +26,8 @@ SOURCES += main.cpp \
     mapmoduleswidget.cpp \
     placechooser.cpp \
     globalsettings.cpp \
-    streetchooser.cpp
+    streetchooser.cpp \
+    worldmapchooser.cpp
 
 HEADERS += \
 	paintwidget.h \
@@ -55,7 +56,8 @@ HEADERS += \
     mapmoduleswidget.h \
     placechooser.h \
     globalsettings.h \
-    streetchooser.h
+    streetchooser.h \
+    worldmapchooser.h
 
 FORMS += \
 	paintwidget.ui \
@@ -68,7 +70,8 @@ FORMS += \
     mainwindow.ui \
     mapmoduleswidget.ui \
     placechooser.ui \
-    streetchooser.ui
+    streetchooser.ui \
+    worldmapchooser.ui
 
 DESTDIR = ../bin
 

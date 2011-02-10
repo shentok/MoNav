@@ -34,6 +34,9 @@
         <widget class="QListWidget" name="installedList"/>
        </item>
        <item>
+        <widget class="WorldMapChooser" name="worldMap" native="true"/>
+       </item>
+       <item>
         <layout class="QVBoxLayout" name="verticalLayout_3">
          <item>
           <widget class="QPushButton" name="changeDirectory">
@@ -68,6 +71,16 @@
             </size>
            </property>
           </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="switchSelection">
+           <property name="text">
+            <string>World Map</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>
@@ -199,6 +212,47 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>WorldMapChooser</class>
+   <extends>QWidget</extends>
+   <header>worldmapchooser.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>switchSelection</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>installedList</receiver>
+   <slot>setHidden(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>774</x>
+     <y>569</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>539</x>
+     <y>523</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>switchSelection</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>worldMap</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>750</x>
+     <y>568</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>693</x>
+     <y>443</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

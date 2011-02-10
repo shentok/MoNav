@@ -205,7 +205,7 @@ bool MapData::containsMapData( MapPackage* data ) const
 	return d->loadInformation( d->path, data );
 }
 
-bool MapData::searchForMapPackages( QString directory, QVector<MapPackage>* data, int depth )
+bool MapData::searchForMapPackages( QString directory, QVector<MapData::MapPackage>* data, int depth )
 {
 	if ( data == NULL )
 		return false;
