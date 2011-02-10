@@ -97,8 +97,13 @@ void WorldMapChooser::mouseReleaseEvent( QMouseEvent* event )
 		}
 	}
 	if ( result.size() > 0 ) {
-		d->highlight = result.first();
-		emit clicked( result.first() );
+		int next = 0;
+		if ( result.contains( d->highlight ) ) {
+			next = result.indexOf( d->highlight );
+			next = ( next + 1 ) % result.size();
+		}
+		d->highlight = result[next];
+		emit clicked( d->highlight );
 		QResizeEvent event( size(), size() );
 		resizeEvent( &event );
 	}

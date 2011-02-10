@@ -69,6 +69,7 @@ void MapModulesWidget::populateData()
 		int button = QMessageBox::question( NULL, "Packed Map Modules", "Found packed map modules, do you want to unpack them?", "Unpack", "Ignore", "Delete" );
 		if ( button == 0 ) {
 			QProgressDialog progress;
+			progress.setWindowTitle( "MoNav - Unpacking" );
 			progress.setWindowModality( Qt::ApplicationModal );
 			progress.setMaximum( packedModules.size() );
 			for ( int i = 0; i < packedModules.size(); i++ ) {
