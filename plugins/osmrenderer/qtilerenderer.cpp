@@ -39,23 +39,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "quadtile.h"
 #include "types.h"
 
-#define PROFILELOGGING //Undefine to turn off timed logs.
-
-#ifdef PROFILELOGGING
-#include <sys/time.h>
-static struct timeval g_timelog_tz, g_timelog_tz2;
-#define TIMELOGINIT(A) {fprintf(stderr, "    %-22s", (A)); fflush(stderr); \
-								gettimeofday(&g_timelog_tz, 0);}
-#define TIMELOG(A)     {gettimeofday(&g_timelog_tz2,0); \
-fprintf(stderr, " %6ldms\n    %-22s", (g_timelog_tz2.tv_sec-g_timelog_tz.tv_sec)*1000 + g_timelog_tz2.tv_usec/1000 - g_timelog_tz.tv_usec/1000, (A)); fflush(stderr); g_timelog_tz = g_timelog_tz2;}
-#define TIMELOGDONE     {gettimeofday(&g_timelog_tz2,0); \
-fprintf(stderr, " %6ldms\n", (g_timelog_tz2.tv_sec-g_timelog_tz.tv_sec)*1000 + g_timelog_tz2.tv_usec/1000 - g_timelog_tz.tv_usec/1000);}
-#else
-#define TIMELOGINIT(A)
-#define TIMELOG(A)
-#define TIMELOGDONE
-#endif
-
 //Index granularity. Index is terminated at max depth, or when a part of the
 //index tree contains max_index_contents ways, whichever is the sooner.
 //A significant part of the preprocessing time scales with 4^MAX_INDEX_DEPTH
@@ -643,24 +626,29 @@ class OSMReader {
 
 	 vector<struct node> nodes;
 	 list<class osm_way *> ways;
-    vector<placename> placenames;
+     vector<placename> placenames;
 };
 
 bool OSMReader::load(const QString &filename)
 {
-	 TIMELOGINIT("loading nodes");
+	Timer timer;
+     qDebug() << "Qtile: Loading osm file:";
 	 if(!load_xml(filename)) return false;
+     qDebug() << "Qtile: Loaded osm file: " << timer.restart() << "ms";
 
 	 //Ways are all loaded - no longer need the nodes so clear them for memory.
-	 TIMELOG("clear nodes");
+     qDebug() << "Qtile: Clearing nodes";
 	 std::vector< struct node >().swap( nodes );
+     qDebug() << "Qtile: Cleared nodes: " << timer.restart() << "ms";
 
-	 TIMELOG("sorting ways");
+	 qDebug() << "Qtile: Sorting ways";
 	 ways.sort(osm_way::sorter);
+     qDebug() << "Qtile: Sorted ways: " << timer.restart() << "ms";
 	 //std::sort(ways.begin(), ways.end(), osm_way::sorter);
 
-	 TIMELOG("sorting places");
+	 qDebug() << "Qtile: Sorting places";
 	 std::sort(placenames.begin(), placenames.end(), placename::sorter);
+     qDebug() << "Qtile: Sorted places: " << timer.restart() << "ms";
 
 	 return true;
 }
@@ -696,7 +684,6 @@ bool OSMReader::load_xml(const QString &filename)
 	 reader->setNodeTags(list);
 
 	 IEntityReader::EntityType etype;
-	 bool first_way=true;
 	 IEntityReader::Node n; IEntityReader::Way w; IEntityReader::Relation r;
 	 do {
 		  etype = reader->getEntitiy(&n, &w, &r);
@@ -705,8 +692,6 @@ bool OSMReader::load_xml(const QString &filename)
 				add_node(n);
 				break;
 		  case IEntityReader::EntityWay:
-				if(first_way) TIMELOG("loading ways");
-				first_way = false;
 				add_way(w);
 				break;
 		  case IEntityReader::EntityRelation:
@@ -930,7 +915,7 @@ bool QtileRenderer::Preprocess( IImporter*, QString dir )
 {
 	m_osr = new OSMReader;
 
-		  fprintf(stderr, "Qtile renderer preprocessing\n");
+		  qDebug() << "Qtile renderer preprocessing";
                   QString ofile_name = dir + "/rendering.qrr";
 		  QFile infile(m_settings.rulesFile), outfile(ofile_name);
                   if(!infile.open(QIODevice::ReadOnly)) {
@@ -945,14 +930,14 @@ bool QtileRenderer::Preprocess( IImporter*, QString dir )
                   infile.close(); outfile.close();
 		  m_osr->load(m_settings.inputFile);
 		  write_ways(dir, false);
-		  TIMELOG("Deleting non motorways");
-		  m_osr->delete_non_motorways();
-		  write_ways(dir, true);
-		  TIMELOG("Writing place names");
-		  write_placenames(dir);
-		  TIMELOGDONE;
-		  m_osr->delete_ways();
-		  fprintf(stderr, "Qtile renderer preprocessing: done\n");
+	    Timer timer;
+		qDebug() << "Qtile: Deleting non motorways:";
+		m_osr->delete_non_motorways();
+		qDebug() << "Qtile: Deleted non motorways: " << timer.restart() << "ms";
+		write_ways(dir, true);
+		write_placenames(dir);
+		m_osr->delete_ways();
+		qDebug() << "Qtile: preprocessing finished";
 
 	delete m_osr;
 
@@ -963,7 +948,8 @@ void QtileRenderer::write_ways(QString &dir, bool motorway)
 {
 	 //Calculate Offsets and index
 	 //fprintf(stderr, "Calculating way file offsets\n");
-	 TIMELOG("Calculating index")
+	Timer timer;
+	qDebug() << "Qtile: Calculating index";
 	 long file_offset = 0;
 	 qindexTree qidx;
 	 for(list<class osm_way *>::iterator i = m_osr->get_ways().begin();
@@ -978,6 +964,8 @@ void QtileRenderer::write_ways(QString &dir, bool motorway)
 	 outfile += motorway ? "/ways.motorway.pqdb": "/ways.all.pqdb";
 	 FILE *way_fp = fopen(outfile.toAscii(), "wb");
 
+	qDebug() << "Qtile: index calculated: " << timer.restart() << "ms";
+	qDebug() << (motorway ? "Qtile: Writing motorways":"Qtile: Writing ways:");
 	 char tmp[100];
 	 time_t t;
 	 time(&t);
@@ -990,9 +978,7 @@ void QtileRenderer::write_ways(QString &dir, bool motorway)
 	 qidx.print(way_fp);
 	 qidx.deleteRecursive();
 
-	 //fprintf(stderr, "Writing ways\n");
-	 if(motorway) TIMELOG("Writing motorways")
-	 else TIMELOG("Writing ways");
+	qDebug() << "Qtile: written: " << timer.restart() << "ms";
 
 	unsigned char *buf=(unsigned char *) malloc( 1024 );
 	unsigned bufferLength = 1024;
@@ -1014,6 +1000,8 @@ void QtileRenderer::write_ways(QString &dir, bool motorway)
 
 void QtileRenderer::write_placenames(QString &dir)
 {
+	Timer timer;
+	qDebug() << "Qtile: Writing place names:";
 	long file_offset = 0;
 	qindexTree qidx;
 	for(vector<placename>::iterator i = m_osr->get_places().begin();
@@ -1050,6 +1038,7 @@ void QtileRenderer::write_placenames(QString &dir)
 		fwrite(buf, len+10, 1, place_fp);
 	}
 	fclose(place_fp);
+	qDebug() << "Qtile: Written place names: " << timer.restart() << "ms";
 }
 
 
