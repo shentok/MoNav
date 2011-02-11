@@ -36,6 +36,8 @@ GeneralSettingsDialog::GeneralSettingsDialog( QWidget* parent ) :
 	else
 		m_ui->overlay->setChecked( true );
 	m_ui->magnification->setValue( GlobalSettings::magnification() );
+
+	connect( m_ui->defaultIconSize, SIGNAL(clicked()), this, SLOT(setDefaultIconSize()) );
 }
 
 GeneralSettingsDialog::~GeneralSettingsDialog()
