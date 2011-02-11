@@ -164,15 +164,15 @@ void WorldMapChooser::resizeEvent( QResizeEvent* event )
 	double minY = d->minY;
 	double maxY = d->maxY;
 
-	if ( rangeX / rangeY > width / height ) {
+	if ( rangeX / rangeY > ( double ) width / height ) {
 		double move = rangeX / width * height - rangeY;
 		minY -= move / 2;
 		maxY += move / 2;
 		rangeY = rangeX / width * height;
-	} else if ( rangeX / rangeY < width / height ) {
+	} else if ( rangeX / rangeY < ( double ) width / height ) {
 		double move = rangeY * width / height - rangeX;
 		minX -= move / 2;
-		maxX -= move / 2;
+		maxX += move / 2;
 		rangeX = rangeY * width / height;
 	}
 
