@@ -36,7 +36,7 @@ ContractionHierarchiesClient::ContractionHierarchiesClient()
 
 ContractionHierarchiesClient::~ContractionHierarchiesClient()
 {
-	unload();
+	UnloadData();
 }
 
 
@@ -57,7 +57,7 @@ void ContractionHierarchiesClient::ShowSettings()
 #endif
 }
 
-void ContractionHierarchiesClient::unload()
+bool ContractionHierarchiesClient::UnloadData()
 {
 	if ( m_heapForward != NULL )
 		delete m_heapForward;
@@ -66,6 +66,9 @@ void ContractionHierarchiesClient::unload()
 		delete m_heapBackward;
 	m_heapBackward = NULL;
 	m_types.clear();
+	m_graph.unloadGraph();
+
+	return true;
 }
 
 bool ContractionHierarchiesClient::IsCompatible( int fileFormatVersion )
@@ -78,7 +81,7 @@ bool ContractionHierarchiesClient::IsCompatible( int fileFormatVersion )
 bool ContractionHierarchiesClient::LoadData()
 {
 	QString filename = fileInDirectory( m_directory,"Contraction Hierarchies" );
-	unload();
+	UnloadData();
 
 	if ( !m_graph.loadGraph( filename, 1024 * 1024 * 4 ) )
 		return false;

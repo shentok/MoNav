@@ -314,6 +314,9 @@ bool MapData::load( const Module& routingModule, const Module& renderingModule, 
 		return false;
 	}
 
+	if ( d->loaded )
+		unload();
+
 	if ( routingModule.plugins.size() != 2 ) {
 		qCritical() << "Illegal routing module passed";
 		return false;
@@ -414,14 +417,14 @@ bool MapData::load( const Module& routingModule, const Module& renderingModule, 
 			success = false;
 		}
 
-		/*
+
 		if ( !success ) {
-			d->router->Unload();
-			d->gpsLookup->Unload();
-			d->renderer->Unload();
-			d->addressLookup->Unload();
+			d->router->UnloadData();
+			d->gpsLookup->UnloadData();
+			d->renderer->UnloadData();
+			d->addressLookup->UnloadData();
 		}
-		*/
+
 	}
 
 	if ( !success ) {
@@ -454,14 +457,14 @@ bool MapData::unload()
 		return true;
 
 	if ( d->loaded ) {
-	/*if ( d->addressLookup != NULL )
-		d->addressLookup->Unload();
-	if ( d->gpsLookup != NULL )
-		d->gpsLookup->Unload();
-	if ( d->renderer != NULL )
-		d->renderer->UnloadData();
-	if ( d->router != NULL )
-		d->router->UnloadData();*/
+		if ( d->addressLookup != NULL )
+			d->addressLookup->UnloadData();
+		if ( d->gpsLookup != NULL )
+			d->gpsLookup->UnloadData();
+		if ( d->renderer != NULL )
+			d->renderer->UnloadData();
+		if ( d->router != NULL )
+			d->router->UnloadData();
 	}
 
 	d->addressLookup = NULL;

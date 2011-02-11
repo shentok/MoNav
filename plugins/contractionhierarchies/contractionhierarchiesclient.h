@@ -40,6 +40,7 @@ public:
 	virtual void ShowSettings();
 	virtual bool IsCompatible( int fileFormatVersion );
 	virtual bool LoadData();
+	virtual bool UnloadData();
 	virtual bool GetRoute( double* distance, QVector< Node>* pathNodes, QVector< Edge >* pathEdges, const IGPSLookup::Result& source, const IGPSLookup::Result& target );
 	virtual bool GetName( QString* result, unsigned name );
 	virtual bool GetNames( QVector< QString >* result, QVector< unsigned > names );
@@ -83,7 +84,6 @@ protected:
 	QString m_directory;
 	QStringList m_types;
 
-	void unload();
 	template< class EdgeAllowed, class StallEdgeAllowed >
 	void computeStep( Heap* heapForward, Heap* heapBackward, const EdgeAllowed& edgeAllowed, const StallEdgeAllowed& stallEdgeAllowed, NodeIterator* middle, int* targetDistance );
 	int computeRoute( const IGPSLookup::Result& source, const IGPSLookup::Result& target, QVector< Node>* pathNodes, QVector< Edge >* pathEdges );

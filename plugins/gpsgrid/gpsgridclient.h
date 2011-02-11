@@ -40,6 +40,7 @@ public:
 	virtual void ShowSettings();
 	virtual bool IsCompatible( int fileFormatVersion );
 	virtual bool LoadData();
+	virtual bool UnloadData();
 	virtual bool GetNearestEdge( Result* result, const UnsignedCoordinate& coordinate, double radius, bool headingPenalty, double heading );
 
 signals:
@@ -48,7 +49,6 @@ public slots:
 
 protected:
 
-	void unload();
 	double distance( UnsignedCoordinate* nearestPoint, double* percentage, const UnsignedCoordinate source, const UnsignedCoordinate target, const UnsignedCoordinate& coordinate );
 	double distance( const UnsignedCoordinate& min, const UnsignedCoordinate& max, const UnsignedCoordinate& coordinate );
 	bool checkCell( Result* result, QVector< UnsignedCoordinate >* path, NodeID gridX, NodeID gridY, const UnsignedCoordinate& coordinate, double heading, double headingPenalty );

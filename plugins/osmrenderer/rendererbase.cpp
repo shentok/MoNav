@@ -49,13 +49,6 @@ int RendererBase::GetMaxZoom()
 	return m_zoomLevels.size() - 1;
 }
 
-void RendererBase::reset()
-{
-	m_cache.clear();
-	m_zoomLevels.clear();
-	unload();
-}
-
 void RendererBase::setupPolygons()
 {
 	double leftPointer  = 135.0 / 180.0 * M_PI;
@@ -90,7 +83,7 @@ void RendererBase::advancedSettingsChanged()
 bool RendererBase::LoadData()
 {
 	if ( m_loaded )
-		reset();
+		UnloadData();
 
 	if ( m_settingsDialog == NULL )
 		m_settingsDialog = new BRSettingsDialog();
@@ -105,6 +98,15 @@ bool RendererBase::LoadData()
 		return false;
 
 	m_loaded = true;
+	return true;
+}
+bool RendererBase::UnloadData()
+{
+	m_cache.clear();
+	m_zoomLevels.clear();
+	// invoke derived class' callback
+	unload();
+
 	return true;
 }
 

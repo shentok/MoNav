@@ -40,6 +40,7 @@ public:
 	virtual void SetInputDirectory( const QString& dir );
 	virtual void ShowSettings();
 	virtual bool LoadData();
+	virtual bool UnloadData();
 	virtual int GetMaxZoom();
 	virtual ProjectedCoordinate Move( int shiftX, int shiftY, const PaintRequest& request );
 	virtual ProjectedCoordinate PointToCoordinate( int shiftX, int shiftY, const PaintRequest& request );
@@ -67,8 +68,6 @@ protected:
 
 	// computes the tileID from x,y and zoom level
 	long long tileID( int x, int y, int zoom );
-	// resets the class
-	void reset();
 	// sets up basic polygons for source / target / arrows
 	void setupPolygons();
 	// draws an arrow at position x,y with direction rotation

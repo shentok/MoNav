@@ -40,6 +40,7 @@ public:
 	 virtual void ShowSettings();
 	 virtual bool IsCompatible( int fileFormatVersion );
 	 virtual bool LoadData();
+	 virtual bool UnloadData();
 	 virtual bool GetPlaceSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions );
 	 virtual bool GetStreetSuggestions( int placeID, const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions );
 	 virtual bool GetPlaceData( QString input, QVector< int >* placeIDs, QVector< UnsignedCoordinate >* placeCoordinates );
@@ -61,7 +62,6 @@ protected:
 		}
 	};
 
-	void unload();
 	bool find( const char* trie, unsigned* resultNode, QString* missingPrefix, QString prefix );
 	int getSuggestion( const char* trie, QStringList* resultNames, unsigned node, int count, const QString prefix );
 

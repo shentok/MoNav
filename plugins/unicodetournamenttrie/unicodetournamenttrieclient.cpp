@@ -43,19 +43,6 @@ UnicodeTournamentTrieClient::~UnicodeTournamentTrieClient()
 
 }
 
-void UnicodeTournamentTrieClient::unload()
-{
-	if ( trieFile != NULL )
-		delete trieFile;
-	trieFile = NULL;
-	if ( subTrieFile != NULL )
-		delete subTrieFile;
-	subTrieFile = NULL;
-	if ( dataFile != NULL )
-		delete dataFile;
-	dataFile = NULL;
-}
-
 QString UnicodeTournamentTrieClient::GetName()
 {
 	return "Unicode Tournament Trie";
@@ -82,7 +69,7 @@ bool UnicodeTournamentTrieClient::IsCompatible( int fileFormatVersion )
 
 bool UnicodeTournamentTrieClient::LoadData()
 {
-	unload();
+	UnloadData();
 	QString filename = fileInDirectory( directory, "Unicode Tournament Trie" );
 	trieFile = new QFile( filename + "_main" );
 	subTrieFile = new QFile( filename + "_sub" );
@@ -106,6 +93,21 @@ bool UnicodeTournamentTrieClient::LoadData()
 		qDebug( "Failed to Memory Map sub trie data" );
 		return false;
 	}
+
+	return true;
+}
+
+bool UnicodeTournamentTrieClient::UnloadData()
+{
+	if ( trieFile != NULL )
+		delete trieFile;
+	trieFile = NULL;
+	if ( subTrieFile != NULL )
+		delete subTrieFile;
+	subTrieFile = NULL;
+	if ( dataFile != NULL )
+		delete dataFile;
+	dataFile = NULL;
 
 	return true;
 }

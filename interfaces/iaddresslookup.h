@@ -34,6 +34,7 @@ public:
 	virtual void ShowSettings() = 0;
 	virtual bool IsCompatible( int fileFormatVersion ) = 0;
 	virtual bool LoadData() = 0;
+	virtual bool UnloadData() = 0;
 	// for a given user input's prefix get a list of place name suggestions as well as partial input suggestions
 	virtual bool GetPlaceSuggestions( const QString& input, int amount, QStringList* suggestions, QStringList* inputSuggestions ) = 0;
 	// for a given user input's prefix get a list of street name suggestions as well as partial input suggestions

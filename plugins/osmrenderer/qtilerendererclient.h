@@ -36,7 +36,7 @@ public:
 	virtual QString GetName();
 	virtual bool IsCompatible( int fileFormatVersion );
 	virtual int GetMaxZoom();
-        virtual bool Paint( QPainter* painter, const IRenderer::PaintRequest& request );
+		  virtual bool Paint( QPainter* painter, const IRenderer::PaintRequest& request );
 
 signals:
 	void abort();
@@ -48,10 +48,10 @@ protected:
 	virtual void unload();
 
 	int tileSize;
-        class TileWriter *twriter;
-        typedef std::map<long long, struct place_cache_e*> place_cache_t;
-        place_cache_t place_cache;
-        int place_cache_zoom;
+		  class TileWriter *twriter;
+		  typedef std::map<long long, struct place_cache_e*> place_cache_t;
+		  place_cache_t place_cache;
+		  int place_cache_zoom;
 };
 
 #endif // QTILERENDERER_H

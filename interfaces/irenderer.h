@@ -36,6 +36,7 @@ public:
 	virtual void ShowSettings() = 0;
 	virtual bool IsCompatible( int fileFormatVersion ) = 0;
 	virtual bool LoadData() = 0;
+	virtual bool UnloadData() = 0;
 	// get the maximal zoom level; possible zoom levels are: [0,GetMaxZoom()]
 	virtual int GetMaxZoom() = 0;
 	// modify the request to respond to a mouse movement

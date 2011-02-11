@@ -42,18 +42,7 @@ GPSGridClient::~GPSGridClient()
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "GPS Grid" );
 	settings.setValue( "cacheSize", cacheSize );
-	unload();
-}
-
-void GPSGridClient::unload()
-{
-	if ( index != NULL )
-		delete index;
-	index = NULL;
-	if ( gridFile != NULL )
-		delete gridFile;
-	gridFile = NULL;
-	cache.clear();
+	UnloadData();
 }
 
 QString GPSGridClient::GetName()
@@ -89,7 +78,7 @@ bool GPSGridClient::IsCompatible( int fileFormatVersion )
 
 bool GPSGridClient::LoadData()
 {
-	unload();
+	UnloadData();
 	QString filename = fileInDirectory( directory, "GPSGrid" );
 	QFile configFile( filename + "_config" );
 	if ( !openQFile( &configFile, QIODevice::ReadOnly ) )
@@ -103,6 +92,19 @@ bool GPSGridClient::LoadData()
 		qCritical() << "failed to open file: " << gridFile->fileName();
 		return false;
 	}
+
+	return true;
+}
+
+bool GPSGridClient::UnloadData()
+{
+	if ( index != NULL )
+		delete index;
+	index = NULL;
+	if ( gridFile != NULL )
+		delete gridFile;
+	gridFile = NULL;
+	cache.clear();
 
 	return true;
 }

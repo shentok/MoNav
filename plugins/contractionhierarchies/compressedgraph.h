@@ -154,6 +154,7 @@ protected:
 		{
 			CompressedGraph::loadPathBlock( this, id, buffer );
 		}
+
 	};
 
 public:
@@ -277,6 +278,12 @@ public:
 			return false;
 		m_loaded = true;
 		return true;
+	}
+
+	void unloadGraph()
+	{
+		m_blockCache.unload();
+		m_pathCache.unload();
 	}
 
 	EdgeIterator edges( NodeIterator node )
@@ -581,12 +588,6 @@ protected:
 	{
 		block->id = blockID;
 		block->buffer = blockBuffer;
-	}
-
-	void unloadGraph()
-	{
-		m_blockCache.unload();
-		m_pathCache.unload();
 	}
 
 	// VARIABLES
