@@ -157,6 +157,13 @@ void MapData::setPath( QString path )
 	d->path = path;
 }
 
+void MapData::lastModules( QString* routing, QString* rendering, QString* addressLookup )
+{
+	*routing = d->lastRoutingModule;
+	*rendering = d->lastRenderingModule;
+	*addressLookup = d->lastAddressLookupModule;
+}
+
 bool MapData::PrivateImplementation::loadInformation( QString directory, MapData::MapPackage* data )
 {
 	QString configFilename = fileInDirectory( directory, "MoNav.ini" );

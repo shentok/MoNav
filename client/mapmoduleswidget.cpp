@@ -114,6 +114,20 @@ void MapModulesWidget::populateData()
 		m_ui->rendering->addItem( d->rendering[i].name );
 	for ( int i = 0; i < d->addressLookup.size(); i++ )
 		m_ui->addressLookup->addItem( d->addressLookup[i].name );
+
+	QString lastRouting;
+	QString lastRendering;
+	QString lastAddressLookup;
+	mapData->lastModules( &lastRouting, &lastRendering, &lastAddressLookup );
+	int routing = m_ui->routing->findText( lastRouting );
+	int rendering = m_ui->rendering->findText( lastRendering );
+	int addressLookup = m_ui->addressLookup->findText( lastAddressLookup );
+	if ( routing != -1 )
+		m_ui->routing->setCurrentIndex( routing );
+	if ( rendering != -1 )
+		m_ui->rendering->setCurrentIndex( rendering );
+	if ( addressLookup != -1 )
+		m_ui->addressLookup->setCurrentIndex( addressLookup );
 }
 
 void MapModulesWidget::select()

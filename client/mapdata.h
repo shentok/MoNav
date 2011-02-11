@@ -82,6 +82,9 @@ public:
 	static bool searchForMapPackages( QString directory, QVector< MapPackage >* data, int depth = 2 );
 	static bool unpackModule( QString filename );
 
+	// names of the last loaded modules
+	void lastModules( QString* routing, QString* rendering, QString* addressLookup );
+
 	// is a map loaded?
 	bool loaded() const;
 	// tries to load the current directory
