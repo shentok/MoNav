@@ -14,7 +14,12 @@ Current issues:
 #include <vector>
 #include <map>
 #include <algorithm>
+#ifdef TILE_WRITE_MAIN
+#include <iostream>
+#define qCritical() std::cout
+#else
 #include <QDebug>
+#endif
 
 #include "types.h"
 #include "tile-write.h"
@@ -444,21 +449,23 @@ qindex *qindex::load(FILE *fp)
 long qindex::get_index(quadtile _q, int _level, int *_nways)
 {
     if(_level > max_safe_zoom) _level = max_safe_zoom;
-    //for(int j=0;j<level;j++) printf(" ");
-    //printf("Trying qindex. Looking for %llx in %llx:%llx\n", _q, q, qmask);
     if((_q & (~qmask))!=q) return(-1); //We don't contain _q
+    //We contain _q.
     if(_level==level) {
+        //If we are the same level as the request, we have the answer.
         *_nways = nways;
         return offset;
     }
+    //See whether our children have the answer
     long result=-1;
     for(int i=0;i<4;i++) {
         if(child[i]) result = child[i]->get_index(_q, _level, _nways);
         if(result!=-1) return result;
     }
-    *_nways = nways;
-    //printf("  GOT IT: %ld with %d ways\n", offset, nways);
-    return offset;
+    //If execution reaches here, _q/_level refers to a tile within us
+    //which none of our children claim - ie. an empty section of this tile.
+    *_nways = 0;
+    return 0;
 }
 
 TileWriter::TileWriter(const std::string &_dir)
@@ -510,6 +517,7 @@ bool TileWriter::query_index(int x, int y, int zoom, int cur_db, int *nways)
     Log(LOG_VERBOSE, "Finding seek point\n");
     //Seek to the relevant point in the db.
     long offset = qidx[cur_db]->get_index(q & ~qmask, zoom, nways);
+    if(*nways==0) return true;
     if(offset==-1 || fseek(db[cur_db], offset, SEEK_SET)==-1) {
         Log(LOG_ERROR, "Failed to find index\n");
         return false;
@@ -531,7 +539,7 @@ bool TileWriter::draw_image(const std::string &_imgname, int x, int y, int zoom,
     if(!query_index(x, y, zoom, current_db, &nways)) return false;
 
     //Initialise the image.
-    Log(LOG_VERBOSE, "Initialising image\n");
+    Log(LOG_VERBOSE, "Initialising image with %d ways\n", nways);
     img->NewImage(256 * magnification, 256 * magnification, _imgname);
     img->SetBG(242, 238, 232);
     TIMELOG("Image initialisation");
