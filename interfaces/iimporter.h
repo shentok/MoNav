@@ -111,6 +111,7 @@ public:
 	// get all turning penalties. Each node has a table inDegree[node] * outDegree[node] of penalties.
 	// the tables are serialized in the penalties vector
 	// access a penalty for turning from edgeID "a" into edgeID "b" with penalties[a * outDegree[node] + b + beginTable]
+	// a negativ penalty forbids a turn
 	virtual bool GetRoutingPenalties( std::vector< char >* inDegree, std::vector< char >* outDegree, std::vector< double >* penalties ) = 0;
 	// get address data
 	virtual bool GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer, std::vector< QString >* addressNames ) = 0;

@@ -35,6 +35,7 @@ Q_IMPORT_PLUGIN( unicodetournamenttrie );
 Q_IMPORT_PLUGIN( osmrenderer );
 Q_IMPORT_PLUGIN( qtilerenderer );
 Q_IMPORT_PLUGIN( osmimporter );
+Q_IMPORT_PLUGIN( testimporter );
 
 class Commands : public IConsoleSettings {
 	Q_INTERFACES( IConsoleSettings );
