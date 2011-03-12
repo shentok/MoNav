@@ -19,8 +19,10 @@ public:
 		double heading; // heading of the source indicator
 		UnsignedCoordinate target; // position of the target indicator
 		QVector< UnsignedCoordinate > POIs; // a list of points of interest to highlight
-		QVector< int > edgeSegments; // a list of edge segments to draw; each segment only stores the length of the segment
-		QVector< UnsignedCoordinate > edges; // the sorted list of the edge segments' paths
+		QVector< int > polygonEndpointsStreet; // a list pointing to the last coordinates of each individual polygon for highlighting streets in the street chooser.
+		QVector< UnsignedCoordinate > polygonCoordsStreet; // a sorted list of polygon coordinates for highlighting streets in the street chooser.
+		QVector< int > polygonEndpointsTracklog; // a list pointing to the last coordinates of each individual polygon for highlighting the tracklog.
+		QVector< UnsignedCoordinate > polygonCoordsTracklog; // a sorted list of polygon coordinates for highlighting  the tracklog.
 		QVector< IRouter::Node > route; // the current route
 
 		PaintRequest() {

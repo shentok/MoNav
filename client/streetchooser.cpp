@@ -97,7 +97,7 @@ bool StreetChooser::selectStreet( UnsignedCoordinate* result, QVector< int >segm
 	StreetChooser* window = new StreetChooser( p );
 	ProjectedCoordinate center = coordinates[coordinates.size()/2].ToProjectedCoordinate();
 	window->m_ui->paintArea->setCenter( center );
-	window->m_ui->paintArea->setEdges( segmentLength, coordinates );
+	window->m_ui->paintArea->setStreetPolygons( segmentLength, coordinates );
 	UnsignedCoordinate centerPos( center );
 	window->d->coordinate = centerPos;
 	window->m_ui->paintArea->setPOI( centerPos );

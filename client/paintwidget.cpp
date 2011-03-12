@@ -56,6 +56,7 @@ PaintWidget::PaintWidget(QWidget *parent) :
 	connect( RoutingLogic::instance(), SIGNAL(sourceChanged()), this, SLOT(sourceChanged()) );
 	connect( RoutingLogic::instance(), SIGNAL(routeChanged()), this, SLOT(routeChanged()) );
 	connect( RoutingLogic::instance(), SIGNAL(waypointsChanged()), this, SLOT(waypointsChanged()) );
+	connect( Logger::instance(), SIGNAL(trackChanged()), this, SLOT(trackChanged()) );
 }
 
 PaintWidget::~PaintWidget()
@@ -129,13 +130,27 @@ void PaintWidget::routeChanged()
 	update();
 }
 
-void PaintWidget::setEdges( QVector< int > edgeSegments, QVector< UnsignedCoordinate > edges )
+void PaintWidget::trackChanged()
 {
-	m_request.edgeSegments = edgeSegments;
-	m_request.edges = edges;
+	setTracklogPolygons(Logger::instance()->polygonEndpointsTracklog(), Logger::instance()->polygonCoordsTracklog());
+}
+
+void PaintWidget::setStreetPolygons( QVector< int > polygonEndpointsStreet, QVector< UnsignedCoordinate > polygonCoordsStreet )
+{
+	m_request.polygonEndpointsStreet = polygonEndpointsStreet;
+	m_request.polygonCoordsStreet = polygonCoordsStreet;
 	if ( isVisible() )
 		update();
 }
+
+void PaintWidget::setTracklogPolygons( QVector< int > polygonEndpointsTracklog, QVector< UnsignedCoordinate > polygonCoordsTracklog )
+{
+	m_request.polygonEndpointsTracklog = polygonEndpointsTracklog;
+	m_request.polygonCoordsTracklog = polygonCoordsTracklog;
+	if ( isVisible() )
+		update();
+}
+
 void PaintWidget::setVirtualZoom( int z )
 {
 	m_request.virtualZoom = z;

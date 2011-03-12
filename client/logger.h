@@ -28,6 +28,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QFileInfo>
 #include <QDir>
 #include <QFile>
+#include "../utils/coordinates.h"
+#include "routinglogic.h"
 
 class Logger : public QObject
 {
@@ -45,26 +47,29 @@ public:
 	void setDirectory(QString);
 	void setFlushInterval(int);
 
+	QVector< int > polygonEndpointsTracklog();
+	QVector< UnsignedCoordinate > polygonCoordsTracklog();
+
 public slots:
 
 	void positionChanged();
 	void initialize();
 
+signals:
+	void trackChanged();
+
 protected:
 
 	explicit Logger( QObject* parent = 0 );
-
-	bool convertLogToGpx();
-	bool flushLogfile();
-
+	bool readGpxLog();
+	bool writeGpxLog();
 	QFile m_logFile;
 	int m_flushInterval;
 	QDateTime m_lastFlushTime;
 	bool m_loggingEnabled;
-	QString m_logBuffer;
 	QString m_tracklogPath;
 	QString m_tracklogPrefix;
-
+	QVector<RoutingLogic::GPSInfo> m_gpsInfoBuffer;
 };
 
 #endif // LOGGER_H

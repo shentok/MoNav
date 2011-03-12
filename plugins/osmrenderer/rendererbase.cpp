@@ -247,15 +247,26 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 	if ( m_settings.antiAliasing )
 		painter->setRenderHint( QPainter::Antialiasing );
 
-	if ( request.edgeSegments.size() > 0 && request.edges.size() > 0 ) {
+	if ( request.polygonEndpointsStreet.size() > 0 && request.polygonCoordsStreet.size() > 0 ) {
 		int position = 0;
-		for ( int i = 0; i < request.edgeSegments.size(); i++ ) {
+		for ( int i = 0; i < request.polygonEndpointsStreet.size(); i++ ) {
 			QVector< ProjectedCoordinate > line;
-			for ( ; position < request.edgeSegments[i]; position++ ) {
-				ProjectedCoordinate pos = request.edges[position].ToProjectedCoordinate();
+			for ( ; position < request.polygonEndpointsStreet[i]; position++ ) {
+				ProjectedCoordinate pos = request.polygonCoordsStreet[position].ToProjectedCoordinate();
 				line.push_back( ProjectedCoordinate( ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor ) );
 			}
-			drawPolyline( painter, boundingBox, line, QColor( 0, 0, 128, 128 ) );
+			drawPolyline( painter, boundingBox, line, QColor( 255, 255, 0, 128 ) );
+		}
+	}
+	if ( request.polygonEndpointsTracklog.size() > 0 && request.polygonCoordsTracklog.size() > 0 ) {
+		int position = 0;
+		for ( int i = 0; i < request.polygonEndpointsTracklog.size(); i++ ) {
+			QVector< ProjectedCoordinate > line;
+			for ( ; position < request.polygonEndpointsTracklog[i]; position++ ) {
+				ProjectedCoordinate pos = request.polygonCoordsTracklog[position].ToProjectedCoordinate();
+				line.push_back( ProjectedCoordinate( ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor ) );
+			}
+			drawPolyline( painter, boundingBox, line, QColor( 178, 034, 034, 128 ) );
 		}
 	}
 

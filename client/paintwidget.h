@@ -23,6 +23,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QWidget>
 #include "interfaces/irenderer.h"
 #include "interfaces/irouter.h"
+#include "logger.h"
 
 namespace Ui {
 	class PaintWidget;
@@ -42,10 +43,12 @@ public slots:
 	void setCenter( const ProjectedCoordinate c );
 	void setPOIs( QVector< UnsignedCoordinate > p );
 	void setPOI( UnsignedCoordinate p );
-	void setEdges( QVector< int > edgeSegments, QVector< UnsignedCoordinate > edges );
+	void setStreetPolygons( QVector< int > polygonEndpointsStreet, QVector< UnsignedCoordinate > polygonCoordsStreet );
+	void setTracklogPolygons( QVector< int > polygonEndpointsTracklog, QVector< UnsignedCoordinate > polygonCoordsTracklog );
 	void setVirtualZoom( int z );
 
 	void routeChanged();
+	void trackChanged();
 	void waypointsChanged();
 	void sourceChanged();
 	void dataLoaded();
