@@ -21,7 +21,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "routinglogic.h"
 #include "utils/qthelpers.h"
 
-#include <QDesktopServices>
 
 Logger* Logger::instance()
 {
@@ -52,9 +51,10 @@ void Logger::initialize()
 	m_lastFlushTime = QDateTime::currentDateTime();
 
 	QSettings settings( "MoNavClient" );
-	m_loggingEnabled = settings.value( "LoggingEnabled", false ).toBool();
+	m_loggingEnabled = settings.value( "LoggingEnabled", true ).toBool();
 	m_flushInterval = settings.value( "LogFileFlushInterval", 60 ).toInt();
-	m_tracklogPath = settings.value( "LogFilePath", QDesktopServices::StandardLocation( QDesktopServices::DocumentsLocation ) ).toString();
+	// QDesktopServices::StandardLocation( QDesktopServices::DocumentsLocation ) did not result in a usable dir on Ubuntu 10.04.2 LTS
+	m_tracklogPath = settings.value( "LogFilePath", QDir::homePath() ).toString();
 
 	m_tracklogPrefix = "MoNav Tracklog ";
 	QString tracklogFilename = m_tracklogPrefix;
@@ -113,6 +113,7 @@ bool Logger::flushLogfile()
 
 	m_logFile.write( m_logBuffer.toUtf8() );
 	m_logBuffer.clear();
+	m_logFile.close();
 	qDebug() << "Logger: Logfile written: " << m_logFile.fileName();
 	if ( m_logFile.exists( backupFilename ) && !m_logFile.remove( backupFilename ) )
 		qDebug() << "Logger: Cannot remove logfile backup " << backupFilename;
@@ -179,3 +180,54 @@ bool Logger::convertLogToGpx()
 	m_logFile.close();
 	return true;
 }
+
+bool Logger::loggingEnabled()
+{
+	return m_loggingEnabled;
+}
+
+
+QString Logger::directory()
+{
+	return m_tracklogPath;
+}
+
+
+int Logger::flushInterval()
+{
+	return m_flushInterval;
+}
+
+
+void Logger::setLoggingEnabled(bool enable)
+{
+	// Avoid a new logfile is created in case nothing changed.
+	if (m_loggingEnabled == enable)
+		return;
+	QSettings settings( "MoNavClient" );
+	settings.setValue("LoggingEnabled", enable);
+	initialize();
+}
+
+
+void Logger::setDirectory(QString directory)
+{
+	// Avoid a new logfile is created in case nothing changed.
+	if (m_tracklogPath == directory)
+		return;
+	QSettings settings( "MoNavClient" );
+	settings.setValue("LogFilePath", directory);
+	initialize();
+}
+
+
+void Logger::setFlushInterval(int flushtime)
+{
+	// Avoid a new logfile is created in case nothing changed.
+	if (m_flushInterval == flushtime)
+		return;
+	QSettings settings( "MoNavClient" );
+	settings.setValue("LogFileFlushInterval", flushtime);
+	initialize();
+}
+

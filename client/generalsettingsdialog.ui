@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>218</width>
-    <height>232</height>
+    <width>252</width>
+    <height>252</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -29,15 +29,15 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="page">
       <property name="geometry">
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>210</width>
-        <height>166</height>
+        <width>201</width>
+        <height>154</height>
        </rect>
       </property>
       <property name="sizePolicy">
@@ -134,6 +134,91 @@
           </size>
          </property>
         </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="page_2">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>234</width>
+        <height>154</height>
+       </rect>
+      </property>
+      <attribute name="label">
+       <string>Logging</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_2">
+       <item row="0" column="0">
+        <layout class="QGridLayout" name="gridLayout">
+         <item row="0" column="0" colspan="2">
+          <widget class="QCheckBox" name="checkBoxLogging">
+           <property name="toolTip">
+            <string>The GPS position is logged to a file for later use.</string>
+           </property>
+           <property name="whatsThis">
+            <string>The GPS position is logged to a file for later use.</string>
+           </property>
+           <property name="text">
+            <string>Enable Logging</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0" colspan="2">
+          <widget class="QLineEdit" name="lineEditPathLogging">
+           <property name="toolTip">
+            <string>The folder to host the logfile</string>
+           </property>
+           <property name="whatsThis">
+            <string>The folder to host the logfile</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QPushButton" name="pushButtonPathLogging">
+           <property name="toolTip">
+            <string>Click to select the logfile folder</string>
+           </property>
+           <property name="whatsThis">
+            <string>Click to select the logfile folder</string>
+           </property>
+           <property name="text">
+            <string>…</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="labelFlushIntervalLogging">
+           <property name="text">
+            <string>Flush Interval:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QSpinBox" name="spinBoxLogInterval">
+           <property name="toolTip">
+            <string>The interval to write the logfile in seconds</string>
+           </property>
+           <property name="whatsThis">
+            <string>The interval to write the logfile in seconds</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <spacer name="verticalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>56</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
        </item>
       </layout>
      </widget>

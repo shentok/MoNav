@@ -21,6 +21,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define GENERALSETTINGSDIALOG_H
 
 #include <QDialog>
+#include <QFileDialog>
 
 namespace Ui {
 	class GeneralSettingsDialog;
@@ -35,13 +36,14 @@ public:
 	explicit GeneralSettingsDialog( QWidget* parent = 0 );
 	~GeneralSettingsDialog();
 
-	// not necessary to call after exec, as ecex does this itself
+	// not necessary to call after exec, as exec does this itself
 	void fillSettings() const;
 
 public slots:
 
 	int exec();
 	void setDefaultIconSize();
+	void selectPathLogging();
 
 private:
 

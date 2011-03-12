@@ -20,6 +20,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "generalsettingsdialog.h"
 #include "ui_generalsettingsdialog.h"
 #include "globalsettings.h"
+#include "logger.h"
 
 GeneralSettingsDialog::GeneralSettingsDialog( QWidget* parent ) :
 		QDialog( parent ),
@@ -38,6 +39,12 @@ GeneralSettingsDialog::GeneralSettingsDialog( QWidget* parent ) :
 	m_ui->magnification->setValue( GlobalSettings::magnification() );
 
 	connect( m_ui->defaultIconSize, SIGNAL(clicked()), this, SLOT(setDefaultIconSize()) );
+
+	m_ui->checkBoxLogging->setChecked(Logger::instance()->loggingEnabled());
+	m_ui->lineEditPathLogging->setText(Logger::instance()->directory());
+	m_ui->spinBoxLogInterval->setValue(Logger::instance()->flushInterval());
+
+	connect( m_ui->pushButtonPathLogging, SIGNAL(clicked()), this, SLOT(selectPathLogging()) );
 }
 
 GeneralSettingsDialog::~GeneralSettingsDialog()
@@ -60,10 +67,21 @@ void GeneralSettingsDialog::fillSettings() const
 		GlobalSettings::setMenuMode( GlobalSettings::MenuOverlay );
 	else
 		GlobalSettings::setMenuMode( GlobalSettings::MenuPopup );
+
+	Logger::instance()->setLoggingEnabled(m_ui->checkBoxLogging->isChecked());
+	Logger::instance()->setDirectory(m_ui->lineEditPathLogging->text());
+	Logger::instance()->setFlushInterval(m_ui->spinBoxLogInterval->value());
 }
 
 void GeneralSettingsDialog::setDefaultIconSize()
 {
 	GlobalSettings::setDefaultIconsSize();
 	m_ui->iconSize->setValue( GlobalSettings::iconSize() );
+}
+
+void GeneralSettingsDialog::selectPathLogging()
+{
+	QString path = m_ui->lineEditPathLogging->text();
+	path = QFileDialog::getExistingDirectory (this, tr("Select Logging Directory"), path, QFileDialog::ShowDirsOnly);
+	m_ui->lineEditPathLogging->setText(path);
 }

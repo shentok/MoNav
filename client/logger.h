@@ -38,6 +38,12 @@ public:
 
 	static Logger* instance();
 	~Logger();
+	bool loggingEnabled();
+	QString directory();
+	int flushInterval();
+	void setLoggingEnabled(bool);
+	void setDirectory(QString);
+	void setFlushInterval(int);
 
 public slots:
 
