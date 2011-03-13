@@ -29,6 +29,11 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QtDebug>
 #include <algorithm>
 
+#ifdef Q_WS_MAEMO_5
+#include <QtDBus/QtDBus>
+#include "mce/dbus-names.h"
+#endif
+
 PaintWidget::PaintWidget(QWidget *parent) :
 	QWidget( parent ),
 	m_ui( new Ui::PaintWidget )
@@ -104,6 +109,9 @@ void PaintWidget::sourceChanged()
 	m_request.position = RoutingLogic::instance()->source();
 	m_request.heading = RoutingLogic::instance()->gpsInfo().heading;
 	update();
+	#ifdef Q_WS_MAEMO_5
+	QDBusConnection::systemBus().call(QDBusMessage::createMethodCall(MCE_SERVICE,  MCE_REQUEST_PATH,MCE_REQUEST_IF, MCE_PREVENT_BLANK_REQ));
+	#endif
 }
 
 void PaintWidget::waypointsChanged()
