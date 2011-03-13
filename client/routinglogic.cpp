@@ -70,6 +70,11 @@ RoutingLogic::RoutingLogic() :
 	if ( d->gpsSource == NULL ) {
 		qDebug() << "No GPS Sensor found! GPS Updates are not available";
 	} else {
+		// prevent QtMobility from cheating
+		// documemenation states that it would provide updates as fast as possible if nothing was specified
+		// nevertheless, it did provide only one every 5 seconds on the N900
+		// with this setting on every second
+		d->gpsSource->setUpdateInterval( 1000 );
 		d->gpsSource->startUpdates();
 		connect( d->gpsSource, SIGNAL(positionUpdated(QGeoPositionInfo)), this, SLOT(positionUpdated(QGeoPositionInfo)) );
 	}
