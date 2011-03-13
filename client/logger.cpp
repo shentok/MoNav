@@ -153,9 +153,9 @@ bool Logger::writeGpxLog()
 	trackName.append("</name>\n");
 
 	QTextStream gpxStream(&m_logFile);
-	gpxStream << "<?xml version=\"1.0\"?>\n";
-	gpxStream << "<gpx version=\"1.0\" creator=\"MoNav Tracklogger\" xmlns=\"http://www.topografix.com/GPX/1/0\">\n";
-	gpxStream << "  <trk>\n";
+	gpxStream << QString("<?xml version=\"1.0\"?>\n").toUtf8();
+	gpxStream << QString("<gpx version=\"1.0\" creator=\"MoNav Tracklogger\" xmlns=\"http://www.topografix.com/GPX/1/0\">\n").toUtf8();
+	gpxStream << QString("  <trk>\n").toUtf8();
 	gpxStream << trackName;
 
 	bool insideTracksegment = false;
@@ -179,23 +179,23 @@ bool Logger::writeGpxLog()
 		if (m_gpsInfoBuffer.at(i).position.IsValid() && insideTracksegment)
 		{
 			QString lat = QString::number(m_gpsInfoBuffer.at(i).position.ToGPSCoordinate().latitude).prepend("      <trkpt lat=\"").append("\"");
-			QString lon = QString::number(m_gpsInfoBuffer.at(i).position.ToGPSCoordinate().longitude).prepend("lon=\"").append("\">\n");
+			QString lon = QString::number(m_gpsInfoBuffer.at(i).position.ToGPSCoordinate().longitude).prepend(" lon=\"").append("\">\n");
 			QString ele = QString::number(m_gpsInfoBuffer.at(i).altitude).prepend("        <ele>").append("</ele>\n");
 			QString time = m_gpsInfoBuffer.at(i).timestamp.toString( "yyyy-MM-ddThh:mm:ss" ).prepend("        <time>").append("</time>\n");
-			gpxStream << lat;
-			gpxStream << lon;
+			gpxStream << lat.toUtf8();
+			gpxStream << lon.toUtf8();
 			if (!ele.contains("nan"))
-				gpxStream << ele;
-			gpxStream << time;
-			gpxStream << "      </trkpt>\n";
+				gpxStream << ele.toUtf8();
+			gpxStream << time.toUtf8();
+			gpxStream << QString("      </trkpt>\n").toUtf8();
 		}
 	}
 	if (insideTracksegment)
 	{
-		gpxStream << "    </trkseg>\n";
+		gpxStream << QString("    </trkseg>\n").toUtf8();
 	}
-	gpxStream << "  </trk>\n";
-	gpxStream << "</gpx>\n";
+	gpxStream << QString("  </trk>\n").toUtf8();
+	gpxStream << QString("</gpx>\n").toUtf8();
 	m_logFile.close();
 	m_lastFlushTime = QDateTime::currentDateTime();
 	return true;
