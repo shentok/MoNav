@@ -132,13 +132,7 @@ bool Logger::writeGpxLog()
 
 	QString backupFilename = m_logFile.fileName().remove( m_logFile.fileName().size() -4, 4 ).append( "-bck.gpx" );
 	if ( m_logFile.exists() && m_logFile.exists(backupFilename))
-	{
 		m_logFile.remove( backupFilename );
-	}
-	if (!m_logFile.copy( backupFilename ))
-	{
-		qDebug() << "Logger: Cannot create logfile backup " << backupFilename;
-	}
 
 	if ( !m_logFile.open( QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate ) ){
 		m_loggingEnabled = false;
@@ -280,6 +274,7 @@ bool Logger::readGpxLog()
 			m_gpsInfoBuffer.append(gpsInfo);
 		}
 	}
+	m_logFile.close();
 	emit trackChanged();
 	return true;
 }
