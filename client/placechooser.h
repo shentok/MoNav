@@ -42,7 +42,8 @@ public:
 protected slots:
 
 	void addZoom();
-	void substractZoom();
+	void subtractZoom();
+	void setZoom( int zoom );
 	void previousPlace();
 	void nextPlace();
 

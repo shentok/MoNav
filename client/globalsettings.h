@@ -44,6 +44,12 @@ public:
 
 	static int magnification();
 	static void setMagnification( int factor );
+	static int zoomMainMap();
+	static void setZoomMainMap( int zoom );
+	static int zoomPlaceChooser();
+	static void setZoomPlaceChooser( int zoom );
+	static int zoomStreetChooser();
+	static void setZoomStreetChooser( int zoom );
 
 private:
 

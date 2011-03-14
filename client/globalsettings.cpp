@@ -29,6 +29,9 @@ struct GlobalSettings::PrivateImplementation {
 	bool useDefaultIconSize;
 	int magnification;
 	MenuMode menuMode;
+	int zoomMainMap;
+	int zoomStreetChooser;
+	int zoomPlaceChooser;
 	bool autoRotation;
 };
 
@@ -57,6 +60,9 @@ void GlobalSettings::loadSettings( QSettings *settings )
 	instance->d->useDefaultIconSize = settings->value( "useDefaultIconSize", true ).toBool();
 	instance->d->magnification = settings->value( "magnification", 1 ).toInt();
 	instance->d->menuMode = MenuMode( settings->value( "menuMode", ( int ) MenuOverlay ).toInt() );
+	instance->d->zoomMainMap = settings->value( "zoomMainMap", 9 ).toInt();
+	instance->d->zoomStreetChooser = settings->value( "zoomStreetChooser", 14 ).toInt();
+	instance->d->zoomPlaceChooser = settings->value( "zoomPlaceChooser", 11 ).toInt();
 	instance->d->autoRotation = settings->value( "autoRotation", true ).toBool();
 	settings->endGroup();
 }
@@ -69,6 +75,9 @@ void GlobalSettings::saveSettings( QSettings *settings )
 	settings->setValue( "useDefaultIconSize", instance->d->useDefaultIconSize );
 	settings->setValue( "magnification", instance->d->magnification );
 	settings->setValue( "menuMode", ( int ) instance->d->menuMode );
+	settings->setValue( "zoomMainMap", instance->d->zoomMainMap );
+	settings->setValue( "zoomStreetChooser", instance->d->zoomStreetChooser );
+	settings->setValue( "zoomPlaceChooser", instance->d->zoomPlaceChooser );
 	settings->setValue( "autoRotation", instance->d->autoRotation );
 	settings->endGroup();
 }
@@ -118,6 +127,42 @@ void GlobalSettings::setMagnification( int factor )
 {
 	GlobalSettings* instance = privateInstance();
 	instance->d->magnification = factor;
+}
+
+int GlobalSettings::zoomMainMap()
+{
+	GlobalSettings* instance = privateInstance();
+	return instance->d->zoomMainMap;
+}
+
+void GlobalSettings::setZoomMainMap( int zoom )
+{
+	GlobalSettings* instance = privateInstance();
+	instance->d->zoomMainMap = zoom;
+}
+
+int GlobalSettings::zoomPlaceChooser()
+{
+	GlobalSettings* instance = privateInstance();
+	return instance->d->zoomPlaceChooser;
+}
+
+void GlobalSettings::setZoomPlaceChooser( int zoom )
+{
+	GlobalSettings* instance = privateInstance();
+	instance->d->zoomPlaceChooser = zoom;
+}
+
+int GlobalSettings::zoomStreetChooser()
+{
+	GlobalSettings* instance = privateInstance();
+	return instance->d->zoomStreetChooser;
+}
+
+void GlobalSettings::setZoomStreetChooser( int zoom )
+{
+	GlobalSettings* instance = privateInstance();
+	instance->d->zoomStreetChooser = zoom;
 }
 
 GlobalSettings::MenuMode GlobalSettings::menuMode()

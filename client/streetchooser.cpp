@@ -37,11 +37,11 @@ StreetChooser::StreetChooser( QWidget* parent ) :
 
 	m_ui->zoomBar->hide();
 
-	connect( m_ui->zoomBar, SIGNAL(valueChanged(int)), m_ui->paintArea, SLOT(setZoom(int)) );
-	connect( m_ui->paintArea, SIGNAL(zoomChanged(int)), m_ui->zoomBar, SLOT(setValue(int)) );
+	connect( m_ui->zoomBar, SIGNAL(valueChanged(int)), this, SLOT(setZoom(int)) );
+	connect( m_ui->paintArea, SIGNAL(zoomChanged(int)), this, SLOT(setZoom(int)) );
 	connect( m_ui->headerLabel, SIGNAL(clicked()), this, SLOT(accept()) );
 	connect( m_ui->zoomIn, SIGNAL(clicked()), this, SLOT(addZoom()) );
-	connect( m_ui->zoomOut, SIGNAL(clicked()), this, SLOT(substractZoom()) );
+	connect( m_ui->zoomOut, SIGNAL(clicked()), this, SLOT(subtractZoom()) );
 	connect( m_ui->paintArea, SIGNAL(mouseClicked(ProjectedCoordinate)), this, SLOT(mouseClicked(ProjectedCoordinate)) );
 
 	int iconSize = GlobalSettings::iconSize();
@@ -55,9 +55,8 @@ StreetChooser::StreetChooser( QWidget* parent ) :
 
 	int maxZoom = renderer->GetMaxZoom();
 	m_ui->zoomBar->setMaximum( maxZoom );
-	m_ui->zoomBar->setValue( maxZoom );
 	m_ui->paintArea->setMaxZoom( maxZoom );
-	m_ui->paintArea->setZoom( maxZoom );
+	setZoom( GlobalSettings::zoomStreetChooser());
 	m_ui->paintArea->setVirtualZoom( GlobalSettings::magnification() );
 }
 
@@ -69,12 +68,27 @@ StreetChooser::~StreetChooser()
 
 void StreetChooser::addZoom()
 {
-	m_ui->zoomBar->triggerAction( QAbstractSlider::SliderSingleStepAdd );
+	setZoom( GlobalSettings::zoomStreetChooser() + 1 );
 }
 
-void StreetChooser::substractZoom()
+void StreetChooser::subtractZoom()
 {
-	m_ui->zoomBar->triggerAction( QAbstractSlider::SliderSingleStepSub );
+	setZoom( GlobalSettings::zoomStreetChooser() - 1 );
+}
+
+void StreetChooser::setZoom( int zoom )
+{
+	IRenderer* renderer = MapData::instance()->renderer();
+	if ( renderer == NULL )
+		return;
+	if( zoom > renderer->GetMaxZoom() )
+		zoom = renderer->GetMaxZoom();
+	if( zoom < 0 )
+		zoom = 0;
+
+	m_ui->zoomBar->setValue( zoom );
+	m_ui->paintArea->setZoom( zoom );
+	GlobalSettings::setZoomStreetChooser( zoom );
 }
 
 void StreetChooser::mouseClicked( ProjectedCoordinate clickPos )

@@ -133,11 +133,11 @@ MainWindow::~MainWindow()
 void MainWindow::connectSlots()
 {
 	MapData* mapData = MapData::instance();
-	connect( m_ui->zoomBar, SIGNAL(valueChanged(int)), m_ui->paintArea, SLOT(setZoom(int)) );
-	connect( m_ui->paintArea, SIGNAL(zoomChanged(int)), m_ui->zoomBar, SLOT(setValue(int)) );
+	connect( m_ui->zoomBar, SIGNAL(valueChanged(int)), this, SLOT(setZoom(int)) );
+	connect( m_ui->paintArea, SIGNAL(zoomChanged(int)), this, SLOT(setZoom(int)) );
 	connect( m_ui->paintArea, SIGNAL(mouseClicked(ProjectedCoordinate)), this, SLOT(mouseClicked(ProjectedCoordinate)) );
 	connect( m_ui->zoomIn, SIGNAL(clicked()), this, SLOT(addZoom()) );
-	connect( m_ui->zoomOut, SIGNAL(clicked()), this, SLOT(substractZoom()) );
+	connect( m_ui->zoomOut, SIGNAL(clicked()), this, SLOT(subtractZoom()) );
 
 	connect( m_ui->infoIcon1, SIGNAL(clicked()), this, SLOT(showInstructions()) );
 	connect( m_ui->infoIcon2, SIGNAL(clicked()), this, SLOT(showInstructions()) );
@@ -306,9 +306,8 @@ void MainWindow::dataLoaded()
 
 	d->maxZoom = renderer->GetMaxZoom();
 	m_ui->zoomBar->setMaximum( d->maxZoom );
-	m_ui->zoomBar->setValue( d->maxZoom );
 	m_ui->paintArea->setMaxZoom( d->maxZoom );
-	m_ui->paintArea->setZoom( d->maxZoom );
+	setZoom( GlobalSettings::zoomMainMap());
 	m_ui->paintArea->setVirtualZoom( GlobalSettings::magnification() );
 	m_ui->paintArea->setCenter( RoutingLogic::instance()->source().ToProjectedCoordinate() );
 	m_ui->paintArea->setKeepPositionVisible( true );
@@ -478,7 +477,7 @@ void MainWindow::keyPressEvent( QKeyEvent* event )
 		break;
 
 	case Qt::Key_F8:
-		this->substractZoom();
+		this->subtractZoom();
 		event->accept();
 		break;
 	}
@@ -657,12 +656,27 @@ void MainWindow::bookmarks()
 
 void MainWindow::addZoom()
 {
-	m_ui->zoomBar->triggerAction( QAbstractSlider::SliderSingleStepAdd );
+	setZoom( GlobalSettings::zoomMainMap() + 1 );
 }
 
-void MainWindow::substractZoom()
+void MainWindow::subtractZoom()
 {
-	m_ui->zoomBar->triggerAction( QAbstractSlider::SliderSingleStepSub );
+	setZoom( GlobalSettings::zoomMainMap() - 1 );
+}
+
+void MainWindow::setZoom( int zoom )
+{
+	IRenderer* renderer = MapData::instance()->renderer();
+	if ( renderer == NULL )
+		return;
+	if( zoom > renderer->GetMaxZoom() )
+		zoom = renderer->GetMaxZoom();
+	if( zoom < 0 )
+		zoom = 0;
+
+	m_ui->zoomBar->setValue( zoom );
+	m_ui->paintArea->setZoom( zoom );
+	GlobalSettings::setZoomMainMap( zoom );
 }
 
 void MainWindow::toogleLocked()

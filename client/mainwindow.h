@@ -50,7 +50,8 @@ protected slots:
 	void mouseClicked( ProjectedCoordinate clickPos );
 
 	void addZoom();
-	void substractZoom();
+	void subtractZoom();
+	void setZoom( int zoom );
 
 	void settingsGeneral();
 	void settingsRenderer();
