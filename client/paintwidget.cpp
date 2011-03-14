@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils/qthelpers.h"
 #include "mapdata.h"
 #include "routinglogic.h"
+#include "globalsettings.h"
 
 #include <QPainter>
 #include <QMouseEvent>
@@ -275,30 +276,35 @@ void PaintWidget::paintEvent( QPaintEvent* )
 	if ( renderer == NULL )
 		return;
 
-	if ( m_fixed ) {
+	if ( m_fixed ){
 		m_request.center = m_request.position.ToProjectedCoordinate();
 
-		//gradually change the screen rotation to match the heading
-		double diff = m_request.rotation + m_request.heading;
-		while ( diff <= -180 )
-			diff += 360;
-		while ( diff >= 180 )
-			diff -=360;
-		//to filter out noise stop when close enough
-		if ( diff > 0 )
-			diff = std::max( 0.0, diff - 15 );
-		if ( diff < 0 )
-			diff = std::min( 0.0, diff + 15 );
-		m_request.rotation -= diff / 2;
+		if ( GlobalSettings::autoRotation() )
+		{
+			//gradually change the screen rotation to match the heading
+			double diff = m_request.rotation + m_request.heading;
+			while ( diff <= -180 )
+				diff += 360;
+			while ( diff >= 180 )
+				diff -=360;
+			//to filter out noise stop when close enough
+			if ( diff > 0 )
+				diff = std::max( 0.0, diff - 15 );
+			if ( diff < 0 )
+				diff = std::min( 0.0, diff + 15 );
+			m_request.rotation -= diff / 2;
 
-		//normalize
-		while ( m_request.rotation < 0 )
-			m_request.rotation += 360;
-		while ( m_request.rotation >= 360 )
-			m_request.rotation -= 360;
-		int radius = height() * 0.25;
+			//normalize
+			while ( m_request.rotation < 0 )
+				m_request.rotation += 360;
+			while ( m_request.rotation >= 360 )
+				m_request.rotation -= 360;
 
-		m_request.center = renderer->PointToCoordinate( 0, -radius, m_request );
+			int radius = height() * 0.25;
+			m_request.center = renderer->PointToCoordinate( 0, -radius, m_request );
+		} else {
+			m_request.rotation = 0;
+		}
 	} else {
 		m_request.rotation = 0;
 	}

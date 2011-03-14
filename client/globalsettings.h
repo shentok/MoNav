@@ -33,6 +33,8 @@ public:
 	static int iconSize();
 	static void setIconSize( int size );
 	static void setDefaultIconsSize();
+	static bool autoRotation();
+	static void setAutoRotation( bool autoRotation );
 
 	enum MenuMode {
 		MenuPopup, MenuOverlay

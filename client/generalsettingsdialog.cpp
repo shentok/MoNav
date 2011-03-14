@@ -44,11 +44,22 @@ GeneralSettingsDialog::GeneralSettingsDialog( QWidget* parent ) :
 	m_ui->lineEditPathLogging->setText(Logger::instance()->directory());
 	m_ui->spinBoxLogInterval->setValue(Logger::instance()->flushInterval());
 
+	m_ui->checkBoxMapRotation->setChecked( GlobalSettings::autoRotation() );
+
 	connect( m_ui->pushButtonPathLogging, SIGNAL(clicked()), this, SLOT(selectPathLogging()) );
+
+	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "GeneralSettingsDialog" );
+	restoreGeometry( settings.value( "geometry" ).toByteArray() );
+	m_ui->toolBox->setCurrentIndex( settings.value( "currentPage", 0 ).toInt() );
 }
 
 GeneralSettingsDialog::~GeneralSettingsDialog()
 {
+	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "GeneralSettingsDialog" );
+	settings.setValue( "geometry", saveGeometry() );
+	settings.setValue( "currentPage", m_ui->toolBox->currentIndex() );
 	delete m_ui;
 }
 
@@ -67,6 +78,8 @@ void GeneralSettingsDialog::fillSettings() const
 		GlobalSettings::setMenuMode( GlobalSettings::MenuOverlay );
 	else
 		GlobalSettings::setMenuMode( GlobalSettings::MenuPopup );
+
+	GlobalSettings::setAutoRotation( m_ui->checkBoxMapRotation->isChecked() );
 
 	Logger::instance()->setLoggingEnabled(m_ui->checkBoxLogging->isChecked());
 	Logger::instance()->setDirectory(m_ui->lineEditPathLogging->text());

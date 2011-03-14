@@ -29,6 +29,7 @@ struct GlobalSettings::PrivateImplementation {
 	bool useDefaultIconSize;
 	int magnification;
 	MenuMode menuMode;
+	bool autoRotation;
 };
 
 GlobalSettings::GlobalSettings()
@@ -56,6 +57,7 @@ void GlobalSettings::loadSettings( QSettings *settings )
 	instance->d->useDefaultIconSize = settings->value( "useDefaultIconSize", true ).toBool();
 	instance->d->magnification = settings->value( "magnification", 1 ).toInt();
 	instance->d->menuMode = MenuMode( settings->value( "menuMode", ( int ) MenuOverlay ).toInt() );
+	instance->d->autoRotation = settings->value( "autoRotation", true ).toBool();
 	settings->endGroup();
 }
 
@@ -67,6 +69,7 @@ void GlobalSettings::saveSettings( QSettings *settings )
 	settings->setValue( "useDefaultIconSize", instance->d->useDefaultIconSize );
 	settings->setValue( "magnification", instance->d->magnification );
 	settings->setValue( "menuMode", ( int ) instance->d->menuMode );
+	settings->setValue( "autoRotation", instance->d->autoRotation );
 	settings->endGroup();
 }
 
@@ -84,6 +87,18 @@ void GlobalSettings::setIconSize( int size )
 	GlobalSettings* instance = privateInstance();
 	instance->d->iconSize = size;
 	instance->d->useDefaultIconSize = size == instance->d->defaultIconSize;
+}
+
+bool GlobalSettings::autoRotation()
+{
+	GlobalSettings* instance = privateInstance();
+	return instance->d->autoRotation;
+}
+
+void GlobalSettings::setAutoRotation( bool autoRotation )
+{
+	GlobalSettings* instance = privateInstance();
+	instance->d->autoRotation = autoRotation;
 }
 
 void GlobalSettings::setDefaultIconsSize()
