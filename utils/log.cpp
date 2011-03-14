@@ -67,7 +67,7 @@ Log::~Log()
 }
 
 // returns the only instance of the log
-Log::Log* Log::instance()
+Log* Log::instance()
 {
 	static Log log;
 	return &log;
