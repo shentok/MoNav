@@ -38,6 +38,7 @@ public:
 public slots:
 
 	void setFixed( bool f );
+	void setKeepPositionVisible( bool visibility );
 	void setZoom( int z );
 	void setMaxZoom( int z );
 	void setCenter( const ProjectedCoordinate c );
@@ -78,6 +79,7 @@ protected:
 	bool m_mouseDown;
 	int m_wheelDelta;
 	bool m_fixed;
+	bool m_keepPositionVisible;
 
 	Ui::PaintWidget* m_ui;
 };

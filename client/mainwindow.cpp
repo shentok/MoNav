@@ -87,6 +87,7 @@ MainWindow::MainWindow( QWidget* parent ) :
 	m_ui->infoWidget->hide();
 	m_ui->sourceMode->hide();
 	m_ui->targetMode->hide();
+	m_ui->paintArea->setKeepPositionVisible( true );
 
 	// ensure that we're painting our background
 	setAutoFillBackground(true);
@@ -159,11 +160,12 @@ void MainWindow::connectSlots()
 void MainWindow::setupMenu()
 {
 	d->gotoMenu = new QMenu( tr( "Show" ), this );
-	d->gotoMenu->addAction( QIcon( ":/images/oxygen/network-wireless.png" ), tr( "GPS-Location" ), this, SLOT(gotoGPS()) );
+	d->gotoMenu->addAction( QIcon( ":/images/oxygen/network-wireless.png" ), tr( "GPS-Location" ), this, SLOT(gotoGpsLocation()) );
 	d->gotoMenu->addAction( QIcon( ":/images/source.png" ), tr( "Departure" ), this, SLOT(gotoSource()) );
 	d->gotoMenu->addAction( QIcon( ":/images/target.png" ), tr( "Destination" ), this, SLOT(gotoTarget()) );
-	d->gotoMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmark" ), this, SLOT(gotoBookmark()) );
-	d->gotoMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address" ), this, SLOT(gotoAddress()) );
+	d->gotoMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmark..." ), this, SLOT(gotoBookmark()) );
+	d->gotoMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address..." ), this, SLOT(gotoAddress()) );
+	d->gotoMenu->addAction( QIcon( ":/images/oxygen/network-wireless.png" ), tr( "GPS-Coordinate..." ), this, SLOT(gotoGpsCoordinate()) );
 
 	d->gotoOverlay = new OverlayWidget( this, tr( "Show" ) );
 	d->gotoOverlay->addActions( d->gotoMenu->actions() );
@@ -172,7 +174,7 @@ void MainWindow::setupMenu()
 	d->sourceMenu->addAction( QIcon( ":/images/map.png" ), tr( "Tap on Map" ), this, SLOT(setModeSourceSelection()) );
 	d->sourceMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmark" ), this, SLOT(sourceByBookmark()) );
 	d->sourceMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address" ), this, SLOT(sourceByAddress()) );
-	d->sourceMenu->addAction( QIcon( ":/images/oxygen/network-wireless.png" ), tr( "GPS Receiver" ), this, SLOT(sourceByGPS()) );
+	d->sourceMenu->addAction( QIcon( ":/images/oxygen/network-wireless.png" ), tr( "GPS-Location" ), this, SLOT(sourceByGPS()) );
 
 	d->sourceOverlay = new OverlayWidget( this, tr( "Departure" ) );
 	d->sourceOverlay->addActions( d->sourceMenu->actions() );
@@ -309,6 +311,7 @@ void MainWindow::dataLoaded()
 	m_ui->paintArea->setZoom( d->maxZoom );
 	m_ui->paintArea->setVirtualZoom( GlobalSettings::magnification() );
 	m_ui->paintArea->setCenter( RoutingLogic::instance()->source().ToProjectedCoordinate() );
+	m_ui->paintArea->setKeepPositionVisible( true );
 }
 
 void MainWindow::instructionsChanged()
@@ -529,6 +532,17 @@ void MainWindow::mouseClicked( ProjectedCoordinate clickPos )
 	//m_mode = None; // might be contra-productiv for some use cases. E.g., many new users just want to click around the map and wonder about the blazingly fast routing *g*
 }
 
+void MainWindow::gotoGpsLocation()
+{
+	const RoutingLogic::GPSInfo& gpsInfo = RoutingLogic::instance()->gpsInfo();
+	if ( !gpsInfo.position.IsValid() )
+		return;
+	GPSCoordinate gps( gpsInfo.position.ToGPSCoordinate().latitude, gpsInfo.position.ToGPSCoordinate().longitude );
+	m_ui->paintArea->setCenter( ProjectedCoordinate( gps ) );
+	m_ui->paintArea->setZoom( d->maxZoom );
+	m_ui->paintArea->setKeepPositionVisible( true );
+}
+
 void MainWindow::gotoSource()
 {
 	UnsignedCoordinate coordinate = RoutingLogic::instance()->source();
@@ -536,20 +550,10 @@ void MainWindow::gotoSource()
 		return;
 	m_ui->paintArea->setCenter( coordinate.ToProjectedCoordinate() );
 	m_ui->paintArea->setZoom( d->maxZoom );
-}
-
-void MainWindow::gotoGPS()
-{
-	bool ok = false;
-	double latitude = QInputDialog::getDouble( this, "Enter Coordinate", "Enter Latitude", 0, -90, 90, 5, &ok );
-	if ( !ok )
-		return;
-	double longitude = QInputDialog::getDouble( this, "Enter Coordinate", "Enter Latitude", 0, -180, 180, 5, &ok );
-	if ( !ok )
-		return;
-	GPSCoordinate gps( latitude, longitude );
-	m_ui->paintArea->setCenter( ProjectedCoordinate( gps ) );
-	m_ui->paintArea->setZoom( d->maxZoom );
+	if ( d->fixed )
+		m_ui->paintArea->setKeepPositionVisible( true );
+	else
+		m_ui->paintArea->setKeepPositionVisible( false );
 }
 
 void MainWindow::gotoTarget()
@@ -559,6 +563,7 @@ void MainWindow::gotoTarget()
 		return;
 	m_ui->paintArea->setCenter( coordinate.ToProjectedCoordinate() );
 	m_ui->paintArea->setZoom( d->maxZoom );
+	m_ui->paintArea->setKeepPositionVisible( false );
 }
 
 void MainWindow::gotoBookmark()
@@ -567,6 +572,7 @@ void MainWindow::gotoBookmark()
 	if ( !BookmarksDialog::showBookmarks( &result, this ) )
 		return;
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
+	m_ui->paintArea->setKeepPositionVisible( false );
 }
 
 void MainWindow::gotoAddress()
@@ -577,6 +583,22 @@ void MainWindow::gotoAddress()
 	if ( !AddressDialog::getAddress( &result, this, true ) )
 		return;
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
+	m_ui->paintArea->setKeepPositionVisible( false );
+}
+
+void MainWindow::gotoGpsCoordinate()
+{
+	bool ok = false;
+	double latitude = QInputDialog::getDouble( this, "Enter Coordinate", "Enter Latitude", 0, -90, 90, 5, &ok );
+	if ( !ok )
+		return;
+	double longitude = QInputDialog::getDouble( this, "Enter Coordinate", "Enter Longitude", 0, -180, 180, 5, &ok );
+	if ( !ok )
+		return;
+	GPSCoordinate gps( latitude, longitude );
+	m_ui->paintArea->setCenter( ProjectedCoordinate( gps ) );
+	m_ui->paintArea->setZoom( d->maxZoom );
+	m_ui->paintArea->setKeepPositionVisible( false );
 }
 
 void MainWindow::sourceByBookmark()

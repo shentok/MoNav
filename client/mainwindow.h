@@ -60,7 +60,8 @@ protected slots:
 	void settingsGPS();
 
 	void gotoSource();
-	void gotoGPS();
+	void gotoGpsCoordinate();
+	void gotoGpsLocation();
 	void gotoTarget();
 	void gotoBookmark();
 	void gotoAddress();

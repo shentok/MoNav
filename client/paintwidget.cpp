@@ -47,6 +47,7 @@ PaintWidget::PaintWidget(QWidget *parent) :
 	m_lastMouseY = 0;
 	m_wheelDelta = 0;
 	m_fixed = false;
+	setKeepPositionVisible( false );
 	m_mouseDown = false;
 	m_drag = false;
 	m_request.zoom = 0;
@@ -81,10 +82,17 @@ void PaintWidget::dataLoaded()
 	update();
 }
 
-void PaintWidget::setFixed( bool f )
+void PaintWidget::setFixed( bool fixed )
 {
-	m_fixed = f;
+	m_fixed = fixed;
+	if (m_fixed)
+		setKeepPositionVisible( true );
 	update();
+}
+
+void PaintWidget::setKeepPositionVisible( bool visibility )
+{
+	m_keepPositionVisible = visibility;
 }
 
 void PaintWidget::setCenter( const ProjectedCoordinate c )
@@ -202,6 +210,9 @@ void PaintWidget::mouseMoveEvent( QMouseEvent* event )
 	m_request.center = renderer->Move( event->x() - m_lastMouseX, event->y() - m_lastMouseY, m_request );
 	m_lastMouseX = event->x();
 	m_lastMouseY = event->y();
+
+	setKeepPositionVisible( false );
+
 	update();
 }
 
@@ -291,6 +302,9 @@ void PaintWidget::paintEvent( QPaintEvent* )
 	} else {
 		m_request.rotation = 0;
 	}
+
+	if (m_keepPositionVisible)
+		m_request.center = m_request.position.ToProjectedCoordinate();
 
 	QPainter painter( this );
 	Timer time;
