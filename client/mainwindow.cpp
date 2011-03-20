@@ -145,7 +145,7 @@ void MainWindow::connectSlots()
 	connect( mapData, SIGNAL(informationChanged()), this, SLOT(informationLoaded()) );
 	connect( mapData, SIGNAL(dataLoaded()), this, SLOT(dataLoaded()) );
 	connect( RoutingLogic::instance(), SIGNAL(instructionsChanged()), this, SLOT(instructionsChanged()) );
-	connect( m_ui->lockButton, SIGNAL(clicked()), this, SLOT(toogleLocked()) );
+	connect( m_ui->lockButton, SIGNAL(clicked()), this, SLOT(toggleLocked()) );
 
 	connect( m_ui->show, SIGNAL(clicked()), this, SLOT(gotoMenu()) );
 	connect( m_ui->tools, SIGNAL(clicked()), this, SLOT(toolsMenu()) );
@@ -538,8 +538,12 @@ void MainWindow::gotoGpsLocation()
 		return;
 	GPSCoordinate gps( gpsInfo.position.ToGPSCoordinate().latitude, gpsInfo.position.ToGPSCoordinate().longitude );
 	m_ui->paintArea->setCenter( ProjectedCoordinate( gps ) );
-	m_ui->paintArea->setZoom( d->maxZoom );
 	m_ui->paintArea->setKeepPositionVisible( true );
+
+	IRenderer* renderer = MapData::instance()->renderer();
+	if ( renderer == NULL )
+		return;
+	setZoom( renderer->GetMaxZoom() - 5 );
 }
 
 void MainWindow::gotoSource()
@@ -548,11 +552,15 @@ void MainWindow::gotoSource()
 	if ( !coordinate.IsValid() )
 		return;
 	m_ui->paintArea->setCenter( coordinate.ToProjectedCoordinate() );
-	m_ui->paintArea->setZoom( d->maxZoom );
 	if ( d->fixed )
 		m_ui->paintArea->setKeepPositionVisible( true );
 	else
 		m_ui->paintArea->setKeepPositionVisible( false );
+
+	IRenderer* renderer = MapData::instance()->renderer();
+	if ( renderer == NULL )
+		return;
+	setZoom( renderer->GetMaxZoom() - 5 );
 }
 
 void MainWindow::gotoTarget()
@@ -561,8 +569,12 @@ void MainWindow::gotoTarget()
 	if ( !coordinate.IsValid() )
 		return;
 	m_ui->paintArea->setCenter( coordinate.ToProjectedCoordinate() );
-	m_ui->paintArea->setZoom( d->maxZoom );
 	m_ui->paintArea->setKeepPositionVisible( false );
+
+	IRenderer* renderer = MapData::instance()->renderer();
+	if ( renderer == NULL )
+		return;
+	setZoom( renderer->GetMaxZoom() - 5 );
 }
 
 void MainWindow::gotoBookmark()
@@ -572,6 +584,11 @@ void MainWindow::gotoBookmark()
 		return;
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 	m_ui->paintArea->setKeepPositionVisible( false );
+
+	IRenderer* renderer = MapData::instance()->renderer();
+	if ( renderer == NULL )
+		return;
+	setZoom( renderer->GetMaxZoom() - 5 );
 }
 
 void MainWindow::gotoAddress()
@@ -583,6 +600,11 @@ void MainWindow::gotoAddress()
 		return;
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 	m_ui->paintArea->setKeepPositionVisible( false );
+
+	IRenderer* renderer = MapData::instance()->renderer();
+	if ( renderer == NULL )
+		return;
+	setZoom( renderer->GetMaxZoom() - 5 );
 }
 
 void MainWindow::gotoGpsCoordinate()
@@ -596,8 +618,12 @@ void MainWindow::gotoGpsCoordinate()
 		return;
 	GPSCoordinate gps( latitude, longitude );
 	m_ui->paintArea->setCenter( ProjectedCoordinate( gps ) );
-	m_ui->paintArea->setZoom( d->maxZoom );
 	m_ui->paintArea->setKeepPositionVisible( false );
+
+	IRenderer* renderer = MapData::instance()->renderer();
+	if ( renderer == NULL )
+		return;
+	setZoom( renderer->GetMaxZoom() - 5 );
 }
 
 void MainWindow::sourceByBookmark()
@@ -679,7 +705,7 @@ void MainWindow::setZoom( int zoom )
 	GlobalSettings::setZoomMainMap( zoom );
 }
 
-void MainWindow::toogleLocked()
+void MainWindow::toggleLocked()
 {
 	d->fixed = !d->fixed;
 	m_ui->paintArea->setFixed( d->fixed );

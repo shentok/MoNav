@@ -79,7 +79,7 @@ protected slots:
 	void setModeSourceSelection();
 	void setModeTargetSelection();
 	void setModeNoSelection();
-	void toogleLocked();
+	void toggleLocked();
 
 	void gotoMenu();
 	void toolsMenu();
