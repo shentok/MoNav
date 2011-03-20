@@ -20,6 +20,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "logger.h"
 #include "routinglogic.h"
 #include "utils/qthelpers.h"
+#include "globalsettings.h"
 
 Logger* Logger::instance()
 {
@@ -44,30 +45,23 @@ Logger::~Logger()
 void Logger::initialize()
 {
 	m_lastFlushTime = QDateTime::currentDateTime();
-
-	QSettings settings( "MoNavClient" );
-	m_loggingEnabled = settings.value( "LoggingEnabled", true ).toBool();
-	m_flushInterval = settings.value( "LogFileFlushInterval", 300 ).toInt();
-	//m_tracklogPath = settings.value( "LogFilePath", QDesktopServices::StandardLocation( QDesktopServices::DocumentsLocation ) ).toString();
-	// QDesktopServices::StandardLocation( QDesktopServices::DocumentsLocation ) did not result in a usable dir on Ubuntu 10.04.2 LTS
-	m_tracklogPath = settings.value( "LogFilePath", QDir::homePath() ).toString();
-
-	m_tracklogPrefix = "MoNav Track";
+	m_tracklogPrefix = tr( "MoNav Track" );
 	QString tracklogFilename = m_tracklogPrefix;
 
 	QDateTime currentDateTime = QDateTime::currentDateTime();
 	tracklogFilename.append( currentDateTime.toString( " yyyy-MM-dd" ) );
 	tracklogFilename.append( ".gpx" );
-	m_logFile.setFileName( fileInDirectory( m_tracklogPath, tracklogFilename ) );
+	m_logFile.setFileName( fileInDirectory( GlobalSettings::tracklogPath(), tracklogFilename ) );
 
 	// Clean up in case this method gets invoked during runtime
 	if (m_gpsInfoBuffer.size() > 0)
 		writeGpxLog();
 	m_gpsInfoBuffer.clear();
-	if ( m_loggingEnabled )
+	if ( GlobalSettings::loggingEnabled() )
 	{
 		readGpxLog();
 	}
+	emit trackChanged();
 }
 
 
@@ -111,7 +105,7 @@ QVector< UnsignedCoordinate > Logger::polygonCoordsTracklog()
 
 void Logger::positionChanged()
 {
-	if ( !m_loggingEnabled )
+	if ( !GlobalSettings::loggingEnabled() )
 		return;
 
 	const RoutingLogic::GPSInfo& gpsInfo = RoutingLogic::instance()->gpsInfo();
@@ -119,7 +113,7 @@ void Logger::positionChanged()
 		return;
 	m_gpsInfoBuffer.append(gpsInfo);
 	int flushSecondsPassed = m_lastFlushTime.secsTo( QDateTime::currentDateTime() );
-	if ( flushSecondsPassed >= m_flushInterval )
+	if ( flushSecondsPassed >= 300 )
 		writeGpxLog();
 	emit trackChanged();
 }
@@ -135,7 +129,7 @@ bool Logger::writeGpxLog()
 		m_logFile.remove( backupFilename );
 
 	if ( !m_logFile.open( QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate ) ){
-		m_loggingEnabled = false;
+		GlobalSettings::setLoggingEnabled( false );
 		qDebug() << "Logger: Cannot write " << m_logFile.fileName() << ". Logging disabled.";
 		return false;
 	}
@@ -279,55 +273,9 @@ bool Logger::readGpxLog()
 	return true;
 }
 
-
-bool Logger::loggingEnabled()
+void Logger::clearTracklog()
 {
-	return m_loggingEnabled;
-}
-
-
-QString Logger::directory()
-{
-	return m_tracklogPath;
-}
-
-
-int Logger::flushInterval()
-{
-	return m_flushInterval;
-}
-
-
-void Logger::setLoggingEnabled(bool enable)
-{
-	// Avoid a new logfile is created in case nothing changed.
-	if (m_loggingEnabled == enable)
-		return;
-	QSettings settings( "MoNavClient" );
-	settings.setValue("LoggingEnabled", enable);
+	m_gpsInfoBuffer.clear();
 	initialize();
 }
-
-
-void Logger::setDirectory(QString directory)
-{
-	// Avoid a new logfile is created in case nothing changed.
-	if (m_tracklogPath == directory)
-		return;
-	QSettings settings( "MoNavClient" );
-	settings.setValue("LogFilePath", directory);
-	initialize();
-}
-
-
-void Logger::setFlushInterval(int flushtime)
-{
-	// Avoid a new logfile is created in case nothing changed.
-	if (m_flushInterval == flushtime)
-		return;
-	QSettings settings( "MoNavClient" );
-	settings.setValue("LogFileFlushInterval", flushtime);
-	initialize();
-}
-
 

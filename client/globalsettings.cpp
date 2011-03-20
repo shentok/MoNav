@@ -22,6 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QSettings>
 #include <QApplication>
 #include <QStyle>
+#include <QDir>
 
 struct GlobalSettings::PrivateImplementation {
 	int iconSize;
@@ -33,6 +34,8 @@ struct GlobalSettings::PrivateImplementation {
 	int zoomStreetChooser;
 	int zoomPlaceChooser;
 	bool autoRotation;
+	bool loggingEnabled;
+	QString tracklogPath;
 };
 
 GlobalSettings::GlobalSettings()
@@ -64,6 +67,8 @@ void GlobalSettings::loadSettings( QSettings *settings )
 	instance->d->zoomStreetChooser = settings->value( "zoomStreetChooser", 14 ).toInt();
 	instance->d->zoomPlaceChooser = settings->value( "zoomPlaceChooser", 11 ).toInt();
 	instance->d->autoRotation = settings->value( "autoRotation", true ).toBool();
+	instance->d->loggingEnabled = settings->value( "loggingEnabled", true ).toBool();
+	instance->d->tracklogPath = settings->value( "tracklogPath", QDir::homePath() ).toString();
 	settings->endGroup();
 }
 
@@ -79,6 +84,8 @@ void GlobalSettings::saveSettings( QSettings *settings )
 	settings->setValue( "zoomStreetChooser", instance->d->zoomStreetChooser );
 	settings->setValue( "zoomPlaceChooser", instance->d->zoomPlaceChooser );
 	settings->setValue( "autoRotation", instance->d->autoRotation );
+	settings->setValue( "loggingEnabled", instance->d->loggingEnabled );
+	settings->setValue( "tracklogPath", instance->d->tracklogPath );
 	settings->endGroup();
 }
 
@@ -176,3 +183,28 @@ void GlobalSettings::setMenuMode( MenuMode mode )
 	GlobalSettings* instance = privateInstance();
 	instance->d->menuMode = mode;
 }
+
+bool GlobalSettings::loggingEnabled()
+{
+	GlobalSettings* instance = privateInstance();
+	return instance->d->loggingEnabled;
+}
+
+void GlobalSettings::setLoggingEnabled( bool loggingEnabled )
+{
+	GlobalSettings* instance = privateInstance();
+	instance->d->loggingEnabled = loggingEnabled;
+}
+
+QString GlobalSettings::tracklogPath()
+{
+	GlobalSettings* instance = privateInstance();
+	return instance->d->tracklogPath;
+}
+
+void GlobalSettings::setTracklogPath( QString tracklogPath )
+{
+	GlobalSettings* instance = privateInstance();
+	instance->d->tracklogPath = tracklogPath;
+}
+

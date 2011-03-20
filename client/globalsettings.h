@@ -20,6 +20,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef GLOBALSETTINGS_H
 #define GLOBALSETTINGS_H
 
+#include <QString>
+
 class QSettings;
 
 class GlobalSettings
@@ -50,6 +52,10 @@ public:
 	static void setZoomPlaceChooser( int zoom );
 	static int zoomStreetChooser();
 	static void setZoomStreetChooser( int zoom );
+	static bool loggingEnabled();
+	static void setLoggingEnabled( bool loggingEnabled );
+	static QString tracklogPath();
+	static void setTracklogPath( QString tracklogPath );
 
 private:
 

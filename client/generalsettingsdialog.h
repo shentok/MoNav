@@ -45,6 +45,10 @@ public slots:
 	void setDefaultIconSize();
 	void selectPathLogging();
 
+protected slots:
+
+	void confirmClearTracklog();
+
 private:
 
 	Ui::GeneralSettingsDialog* m_ui;
