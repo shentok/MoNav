@@ -82,8 +82,8 @@ void MessageBoxHandler(QtMsgType type, const char *msg)
 
 int main(int argc, char *argv[])
 {
-	qInstallMsgHandler( MessageBoxHandler );
 	QApplication a(argc, argv);
+	qInstallMsgHandler( MessageBoxHandler );
 	a.connect( &a, SIGNAL(aboutToQuit()), MapData::instance(), SLOT(cleanup()) );
 	MainWindow w;
 	w.show();
