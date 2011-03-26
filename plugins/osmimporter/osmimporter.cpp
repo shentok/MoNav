@@ -18,7 +18,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "osmimporter.h"
+#ifndef NOGUI
 #include "oisettingsdialog.h"
+#endif
 #include "xmlreader.h"
 #include "pbfreader.h"
 #include "utils/qthelpers.h"
