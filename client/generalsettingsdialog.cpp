@@ -17,12 +17,13 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <QMessageBox>
+
 #include "generalsettingsdialog.h"
 #include "ui_generalsettingsdialog.h"
 #include "globalsettings.h"
 #include "logger.h"
 
-#include <QMessageBox>
 
 GeneralSettingsDialog::GeneralSettingsDialog( QWidget* parent ) :
 		QDialog( parent ),
@@ -43,8 +44,8 @@ GeneralSettingsDialog::GeneralSettingsDialog( QWidget* parent ) :
 	connect( m_ui->defaultIconSize, SIGNAL(clicked()), this, SLOT(setDefaultIconSize()) );
 
 	m_ui->checkBoxMapRotation->setChecked( GlobalSettings::autoRotation() );
-	m_ui->checkBoxLogging->setChecked( GlobalSettings::loggingEnabled() );
-	m_ui->lineEditPathLogging->setText( GlobalSettings::tracklogPath() );
+	m_ui->checkBoxLogging->setChecked(Logger::instance()->loggingEnabled());
+	m_ui->lineEditPathLogging->setText(Logger::instance()->directory());
 
 	connect( m_ui->pushButtonPathLogging, SIGNAL(clicked()), this, SLOT(selectPathLogging()) );
 	connect( m_ui->pushButtonClearTracklog, SIGNAL(clicked()), this, SLOT(confirmClearTracklog()) );
@@ -81,8 +82,8 @@ void GeneralSettingsDialog::fillSettings() const
 		GlobalSettings::setMenuMode( GlobalSettings::MenuPopup );
 
 	GlobalSettings::setAutoRotation( m_ui->checkBoxLogging->isChecked() );
-	GlobalSettings::setLoggingEnabled( m_ui->checkBoxLogging->isChecked() );
-	GlobalSettings::setTracklogPath( m_ui->lineEditPathLogging->text() );
+	Logger::instance()->setLoggingEnabled(m_ui->checkBoxLogging->isChecked());
+	Logger::instance()->setDirectory(m_ui->lineEditPathLogging->text());
 }
 
 void GeneralSettingsDialog::setDefaultIconSize()
@@ -106,6 +107,6 @@ void GeneralSettingsDialog::confirmClearTracklog()
 	messageBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
 	messageBox.setDefaultButton(QMessageBox::Cancel);
 	int returnValue = messageBox.exec();
-	if ( returnValue == QMessageBox::Discard )
+	if ( returnValue == QMessageBox::Ok )
 		Logger::instance()->clearTracklog();
 }

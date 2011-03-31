@@ -40,6 +40,10 @@ public:
 
 	static Logger* instance();
 	~Logger();
+	bool loggingEnabled();
+	void setLoggingEnabled(bool);
+	QString directory();
+	void setDirectory(QString);
 
 	QVector< int > polygonEndpointsTracklog();
 	QVector< UnsignedCoordinate > polygonCoordsTracklog();
@@ -60,6 +64,8 @@ protected:
 	bool writeGpxLog();
 	QFile m_logFile;
 	QDateTime m_lastFlushTime;
+	bool m_loggingEnabled;
+	QString m_tracklogPath;
 	QString m_tracklogPrefix;
 	QVector<RoutingLogic::GPSInfo> m_gpsInfoBuffer;
 };

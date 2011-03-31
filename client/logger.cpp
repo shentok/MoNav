@@ -20,7 +20,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "logger.h"
 #include "routinglogic.h"
 #include "utils/qthelpers.h"
-#include "globalsettings.h"
 
 Logger* Logger::instance()
 {
@@ -33,6 +32,7 @@ Logger::Logger( QObject* parent ) :
 	QObject( parent )
 {
 	initialize();
+	readGpxLog();
 }
 
 
@@ -45,23 +45,18 @@ Logger::~Logger()
 void Logger::initialize()
 {
 	m_lastFlushTime = QDateTime::currentDateTime();
+
+	QSettings settings( "MoNavClient" );
+	m_loggingEnabled = settings.value( "LoggingEnabled", true ).toBool();
+	m_tracklogPath = settings.value( "LogFilePath", QDir::homePath() ).toString();
+
 	m_tracklogPrefix = tr( "MoNav Track" );
 	QString tracklogFilename = m_tracklogPrefix;
 
 	QDateTime currentDateTime = QDateTime::currentDateTime();
 	tracklogFilename.append( currentDateTime.toString( " yyyy-MM-dd" ) );
 	tracklogFilename.append( ".gpx" );
-	m_logFile.setFileName( fileInDirectory( GlobalSettings::tracklogPath(), tracklogFilename ) );
-
-	// Clean up in case this method gets invoked during runtime
-	if (m_gpsInfoBuffer.size() > 0)
-		writeGpxLog();
-	m_gpsInfoBuffer.clear();
-	if ( GlobalSettings::loggingEnabled() )
-	{
-		readGpxLog();
-	}
-	emit trackChanged();
+	m_logFile.setFileName( fileInDirectory( m_tracklogPath, tracklogFilename ) );
 }
 
 
@@ -91,6 +86,7 @@ QVector< int > Logger::polygonEndpointsTracklog()
 	return endpoints;
 }
 
+
 QVector< UnsignedCoordinate > Logger::polygonCoordsTracklog()
 {
 	QVector<UnsignedCoordinate> coordinates;
@@ -105,7 +101,7 @@ QVector< UnsignedCoordinate > Logger::polygonCoordsTracklog()
 
 void Logger::positionChanged()
 {
-	if ( !GlobalSettings::loggingEnabled() )
+	if ( !m_loggingEnabled )
 		return;
 
 	const RoutingLogic::GPSInfo& gpsInfo = RoutingLogic::instance()->gpsInfo();
@@ -121,15 +117,13 @@ void Logger::positionChanged()
 
 bool Logger::writeGpxLog()
 {
-	if (m_gpsInfoBuffer.size() == 0)
-		return true;
 
 	QString backupFilename = m_logFile.fileName().remove( m_logFile.fileName().size() -4, 4 ).append( "-bck.gpx" );
 	if ( m_logFile.exists() && m_logFile.exists(backupFilename))
 		m_logFile.remove( backupFilename );
 
 	if ( !m_logFile.open( QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate ) ){
-		GlobalSettings::setLoggingEnabled( false );
+		m_loggingEnabled = false;
 		qDebug() << "Logger: Cannot write " << m_logFile.fileName() << ". Logging disabled.";
 		return false;
 	}
@@ -273,9 +267,50 @@ bool Logger::readGpxLog()
 	return true;
 }
 
+
 void Logger::clearTracklog()
 {
 	m_gpsInfoBuffer.clear();
+	writeGpxLog();
 	initialize();
+	readGpxLog();
+}
+
+
+bool Logger::loggingEnabled()
+{
+	return m_loggingEnabled;
+}
+
+
+void Logger::setLoggingEnabled(bool enable)
+{
+	// Avoid a new logfile is created in case nothing changed.
+	if (m_loggingEnabled == enable)
+		return;
+	QSettings settings( "MoNavClient" );
+	settings.setValue("LoggingEnabled", enable);
+	writeGpxLog();
+	initialize();
+	readGpxLog();
+}
+
+
+QString Logger::directory()
+{
+	return m_tracklogPath;
+}
+
+
+void Logger::setDirectory(QString directory)
+{
+	// Avoid a new logfile is created in case nothing changed.
+	if (m_tracklogPath == directory)
+		return;
+	QSettings settings( "MoNavClient" );
+	settings.setValue("LogFilePath", directory);
+	writeGpxLog();
+	initialize();
+	readGpxLog();
 }
 
