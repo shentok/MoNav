@@ -9,10 +9,8 @@ HEADERS += qtilerenderer.h \
 	 interfaces/ipreprocessor.h \
 	 interfaces/iimporter.h \
 	 utils/coordinates.h \
-	 utils/config.h \
-	 qrsettingsdialog.h
-SOURCES += qtilerenderer.cpp \
-	 qrsettingsdialog.cpp
+	 utils/config.h
+SOURCES += qtilerenderer.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -22,8 +20,14 @@ unix {
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
 
-FORMS += \
-	 qrsettingsdialog.ui
-
 RESOURCES += \
 	 rendering_rules.qrc
+
+!nogui {
+	SOURCES += qrsettingsdialog.cpp
+	HEADERS += qrsettingsdialog.h
+	FORMS += qrsettingsdialog.ui
+}
+nogui {
+	DEFINES += NOGUI
+}

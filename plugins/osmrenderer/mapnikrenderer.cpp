@@ -20,7 +20,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "mapnikrenderer.h"
 #include "utils/qthelpers.h"
 #include "interfaces/iimporter.h"
+#ifndef NOGUI
 #include "mrsettingsdialog.h"
+#endif
 
 #include <mapnik/map.hpp>
 #include <mapnik/datasource_cache.hpp>

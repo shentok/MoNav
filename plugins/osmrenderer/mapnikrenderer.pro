@@ -6,14 +6,12 @@ INCLUDEPATH += ../..
 CONFIG += link_pkgconfig
 PKGCONFIG += freetype2
 HEADERS += mapnikrenderer.h \
-	 mrsettingsdialog.h \
 	 interfaces/ipreprocessor.h \
 	 interfaces/iimporter.h \
 	 utils/coordinates.h \
 	 utils/config.h \
 	 utils/qthelpers.h
-SOURCES += mapnikrenderer.cpp \
-	 mrsettingsdialog.cpp
+SOURCES += mapnikrenderer.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -24,6 +22,14 @@ unix {
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function \
 		 -fopenmp
 }
-FORMS += mrsettingsdialog.ui
 LIBS += -fopenmp \
 	 -lmapnik
+
+!nogui {
+	FORMS += mrsettingsdialog.ui
+	SOURCES += mrsettingsdialog.cpp
+	HEADERS += mrsettingsdialog.h
+}
+nogui {
+	DEFINES += NOGUI
+}

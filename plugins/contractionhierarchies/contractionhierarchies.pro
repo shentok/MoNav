@@ -23,12 +23,18 @@ HEADERS += contractionhierarchies.h \
 	 interfaces/ipreprocessor.h \
 	 utils/coordinates.h \
 	 utils/config.h \
-	 chsettingsdialog.h \
 	 compressedgraph.h \
 	 compressedgraphbuilder.h \
 	 utils/bithelpers.h \
 	 utils/qthelpers.h \
 	 interfaces/irouter.h
-SOURCES += contractionhierarchies.cpp \
-	 chsettingsdialog.cpp
-FORMS += chsettingsdialog.ui
+SOURCES += contractionhierarchies.cpp
+
+!nogui {
+	SOURCES += chsettingsdialog.cpp
+	FORMS += chsettingsdialog.ui
+	HEADERS += chsettingsdialog.h
+}
+nogui {
+	DEFINES += NOGUI
+}

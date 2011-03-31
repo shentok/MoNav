@@ -7,7 +7,6 @@ CONFIG += link_pkgconfig
 PKGCONFIG += libxml-2.0
 PKGCONFIG += protobuf
 HEADERS += osmimporter.h \
-	 oisettingsdialog.h \
 	 statickdtree.h \
 	 interfaces/iimporter.h \
 	 utils/coordinates.h \
@@ -22,27 +21,13 @@ HEADERS += osmimporter.h \
 	 "protobuff definitions/fileformat.pb.h" \
 	 lzma/Types.h \
 	 lzma/LzmaDec.h \
-	 waymodificatorwidget.h \
-	 nodemodificatorwidget.h \
-	 types.h \
-	 highwaytypewidget.h \
-    speedprofiledialog.h
+	 types.h
 SOURCES += osmimporter.cpp \
-	 oisettingsdialog.cpp \
 	 "protobuff definitions/osmformat.pb.cc" \
 	 "protobuff definitions/fileformat.pb.cc" \
 	 lzma/LzmaDec.c \
-	 waymodificatorwidget.cpp \
-	 nodemodificatorwidget.cpp \
-	 highwaytypewidget.cpp \
-    types.cpp \
-    speedprofiledialog.cpp
+	 types.cpp
 DESTDIR = ../../bin/plugins_preprocessor
-FORMS += oisettingsdialog.ui \
-	 waymodificatorwidget.ui \
-	 nodemodificatorwidget.ui \
-	 highwaytypewidget.ui \
-    speedprofiledialog.ui
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
 	QMAKE_CXXFLAGS_RELEASE += -O3 -march=native -Wno-unused-function
@@ -51,3 +36,24 @@ unix {
 
 RESOURCES += \
 	 speedprofiles.qrc
+
+!nogui {
+	SOURCES += oisettingsdialog.cpp \
+		speedprofiledialog.cpp \
+		waymodificatorwidget.cpp \
+		nodemodificatorwidget.cpp \
+		highwaytypewidget.cpp
+	HEADERS += highwaytypewidget.h \
+		speedprofiledialog.h \
+		oisettingsdialog.h \
+		waymodificatorwidget.h \
+		nodemodificatorwidget.h
+	FORMS += oisettingsdialog.ui \
+		waymodificatorwidget.ui \
+		nodemodificatorwidget.ui \
+		highwaytypewidget.ui \
+		speedprofiledialog.ui
+}
+nogui {
+	DEFINES += NOGUI
+}
