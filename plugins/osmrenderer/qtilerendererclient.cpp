@@ -40,7 +40,7 @@ struct tileref {
         if(t1.z>t2.z) return true;
         return false;
     };
-    bool operator==(const struct tileref &t) {
+    bool operator==(const struct tileref &t) const {
         return(x==t.x && y==t.y && z==t.z);
     };
 };

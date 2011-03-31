@@ -170,8 +170,8 @@ namespace gg
 
 			std::vector< UnsignedCoordinate > nodeCoordinates( nodes.size() );
 			for ( std::vector< Edge >::iterator i = edges.begin(), e = edges.end(); i != e; ++i ) {
-				unsigned sourcePos = lower_bound( nodes.begin(), nodes.end(), i->source ) - nodes.begin();
-				unsigned targetPos = lower_bound( nodes.begin(), nodes.end(), i->target ) - nodes.begin();
+                unsigned sourcePos = std::lower_bound( nodes.begin(), nodes.end(), i->source ) - nodes.begin();
+                unsigned targetPos = std::lower_bound( nodes.begin(), nodes.end(), i->target ) - nodes.begin();
 				nodeCoordinates[sourcePos] = coordinates[i->pathID];
 				nodeCoordinates[targetPos] = coordinates[i->pathID + i->pathLength - 1];
 			}
@@ -238,8 +238,8 @@ namespace gg
 			}
 
 			for ( std::vector< Edge >::iterator i = edges.begin(), iend = edges.end(); i != iend; i++ ) {
-				unsigned sourcePos = lower_bound( nodes.begin(), nodes.end(), i->source ) - nodes.begin();
-				unsigned targetPos = lower_bound( nodes.begin(), nodes.end(), i->target ) - nodes.begin();
+                unsigned sourcePos = std::lower_bound( nodes.begin(), nodes.end(), i->source ) - nodes.begin();
+                unsigned targetPos = std::lower_bound( nodes.begin(), nodes.end(), i->target ) - nodes.begin();
 				if ( coordinates.size() == 0 || coordinates.back().x != nodeCoordinates[sourcePos].x || coordinates.back().y != nodeCoordinates[sourcePos].y )
 					coordinates.push_back( nodeCoordinates[sourcePos] );
 				i->pathID = coordinates.size() - 1;
