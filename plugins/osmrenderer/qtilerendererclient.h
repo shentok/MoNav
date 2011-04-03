@@ -21,6 +21,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define QTILERENDERER_H
 
 #include <QObject>
+#include <QThread>
 #include "brsettingsdialog.h"
 #include "rendererbase.h"
 #include "interfaces/irenderer.h"
@@ -36,10 +37,15 @@ public:
 	virtual QString GetName();
 	virtual bool IsCompatible( int fileFormatVersion );
 	virtual int GetMaxZoom();
-		  virtual bool Paint( QPainter* painter, const IRenderer::PaintRequest& request );
+	virtual bool Paint( QPainter* painter, const IRenderer::PaintRequest& request );
 
 signals:
 	void abort();
+	void drawImage( QString filename, int x, int y, int zoom, int magnification );
+
+private slots:
+
+	void tileLoaded( int x, int y, int zoom, int magnification, QByteArray data );
 
 protected:
 
@@ -48,10 +54,11 @@ protected:
 	virtual void unload();
 
 	int tileSize;
-		  class TileWriter *twriter;
-		  typedef std::map<long long, struct place_cache_e*> place_cache_t;
-		  place_cache_t place_cache;
-		  int place_cache_zoom;
+	class TileWriter *twriter;
+	typedef std::map<long long, struct place_cache_e*> place_cache_t;
+	place_cache_t place_cache;
+	int place_cache_zoom;
+	QThread* m_renderThread;
 };
 
 #endif // QTILERENDERER_H

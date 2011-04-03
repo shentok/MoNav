@@ -483,11 +483,6 @@ TileWriter::TileWriter(const std::string &_dir)
 
 }
 
-const unsigned char * TileWriter::get_img_data()
-{
-    return img->get_img_data();
-}
-
 /*Static function. Way types that are drawn similarly (eg.
 HIGHWAY_RESIDENTIAL / HIGHWAY_LIVING_STREET) should have their first passes
 drawn together then second passes to make the pics look right. */
@@ -502,7 +497,7 @@ bool TileWriter::need_next_pass(int type1, int type2)
 //For tile x/y/zoom use the index to seek to the relavent part of the db file,
 //and return in nways the number of ways needed to load. Factored out from
 //draw_image() as it's also needed for place names.
-bool TileWriter::query_index(int x, int y, int zoom, int cur_db, int *nways)
+bool TileWriter::query_index(int x, int y, int zoom, int cur_db, int *nways) const
 {
     if(!db[cur_db]) return false;
     //Work out which quadtile to load.
@@ -528,19 +523,19 @@ bool TileWriter::query_index(int x, int y, int zoom, int cur_db, int *nways)
 //The main entry point into the class. Draw the map tile described by x, y
 //and zoom, and save it into _imgname if it is not an empty string. The tile
 //is held in memory and the raw image data can be accessed by get_img_data()
-bool TileWriter::draw_image(const std::string &_imgname, int x, int y, int zoom, int magnification)
+bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnification)
 {
     TIMELOGINIT("Draw_image");
     //FILE *fp = fopen(filename.c_str(), "rb");
     int current_db = zoom>12 ? 0 : 1;
-    Log(LOG_DEBUG, "Write %s, %d, %d, %d\n", _imgname.c_str(), x, y, zoom);
+	 Log(LOG_DEBUG, "Write %s, %d, %d, %d\n", _imgname.toUtf8().constData(), x, y, zoom);
 
     int nways;
     if(!query_index(x, y, zoom, current_db, &nways)) return false;
 
     //Initialise the image.
     Log(LOG_VERBOSE, "Initialising image with %d ways\n", nways);
-    img->NewImage(256 * magnification, 256 * magnification, _imgname);
+	 img->NewImage(256 * magnification, 256 * magnification, _imgname.toStdString());
     img->SetBG(242, 238, 232);
     TIMELOG("Image initialisation");
 
@@ -599,6 +594,8 @@ bool TileWriter::draw_image(const std::string &_imgname, int x, int y, int zoom,
     //for(i=waylist.begin();i!=waylist.end();i++) delete *i;
     TIMELOG("Cleanup");
     Log(LOG_VERBOSE, "Drew %d/%d ways\n", g_ndrawnways, g_nways);
+
+	 emit image_finished( x, y, zoom, magnification, QByteArray( ( const char* ) img->get_img_data(), 256 * magnification * 256 * magnification * 3 ) );
     return true;
 }
 
@@ -606,7 +603,7 @@ bool TileWriter::draw_image(const std::string &_imgname, int x, int y, int zoom,
 //tile. The data will be drawn at actualzoom, so adjust tilex/tiley and
 //select which places to draw based on this.
 void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
-         std::vector<struct placename> &result)
+			std::vector<struct placename> &result) const
 {
 
     int placenamedb = 2;
