@@ -311,6 +311,8 @@ void MainWindow::dataLoaded()
 	m_ui->paintArea->setVirtualZoom( GlobalSettings::magnification() );
 	m_ui->paintArea->setCenter( RoutingLogic::instance()->source().ToProjectedCoordinate() );
 	m_ui->paintArea->setKeepPositionVisible( true );
+
+	this->setWindowTitle( "MoNav - " + MapData::instance()->information().name );
 }
 
 void MainWindow::instructionsChanged()
