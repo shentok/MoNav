@@ -37,4 +37,5 @@ SOURCES += contractionhierarchies.cpp
 }
 nogui {
 	DEFINES += NOGUI
+	QT -= gui
 }

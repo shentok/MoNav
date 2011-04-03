@@ -22,7 +22,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "contractor.h"
 #include "contractioncleanup.h"
 #include "utils/qthelpers.h"
+#ifndef NOGUI
 #include "chsettingsdialog.h"
+#endif
 
 #include <QSettings>
 

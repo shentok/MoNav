@@ -21,9 +21,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils/qthelpers.h"
 #include "utils/edgeconnector.h"
 #include "interfaces/iimporter.h"
-
+#ifndef NOGUI
 #include "uttsettingsdialog.h"
-
+#endif
 #include <algorithm>
 #include <QMultiHash>
 #include <QList>

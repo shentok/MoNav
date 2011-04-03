@@ -30,4 +30,5 @@ RESOURCES += \
 }
 nogui {
 	DEFINES += NOGUI
+	QT -= gui
 }

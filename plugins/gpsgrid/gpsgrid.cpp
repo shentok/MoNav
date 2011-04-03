@@ -18,7 +18,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "interfaces/iimporter.h"
+#ifndef NOGUI
 #include "ggdialog.h"
+#endif
 #include "gpsgrid.h"
 #include "cell.h"
 #include "table.h"

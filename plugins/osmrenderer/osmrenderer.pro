@@ -25,4 +25,5 @@ unix {
 }
 nogui {
 	DEFINES += NOGUI
+	QT -= gui
 }

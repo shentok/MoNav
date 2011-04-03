@@ -18,7 +18,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "osmrenderer.h"
+#ifndef NOGUI
 #include "orsettingsdialog.h"
+#endif
 #include "utils/qthelpers.h"
 #include <QFile>
 #include <QSettings>

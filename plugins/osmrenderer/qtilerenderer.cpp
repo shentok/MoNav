@@ -21,7 +21,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils/qthelpers.h"
 #include "xmlreader.h"
 #include "pbfreader.h"
+#ifndef NOGUI
 #include "qrsettingsdialog.h"
+#endif
 
 #include <QFile>
 #include <QSettings>

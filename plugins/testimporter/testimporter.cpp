@@ -469,7 +469,7 @@ bool TestImporter::GetRoutingPenalties( std::vector< char >* inDegree, std::vect
 	return true;
 }
 
-bool TestImporter::GetAddressData( std::vector< Place >* dataPlaces, std::vector< Address >* dataAddresses, std::vector< UnsignedCoordinate >* dataWayBuffer, std::vector< QString >* addressNames )
+bool TestImporter::GetAddressData( std::vector< Place >* /*dataPlaces*/, std::vector< Address >* /*dataAddresses*/, std::vector< UnsignedCoordinate >* /*dataWayBuffer*/, std::vector< QString >* /*addressNames*/ )
 {
 	return false;
 }

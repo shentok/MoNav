@@ -32,4 +32,5 @@ LIBS += -fopenmp \
 }
 nogui {
 	DEFINES += NOGUI
+	QT -= gui
 }
