@@ -13,6 +13,7 @@ unix {
 
 nogui {
 	DEFINES+=NOGUI
+	QT -= gui
 }
 
 HEADERS += \
