@@ -114,10 +114,10 @@ void MapPackagesWidget::resizeEvent ( QResizeEvent* event )
 	// TODO CHANGE ORIENTATION
 }
 
-void MapPackagesWidget::showEvent( QShowEvent* /*event*/ )
+void MapPackagesWidget::showEvent( QShowEvent* event )
 {
 	if ( !QFile::exists( d->path ) ) {
-		QMessageBox::information( this, "Data Directory", "Before proceeding be sure to select a valid data directory", "Ok" );
+		//QMessageBox::information( this, "Data Directory", "Before proceeding be sure to select a valid data directory", "Ok" );
 	}
 }
 
