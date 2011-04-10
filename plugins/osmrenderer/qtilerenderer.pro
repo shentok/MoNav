@@ -6,10 +6,10 @@ INCLUDEPATH += ../.. ../osmimporter/
 PKGCONFIG += libxml-2.0
 
 HEADERS += qtilerenderer.h \
-	 interfaces/ipreprocessor.h \
-	 interfaces/iimporter.h \
-	 utils/coordinates.h \
-	 utils/config.h
+	 ../../interfaces/ipreprocessor.h \
+	 ../../interfaces/iimporter.h \
+	 ../../utils/coordinates.h \
+	 ../../utils/config.h
 SOURCES += qtilerenderer.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 unix {

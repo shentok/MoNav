@@ -20,12 +20,12 @@ SOURCES += main.cpp \
 	 ../utils/lzma/LzFind.c \
     ../utils/directorypacker.cpp
 HEADERS += preprocessingwindow.h \
-	 interfaces/iimporter.h \
-	 utils/coordinates.h \
-	 utils/config.h \
-	 interfaces/ipreprocessor.h \
-	 interfaces/ipreprocessor.h \
-	 interfaces/iimporter.h \
+	 ../interfaces/iimporter.h \
+	 ../utils/coordinates.h \
+	 ../utils/config.h \
+	 ../interfaces/ipreprocessor.h \
+	 ../interfaces/ipreprocessor.h \
+	 ../interfaces/iimporter.h \
 	 ../interfaces/iguisettings.h \
 	 ../interfaces/iconsolesettings.h \
 	 ../utils/commandlineparser.h \

@@ -12,16 +12,16 @@ unix {
 }
 
 HEADERS += \
-	 utils/coordinates.h \
-	 utils/config.h \
+	 ../../utils/coordinates.h \
+	 ../../utils/config.h \
 	 blockcache.h \
 	 binaryheap.h \
-	 interfaces/irouter.h \
+	 ../../interfaces/irouter.h \
 	 contractionhierarchiesclient.h \
 	 compressedgraph.h \
-	 interfaces/igpslookup.h \
-	 utils/bithelpers.h \
-	 utils/qthelpers.h
+	 ../../interfaces/igpslookup.h \
+	 ../../utils/bithelpers.h \
+	 ../../utils/qthelpers.h
 
 SOURCES += \
 	 contractionhierarchiesclient.cpp

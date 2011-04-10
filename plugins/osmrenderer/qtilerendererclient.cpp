@@ -191,13 +191,13 @@ bool QtileRendererClient::Paint( QPainter* painter, const PaintRequest& request 
 			i->z--;
 		}
 	}
-	printf("Pre removing duplicates %d used_tiles\n", used_tiles.size());
+	printf("Pre removing duplicates %d used_tiles\n", ( int ) used_tiles.size());
 	//Sort and remove duplicates.
 	std::sort(used_tiles.begin(), used_tiles.end(), tileref::sorter);
 	used_tiles.erase(std::unique(used_tiles.begin(), used_tiles.end()),
 						  used_tiles.end());
-	printf("After removing duplicates %d used_tiles\n", used_tiles.size());
-	printf("                          %d cache entries\n", place_cache.size());
+	printf("After removing duplicates %d used_tiles\n", ( int ) used_tiles.size());
+	printf("                          %d cache entries\n", ( int ) place_cache.size());
 
 	//Delete unneeded cache entries, and load the needed ones.
 	for(std::vector<struct tileref>::iterator i=used_tiles.begin();

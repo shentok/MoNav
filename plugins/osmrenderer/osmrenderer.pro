@@ -4,10 +4,10 @@ CONFIG += plugin static
 INCLUDEPATH += ../..
 
 HEADERS += osmrenderer.h \
-	 interfaces/ipreprocessor.h \
-	 interfaces/iimporter.h \
-	 utils/coordinates.h \
-	 utils/config.h
+	 ../../interfaces/ipreprocessor.h \
+	 ../../interfaces/iimporter.h \
+	 ../../utils/coordinates.h \
+	 ../../utils/config.h
 SOURCES += osmrenderer.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 unix {

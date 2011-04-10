@@ -8,12 +8,12 @@ PKGCONFIG += libxml-2.0
 PKGCONFIG += protobuf
 HEADERS += osmimporter.h \
 	 statickdtree.h \
-	 interfaces/iimporter.h \
-	 utils/coordinates.h \
-	 utils/config.h \
+	 ../../interfaces/iimporter.h \
+	 ../../utils/coordinates.h \
+	 ../../utils/config.h \
 	 bz2input.h \
-	 utils/intersection.h \
-	 utils/qthelpers.h \
+	 ../../utils/intersection.h \
+	 ../../utils/qthelpers.h \
 	 xmlreader.h \
 	 ientityreader.h \
 	 pbfreader.h \

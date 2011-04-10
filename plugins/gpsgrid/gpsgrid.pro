@@ -13,17 +13,17 @@ DESTDIR = ../../bin/plugins_preprocessor
 
 SOURCES += gpsgrid.cpp
 
-HEADERS += interfaces/ipreprocessor.h \
-	 interfaces/iimporter.h \
-	 utils/coordinates.h \
-	 utils/config.h \
+HEADERS += ../../interfaces/ipreprocessor.h \
+	 ../../interfaces/iimporter.h \
+	 ../../utils/coordinates.h \
+	 ../../utils/config.h \
 	 gpsgrid.h \
 	 cell.h \
 	 table.h \
-	 utils/bithelpers.h \
-	 utils/intersection.h \
-	 utils/qthelpers.h \
-	 utils/edgeconnector.h
+	 ../../utils/bithelpers.h \
+	 ../../utils/intersection.h \
+	 ../../utils/qthelpers.h \
+	 ../../utils/edgeconnector.h
 
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2

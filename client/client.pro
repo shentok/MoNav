@@ -31,13 +31,13 @@ SOURCES += main.cpp \
 
 HEADERS += \
 	paintwidget.h \
-	utils/coordinates.h \
-	utils/config.h \
-	interfaces/irenderer.h \
-	interfaces/iaddresslookup.h \
+	../utils/coordinates.h \
+	../utils/config.h \
+	../interfaces/irenderer.h \
+	../interfaces/iaddresslookup.h \
 	addressdialog.h \
-	interfaces/igpslookup.h \
-	interfaces/irouter.h \
+	../interfaces/igpslookup.h \
+	../interfaces/irouter.h \
 	bookmarksdialog.h \
 	routedescriptiondialog.h \
 	descriptiongenerator.h \

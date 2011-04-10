@@ -20,14 +20,14 @@ HEADERS += contractionhierarchies.h \
 	 blockcache.h \
 	 binaryheap.h \
 	 contractor.h \
-	 interfaces/ipreprocessor.h \
-	 utils/coordinates.h \
-	 utils/config.h \
+	 ../../interfaces/ipreprocessor.h \
+	 ../../utils/coordinates.h \
+	 ../../utils/config.h \
 	 compressedgraph.h \
 	 compressedgraphbuilder.h \
-	 utils/bithelpers.h \
-	 utils/qthelpers.h \
-	 interfaces/irouter.h
+	 ../../utils/bithelpers.h \
+	 ../../utils/qthelpers.h \
+	 ../../interfaces/irouter.h
 SOURCES += contractionhierarchies.cpp
 
 !nogui {

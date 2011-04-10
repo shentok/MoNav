@@ -15,14 +15,14 @@ CONFIG += plugin static
 SOURCES += unicodetournamenttrie.cpp
 
 HEADERS += unicodetournamenttrie.h \
-	 utils/coordinates.h \
-	 utils/config.h \
-	 interfaces/iimporter.h \
-	 interfaces/ipreprocessor.h \
+	 ../../utils/coordinates.h \
+	 ../../utils/config.h \
+	 ../../interfaces/iimporter.h \
+	 ../../interfaces/ipreprocessor.h \
 	 trie.h \
-	 utils/bithelpers.h \
-	 utils/qthelpers.h \
-	 utils/edgeconnector.h
+	 ../../utils/bithelpers.h \
+	 ../../utils/qthelpers.h \
+	 ../../utils/edgeconnector.h
 
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2

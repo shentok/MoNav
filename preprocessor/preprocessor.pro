@@ -19,12 +19,10 @@ SOURCES += ../utils/commandlineparser.cpp \
 	 ../utils/directorypacker.cpp \
 	 ../utils/lzma/LzmaEnc.c \
 	 ../utils/lzma/LzFind.c
-HEADERS += interfaces/iimporter.h \
-	 utils/coordinates.h \
-	 utils/config.h \
-	 interfaces/ipreprocessor.h \
-	 interfaces/ipreprocessor.h \
-	 interfaces/iimporter.h \
+HEADERS += ../interfaces/iimporter.h \
+	 ../utils/coordinates.h \
+	 ../utils/config.h \
+	 ../interfaces/ipreprocessor.h \
 	 ../interfaces/iguisettings.h \
 	 ../interfaces/iconsolesettings.h \
 	 ../utils/commandlineparser.h \

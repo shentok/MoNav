@@ -6,11 +6,11 @@ INCLUDEPATH += ../..
 CONFIG += link_pkgconfig
 PKGCONFIG += freetype2
 HEADERS += mapnikrenderer.h \
-	 interfaces/ipreprocessor.h \
-	 interfaces/iimporter.h \
-	 utils/coordinates.h \
-	 utils/config.h \
-	 utils/qthelpers.h
+	 ../../interfaces/ipreprocessor.h \
+	 ../../interfaces/iimporter.h \
+	 ../../utils/coordinates.h \
+	 ../../utils/config.h \
+	 ../../utils/qthelpers.h
 SOURCES += mapnikrenderer.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 unix {

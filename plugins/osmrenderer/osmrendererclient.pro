@@ -11,12 +11,12 @@ unix {
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
 HEADERS += osmrendererclient.h \
-	 interfaces/irenderer.h \
-	 utils/coordinates.h \
-	 utils/config.h \
+	 ../../interfaces/irenderer.h \
+	 ../../utils/coordinates.h \
+	 ../../utils/config.h \
 	 rendererbase.h \
 	 brsettingsdialog.h \
-	 utils/intersection.h \
+	 ../../utils/intersection.h \
     osmrsettingsdialog.h
 SOURCES += osmrendererclient.cpp \
 	 rendererbase.cpp \

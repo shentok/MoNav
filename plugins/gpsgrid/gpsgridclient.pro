@@ -12,14 +12,14 @@ INCLUDEPATH += ../..
 DESTDIR = ../../bin/plugins_client
 
 HEADERS += \
-	 utils/coordinates.h \
-	 utils/config.h \
+	 ../../utils/coordinates.h \
+	 ../../utils/config.h \
 	 cell.h \
-	 interfaces/igpslookup.h \
+	 ../../interfaces/igpslookup.h \
 	 gpsgridclient.h \
 	 table.h \
-	 utils/bithelpers.h \
-	 utils/qthelpers.h
+	 ../../utils/bithelpers.h \
+	 ../../utils/qthelpers.h
 
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2

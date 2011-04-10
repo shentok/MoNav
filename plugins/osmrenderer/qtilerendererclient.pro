@@ -14,10 +14,9 @@ HEADERS += qtilerendererclient.h \
     tile-write.h \
     types.h \
     img_writer.h \
-    interfaces/irenderer.h \
-    utils/coordinates.h \
-    utils/config.h \
-    utils/utils.h \
+	 ../../interfaces/irenderer.h \
+	 ../../utils/coordinates.h \
+	 ../../utils/config.h \
     rendererbase.h \
     brsettingsdialog.h
 SOURCES += qtilerendererclient.cpp \
