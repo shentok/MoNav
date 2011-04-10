@@ -177,7 +177,7 @@ namespace MoNav {
 		settings.setValue( "pedestrian", pedestrian );
 		settings.setValue( "otherCars", otherCars );
 
-		if ( accessList.size() != 1 ) {
+		if ( accessList.size() == 0 ) {
 			qCritical() << "no access type selected";
 			return false;
 		}
