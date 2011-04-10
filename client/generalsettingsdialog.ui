@@ -198,14 +198,7 @@
           </widget>
          </item>
          <item row="1" column="0">
-          <widget class="QLineEdit" name="lineEditPathLogging">
-           <property name="toolTip">
-            <string>The folder to host the logfile</string>
-           </property>
-           <property name="whatsThis">
-            <string>The folder to host the logfile</string>
-           </property>
-          </widget>
+          <widget class="QLineEdit" name="lineEditPathLogging"/>
          </item>
          <item row="1" column="1">
           <widget class="QPushButton" name="pushButtonPathLogging">

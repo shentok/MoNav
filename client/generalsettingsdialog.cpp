@@ -81,7 +81,7 @@ void GeneralSettingsDialog::fillSettings() const
 	else
 		GlobalSettings::setMenuMode( GlobalSettings::MenuPopup );
 
-	GlobalSettings::setAutoRotation( m_ui->checkBoxLogging->isChecked() );
+	GlobalSettings::setAutoRotation( m_ui->checkBoxMapRotation->isChecked() );
 	Logger::instance()->setLoggingEnabled(m_ui->checkBoxLogging->isChecked());
 	Logger::instance()->setDirectory(m_ui->lineEditPathLogging->text());
 }
