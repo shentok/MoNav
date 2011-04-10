@@ -60,10 +60,22 @@ RoutingLogic::RoutingLogic() :
 	d->gpsInfo.verticalAccuracy = -1;
 
 	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "Routing" );
 	d->source.x = settings.value( "source.x", 0 ).toUInt();
 	d->source.y = settings.value( "source.y", 0 ).toUInt();
 
-	connect( MapData::instance(), SIGNAL(dataLoaded()), this, SLOT(dataLoaded()) );
+	for ( int i = 0; i < settings.value( "amountRoutepoints", 0 ).toInt(); i++ ) {
+		UnsignedCoordinate coordinate;
+		bool ok = true;
+		coordinate.x = settings.value( QString( "routepointx%1" ).arg( i + 1 ), coordinate.x ).toUInt( &ok );
+		if ( !ok )
+			continue;
+		coordinate.y = settings.value( QString( "routepointy%1" ).arg( i + 1 ), coordinate.y ).toUInt( &ok );
+		if ( !ok )
+			continue;
+		if ( coordinate.IsValid() )
+			d->waypoints.append( coordinate );
+	}
 
 #ifndef NOQTMOBILE
 	d->gpsSource = QGeoPositionInfoSource::createDefaultSource( this );
@@ -81,6 +93,10 @@ RoutingLogic::RoutingLogic() :
 #endif
 
 	connect( this, SIGNAL(gpsInfoChanged()), Logger::instance(), SLOT(positionChanged()) );
+	connect( MapData::instance(), SIGNAL(dataLoaded()), this, SLOT(dataLoaded()) );
+
+	computeRoute();
+	emit waypointsChanged();
 }
 
 RoutingLogic::~RoutingLogic()
@@ -90,8 +106,14 @@ RoutingLogic::~RoutingLogic()
 		delete d->gpsSource;
 #endif
 	QSettings settings( "MoNavClient" );
+	settings.beginGroup( "Routing" );
 	settings.setValue( "source.x", d->source.x );
 	settings.setValue( "source.y", d->source.y );
+	settings.setValue( "amountRoutepoints", d->waypoints.size() );
+	for ( int i = 0; i < d->waypoints.size(); i++ ){
+		settings.setValue( QString( "routepointx%1" ).arg( i + 1 ), d->waypoints[i].x );
+		settings.setValue( QString( "routepointy%1" ).arg( i + 1 ), d->waypoints[i].y );
+	}
 	delete d;
 }
 
@@ -180,6 +202,17 @@ void RoutingLogic::instructions( QStringList* labels, QStringList* icons, int ma
 	*icons = d->icons;
 }
 
+void RoutingLogic::setWaypoints( QVector<UnsignedCoordinate> waypoints )
+{
+	bool changed = waypoints != d->waypoints;
+	d->waypoints = waypoints;
+	if ( changed )
+	{
+		computeRoute();
+		emit waypointsChanged();
+	}
+}
+
 void RoutingLogic::setWaypoint( int id, UnsignedCoordinate coordinate )
 {
 	if ( d->waypoints.size() <= id )
@@ -236,11 +269,22 @@ void RoutingLogic::computeRoute()
 	}
 
 	QVector< UnsignedCoordinate > waypoints;
+	int passedRoutepoint = 0;
 
 	waypoints.push_back( d->source );
 	for ( int i = 0; i < d->waypoints.size(); i++ ) {
 		if ( d->waypoints[i].IsValid() )
 			waypoints.push_back( d->waypoints[i] );
+		if ( waypoints[0].ToGPSCoordinate().ApproximateDistance( d->waypoints[i].ToGPSCoordinate() ) < 50 ) {
+			waypoints.remove( 1, waypoints.size() - 1 );
+			passedRoutepoint = i + 1;
+		}
+	}
+
+	if ( passedRoutepoint > 0 )
+	{
+		d->waypoints.remove( 0, passedRoutepoint );
+		emit waypointsChanged();
 	}
 
 	if ( waypoints.size() < 2 ) {

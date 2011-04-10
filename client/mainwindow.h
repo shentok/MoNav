@@ -45,8 +45,6 @@ protected slots:
 
 	void dataLoaded();
 
-	//
-
 	void mouseClicked( ProjectedCoordinate clickPos );
 
 	void addZoom();
@@ -71,8 +69,13 @@ protected slots:
 	void sourceByAddress();
 	void sourceByGPS();
 
+	void setWaypointID( int id );
+	void waypointsChanged();
+
 	void targetByBookmark();
 	void targetByAddress();
+	void subductRoutepoint();
+	void addRoutepoint();
 
 	void bookmarks();
 

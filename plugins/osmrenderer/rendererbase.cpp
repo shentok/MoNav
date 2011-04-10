@@ -279,6 +279,24 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 		drawPolyline( painter, boundingBox, line, QColor( 0, 0, 128, 128 ) );
 	}
 
+	static const int numColors = 6;
+	static const QColor outerColors[6] = {
+		QColor( 0, 128 * 5 / 5, 128 * 0 / 5 ),
+		QColor( 0, 128 * 4 / 5, 128 * 1 / 5 ),
+		QColor( 0, 128 * 3 / 5, 128 * 2 / 5 ),
+		QColor( 0, 128 * 2 / 5, 128 * 3 / 5 ),
+		QColor( 0, 128 * 1 / 5, 128 * 4 / 5 ),
+		QColor( 0, 128 * 0 / 5, 128 * 5 / 5 )
+	};
+	static const QColor innerColors[6] = {
+		QColor( 255 * 5 / 5 + 255 * 0 / 5, 255 * 5 / 5, 0 ),
+		QColor( 255 * 4 / 5 + 255 * 1 / 5, 255 * 4 / 5, 0 ),
+		QColor( 255 * 3 / 5 + 255 * 2 / 5, 255 * 3 / 5, 0 ),
+		QColor( 255 * 2 / 5 + 255 * 3 / 5, 255 * 2 / 5, 0 ),
+		QColor( 255 * 1 / 5 + 255 * 4 / 5, 255 * 1 / 5, 0 ),
+		QColor( 255 * 0 / 5 + 255 * 5 / 5, 255 * 0 / 5, 0 )
+	};
+
 	if ( request.POIs.size() > 0 ) {
 		for ( int i = 0; i < request.POIs.size(); i++ ) {
 			ProjectedCoordinate pos = request.POIs[i].ToProjectedCoordinate();
@@ -289,13 +307,23 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 	if ( request.target.IsValid() )
 	{
 		ProjectedCoordinate pos = request.target.ToProjectedCoordinate();
-		drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, request.virtualZoom, QColor( 0, 0, 128 ), QColor( 255, 0, 0 ) );
+		drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, request.virtualZoom, outerColors[numColors - 1], innerColors[numColors - 1] );
+	}
+
+	if ( request.waypoints.size() > 0 ) {
+		for ( int i = 0; i < request.waypoints.size(); i++ ) {
+			ProjectedCoordinate pos = request.waypoints[i].ToProjectedCoordinate();
+			int color = i + 1;
+			if ( color >= numColors )
+				color = numColors - 1;
+			drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, request.virtualZoom, outerColors[color], innerColors[color] );
+		}
 	}
 
 	if ( request.position.IsValid() )
 	{
 		ProjectedCoordinate pos = request.position.ToProjectedCoordinate();
-		drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, request.virtualZoom, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
+		drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, request.virtualZoom, outerColors[0], innerColors[0] );
 		drawArrow( painter, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, request.heading - 90, QColor( 0, 128, 0 ), QColor( 255, 255, 0 ) );
 	}
 

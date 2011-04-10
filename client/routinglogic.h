@@ -86,7 +86,9 @@ signals:
 
 public slots:
 
-	// sets a waypoint. If the coordinate is not valid the waypoint i removed
+	// sets the waypoints
+	void setWaypoints( QVector< UnsignedCoordinate > waypoints );
+	// sets a waypoint. If the coordinate is not valid the waypoint id is removed
 	void setWaypoint( int id, UnsignedCoordinate coordinate );
 	// sets the source coordinate
 	void setSource( UnsignedCoordinate coordinate );

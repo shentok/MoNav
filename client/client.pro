@@ -94,3 +94,12 @@ LIBS += -L../bin/plugins_client -lmapnikrendererclient -lcontractionhierarchiesc
 QT += network
 CONFIG += mobility
 MOBILITY += location
+
+unix:!symbian {
+    maemo5 {
+        target.path = /opt/usr/bin
+    } else {
+        target.path = /usr/local/bin
+    }
+    INSTALLS += target
+}

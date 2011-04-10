@@ -41,6 +41,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QMessageBox>
 #include <QStyle>
 #include <QScrollArea>
+#include <QSignalMapper>
 
 #ifdef Q_WS_MAEMO_5
 	#include "fullscreenexitbutton.h"
@@ -67,6 +68,10 @@ struct MainWindow::PrivateImplementation {
 	QMenu* toolsMenu;
 	QMenu* settingsMenu;
 
+	QSignalMapper* waypointMapper;
+
+	int currentWaypoint;
+
 	int maxZoom;
 	bool fixed;
 	Mode mode;
@@ -85,8 +90,7 @@ MainWindow::MainWindow( QWidget* parent ) :
 	setupMenu();
 	m_ui->zoomBar->hide();
 	m_ui->infoWidget->hide();
-	m_ui->sourceMode->hide();
-	m_ui->targetMode->hide();
+	m_ui->tapMode->hide();
 	m_ui->paintArea->setKeepPositionVisible( true );
 
 	// ensure that we're painting our background
@@ -101,6 +105,7 @@ MainWindow::MainWindow( QWidget* parent ) :
 
 	resizeIcons();
 	connectSlots();
+	waypointsChanged();
 
 #ifdef Q_WS_MAEMO_5
 	grabZoomKeys( true );
@@ -145,16 +150,23 @@ void MainWindow::connectSlots()
 	connect( mapData, SIGNAL(informationChanged()), this, SLOT(informationLoaded()) );
 	connect( mapData, SIGNAL(dataLoaded()), this, SLOT(dataLoaded()) );
 	connect( RoutingLogic::instance(), SIGNAL(instructionsChanged()), this, SLOT(instructionsChanged()) );
+	connect( RoutingLogic::instance(), SIGNAL(waypointsChanged()), this, SLOT(waypointsChanged()) );
 	connect( m_ui->lockButton, SIGNAL(clicked()), this, SLOT(toggleLocked()) );
 
 	connect( m_ui->show, SIGNAL(clicked()), this, SLOT(gotoMenu()) );
 	connect( m_ui->tools, SIGNAL(clicked()), this, SLOT(toolsMenu()) );
 	connect( m_ui->settings, SIGNAL(clicked()), this, SLOT(settingsMenu()) );
+
+	d->waypointMapper = new QSignalMapper( this );
+	connect( d->waypointMapper, SIGNAL(mapped(int)), SLOT(setWaypointID(int)) );
+	connect( m_ui->source, SIGNAL(clicked()), d->waypointMapper, SLOT(map()) );
+	d->waypointMapper->setMapping( m_ui->source, -1 );
 	connect( m_ui->source, SIGNAL(clicked()), this, SLOT(sourceMenu()) );
+	connect( m_ui->target, SIGNAL(clicked()), d->waypointMapper, SLOT(map()) );
+	d->waypointMapper->setMapping( m_ui->target, 0 );
 	connect( m_ui->target, SIGNAL(clicked()), this, SLOT(targetMenu()) );
 
-	connect( m_ui->sourceMode, SIGNAL(clicked()), this, SLOT(setModeNoSelection()) );
-	connect( m_ui->targetMode, SIGNAL(clicked()), this, SLOT(setModeNoSelection()) );
+	connect( m_ui->tapMode, SIGNAL(clicked()), this, SLOT(setModeNoSelection()) );
 }
 
 void MainWindow::setupMenu()
@@ -183,6 +195,9 @@ void MainWindow::setupMenu()
 	d->targetMenu->addAction( QIcon( ":/images/map.png" ), tr( "Tap on Map" ), this, SLOT(setModeTargetSelection()) );
 	d->targetMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmark" ), this, SLOT(targetByBookmark()) );
 	d->targetMenu->addAction( QIcon( ":/images/address.png" ), tr( "Address" ), this, SLOT(targetByAddress()) );
+	d->targetMenu->addSeparator();
+	d->targetMenu->addAction( QIcon( ":/images/oxygen/list-add.png" ), tr( "+Waypoint" ), this, SLOT(addRoutepoint()) );
+	d->targetMenu->addAction( QIcon( ":/images/oxygen/list-remove.png" ), tr( "-Waypoint" ), this, SLOT(subductRoutepoint()) );
 
 	d->targetOverlay = new OverlayWidget( this, tr( "Destination" ) );
 	d->targetOverlay->addActions( d->targetMenu->actions() );
@@ -483,6 +498,7 @@ void MainWindow::keyPressEvent( QKeyEvent* event )
 		event->accept();
 		break;
 	}
+
 	QWidget::keyPressEvent(event);
 }
 #endif
@@ -491,30 +507,31 @@ void MainWindow::keyPressEvent( QKeyEvent* event )
 
 void MainWindow::setModeSourceSelection()
 {
+	m_ui->paintArea->setKeepPositionVisible( false );
 	d->mode = PrivateImplementation::Source;
-	m_ui->frame->setVisible( false );
+	m_ui->waypointsWidget->setVisible( false );
 	m_ui->menuWidget->setVisible( false );
 	m_ui->lockButton->setVisible( false );
-	m_ui->sourceMode->setVisible( true );
+	m_ui->tapMode->setVisible( true );
 }
 
 void MainWindow::setModeTargetSelection()
 {
+	m_ui->paintArea->setKeepPositionVisible( false );
 	d->mode = PrivateImplementation::Target;
-	m_ui->frame->setVisible( false );
+	m_ui->waypointsWidget->setVisible( false );
 	m_ui->menuWidget->setVisible( false );
 	m_ui->lockButton->setVisible( false );
-	m_ui->targetMode->setVisible( true );
+	m_ui->tapMode->setVisible( true );
 }
 
 void MainWindow::setModeNoSelection()
 {
 	d->mode = PrivateImplementation::NoSelection;
-	m_ui->frame->setVisible( true );
+	m_ui->waypointsWidget->setVisible( true );
 	m_ui->menuWidget->setVisible( true );
 	m_ui->lockButton->setVisible( true );
-	m_ui->sourceMode->setVisible( false );
-	m_ui->targetMode->setVisible( false );
+	m_ui->tapMode->setVisible( false );
 }
 
 void MainWindow::mouseClicked( ProjectedCoordinate clickPos )
@@ -523,7 +540,7 @@ void MainWindow::mouseClicked( ProjectedCoordinate clickPos )
 	if ( d->mode == PrivateImplementation::Source ) {
 		RoutingLogic::instance()->setSource( coordinate );
 	} else if ( d->mode == PrivateImplementation::Target ) {
-		RoutingLogic::instance()->setTarget( coordinate );
+		RoutingLogic::instance()->setWaypoint( d->currentWaypoint, coordinate );
 	} else if ( d->mode == PrivateImplementation::POI ){
 		//m_selected = coordinate;
 		//m_ui->paintArea->setPOI( coordinate );
@@ -653,12 +670,17 @@ void MainWindow::sourceByGPS()
 	RoutingLogic::instance()->setGPSLink( true );
 }
 
+void MainWindow::setWaypointID( int id )
+{
+	d->currentWaypoint = id;
+}
+
 void MainWindow::targetByBookmark()
 {
 	UnsignedCoordinate result;
 	if ( !BookmarksDialog::showBookmarks( &result, this ) )
 		return;
-	RoutingLogic::instance()->setTarget( result );
+	RoutingLogic::instance()->setWaypoint( d->currentWaypoint, result );
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
 }
 
@@ -669,8 +691,28 @@ void MainWindow::targetByAddress()
 	UnsignedCoordinate result;
 	if ( !AddressDialog::getAddress( &result, this ) )
 		return;
-	RoutingLogic::instance()->setTarget( result );
+	RoutingLogic::instance()->setWaypoint( d->currentWaypoint, result );
 	m_ui->paintArea->setCenter( result.ToProjectedCoordinate() );
+}
+
+void MainWindow::subductRoutepoint()
+{
+	RoutingLogic* routingLogic = RoutingLogic::instance();
+	QVector< UnsignedCoordinate > waypoints = routingLogic->waypoints();
+	if ( d->currentWaypoint >= waypoints.size() )
+		return;
+	waypoints.remove( d->currentWaypoint );
+	routingLogic->setWaypoints( waypoints );
+}
+
+void MainWindow::addRoutepoint()
+{
+	RoutingLogic* routingLogic = RoutingLogic::instance();
+	QVector< UnsignedCoordinate > waypoints = routingLogic->waypoints();
+	if ( waypoints.empty() )
+		waypoints.resize( d->currentWaypoint );
+	waypoints.insert( d->currentWaypoint, UnsignedCoordinate() );
+	routingLogic->setWaypoints( waypoints );
 }
 
 void MainWindow::bookmarks()
@@ -718,4 +760,34 @@ void MainWindow::toggleLocked()
 		m_ui->lockButton->setIcon( QIcon( ":images/oxygen/emblem-unlocked.png") );
 		m_ui->infoWidget->hide();
 	}
+}
+
+void MainWindow::waypointsChanged()
+{
+	QList< QToolButton* > waypointButtons = findChildren< QToolButton* >( "waypoint" );
+	foreach( QToolButton* button, waypointButtons )
+		button->deleteLater();
+	QVector< UnsignedCoordinate > waypoints = RoutingLogic::instance()->waypoints();
+	for ( int i = 0; i < waypoints.size() - 1; i++ )
+	{
+		int id = waypoints.size() - 1 - i;
+		QToolButton* button = new QToolButton( NULL );
+		if ( QFile::exists( QString( ":/images/waypoint%1.png" ).arg( id ) ) )
+			button->setIcon( QIcon( QString( ":/images/waypoint%1.png" ).arg( id ) ) );
+		else
+			button->setIcon( QIcon( ":/images/target.png" ) );
+		button->setIconSize( QSize( GlobalSettings::iconSize(), GlobalSettings::iconSize() ) );
+		button->setAutoRaise( true );
+		button->setObjectName( "waypoint" );
+		m_ui->scrollAreaWidgetContents->layout()->addWidget( button );
+		d->waypointMapper->setMapping( button, id - 1 );
+		connect( button, SIGNAL(clicked()), d->waypointMapper, SLOT(map()) );
+		connect( button, SIGNAL(clicked()), this, SLOT(targetMenu()) );
+		button->show();
+	}
+	if ( !waypoints.empty() )
+		d->waypointMapper->setMapping( m_ui->target, waypoints.size() - 1 );
+	else
+		d->waypointMapper->setMapping( m_ui->target, 0 );
+	m_ui->scrollAreaWidgetContents->layout()->addWidget( m_ui->source );
 }
