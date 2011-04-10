@@ -152,6 +152,7 @@ bool OSMRendererClient::loadTile( int x, int y, int zoom, int /*magnification*/,
 	request.setRawHeader( "User-Agent", "MoNav OSM Renderer 1.0" );
 	request.setAttribute( QNetworkRequest::User, QVariant( id ) );
 	request.setAttribute( QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache );
+	request.setAttribute( QNetworkRequest::HttpPipeliningAllowedAttribute, true );
 	network->get( request );
 
 	return false;
