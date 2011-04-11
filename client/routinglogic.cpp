@@ -64,19 +64,6 @@ RoutingLogic::RoutingLogic() :
 	d->source.x = settings.value( "source.x", 0 ).toUInt();
 	d->source.y = settings.value( "source.y", 0 ).toUInt();
 
-	for ( int i = 0; i < settings.value( "amountRoutepoints", 0 ).toInt(); i++ ) {
-		UnsignedCoordinate coordinate;
-		bool ok = true;
-		coordinate.x = settings.value( QString( "routepointx%1" ).arg( i + 1 ), coordinate.x ).toUInt( &ok );
-		if ( !ok )
-			continue;
-		coordinate.y = settings.value( QString( "routepointy%1" ).arg( i + 1 ), coordinate.y ).toUInt( &ok );
-		if ( !ok )
-			continue;
-		if ( coordinate.IsValid() )
-			d->waypoints.append( coordinate );
-	}
-
 #ifndef NOQTMOBILE
 	d->gpsSource = QGeoPositionInfoSource::createDefaultSource( this );
 	if ( d->gpsSource == NULL ) {
@@ -91,6 +78,19 @@ RoutingLogic::RoutingLogic() :
 		connect( d->gpsSource, SIGNAL(positionUpdated(QGeoPositionInfo)), this, SLOT(positionUpdated(QGeoPositionInfo)) );
 	}
 #endif
+
+	for ( int i = 0; i < settings.value( "amountRoutepoints", 0 ).toInt(); i++ ) {
+		UnsignedCoordinate coordinate;
+		bool ok = true;
+		coordinate.x = settings.value( QString( "routepointx%1" ).arg( i + 1 ), coordinate.x ).toUInt( &ok );
+		if ( !ok )
+			continue;
+		coordinate.y = settings.value( QString( "routepointy%1" ).arg( i + 1 ), coordinate.y ).toUInt( &ok );
+		if ( !ok )
+			continue;
+		if ( coordinate.IsValid() )
+			d->waypoints.append( coordinate );
+	}
 
 	connect( this, SIGNAL(gpsInfoChanged()), Logger::instance(), SLOT(positionChanged()) );
 	connect( MapData::instance(), SIGNAL(dataLoaded()), this, SLOT(dataLoaded()) );
