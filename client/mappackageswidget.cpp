@@ -44,6 +44,7 @@ struct MapPackagesWidget::PrivateImplementation {
 	QVector< Server > servers;
 
 	void populateInstalled( QListWidget* list );
+	void highlightButton( QPushButton* button, bool highlight );
 };
 
 MapPackagesWidget::MapPackagesWidget( QWidget* parent ) :
@@ -91,6 +92,7 @@ MapPackagesWidget::MapPackagesWidget( QWidget* parent ) :
 	connect( m_ui->worldMap, SIGNAL(clicked(int)), this, SLOT(selected(int)) );
 
 	d->populateInstalled( m_ui->installedList );
+	d->highlightButton( m_ui->changeDirectory, m_ui->installedList->count() == 0 );
 	m_ui->worldMap->setMaps( d->maps );
 	m_ui->worldMap->setHighlight( d->selected );
 }
@@ -178,6 +180,7 @@ void MapPackagesWidget::directory()
 
 	d->path = newDir;
 	d->populateInstalled( m_ui->installedList );
+	d->highlightButton( m_ui->changeDirectory, m_ui->installedList->count() == 0 );
 	m_ui->worldMap->setMaps( d->maps );
 	m_ui->worldMap->setHighlight( d->selected );
 }
@@ -216,4 +219,12 @@ void MapPackagesWidget::PrivateImplementation::populateInstalled( QListWidget* l
 			selected = i;
 		}
 	}
+}
+
+void MapPackagesWidget::PrivateImplementation::highlightButton( QPushButton* button, bool highlight )
+{
+	QFont font = button->font();
+	font.setBold( highlight );
+	font.setUnderline( highlight );
+	button->setFont( font );
 }
