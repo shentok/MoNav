@@ -47,7 +47,7 @@ void Logger::initialize()
 	m_lastFlushTime = QDateTime::currentDateTime();
 
 	QSettings settings( "MoNavClient" );
-	m_loggingEnabled = settings.value( "LoggingEnabled", true ).toBool();
+	m_loggingEnabled = settings.value( "LoggingEnabled", false ).toBool();
 	m_tracklogPath = settings.value( "LogFilePath", QDir::homePath() ).toString();
 
 	m_tracklogPrefix = tr( "MoNav Track" );
