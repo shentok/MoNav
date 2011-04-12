@@ -129,7 +129,8 @@ void MapPackagesWidget::selected( int id )
 void MapPackagesWidget::mapSelectionChanged()
 {
 	bool selected = m_ui->installedList->selectedItems().size() == 1;
-	m_ui->worldMap->setHighlight( m_ui->installedList->selectedItems().first()->data( Qt::UserRole ).toInt() );
+	if ( selected )
+		m_ui->worldMap->setHighlight( m_ui->installedList->selectedItems().first()->data( Qt::UserRole ).toInt() );
 	m_ui->load->setEnabled( selected );
 	m_ui->deleteMap->setEnabled( selected );
 }

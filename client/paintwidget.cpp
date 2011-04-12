@@ -127,7 +127,8 @@ void PaintWidget::waypointsChanged()
 {
 	m_request.target = RoutingLogic::instance()->target();
 	QVector< UnsignedCoordinate > waypoints = RoutingLogic::instance()->waypoints();
-	waypoints.pop_back();
+	if ( waypoints.size() > 0 && RoutingLogic::instance()->target() == waypoints.back() )
+		waypoints.pop_back();
 	m_request.waypoints = waypoints;
 	update();
 }
