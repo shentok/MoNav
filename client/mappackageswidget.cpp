@@ -53,6 +53,11 @@ MapPackagesWidget::MapPackagesWidget( QWidget* parent ) :
 	m_ui->setupUi( this );
 	d = new PrivateImplementation;
 
+	// Remove non-functional pages
+	// TODO remove this when functionality is available
+	m_ui->updatable->deleteLater();
+	m_ui->downloadable->deleteLater();
+
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "MapPackages" );
 	d->path = settings.value( "path" ).toString();
