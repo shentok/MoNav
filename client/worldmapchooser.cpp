@@ -119,34 +119,33 @@ void WorldMapChooser::setMaps( QVector<MapData::MapPackage> maps )
 		d->minY = 0;
 		d->maxX = 1;
 		d->maxY = 1;
-		return;
+	} else {
+		d->minX = 1;
+		d->minY = 1;
+		d->maxX = 0;
+		d->maxY = 0;
+
+		for ( int i = 0; i < maps.size(); i++ ) {
+			ProjectedCoordinate min = maps[i].min.ToProjectedCoordinate();
+			ProjectedCoordinate max = maps[i].max.ToProjectedCoordinate();
+			d->minX = std::min( min.x, d->minX );
+			d->maxX = std::max( max.x, d->maxX );
+			d->minY = std::min( min.y, d->minY );
+			d->maxY = std::max( max.y, d->maxY );
+		}
+
+		double rangeX = d->maxX - d->minX;
+		double rangeY = d->maxY - d->minY;
+		if ( rangeX == 0 )
+			rangeX = 1;
+		if ( rangeY == 0 )
+			rangeY = 1;
+
+		d->minX = std::max( d->minX - rangeX * 0.1, 0.0 );
+		d->minY = std::max( d->minY - rangeY * 0.1, 0.0 );
+		d->maxX = std::min( d->maxX + rangeX * 0.1, 1.0 );
+		d->maxY = std::min( d->maxY + rangeY * 0.1, 1.0 );
 	}
-
-	d->minX = 1;
-	d->minY = 1;
-	d->maxX = 0;
-	d->maxY = 0;
-
-	for ( int i = 0; i < maps.size(); i++ ) {
-		ProjectedCoordinate min = maps[i].min.ToProjectedCoordinate();
-		ProjectedCoordinate max = maps[i].max.ToProjectedCoordinate();
-		d->minX = std::min( min.x, d->minX );
-		d->maxX = std::max( max.x, d->maxX );
-		d->minY = std::min( min.y, d->minY );
-		d->maxY = std::max( max.y, d->maxY );
-	}
-
-	double rangeX = d->maxX - d->minX;
-	double rangeY = d->maxY - d->minY;
-	if ( rangeX == 0 )
-		rangeX = 1;
-	if ( rangeY == 0 )
-		rangeY = 1;
-
-	d->minX = std::max( d->minX - rangeX * 0.1, 0.0 );
-	d->minY = std::max( d->minY - rangeY * 0.1, 0.0 );
-	d->maxX = std::min( d->maxX + rangeX * 0.1, 1.0 );
-	d->maxY = std::min( d->maxY + rangeY * 0.1, 1.0 );
 
 	QResizeEvent event( size(), size() );
 	resizeEvent( &event );
