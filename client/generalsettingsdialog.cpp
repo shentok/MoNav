@@ -53,7 +53,7 @@ GeneralSettingsDialog::GeneralSettingsDialog( QWidget* parent ) :
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "GeneralSettingsDialog" );
 	restoreGeometry( settings.value( "geometry" ).toByteArray() );
-	m_ui->toolBox->setCurrentIndex( settings.value( "currentPage", 0 ).toInt() );
+	m_ui->settingsList->setCurrentIndex( settings.value( "currentPage", 0 ).toInt() );
 }
 
 GeneralSettingsDialog::~GeneralSettingsDialog()
@@ -61,7 +61,7 @@ GeneralSettingsDialog::~GeneralSettingsDialog()
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "GeneralSettingsDialog" );
 	settings.setValue( "geometry", saveGeometry() );
-	settings.setValue( "currentPage", m_ui->toolBox->currentIndex() );
+	settings.setValue( "currentPage", m_ui->settingsList->currentIndex() );
 	delete m_ui;
 }
 
