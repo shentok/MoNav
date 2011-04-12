@@ -61,8 +61,8 @@ RoutingLogic::RoutingLogic() :
 
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "Routing" );
-	d->source.x = settings.value( "source.x", 0 ).toUInt();
-	d->source.y = settings.value( "source.y", 0 ).toUInt();
+	d->source.x = settings.value( "source.x", d->source.x ).toUInt();
+	d->source.y = settings.value( "source.y", d->source.y ).toUInt();
 
 #ifndef NOQTMOBILE
 	d->gpsSource = QGeoPositionInfoSource::createDefaultSource( this );
@@ -361,6 +361,13 @@ void RoutingLogic::clearRoute()
 
 void RoutingLogic::dataLoaded()
 {
+	if ( !d->source.IsValid() )
+	{
+		const MapData::MapPackage& package = MapData::instance()->information();
+		d->source.x = ( ( double ) package.max.x + package.min.x ) / 2;
+		d->source.y = ( ( double ) package.max.y + package.min.y ) / 2;
+		emit sourceChanged();
+	}
 	computeRoute();
 }
 
