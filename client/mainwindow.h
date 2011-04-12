@@ -85,7 +85,6 @@ protected slots:
 	void toggleLocked();
 
 	void gotoMenu();
-	void toolsMenu();
 	void settingsMenu();
 	void sourceMenu();
 	void targetMenu();

@@ -59,13 +59,11 @@ struct MainWindow::PrivateImplementation {
 	OverlayWidget* targetOverlay;
 	OverlayWidget* sourceOverlay;
 	OverlayWidget* gotoOverlay;
-	OverlayWidget* toolsOverlay;
 	OverlayWidget* settingsOverlay;
 
 	QMenu* targetMenu;
 	QMenu* sourceMenu;
 	QMenu* gotoMenu;
-	QMenu* toolsMenu;
 	QMenu* settingsMenu;
 
 	QSignalMapper* waypointMapper;
@@ -155,8 +153,8 @@ void MainWindow::connectSlots()
 	connect( RoutingLogic::instance(), SIGNAL(waypointsChanged()), this, SLOT(waypointsChanged()) );
 	connect( m_ui->lockButton, SIGNAL(clicked()), this, SLOT(toggleLocked()) );
 
+	connect( m_ui->bookmarks, SIGNAL(clicked()), this, SLOT(bookmarks()) );
 	connect( m_ui->show, SIGNAL(clicked()), this, SLOT(gotoMenu()) );
-	connect( m_ui->tools, SIGNAL(clicked()), this, SLOT(toolsMenu()) );
 	connect( m_ui->settings, SIGNAL(clicked()), this, SLOT(settingsMenu()) );
 
 	d->waypointMapper = new QSignalMapper( this );
@@ -203,12 +201,6 @@ void MainWindow::setupMenu()
 
 	d->targetOverlay = new OverlayWidget( this, tr( "Destination" ) );
 	d->targetOverlay->addActions( d->targetMenu->actions() );
-
-	d->toolsMenu = new QMenu( tr( "Tools" ), this );
-	d->toolsMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmarks" ), this, SLOT(bookmarks()) );
-
-	d->toolsOverlay = new OverlayWidget( this, tr( "Tools" ) );
-	d->toolsOverlay->addActions( d->toolsMenu->actions() );
 
 	d->settingsMenu = new QMenu( tr( "Settings" ), this );
 	d->settingsMenu->addAction( QIcon( ":/images/oxygen/folder-tar.png" ), tr( "Map Packages" ), this, SLOT(displayMapChooser()) );
@@ -415,16 +407,6 @@ void MainWindow::gotoMenu()
 		d->gotoMenu->exec( position );
 	} else {
 		d->gotoOverlay->show();
-	}
-}
-
-void MainWindow::toolsMenu()
-{
-	if ( GlobalSettings::menuMode() == GlobalSettings::MenuPopup ) {
-		QPoint position = m_ui->tools->mapToGlobal( QPoint( m_ui->tools->width() / 2, m_ui->tools->height() / 2 ) );
-		d->toolsMenu->exec( position );
-	} else {
-		d->toolsOverlay->show();
 	}
 }
 
