@@ -299,6 +299,8 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 
 	if ( request.POIs.size() > 0 ) {
 		for ( int i = 0; i < request.POIs.size(); i++ ) {
+			if ( !request.POIs[i].IsValid() )
+				continue;
 			ProjectedCoordinate pos = request.POIs[i].ToProjectedCoordinate();
 			drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, request.virtualZoom, QColor( 196, 0, 0 ), QColor( 0, 0, 196 ) );
 		}
@@ -310,13 +312,20 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 		drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, request.virtualZoom, outerColors[numColors - 1], innerColors[numColors - 1] );
 	}
 
+	bool firstWaypoint = true;
 	if ( request.waypoints.size() > 0 ) {
 		for ( int i = 0; i < request.waypoints.size(); i++ ) {
+			if ( !request.waypoints[i].IsValid() )
+				continue;
 			ProjectedCoordinate pos = request.waypoints[i].ToProjectedCoordinate();
 			int color = i + 1;
 			if ( color >= numColors )
 				color = numColors - 1;
-			drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, request.virtualZoom, outerColors[color], innerColors[color] );
+			if ( firstWaypoint )
+				drawIndicator( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, request.virtualZoom, outerColors[color], innerColors[color] );
+			else
+				drawCircle( painter, transform, inverseTransform, ( pos.x - request.center.x ) * zoomFactor, ( pos.y - request.center.y ) * zoomFactor, sizeX, sizeY, request.virtualZoom, outerColors[color], innerColors[color] );
+			firstWaypoint = false;
 		}
 	}
 
@@ -366,6 +375,19 @@ void RendererBase::drawIndicator( QPainter* painter, const QTransform& transform
 		painter->setPen( QPen( inner, 2 ) );
 		painter->drawEllipse( x - 8, y - 8, 16, 16);
 	}
+}
+
+void RendererBase::drawCircle( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, int virtualZoom, QColor outer, QColor inner )
+{
+	QPoint mapped = transform.map( QPoint( x, y ) );
+	int margin = 9 * virtualZoom;
+	if ( mapped.x() < margin || mapped.y() < margin || mapped.x() >= sizeX - margin || mapped.y() >= sizeY - margin )
+		return;
+	painter->setBrush( Qt::NoBrush );
+	painter->setPen( QPen( outer, 5 ) );
+	painter->drawEllipse( x - 8, y - 8, 16, 16);
+	painter->setPen( QPen( inner, 2 ) );
+	painter->drawEllipse( x - 8, y - 8, 16, 16);
 }
 
 void RendererBase::drawPolyline( QPainter* painter, const QRect& boundingBox, QVector< ProjectedCoordinate > line, QColor color )

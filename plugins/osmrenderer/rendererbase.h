@@ -75,6 +75,8 @@ protected:
 	// draws an indicator for a place / source / target
 	// gets replaced by an arrow if it is outside the screen
 	void drawIndicator( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, int virtualZoom, QColor outer, QColor inner );
+	// draw an indicator circle that is not replaced by an arrow
+	void drawCircle( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, int virtualZoom, QColor outer, QColor inner );
 	// draws a polyline, clipping it if necessary and applying basic LOD
 	void drawPolyline( QPainter* painter, const QRect& boundingBox, QVector< ProjectedCoordinate > line, QColor color );
 
