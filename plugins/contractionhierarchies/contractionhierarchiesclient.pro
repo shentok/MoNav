@@ -11,6 +11,10 @@ unix {
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
 
+nogui {
+	DEFINES+=NOGUI
+}
+
 HEADERS += \
 	 ../../utils/coordinates.h \
 	 ../../utils/config.h \

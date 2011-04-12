@@ -72,6 +72,7 @@ int main( int argc, char *argv[] ) {
 		unpackCommand.post( &connection );
 		connection.flush();
 		UnpackResult reply;
+		reply.type = UnpackResult::FailUnpacking;
 		reply.read( &connection );
 		qDebug() << connection.state();
 

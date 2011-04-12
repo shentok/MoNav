@@ -11,6 +11,10 @@ INCLUDEPATH += ../..
 
 DESTDIR = ../../bin/plugins_client
 
+nogui {
+	DEFINES+=NOGUI
+}
+
 HEADERS += \
 	 ../../utils/coordinates.h \
 	 ../../utils/config.h \

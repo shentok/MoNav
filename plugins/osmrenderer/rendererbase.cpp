@@ -377,7 +377,7 @@ void RendererBase::drawIndicator( QPainter* painter, const QTransform& transform
 	}
 }
 
-void RendererBase::drawCircle( QPainter* painter, const QTransform& transform, const QTransform& inverseTransform, int x, int y, int sizeX, int sizeY, int virtualZoom, QColor outer, QColor inner )
+void RendererBase::drawCircle( QPainter* painter, const QTransform& transform, const QTransform& /*inverseTransform*/, int x, int y, int sizeX, int sizeY, int virtualZoom, QColor outer, QColor inner )
 {
 	QPoint mapped = transform.map( QPoint( x, y ) );
 	int margin = 9 * virtualZoom;
