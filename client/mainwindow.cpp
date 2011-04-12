@@ -100,7 +100,9 @@ MainWindow::MainWindow( QWidget* parent ) :
 	d->fixed = false;
 
 	QSettings settings( "MoNavClient" );
-	setGeometry( settings.value( "geometry", geometry() ).toRect() );
+	// explicitly look for geometry as out own might not be initialized properly yet.
+	if ( settings.contains( "geometry" ) )
+		setGeometry( settings.value( "geometry" ).toRect() );
 	GlobalSettings::loadSettings( &settings );
 
 	resizeIcons();
