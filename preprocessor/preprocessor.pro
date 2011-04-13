@@ -37,7 +37,6 @@ HEADERS += ../interfaces/iimporter.h \
 DESTDIR = ../bin
 TARGET = monav-preprocessor
 
-RESOURCES += images.qrc
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
 	QMAKE_CXXFLAGS_RELEASE += -O3 \
