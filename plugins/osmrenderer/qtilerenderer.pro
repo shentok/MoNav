@@ -1,6 +1,11 @@
 TEMPLATE = lib
 CONFIG += plugin static
 
+PROTOS = ../osmimporter/osmformat.proto ../osmimporter/fileformat.proto
+include(../osmimporter/protobuf.pri)
+
+PRE_TARGETDEPS += osmformat.pb.h fileformat.pb.h osmformat.pb.cc fileformat.pb.cc
+
 CONFIG += link_pkgconfig
 INCLUDEPATH += ../.. ../osmimporter/
 PKGCONFIG += libxml-2.0
@@ -9,7 +14,8 @@ HEADERS += qtilerenderer.h \
 	 ../../interfaces/ipreprocessor.h \
 	 ../../interfaces/iimporter.h \
 	 ../../utils/coordinates.h \
-	 ../../utils/config.h
+	 ../../utils/config.h \
+	 ../osmimporter/pbfreader.h
 SOURCES += qtilerenderer.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 unix {

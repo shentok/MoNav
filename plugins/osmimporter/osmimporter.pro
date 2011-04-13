@@ -1,6 +1,11 @@
 TEMPLATE = lib
 CONFIG += plugin static
 
+PROTOS = osmformat.proto fileformat.proto
+include(protobuf.pri)
+
+PRE_TARGETDEPS += osmformat.pb.h fileformat.pb.h osmformat.pb.cc fileformat.pb.cc
+
 INCLUDEPATH += ../..
 
 CONFIG += link_pkgconfig
@@ -17,14 +22,10 @@ HEADERS += osmimporter.h \
 	 xmlreader.h \
 	 ientityreader.h \
 	 pbfreader.h \
-	 "protobuff definitions/osmformat.pb.h" \
-	 "protobuff definitions/fileformat.pb.h" \
 	 lzma/Types.h \
 	 lzma/LzmaDec.h \
 	 types.h
 SOURCES += osmimporter.cpp \
-	 "protobuff definitions/osmformat.pb.cc" \
-	 "protobuff definitions/fileformat.pb.cc" \
 	 lzma/LzmaDec.c \
 	 types.cpp
 DESTDIR = ../../bin/plugins_preprocessor

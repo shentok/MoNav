@@ -21,8 +21,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #define PBFREADER_H
 
 #include "ientityreader.h"
-#include "protobuff definitions/fileformat.pb.h"
-#include "protobuff definitions/osmformat.pb.h"
+#include "fileformat.pb.h"
+#include "osmformat.pb.h"
 #include "utils/qthelpers.h"
 #include <QHash>
 #include <QFile>
