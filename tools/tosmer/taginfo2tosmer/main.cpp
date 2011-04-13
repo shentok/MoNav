@@ -28,6 +28,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QVector>
 #include <QtAlgorithms>
 #include <QMap>
+#include <algorithm>
 
 struct Implication
 {
@@ -49,7 +50,20 @@ struct Implication
 			return false;
 		if ( value != right.value )
 			return false;
-		return impliedKey == right.impliedKey;
+		if ( impliedKey != right.impliedKey )
+			return false;
+		return impliedValue == right.impliedValue;
+	}
+
+	bool conflicts( const Implication& right )
+	{
+		if ( key != right.key )
+			return false;
+		if ( value != right.value )
+			return false;
+		if ( impliedKey != right.impliedKey )
+			return false;
+		return impliedValue != right.impliedValue;
 	}
 };
 
@@ -119,10 +133,11 @@ int main(int argc, char *argv[])
 
 	// remove conflicting elements
 	qSort( dataVector );
+	dataVector.resize( std::unique( dataVector.begin(), dataVector.end() ) - dataVector.begin() );
 	QVector< bool > unique( dataVector.size(), true );
 	for ( int element = 1; element < dataVector.size(); element++ )
 	{
-		if ( dataVector[element] == dataVector[element - 1] )
+		if ( dataVector[element].conflicts( dataVector[element - 1] ) )
 		{
 			unique[element] = false;
 			unique[element - 1] = false;
