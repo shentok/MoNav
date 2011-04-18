@@ -296,7 +296,7 @@ bool OSMImporter::read( const QString& inputFilename, const QString& filename ) 
 
 	try {
 		GPSCoordinate min( std::numeric_limits< double >::max(), std::numeric_limits< double >::max() );
-		GPSCoordinate max( std::numeric_limits< double >::min(), std::numeric_limits< double >::min() );
+		GPSCoordinate max( -std::numeric_limits< double >::max(), -std::numeric_limits< double >::max() );
 
 		setRequiredTags( reader );
 
