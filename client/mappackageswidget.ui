@@ -2,14 +2,6 @@
 <ui version="4.0">
  <class>MapPackagesWidget</class>
  <widget class="QWidget" name="MapPackagesWidget">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>830</width>
-    <height>597</height>
-   </rect>
-  </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>

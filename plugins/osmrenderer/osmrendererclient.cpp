@@ -115,7 +115,7 @@ void OSMRendererClient::finished( QNetworkReply* reply ) {
 	}
 
 	QImage image;
-	if ( !image.load( reply, 0 ) ) {
+	if ( !image.load( reply, "PNG" ) ) {
 		m_cache.remove( id );
 		qDebug() << "failed to load image: " << id;
 		return;

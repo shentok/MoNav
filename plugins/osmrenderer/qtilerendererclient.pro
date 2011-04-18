@@ -18,7 +18,8 @@ HEADERS += qtilerendererclient.h \
 	 ../../utils/coordinates.h \
 	 ../../utils/config.h \
     rendererbase.h \
-    brsettingsdialog.h
+    brsettingsdialog.h \
+    ../../utils/qthelpers.h
 SOURCES += qtilerendererclient.cpp \
     rendererbase.cpp \
     brsettingsdialog.cpp \

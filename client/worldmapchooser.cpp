@@ -20,6 +20,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "worldmapchooser.h"
 #include "ui_worldmapchooser.h"
 
+#include <algorithm>
 #include <QPixmap>
 #include <QPainter>
 #include <QResizeEvent>
@@ -178,25 +179,28 @@ void WorldMapChooser::resizeEvent( QResizeEvent* event )
 	d->rects.clear();
 
 	QPixmap image( width, height );
-	image.fill( Qt::transparent );
-	QPainter painter( &image );
-	QPixmap background( d->background );
-	painter.setRenderHint( QPainter::SmoothPixmapTransform );
-	painter.drawPixmap( QRect( 0, 0, width, height ), background, QRect( minX * background.width(), minY * background.width() - 192 / 1024.0 * background.width(), rangeX * background.width(), rangeY * background.width() ) );
-	for ( int i = 0; i < d->maps.size(); i++ ) {
-		ProjectedCoordinate min = d->maps[i].min.ToProjectedCoordinate();
-		ProjectedCoordinate max = d->maps[i].max.ToProjectedCoordinate();
-		int left = ( min.x - minX ) * width / rangeX;
-		int top = ( min.y - minY ) * height / rangeY;
-		int right = ( max.x - minX ) * width / rangeX;
-		int bottom = ( max.y - minY ) * height / rangeY;
-		if ( d->highlight == i )
-			painter.setBrush( QColor( 128, 128, 128, 128 ) );
-		else
-			painter.setBrush( Qt::NoBrush );
-		QRect rect( left, top, right - left, bottom - top );
-		painter.drawRect( rect );
-		d->rects.push_back( rect );
+	if ( !image.isNull() )
+	{
+		image.fill( Qt::transparent );
+		QPainter painter( &image );
+		QPixmap background( d->background );
+		painter.setRenderHint( QPainter::SmoothPixmapTransform );
+		painter.drawPixmap( QRect( 0, 0, width, height ), background, QRect( minX * background.width(), minY * background.width() - 192 / 1024.0 * background.width(), rangeX * background.width(), rangeY * background.width() ) );
+		for ( int i = 0; i < d->maps.size(); i++ ) {
+			ProjectedCoordinate min = d->maps[i].min.ToProjectedCoordinate();
+			ProjectedCoordinate max = d->maps[i].max.ToProjectedCoordinate();
+			int left = ( min.x - minX ) * width / rangeX;
+			int top = ( min.y - minY ) * height / rangeY;
+			int right = ( max.x - minX ) * width / rangeX;
+			int bottom = ( max.y - minY ) * height / rangeY;
+			if ( d->highlight == i )
+				painter.setBrush( QColor( 128, 128, 128, 128 ) );
+			else
+				painter.setBrush( Qt::NoBrush );
+			QRect rect( left, top, right - left, bottom - top );
+			painter.drawRect( rect );
+			d->rects.push_back( rect );
+		}
 	}
 	m_ui->label->setPixmap( image );
 }

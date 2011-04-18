@@ -2,6 +2,7 @@
 #define IMG_WRITER_H
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string>
 #include "agg2/agg_pixfmt_rgb.h"
 #include "agg2/agg_renderer_scanline.h"
@@ -219,7 +220,11 @@ class ImgWriter {
         }
         std::string s("convert tmp.ppm ");
         s+= name;
-        if(system(s.c_str())!=0) printf("Failed convert\n");
+#ifdef _CRT_SYSTEM_DEFINED // not always defined, e.g. windows mobile
+		  if(std::system(s.c_str())!=0) printf("Failed convert\n");
+#else
+		  printf("System not available, Failed!\n" );
+#endif
     };
     const unsigned char * get_img_data() {
         if(drawing==LINES) draw_lines();

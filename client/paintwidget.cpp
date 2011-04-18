@@ -57,6 +57,7 @@ PaintWidget::PaintWidget(QWidget *parent) :
 	dataLoaded();
 	sourceChanged();
 	waypointsChanged();
+	trackChanged();
 	routeChanged();
 
 	connect( MapData::instance(), SIGNAL(dataLoaded()), this, SLOT(dataLoaded()) );

@@ -272,8 +272,8 @@ public:
 			x = y = std::numeric_limits< unsigned >::max();
 			return;
 		}
-		x = floor( tile.x * ( 1u << 30 ) );
-		y = floor( tile.y * ( 1u << 30 ) );
+		x = ( unsigned ) floor( tile.x * ( 1u << 30 ) );
+		y = ( unsigned ) floor( tile.y * ( 1u << 30 ) );
 	}
 
 	/** converts from GPS coordinate */

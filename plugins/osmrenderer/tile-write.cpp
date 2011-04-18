@@ -6,6 +6,8 @@ Current issues:
     No text support - would be easy to add.
 */
 
+#include "../../utils/qthelpers.h"
+
 #include <string>
 #include <string.h>
 #include <stdio.h>
@@ -169,9 +171,9 @@ bool Way::draw(ImgWriter &img, DrawingRules & rules,
 }
 
 /* DrawingRules - load from rendering.qrr */
-DrawingRules::DrawingRules(const std::string &_dir)
+DrawingRules::DrawingRules(const std::string &filename) :
+	filename( filename )
 {
-    dir = _dir;
     load_rules();
 }
 
@@ -242,10 +244,9 @@ bool DrawingRules::load_rules()
     drawing_rules.clear();
     std::map<std::string, long> colourMap;
     char buf[4096];
-    FILE *fp = fopen((dir + "/rendering.qrr").c_str(), "r");
+	 FILE *fp = fopen(filename.c_str(), "r");
     if(!fp) {
-        qCritical() << "Can't find rendering rules. Please re-run the preprocessor, "
-           "or copy rendering rules (default.qrr) to" << dir.c_str() << "/rendering.qrr";
+		  qCritical() << "Can't find rendering rules:" << filename.c_str();
         return false;
     }
     while(fgets(buf, 4095, fp)) {
@@ -339,13 +340,15 @@ bool DrawingRules::load_rules()
 /* Static helper function */
 void DrawingRules::tokenise(const std::string &input, std::vector<std::string> &output)
 {
-    char *s = strdup(input.c_str());
-    char *p = strtok(s, " ");
+	 const char *s = input.c_str();
+	 char* buffer = new char[strlen( s ) + 1];
+	 strcpy( buffer, s );
+	 const char *p = strtok(buffer, " ");
     while(p) {
         output.push_back(p);
         p = strtok(NULL, " ");
     }
-    delete s;
+	 delete buffer;
 }
 
 /* A recursive index class into the quadtile way database. */
@@ -468,13 +471,13 @@ long qindex::get_index(quadtile _q, int _level, int *_nways)
     return 0;
 }
 
-TileWriter::TileWriter(const std::string &_dir)
-    : dr(_dir)
+TileWriter::TileWriter( QString dir )
+	 : dr(fileInDirectory( dir, "rendering.qrr" ).toLocal8Bit().constData() )
 {
     img = new ImgWriter;
-    filename[0] = _dir + "/ways.all.pqdb";
-    filename[1] = _dir + "/ways.motorway.pqdb";
-    filename[2] = _dir + "/places.pqdb";
+	 filename[0] = fileInDirectory( dir, "ways.all.pqdb" ).toLocal8Bit().constData();
+	 filename[1] = fileInDirectory( dir, "ways.motorway.pqdb" ).toLocal8Bit().constData();
+	 filename[2] = fileInDirectory( dir, "places.pqdb" ).toLocal8Bit().constData();
     for(int i=0;i<3;i++) {
         db[i] = fopen(filename[i].c_str(), "rb");
         qidx[i] = qindex::load(db[i]);
@@ -535,7 +538,7 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
 
     //Initialise the image.
     Log(LOG_VERBOSE, "Initialising image with %d ways\n", nways);
-	 img->NewImage(256 * magnification, 256 * magnification, _imgname.toStdString());
+	 img->NewImage(256 * magnification, 256 * magnification, _imgname.toLocal8Bit().constData() );
     img->SetBG(242, 238, 232);
     TIMELOG("Image initialisation");
 

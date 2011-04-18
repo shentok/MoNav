@@ -555,10 +555,7 @@ void MainWindow::gotoSource()
 	if ( !coordinate.IsValid() )
 		return;
 	m_ui->paintArea->setCenter( coordinate.ToProjectedCoordinate() );
-	if ( d->fixed )
-		m_ui->paintArea->setKeepPositionVisible( true );
-	else
-		m_ui->paintArea->setKeepPositionVisible( false );
+	m_ui->paintArea->setKeepPositionVisible( true );
 
 	IRenderer* renderer = MapData::instance()->renderer();
 	if ( renderer == NULL )

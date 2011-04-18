@@ -28,6 +28,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QBuffer>
 #include <QVector>
 #include <QDir>
+#include <algorithm>
 
 #include <string.h>
 

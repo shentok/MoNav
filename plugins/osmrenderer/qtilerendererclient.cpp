@@ -95,8 +95,7 @@ bool QtileRendererClient::load()
 	tileSize = 256;
 	for(int i=0;i<=18;i++) m_zoomLevels.push_back(i);
 
-	std::string dir = m_directory.toStdString();
-	twriter = new TileWriter(dir);
+	twriter = new TileWriter(m_directory);
 	m_renderThread = new QThread( this );
 	twriter->moveToThread( m_renderThread );
 	connect( this, SIGNAL(drawImage(QString,int,int,int,int)), twriter, SLOT(draw_image(QString,int,int,int,int)) );

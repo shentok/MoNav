@@ -93,7 +93,7 @@
 
 	  switch (ev->type()) {
 	  case QEvent::WindowStateChange:
-			parent->disconnect( this, SIGNAL(clicked()));
+			disconnect( parent );
 			if ( isFullScreen )
 				connect(this, SIGNAL(clicked()), parent, SLOT(showNormal()));
 			else
@@ -104,8 +104,7 @@
 			// fall through
 	  case QEvent::Resize:
 			if (isVisible())
-				 move(parent->width() - width(),
-						parent->height() - height());
+				 move( parent->width() - width(), parent->height() - height() );
 			break;
 	  default:
 			break;

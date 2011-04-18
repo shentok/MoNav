@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <vector>
 #include <QObject>
+#include <QString>
 #include "types.h"
 
 struct placename {
@@ -23,14 +24,14 @@ class DrawingRules {
         int red[2], green[2], blue[2];
         double width[2];
     };
-    DrawingRules(const std::string &_dir);
+	 DrawingRules(const std::string &filename);
     bool get_rule(osm_type_t type, int zoom, int pass,
                   int *r, int *g, int *b, double *width, bool *polygon);
   private:
     static void tokenise(const std::string &input, std::vector<std::string> &output);
     bool load_rules();
 
-    std::string dir;
+	 std::string filename;
     std::vector<struct DrawingRule> drawing_rules;
 };
 
@@ -46,7 +47,7 @@ signals:
 	void image_finished( int x, int y, int zoom, int magnification, QByteArray data );
 
 public:
-	TileWriter(const std::string &_dir);
+	TileWriter( QString dir );
 	virtual ~TileWriter() {}
 
 	void get_placenames(int x, int y, int zoom, int drawzoom, std::vector<struct placename> &result) const;
