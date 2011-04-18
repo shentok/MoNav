@@ -221,7 +221,7 @@ bool QtileRendererClient::Paint( QPainter* painter, const PaintRequest& request 
 			place_cache[used_tile_id] = pce;
 		}
 	}
-	QFont smallFont("Times", 8);
+	QFont smallFont("Times", 9);
 	painter->setFont(smallFont);
 	//Draw each loaded entry.
 	for(place_cache_t::iterator i = place_cache.begin();
@@ -238,14 +238,20 @@ bool QtileRendererClient::Paint( QPainter* painter, const PaintRequest& request 
 			if(j->tiley<minY || j->tiley>maxY) continue;
 			int posX = ( j->tilex - request.center.x * tileFactor ) * m_tileSize;
 			int posY = ( j->tiley - request.center.y * tileFactor ) * m_tileSize;
-			if(j->type==3) painter->setPen(QColor(100, 100, 255));
-			else painter->setPen(QColor(0, 0, 0));
 			QTransform old = painter->worldTransform();
 			QTransform unrotate(old);
 			unrotate.translate(posX, posY);
 			unrotate.rotate(-request.rotation);
 			unrotate.translate(-posX, -posY);
 			painter->setWorldTransform(unrotate);
+
+			painter->setPen(QColor(255, 255, 255));
+			painter->drawText(QPoint(posX+1, posY-1), QString(j->name.c_str()));
+			painter->drawText(QPoint(posX+1, posY+1), QString(j->name.c_str()));
+			painter->drawText(QPoint(posX-1, posY-1), QString(j->name.c_str()));
+			painter->drawText(QPoint(posX-1, posY+1), QString(j->name.c_str()));
+			if(j->type==3) painter->setPen(QColor(100, 100, 255));
+			else painter->setPen(QColor(0, 0, 0));
 			painter->drawText(QPoint(posX, posY), QString(j->name.c_str()));
 			painter->setWorldTransform(old);
 		}

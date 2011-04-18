@@ -626,11 +626,11 @@ void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
         if(fread(buf, namelen, 1, db[placenamedb])!=1) return;
 
         buf[namelen]=0;
-        if(p.type>=5 && actualzoom<16) continue; //ignore hamlets
-        if(p.type>=4 && actualzoom<15) continue; //and suburbs
-        if(p.type>=3 && actualzoom<14) continue; //and stations
-        if(p.type>=2 && actualzoom<13) continue; //and villages
-        if(p.type>=1 && actualzoom<11) continue;  //and towns
+        if(p.type>=5 && actualzoom<13) continue; //ignore hamlets
+        if(p.type>=4 && actualzoom<12) continue; //and suburbs
+        if(p.type>=3 && actualzoom<13) continue; //and stations
+        if(p.type>=2 && actualzoom<12) continue; //and villages
+        if(p.type>=1 && actualzoom<9) continue;  //and towns
 
         p.name = std::string(buf);
         result.push_back(p);

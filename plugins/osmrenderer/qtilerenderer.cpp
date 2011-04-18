@@ -81,12 +81,21 @@ struct osm_rules_t {
 
 struct osm_subrule_t waterway_rules[] = {
   {"stream",           WATERWAY},
+  {"river",            WATERWAY},
   {"canal",            WATERWAY},
+  {"ditch",            WATERWAY},
+  {"drain",            WATERWAY},
   {"riverbank",        AREA_WATER},
   {0, DONE}
 };
 struct osm_subrule_t railway_rules[] = {
  {"rail",              RW_RAIL},
+ {"light_rail",        RW_RAIL},
+ {"narrow_gauge",      RW_RAIL},
+ {"tram",              RW_RAIL},
+ {"monorail",          RW_RAIL},
+ {"subway",            RW_RAIL},
+ {"preserved",         RW_RAIL},
  {0, DONE}
 };
 struct osm_subrule_t landuse_rules[] = {
@@ -167,6 +176,12 @@ struct osm_subrule_t highway_rules[] = {
  { "motorway_link",    HW_MOTORWAY },
  { 0, DONE }
 };
+struct osm_subrule_t tracktype_rules[] = {
+ { "grade1",          HW_SERVICE },
+ { "grade2",          HW_UNSURFACED },
+ { "grade3",          HW_PATH },
+ { 0, DONE }
+};
 
 struct osm_rules_t osm_rules[] = {
   {"waterway", waterway_rules},
@@ -179,6 +194,7 @@ struct osm_rules_t osm_rules[] = {
   {"natural", natural_rules},
   {"building", building_rules},
   {"highway", highway_rules},
+  {"tracktype", tracktype_rules},
   {0, 0}
 };
 

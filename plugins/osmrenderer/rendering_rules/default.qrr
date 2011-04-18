@@ -1,5 +1,6 @@
 #Default qtile rendering rules
 Colour: WHITE         0xff 0xff 0xff
+Colour: GRAY_LIGHT       196  196  196
 Colour: BLACK            0    0    0
 Colour: C_ROAD_YELLOW  253  253  179
 Colour: B_ROAD_ORANGE  253  214  164
@@ -12,9 +13,10 @@ Colour: RAILWAY_BLACK  100  100  100
 #     Line types                   zooms rgbColour  Width  2ndColour 2ndWidth
 Line: HW_PRIMARY      HW_PRIMARY    6 11 A_ROAD_RED 2
 Line: HW_TRUNK        HW_TRUNK      6 11 A_ROAD_GREEN 3
-Line: HW_MOTORWAY     HW_MOTORWAY   6 11 MOTORWAY_BLUE 6
+Line: HW_MOTORWAY     HW_MOTORWAY   6 11 MOTORWAY_BLUE 4
 #Higher level zooms
-Line: HW_PEDESTRIAN   HW_UNSURFACED 14 20 80 80 80 1
+Line: HW_PATH         HW_PATH       12 20 BLACK 2.5       GRAY_LIGHT 2.2
+Line: HW_PEDESTRIAN   HW_UNSURFACED 12 20 BLACK 3         GRAY_LIGHT 2.7
 Line: HW_UNCLASSIFIED HW_SERVICE    13 13 BLACK 2         WHITE 1.5
 Line: HW_UNCLASSIFIED HW_SERVICE    14 14 BLACK 3.5       WHITE 2.5
 Line: HW_UNCLASSIFIED HW_SERVICE    15 20 BLACK 5         WHITE 4
