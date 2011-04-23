@@ -87,13 +87,16 @@ maemo5 {
 }
 
 RESOURCES += images.qrc
+RC_FILE = ../images/WindowsResources.rc
 
 LIBS += -L../bin/plugins_client -lmapnikrendererclient -lcontractionhierarchiesclient -lgpsgridclient -losmrendererclient -lunicodetournamenttrieclient -lqtilerendererclient
 
-#required by osmrendererclient
+# Required by osmrendererclient
 QT += network
 CONFIG += mobility
 MOBILITY += location
+# Required to get a non-debug build (at least on Windows)
+# CONFIG += release
 
 unix:!symbian {
     maemo5 {
