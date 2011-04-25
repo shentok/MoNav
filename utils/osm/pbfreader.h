@@ -26,6 +26,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils/qthelpers.h"
 #include <QHash>
 #include <QFile>
+#include <QtDebug>
 #include <string>
 #include <zlib.h>
 
@@ -55,16 +56,23 @@ public:
 		if ( !openQFile( &m_file, QIODevice::ReadOnly ) )
 			return false;
 
-		if ( !readBlockHeader() )
-			return false;
+		// find first OSMHeader block -> skip all non-OSM blocks
+		while ( true ) {
+			if ( !readBlockHeader() )
+				return false;
 
-		if ( m_blockHeader.type() != "OSMHeader" ) {
-			qCritical() << "OSMHeader missing, found" << m_blockHeader.type().data() << "instead";
-			return false;
+			// OSMData can only be found after a OSMHeader has been parsed
+			if ( m_blockHeader.type() == "OSMData" ) {
+				qCritical() << "OSMHeader missing, found OSMData";
+				return false;
+			}
+
+			if ( !readBlob() )
+				return false;
+
+			if ( m_blockHeader.type() == "OSMHeader" )
+				break;
 		}
-
-		if ( !readBlob() )
-			return false;
 
 		if ( !m_headerBlock.ParseFromArray( m_buffer.data(), m_buffer.size() ) ) {
 			qCritical() << "failed to parse HeaderBlock";
@@ -317,7 +325,7 @@ protected:
 			m_lastDenseLongitude = 0;
 			assert( group.dense().id_size() != 0 );
 		} else
-			assert( false );
+			qFatal( "Empty OSM group found: Not supported" );
 	}
 
 	void loadBlock()
@@ -340,21 +348,23 @@ protected:
 
 	bool readNextBlock()
 	{
-		if ( !readBlockHeader() )
-			return false;
+		// skip all non-OSM blocks
+		while ( true ) {
+			if ( !readBlockHeader() )
+				return false;
 
-		if ( m_blockHeader.type() != "OSMData" ) {
-			qCritical() << "invalid block type, found" << m_blockHeader.type().data() << "instead of OSMData";
-			return false;
+			if ( !readBlob() )
+				return false;
+
+			if ( m_blockHeader.type() == "OSMData" )
+				break;
 		}
-
-		if ( !readBlob() )
-			return false;
 
 		if ( !m_primitiveBlock.ParseFromArray( m_buffer.data(), m_buffer.size() ) ) {
 			qCritical() << "failed to parse PrimitiveBlock";
 			return false;
 		}
+
 		return true;
 	}
 
