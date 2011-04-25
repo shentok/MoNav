@@ -15,7 +15,9 @@ HEADERS += qtilerenderer.h \
 	 ../../interfaces/iimporter.h \
 	 ../../utils/coordinates.h \
 	 ../../utils/config.h \
-	 ../osmimporter/pbfreader.h
+	 ../../utils/osm/xmlreader.h \
+	 ../../utils/osm/ientityreader.h \
+	 ../../utils/osm/pbfreader.h \
 SOURCES += qtilerenderer.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 unix {

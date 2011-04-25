@@ -19,7 +19,7 @@ HEADERS += osmimporter.h \
 	 bz2input.h \
 	 ../../utils/intersection.h \
 	 ../../utils/qthelpers.h \
-	 xmlreader.h \
+	 ../../utils/osm/xmlreader.h \
 	 ../../utils/osm/ientityreader.h \
 	 ../../utils/osm/pbfreader.h \
 	 ../../utils/osm/types.h
