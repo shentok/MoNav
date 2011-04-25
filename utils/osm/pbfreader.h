@@ -74,23 +74,9 @@ public:
 				break;
 		}
 
-		if ( !m_headerBlock.ParseFromArray( m_buffer.data(), m_buffer.size() ) ) {
-			qCritical() << "failed to parse HeaderBlock";
+		if ( !parseOSMHeader() )
 			return false;
-		}
-		for ( int i = 0; i < m_headerBlock.required_features_size(); i++ ) {
-			const std::string& feature = m_headerBlock.required_features( i );
-			bool supported = false;
-			if ( feature == "OsmSchema-V0.6" )
-				supported = true;
-			else if ( feature == "DenseNodes" )
-				supported = true;
 
-			if ( !supported ) {
-				qCritical() << "required feature not supported:" << feature.data();
-				return false;
-			}
-		}
 		m_loadBlock = true;
 		return true;
 	}
@@ -149,6 +135,29 @@ protected:
 	int convertNetworkByteOrder( char data[4] )
 	{
 		return ( ( ( unsigned ) data[0] ) << 24 ) | ( ( ( unsigned ) data[1] ) << 16 ) | ( ( ( unsigned ) data[2] ) << 8 ) | ( unsigned ) data[3];
+	}
+
+	bool parseOSMHeader()
+	{
+		if ( !m_headerBlock.ParseFromArray( m_buffer.data(), m_buffer.size() ) ) {
+			qCritical() << "failed to parse HeaderBlock";
+			return false;
+		}
+
+		for ( int i = 0; i < m_headerBlock.required_features_size(); i++ ) {
+			const std::string& feature = m_headerBlock.required_features( i );
+			bool supported = false;
+			if ( feature == "OsmSchema-V0.6" )
+				supported = true;
+			else if ( feature == "DenseNodes" )
+				supported = true;
+
+			if ( !supported ) {
+				qCritical() << "required feature not supported:" << feature.data();
+				return false;
+			}
+		}
+		return true;
 	}
 
 	void parseNode( IEntityReader::Node* node )
@@ -356,7 +365,12 @@ protected:
 			if ( !readBlob() )
 				return false;
 
-			if ( m_blockHeader.type() == "OSMData" )
+			if ( m_blockHeader.type() == "OSMHeader" )
+			{
+				if ( !parseOSMHeader() )
+					qFatal( "Encounterted incompatible OSM Header" );
+			}
+			else if ( m_blockHeader.type() == "OSMData" )
 				break;
 		}
 
