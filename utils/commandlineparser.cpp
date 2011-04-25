@@ -142,7 +142,7 @@ bool CommandLineParser::parse( bool ignoreMissing )
 			return false;
 		}
 		if ( settings.size() > 1 ) {
-			qWarning() << "Ambigious command line option not available:" << args[i];
+			qWarning() << "Ambiguous command line option not available:" << args[i];
 			return false;
 		}
 
