@@ -22,11 +22,8 @@ HEADERS += osmimporter.h \
 	 xmlreader.h \
 	 ientityreader.h \
 	 pbfreader.h \
-	 lzma/Types.h \
-	 lzma/LzmaDec.h \
 	 types.h
 SOURCES += osmimporter.cpp \
-	 lzma/LzmaDec.c \
 	 types.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 unix {

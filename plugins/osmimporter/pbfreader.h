@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PBFREADER_H
-#define PBFREADER_H
+#ifndef PBFReader_H
+#define PBFReader_H
 
 #include "ientityreader.h"
 #include "fileformat.pb.h"
@@ -28,8 +28,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QFile>
 #include <string>
 #include <zlib.h>
-#include <bzlib.h>
-#include "lzma/LzmaDec.h"
 
 #define NANO ( 1000.0 * 1000.0 * 1000.0 )
 #define MAX_BLOCK_HEADER_SIZE ( 64 * 1024 )
@@ -149,7 +147,7 @@ protected:
 	{
 		node->tags.clear();
 
-		const PBF::Node& inputNode = m_primitiveBlock.primitivegroup( m_currentGroup ).nodes( m_currentEntity );
+		const OSMPBF::Node& inputNode = m_primitiveBlock.primitivegroup( m_currentGroup ).nodes( m_currentEntity );
 		node->id = inputNode.id();
 		node->coordinate.latitude = ( ( double ) inputNode.lat() * m_primitiveBlock.granularity() + m_primitiveBlock.lat_offset() ) / NANO;
 		node->coordinate.longitude = ( ( double ) inputNode.lon() * m_primitiveBlock.granularity() + m_primitiveBlock.lon_offset() ) / NANO;
@@ -179,7 +177,7 @@ protected:
 		way->tags.clear();
 		way->nodes.clear();
 
-		const PBF::Way& inputWay = m_primitiveBlock.primitivegroup( m_currentGroup ).ways( m_currentEntity );
+		const OSMPBF::Way& inputWay = m_primitiveBlock.primitivegroup( m_currentGroup ).ways( m_currentEntity );
 		way->id = inputWay.id();
 		for ( int tag = 0; tag < inputWay.keys_size(); tag++ ) {
 			int tagID = m_wayTagIDs[inputWay.keys( tag )];
@@ -213,7 +211,7 @@ protected:
 		relation->tags.clear();
 		relation->members.clear();
 
-		const PBF::Relation& inputRelation = m_primitiveBlock.primitivegroup( m_currentGroup ).relations( m_currentEntity );
+		const OSMPBF::Relation& inputRelation = m_primitiveBlock.primitivegroup( m_currentGroup ).relations( m_currentEntity );
 		relation->id = inputRelation.id();
 		for ( int tag = 0; tag < inputRelation.keys_size(); tag++ ) {
 			int tagID = m_relationTagIDs[inputRelation.keys( tag )];
@@ -229,13 +227,13 @@ protected:
 		for ( int i = 0; i < inputRelation.types_size(); i++ ) {
 			RelationMember member;
 			switch ( inputRelation.types( i ) ) {
-			case PBF::Relation::NODE:
+			case OSMPBF::Relation::NODE:
 				member.type = RelationMember::Node;
 				break;
-			case PBF::Relation::WAY:
+			case OSMPBF::Relation::WAY:
 				member.type = RelationMember::Way;
 				break;
-			case PBF::Relation::RELATION:
+			case OSMPBF::Relation::RELATION:
 				member.type = RelationMember::Relation;
 			}
 			lastRef += inputRelation.memids( i );
@@ -259,7 +257,7 @@ protected:
 	{
 		node->tags.clear();
 
-		const PBF::DenseNodes& dense = m_primitiveBlock.primitivegroup( m_currentGroup ).dense();
+		const OSMPBF::DenseNodes& dense = m_primitiveBlock.primitivegroup( m_currentGroup ).dense();
 		m_lastDenseID += dense.id( m_currentEntity );
 		m_lastDenseLatitude += dense.lat( m_currentEntity );
 		m_lastDenseLongitude += dense.lon( m_currentEntity );
@@ -304,7 +302,7 @@ protected:
 
 	void loadGroup()
 	{
-		const PBF::PrimitiveGroup& group = m_primitiveBlock.primitivegroup( m_currentGroup );
+		const OSMPBF::PrimitiveGroup& group = m_primitiveBlock.primitivegroup( m_currentGroup );
 		if ( group.nodes_size() != 0 ) {
 			m_mode = ModeNode;
 		} else if ( group.ways_size() != 0 ) {
@@ -410,12 +408,6 @@ protected:
 		} else if ( m_blob.has_zlib_data() ) {
 			if ( !unpackZlib() )
 				return false;
-		} else if ( m_blob.has_bzip2_data() ) {
-			if ( !unpackBzip2() )
-				return false;
-		} else if ( m_blob.has_lzma_data() ) {
-			if ( !unpackLzma() )
-				return false;
 		} else {
 			qCritical() << "Blob contains no data";
 			return false;
@@ -453,61 +445,11 @@ protected:
 		return true;
 	}
 
-	bool unpackBzip2()
-	{
-		unsigned size = m_blob.raw_size();
-		m_buffer.resize( size );
-		m_bzip2Buffer.resize( m_blob.bzip2_data().size() );
-		for ( unsigned i = 0; i < m_blob.bzip2_data().size(); i++ )
-			m_bzip2Buffer[i] = m_blob.bzip2_data()[i];
-		int ret = BZ2_bzBuffToBuffDecompress( m_buffer.data(), &size, m_bzip2Buffer.data(), m_bzip2Buffer.size(), 0, 0 );
-		if ( ret != BZ_OK ) {
-			qCritical() << "failed to unpack bzip2 stream";
-			return false;
-		}
-		return true;
-	}
+	OSMPBF::BlobHeader m_blockHeader;
+	OSMPBF::Blob m_blob;
 
-	static void *SzAlloc( void *p, size_t size)
-	{
-		p = p;
-		return malloc( size );
-	}
-
-	static void SzFree( void *p, void *address)
-	{
-		p = p;
-		free( address );
-	}
-
-	bool unpackLzma()
-	{
-		ISzAlloc alloc = { SzAlloc, SzFree };
-		ELzmaStatus status;
-		SizeT destinationLength = m_blob.raw_size();
-		SizeT sourceLength = m_blob.lzma_data().size() - LZMA_PROPS_SIZE + 8;
-		int ret = LzmaDecode(
-				( unsigned char* ) m_buffer.data(),
-				&destinationLength,
-				( const unsigned char* ) m_blob.lzma_data().data() + LZMA_PROPS_SIZE + 8,
-				&sourceLength,
-				( const unsigned char* ) m_blob.lzma_data().data(),
-				LZMA_PROPS_SIZE + 8,
-				LZMA_FINISH_END,
-				&status,
-				&alloc );
-
-		if ( ret != SZ_OK )
-			return false;
-
-		return true;
-	}
-
-	PBF::BlockHeader m_blockHeader;
-	PBF::Blob m_blob;
-
-	PBF::HeaderBlock m_headerBlock;
-	PBF::PrimitiveBlock m_primitiveBlock;
+	OSMPBF::HeaderBlock m_headerBlock;
+	OSMPBF::PrimitiveBlock m_primitiveBlock;
 
 	int m_currentGroup;
 	int m_currentEntity;
@@ -534,4 +476,4 @@ protected:
 
 };
 
-#endif // PBFREADER_H
+#endif // PBFReader_H
