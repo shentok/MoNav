@@ -378,12 +378,14 @@ void PreprocessingWindow::nextTask()
 	case TaskConfig:
 		if ( !PluginManager::instance()->writeConfig( m_ui->importerComboBox->currentText() ) )
 			taskFinished( false );
-		taskFinished( true );
+		else
+			taskFinished( true );
 		break;
 	case TaskDeleteTemporary:
 		if ( !PluginManager::instance()->deleteTemporaryFiles() )
 			taskFinished( false );
-		taskFinished( true );
+		else
+			taskFinished( true );
 		break;
 	}
 }
