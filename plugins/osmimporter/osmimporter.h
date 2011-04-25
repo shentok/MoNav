@@ -23,7 +23,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "interfaces/iimporter.h"
 #include "interfaces/iguisettings.h"
 #include "interfaces/iconsolesettings.h"
-#include "ientityreader.h"
+#include "../../utils/osm/ientityreader.h"
 #include "statickdtree.h"
 #include "types.h"
 #include "utils/intersection.h"

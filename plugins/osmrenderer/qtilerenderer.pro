@@ -1,8 +1,8 @@
 TEMPLATE = lib
 CONFIG += plugin static
 
-PROTOS = ../osmimporter/osmformat.proto ../osmimporter/fileformat.proto
-include(../osmimporter/protobuf.pri)
+PROTOS = ../../utils/osm/osmformat.proto ../../utils/osm/fileformat.proto
+include(../../utils/osm/protobuf.pri)
 
 PRE_TARGETDEPS += osmformat.pb.h fileformat.pb.h osmformat.pb.cc fileformat.pb.cc
 

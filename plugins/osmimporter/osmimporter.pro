@@ -1,8 +1,8 @@
 TEMPLATE = lib
 CONFIG += plugin static
 
-PROTOS = osmformat.proto fileformat.proto
-include(protobuf.pri)
+PROTOS = ../../utils/osm/osmformat.proto ../../utils/osm/fileformat.proto
+include(../../utils/osm/protobuf.pri)
 
 PRE_TARGETDEPS += osmformat.pb.h fileformat.pb.h osmformat.pb.cc fileformat.pb.cc
 
@@ -20,9 +20,9 @@ HEADERS += osmimporter.h \
 	 ../../utils/intersection.h \
 	 ../../utils/qthelpers.h \
 	 xmlreader.h \
-	 ientityreader.h \
-	 pbfreader.h \
-	 types.h
+	 ../../utils/osm/ientityreader.h \
+	 ../../utils/osm/pbfreader.h \
+	 ../../utils/osm/types.h
 SOURCES += osmimporter.cpp \
 	 types.cpp
 DESTDIR = ../../bin/plugins_preprocessor

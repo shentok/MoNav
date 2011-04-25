@@ -19,8 +19,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "qtilerenderer.h"
 #include "utils/qthelpers.h"
-#include "xmlreader.h"
-#include "pbfreader.h"
+#include "../../utils/osm/xmlreader.h"
+#include "../../utils/osm/pbfreader.h"
 #ifndef NOGUI
 #include "qrsettingsdialog.h"
 #endif
