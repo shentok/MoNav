@@ -279,7 +279,7 @@ protected:
 				if ( childName == NULL )
 					continue;
 
-				if ( depth == childDepth && childType == 15 && xmlStrEqual( childName, ( const xmlChar* ) "node" ) == 1 ) {
+				if ( depth == childDepth && childType == 15 && xmlStrEqual( childName, ( const xmlChar* ) "relation" ) == 1 ) {
 					xmlFree( childName );
 					break;
 				}
