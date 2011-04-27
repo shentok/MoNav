@@ -23,10 +23,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QWidget>
 #include "mapdata.h"
 
-namespace Ui {
-	class WorldMapChooser;
-}
-
 class WorldMapChooser : public QWidget
 {
 	Q_OBJECT
@@ -52,13 +48,12 @@ protected:
 	void showEvent( QShowEvent* );
 	void hideEvent( QHideEvent* );
 	void mouseReleaseEvent( QMouseEvent* event );
+	void paintEvent( QPaintEvent* );
 
 private:
 
 	struct PrivateImplementation;
 	PrivateImplementation*d ;
-
-	Ui::WorldMapChooser* m_ui;
 };
 
 #endif // WORLDMAPCHOOSER_H

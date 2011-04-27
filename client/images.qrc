@@ -42,9 +42,6 @@
         <file>../images/waypoint2.png</file>
         <file>../images/waypoint3.png</file>
         <file>../images/waypoint4.png</file>
-        <file>../images/world/world256x128_48.jpg</file>
-        <file>../images/world/world512x256_96.jpg</file>
-        <file>../images/world/world1024x512_192.jpg</file>
-        <file>../images/world/world2048x1024_384.jpg</file>
+        <file>../images/world/world-optimized.svgz</file>
     </qresource>
 </RCC>

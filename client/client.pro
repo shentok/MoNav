@@ -5,6 +5,8 @@
 TARGET = MoNavClient
 TEMPLATE = app
 
+QT += svg xml
+
 INCLUDEPATH += ..
 
 SOURCES += main.cpp \
@@ -70,8 +72,7 @@ FORMS += \
     mainwindow.ui \
     mapmoduleswidget.ui \
     placechooser.ui \
-    streetchooser.ui \
-    worldmapchooser.ui
+    streetchooser.ui
 
 DESTDIR = ../bin
 

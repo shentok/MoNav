@@ -18,7 +18,6 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "worldmapchooser.h"
-#include "ui_worldmapchooser.h"
 
 #include <algorithm>
 #include <QPixmap>
@@ -27,6 +26,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QDebug>
 #include <QMouseEvent>
 #include <QDir>
+#include <QSvgRenderer>
 
 struct WorldMapChooser::PrivateImplementation {
 	QVector< MapData::MapPackage > maps;
@@ -34,48 +34,41 @@ struct WorldMapChooser::PrivateImplementation {
 	double minY;
 	double maxX;
 	double maxY;
+	QRectF viewPort;
 	int highlight;
 	QVector< QRect > rects;
 
 	QString background;
+	QPixmap image;
+	QSvgRenderer svg;
 };
 
 WorldMapChooser::WorldMapChooser( QWidget* parent ) :
-		QWidget( parent ),
-		m_ui(new Ui::WorldMapChooser)
+		QWidget( parent )
 {
-	m_ui->setupUi(this);
 	d = new PrivateImplementation;
 	d->minX = 0;
 	d->minY = 0;
 	d->maxX = 1;
 	d->maxY = 1;
 
-	QDir dir( ":/images/world" );
-	// crude heuristic: the largest image will be the most accurate one
-	// in praxis only one image should exist as an appropiate one shouldbe selected during
-	// the build process
-	QStringList candidates = dir.entryList( QDir::Files, QDir::Size );
-	if ( !candidates.isEmpty() )
-		d->background = dir.filePath( candidates.first() );
+	d->svg.load( QString( ":/images/world/world-optimized.svgz" ) );
 }
 
 WorldMapChooser::~WorldMapChooser()
 {
 	delete d;
-	delete m_ui;
 }
 
 void WorldMapChooser::showEvent( QShowEvent* )
 {
 	QResizeEvent event( size(), size() );
-	resizeEvent( &event );
 }
 
 void WorldMapChooser::hideEvent( QHideEvent* )
 {
 	// save memory
-	m_ui->label->setPixmap( QPixmap() );
+	d->image = QPixmap();
 }
 
 void WorldMapChooser::setHighlight( int id )
@@ -105,8 +98,7 @@ void WorldMapChooser::mouseReleaseEvent( QMouseEvent* event )
 		}
 		d->highlight = result[next];
 		emit clicked( d->highlight );
-		QResizeEvent event( size(), size() );
-		resizeEvent( &event );
+		update();
 	}
 
 	event->accept();
@@ -121,18 +113,18 @@ void WorldMapChooser::setMaps( QVector<MapData::MapPackage> maps )
 		d->maxX = 1;
 		d->maxY = 1;
 	} else {
-		d->minX = 1;
-		d->minY = 1;
-		d->maxX = 0;
-		d->maxY = 0;
+		d->minX = std::numeric_limits< double >::max();
+		d->minY = std::numeric_limits< double >::max();
+		d->maxX = -std::numeric_limits< double >::max();
+		d->maxY = -std::numeric_limits< double >::max();
 
 		for ( int i = 0; i < maps.size(); i++ ) {
-			ProjectedCoordinate min = maps[i].min.ToProjectedCoordinate();
-			ProjectedCoordinate max = maps[i].max.ToProjectedCoordinate();
-			d->minX = std::min( min.x, d->minX );
-			d->maxX = std::max( max.x, d->maxX );
-			d->minY = std::min( min.y, d->minY );
-			d->maxY = std::max( max.y, d->maxY );
+			GPSCoordinate min = maps[i].min.ToGPSCoordinate();
+			GPSCoordinate max = maps[i].max.ToGPSCoordinate();
+			d->minX = std::min( min.longitude / 360.0 + 0.5, d->minX );
+			d->maxX = std::max( max.longitude / 360.0 + 0.5, d->maxX );
+			d->minY = std::min( -min.latitude / 180.0 + 0.5, d->minY );
+			d->maxY = std::max( -max.latitude / 180.0 + 0.5, d->maxY );
 		}
 
 		double rangeX = d->maxX - d->minX;
@@ -157,50 +149,57 @@ void WorldMapChooser::resizeEvent( QResizeEvent* event )
 	int width = event->size().width();
 	int height = event->size().height();
 
-	double rangeX = d->maxX - d->minX;
-	double rangeY = d->maxY - d->minY;
-	double minX = d->minX;
-	double maxX = d->maxX;
-	double minY = d->minY;
-	double maxY = d->maxY;
+	d->viewPort.setLeft( d->minX );
+	d->viewPort.setTop( d->minY );
+	d->viewPort.setRight( d->maxX );
+	d->viewPort.setBottom( d->maxY );
 
-	if ( rangeX / rangeY > ( double ) width / height ) {
-		double move = rangeX / width * height - rangeY;
-		minY -= move / 2;
-		maxY += move / 2;
-		rangeY = rangeX / width * height;
-	} else if ( rangeX / rangeY < ( double ) width / height ) {
-		double move = rangeY * width / height - rangeX;
-		minX -= move / 2;
-		maxX += move / 2;
-		rangeX = rangeY * width / height;
+	if ( d->viewPort.width() / d->viewPort.height() > ( double ) width / height ) {
+		double move = d->viewPort.width() / width * height - d->viewPort.height();
+		d->viewPort.setTop( d->viewPort.top() - move / 2 );
+		d->viewPort.setBottom( d->viewPort.bottom() + move / 2 );
+	} else if ( d->viewPort.width() / d->viewPort.height() < ( double ) width / height ) {
+		double move = d->viewPort.height() * width / height - d->viewPort.width();
+		d->viewPort.setLeft( d->viewPort.left() - move / 2 );
+		d->viewPort.setRight( d->viewPort.right() + move / 2 );
 	}
 
 	d->rects.clear();
 
-	QPixmap image( width, height );
-	if ( !image.isNull() )
+	d->image = QPixmap( width, height );
+	if ( !d->image.isNull() && d->image.width() != 0 && d->image.height() != 0 )
 	{
-		image.fill( Qt::transparent );
-		QPainter painter( &image );
-		QPixmap background( d->background );
-		painter.setRenderHint( QPainter::SmoothPixmapTransform );
-		painter.drawPixmap( QRect( 0, 0, width, height ), background, QRect( minX * background.width(), minY * background.width() - 192 / 1024.0 * background.width(), rangeX * background.width(), rangeY * background.width() ) );
+		d->image.fill( Qt::transparent );
+		QPainter painter( &d->image );
+		QRectF svgSize = d->svg.viewBoxF();
+		QRectF viewPort = QRectF( d->viewPort.left() * svgSize.width() + svgSize.left(), d->viewPort.top() * svgSize.height() + svgSize.top(), d->viewPort.width() * svgSize.width(), d->viewPort.height() * svgSize.height() );
+		d->svg.setViewBox( viewPort );
+		d->svg.render( &painter );
+		d->svg.setViewBox( svgSize );
 		for ( int i = 0; i < d->maps.size(); i++ ) {
-			ProjectedCoordinate min = d->maps[i].min.ToProjectedCoordinate();
-			ProjectedCoordinate max = d->maps[i].max.ToProjectedCoordinate();
-			int left = ( min.x - minX ) * width / rangeX;
-			int top = ( min.y - minY ) * height / rangeY;
-			int right = ( max.x - minX ) * width / rangeX;
-			int bottom = ( max.y - minY ) * height / rangeY;
-			if ( d->highlight == i )
-				painter.setBrush( QColor( 128, 128, 128, 128 ) );
-			else
-				painter.setBrush( Qt::NoBrush );
+			GPSCoordinate min = d->maps[i].min.ToGPSCoordinate();
+			GPSCoordinate max = d->maps[i].max.ToGPSCoordinate();
+			int left = ( min.longitude / 360.0 + 0.5 - d->viewPort.left() ) * width / d->viewPort.width();
+			int top = ( -min.latitude / 180.0 + 0.5 - d->viewPort.top() ) * height / d->viewPort.height();
+			int right = ( max.longitude / 360.0 + 0.5 - d->viewPort.left() ) * width / d->viewPort.width();
+			int bottom = ( -max.latitude / 180.0 + 0.5 - d->viewPort.top() ) * height / d->viewPort.height();
 			QRect rect( left, top, right - left, bottom - top );
-			painter.drawRect( rect );
 			d->rects.push_back( rect );
 		}
 	}
-	m_ui->label->setPixmap( image );
+}
+
+void WorldMapChooser::paintEvent( QPaintEvent* /*event*/ )
+{
+	QPainter painter( this );
+	if ( !d->image.isNull() )
+		painter.drawPixmap( 0, 0, d->image );
+	for ( int i = 0; i < d->rects.size(); i++ )
+	{
+		if ( d->highlight == i )
+			painter.setBrush( QColor( 128, 128, 128, 128 ) );
+		else
+			painter.setBrush( Qt::NoBrush );
+		painter.drawRect( d->rects[i] );
+	}
 }
