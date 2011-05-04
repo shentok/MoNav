@@ -400,11 +400,19 @@ struct PackerInfo {
 
 bool deleteDictionary( QString directory )
 {
+	qDebug() << "Deleting:" << directory;
+
 	QDir dir( directory );
 	if ( !dir.exists() )
 		return true;
+	dir.setFilter( QDir::Files );
 	foreach ( QString filename, dir.entryList() )
-		QFile::remove( dir.absoluteFilePath( filename ) );
+	{
+		QString file = dir.filePath( filename );
+		qDebug() << "Deleting:" << file;
+		if ( !QFile::remove( file ) )
+			qWarning() << "Failed to delete:" << file;
+	}
 
 	dir.cdUp();
 	if ( !dir.rmdir( directory ) )
@@ -522,14 +530,23 @@ bool PluginManager::processRoutingModule( QString moduleName, QString importer, 
 	}
 	dir.cd( dirName );
 
-	QSettings settings( fileInDirectory( dir.path(), "Module.ini" ), QSettings::IniFormat );
+	{
+		QSettings settings( fileInDirectory( dir.path(), "Module.ini" ), QSettings::IniFormat );
 
-	settings.setValue( "configVersion", 2 );
-	settings.setValue( "name", moduleName );
-	settings.setValue( "router", router );
-	settings.setValue( "gpsLookup", gpsLookup );
-	settings.setValue( "routerFileFormatVersion", d->routerPlugins[routerIndex]->GetFileFormatVersion() );
-	settings.setValue( "gpsLookupFileFormatVersion", d->gpsLookupPlugins[gpsLookupIndex]->GetFileFormatVersion() );
+		settings.setValue( "configVersion", 2 );
+		settings.setValue( "name", moduleName );
+		settings.setValue( "router", router );
+		settings.setValue( "gpsLookup", gpsLookup );
+		settings.setValue( "routerFileFormatVersion", d->routerPlugins[routerIndex]->GetFileFormatVersion() );
+		settings.setValue( "gpsLookupFileFormatVersion", d->gpsLookupPlugins[gpsLookupIndex]->GetFileFormatVersion() );
+
+		settings.sync();
+		if ( settings.status() != QSettings::NoError )
+		{
+			qCritical() << "Error writing config:" << settings.fileName();
+			return false;
+		}
+	}
 
 	if ( !async ) {
 		return runRouting( dir.path(), d->importerPlugins[importerIndex], d->routerPlugins[routerIndex], d->gpsLookupPlugins[gpsLookupIndex], PackerInfo( d->packaging, d->dictionarySize, d->blockSize ) );
@@ -562,12 +579,21 @@ bool PluginManager::processRenderingModule( QString moduleName, QString importer
 	}
 	dir.cd( dirName );
 
-	QSettings settings( fileInDirectory( dir.path(), "Module.ini" ), QSettings::IniFormat );
+	{
+		QSettings settings( fileInDirectory( dir.path(), "Module.ini" ), QSettings::IniFormat );
 
-	settings.setValue( "configVersion", 2 );
-	settings.setValue( "name", moduleName );
-	settings.setValue( "renderer", renderer );
-	settings.setValue( "rendererFileFormatVersion", d->rendererPlugins[rendererIndex]->GetFileFormatVersion() );
+		settings.setValue( "configVersion", 2 );
+		settings.setValue( "name", moduleName );
+		settings.setValue( "renderer", renderer );
+		settings.setValue( "rendererFileFormatVersion", d->rendererPlugins[rendererIndex]->GetFileFormatVersion() );
+
+		settings.sync();
+		if ( settings.status() != QSettings::NoError )
+		{
+			qCritical() << "Error writing config:" << settings.fileName();
+			return false;
+		}
+	}
 
 	if ( !async ) {
 		return runRendering( dir.path(), d->importerPlugins[importerIndex], d->rendererPlugins[rendererIndex], PackerInfo( d->packaging, d->dictionarySize, d->blockSize ) );
@@ -599,12 +625,21 @@ bool PluginManager::processAddressLookupModule( QString moduleName, QString impo
 	}
 	dir.cd( dirName );
 
-	QSettings settings( fileInDirectory( dir.path(), "Module.ini" ), QSettings::IniFormat );
+	{
+		QSettings settings( fileInDirectory( dir.path(), "Module.ini" ), QSettings::IniFormat );
 
-	settings.setValue( "configVersion", 2 );
-	settings.setValue( "name", moduleName );
-	settings.setValue( "addressLookup", addressLookup );
-	settings.setValue( "addressLookupFileFormatVersion", d->addressLookupPlugins[addressLookupIndex]->GetFileFormatVersion() );
+		settings.setValue( "configVersion", 2 );
+		settings.setValue( "name", moduleName );
+		settings.setValue( "addressLookup", addressLookup );
+		settings.setValue( "addressLookupFileFormatVersion", d->addressLookupPlugins[addressLookupIndex]->GetFileFormatVersion() );
+
+		settings.sync();
+		if ( settings.status() != QSettings::NoError )
+		{
+			qCritical() << "Error writing config:" << settings.fileName();
+			return false;
+		}
+	}
 
 	if ( !async ) {
 		return runAddressLookup( dir.path(), d->importerPlugins[importerIndex], d->addressLookupPlugins[addressLookupIndex], PackerInfo( d->packaging, d->dictionarySize, d->blockSize ) );
@@ -640,7 +675,10 @@ bool PluginManager::writeConfig( QString importer )
 
 	configFile.sync();
 	if ( configFile.status() != QSettings::NoError )
+	{
+		qCritical() << "Error writing config:" << configFile.fileName();
 		return false;
+	}
 
 	return true;
 }
