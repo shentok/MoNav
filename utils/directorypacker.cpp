@@ -287,7 +287,7 @@ bool DirectoryPacker::compress( int dictionarySize, int blockSize )
 	qDebug() << "Compress directory:" << d->dir << ", block size:" << blockSize << ", dictionary size:" << dictionarySize;
 
 	QDir dir( d->dir );
-	d->outputFile.setFileName( dir.filePath( d->dir ) + ".mmm" );
+	d->outputFile.setFileName( QDir::cleanPath( dir.absolutePath() ) + ".mmm" );
 	if ( !openQFile( &d->outputFile, QIODevice::WriteOnly ) )
 		return false;
 

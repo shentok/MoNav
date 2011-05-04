@@ -47,7 +47,6 @@ public:
 		listPlugins = false;
 		importing = false;
 		config = false;
-		package = false;
 		del = false;
 		verbose = false;
 		help = false;
@@ -174,7 +173,7 @@ public:
 			del = true;
 			break;
 		case DoPackage:
-			package = true;
+			pluginManager->setPackaging( true );
 			break;
 		case ModuleBlockSize:
 			pluginManager->setBlockSize( data.toInt( &ok ) );
@@ -218,7 +217,6 @@ public:
 	QString routingModule;
 	QString renderingModule;
 	QString addressLookupModule;
-	bool package;
 	bool config;
 	bool del;
 	QString settings;
