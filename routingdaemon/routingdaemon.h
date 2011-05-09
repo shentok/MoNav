@@ -121,11 +121,9 @@ protected:
 				if ( i != 1 )
 					result.pathNodes.pop_back();
 				double segmentDistance;
-				GPSCoordinate source( command.waypoints[i - 1].latitude, command.waypoints[i - 1].longitude );
-				GPSCoordinate target( command.waypoints[i].latitude, command.waypoints[i].longitude );
 				pathNodes.clear();
 				pathEdges.clear();
-				if ( !computeRoute( &segmentDistance, &pathNodes, &pathEdges, source, target, command.lookupRadius ) ) {
+				if ( !computeRoute( &segmentDistance, &pathNodes, &pathEdges, command.waypoints[i-1], command.waypoints[i], command.lookupRadius ) ) {
 					success = false;
 					break;
 				}
@@ -208,25 +206,25 @@ protected:
 		m_server->close();
 	}
 
-	bool computeRoute( double* resultDistance, QVector< IRouter::Node >* resultNodes, QVector< IRouter::Edge >* resultEdge, GPSCoordinate source, GPSCoordinate target, double lookupRadius )
+	bool computeRoute( double* resultDistance, QVector< IRouter::Node >* resultNodes, QVector< IRouter::Edge >* resultEdge, Node source, Node target, double lookupRadius )
 	{
 		if ( m_gpsLookup == NULL || m_router == NULL ) {
 			qCritical() << "tried to query route before setting valid data directory";
 			return false;
 		}
-		UnsignedCoordinate sourceCoordinate( source );
-		UnsignedCoordinate targetCoordinate( target );
+		UnsignedCoordinate sourceCoordinate( GPSCoordinate( source.latitude, source.longitude ) );
+		UnsignedCoordinate targetCoordinate( GPSCoordinate( target.latitude, target.longitude ) );
 		IGPSLookup::Result sourcePosition;
 		QTime time;
 		time.start();
-		bool found = m_gpsLookup->GetNearestEdge( &sourcePosition, sourceCoordinate, lookupRadius );
+		bool found = m_gpsLookup->GetNearestEdge( &sourcePosition, sourceCoordinate, lookupRadius, source.headingPenalty, source.heading );
 		qDebug() << "GPS Lookup:" << time.restart() << "ms";
 		if ( !found ) {
 			qDebug() << "no edge near source found";
 			return false;
 		}
 		IGPSLookup::Result targetPosition;
-		found = m_gpsLookup->GetNearestEdge( &targetPosition, targetCoordinate, lookupRadius );
+		found = m_gpsLookup->GetNearestEdge( &targetPosition, targetCoordinate, lookupRadius, target.headingPenalty, target.heading );
 		qDebug() << "GPS Lookup:" << time.restart() << "ms";
 		if ( !found ) {
 			qDebug() << "no edge near target found";

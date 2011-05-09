@@ -65,11 +65,15 @@ namespace MoNav {
 	struct Node {
 		double latitude;
 		double longitude;
+		double headingPenalty;
+		double heading;
 
 		friend QDataStream& operator<< ( QDataStream& out, const Node& node )
 		{
 			out << node.latitude;
 			out << node.longitude;
+			out << node.headingPenalty;
+			out << node.heading;
 			return out;
 		}
 
@@ -77,6 +81,8 @@ namespace MoNav {
 		{
 			in >> node.latitude;
 			in >> node.longitude;
+			in >> node.headingPenalty;
+			in >> node.heading;
 			return in;
 		}
 	};
