@@ -109,14 +109,22 @@ bool GPSGridClient::UnloadData()
 	return true;
 }
 
-bool GPSGridClient::GetNearestEdge( Result* result, const UnsignedCoordinate& coordinate, double radius, bool headingPenalty, double heading )
+bool GPSGridClient::GetNearestEdge( Result* result, const UnsignedCoordinate& coordinate, double radius, double headingPenalty, double heading )
 {
 	const GPSCoordinate gps = coordinate.ToProjectedCoordinate().ToGPSCoordinate();
-	const GPSCoordinate gpsMoved( gps.latitude, gps.longitude + 1 );
 
-	const double meter = gps.ApproximateDistance( gpsMoved );
-	double gridRadius = (( double ) UnsignedCoordinate( ProjectedCoordinate( gpsMoved ) ).x - coordinate.x ) / meter * radius;
-	gridRadius *= gridRadius;
+	const GPSCoordinate gpsMoved( gps.latitude, gps.longitude + 1 );
+	const double unsigned_per_meter = (( double ) UnsignedCoordinate( ProjectedCoordinate( gpsMoved ) ).x - coordinate.x ) / gps.ApproximateDistance( gpsMoved );
+
+	// Convert radius and headingPenalty from meters to unsigned^2.
+	double gridRadius = unsigned_per_meter * radius;
+	double gridRadius2 = gridRadius * gridRadius;
+
+	double gridHeadingPenalty = unsigned_per_meter * headingPenalty;
+	double gridHeadingPenalty2 = gridHeadingPenalty * gridHeadingPenalty;
+
+	// Convert heading from 'degrees from North' to 'radians from x-axis'
+	// (clockwise, 	[0, 0] is topleft corner, [1, 1] is bottomright corner).
 	heading = fmod( ( heading + 270 ) * 2.0 * M_PI / 360.0, 2 * M_PI );
 
 	static const int width = 32 * 32 * 32;
@@ -125,20 +133,22 @@ bool GPSGridClient::GetNearestEdge( Result* result, const UnsignedCoordinate& co
 	NodeID yGrid = floor( position.y * width );
 	NodeID xGrid = floor( position.x * width );
 
-	result->gridDistance2 = gridRadius;
+	// Set the distance to the nearest edge initially to infinity.
+	result->gridDistance2 = 1e20;
+
 	QVector< UnsignedCoordinate > path;
 
-	checkCell( result, &path, xGrid - 1, yGrid - 1, coordinate, heading, headingPenalty );
-	checkCell( result, &path, xGrid - 1, yGrid, coordinate, heading, headingPenalty );
-	checkCell( result, &path, xGrid - 1, yGrid + 1, coordinate, heading, headingPenalty );
+	checkCell( result, &path, xGrid - 1, yGrid - 1, coordinate, gridRadius2, gridHeadingPenalty2, heading );
+	checkCell( result, &path, xGrid - 1, yGrid, coordinate, gridRadius2, gridHeadingPenalty2, heading );
+	checkCell( result, &path, xGrid - 1, yGrid + 1, coordinate, gridRadius2, gridHeadingPenalty2, heading );
 
-	checkCell( result, &path, xGrid, yGrid - 1, coordinate, heading, headingPenalty );
-	checkCell( result, &path, xGrid, yGrid, coordinate, heading, headingPenalty );
-	checkCell( result, &path, xGrid, yGrid + 1, coordinate, heading, headingPenalty );
+	checkCell( result, &path, xGrid, yGrid - 1, coordinate, gridRadius2, gridHeadingPenalty2, heading );
+	checkCell( result, &path, xGrid, yGrid, coordinate, gridRadius2, gridHeadingPenalty2, heading );
+	checkCell( result, &path, xGrid, yGrid + 1, coordinate, gridRadius2, gridHeadingPenalty2, heading );
 
-	checkCell( result, &path, xGrid + 1, yGrid - 1, coordinate, heading, headingPenalty );
-	checkCell( result, &path, xGrid + 1, yGrid, coordinate, heading, headingPenalty );
-	checkCell( result, &path, xGrid + 1, yGrid + 1, coordinate, heading, headingPenalty );
+	checkCell( result, &path, xGrid + 1, yGrid - 1, coordinate, gridRadius2, gridHeadingPenalty2, heading );
+	checkCell( result, &path, xGrid + 1, yGrid, coordinate, gridRadius2, gridHeadingPenalty2, heading );
+	checkCell( result, &path, xGrid + 1, yGrid + 1, coordinate, gridRadius2, gridHeadingPenalty2, heading );
 
 	if ( path.empty() )
 		return false;
@@ -165,7 +175,7 @@ bool GPSGridClient::GetNearestEdge( Result* result, const UnsignedCoordinate& co
 	return true;
 }
 
-bool GPSGridClient::checkCell( Result* result, QVector< UnsignedCoordinate >* path, NodeID gridX, NodeID gridY, const UnsignedCoordinate& coordinate, double heading, double headingPenalty ) {
+bool GPSGridClient::checkCell( Result* result, QVector< UnsignedCoordinate >* path, NodeID gridX, NodeID gridY, const UnsignedCoordinate& coordinate, double gridRadius2, double gridHeadingPenalty2, double heading ) {
 	static const int width = 32 * 32 * 32;
 	ProjectedCoordinate minPos( ( double ) gridX / width, ( double ) gridY / width );
 	ProjectedCoordinate maxPos( ( double ) ( gridX + 1 ) / width, ( double ) ( gridY + 1 ) / width );
@@ -204,22 +214,23 @@ bool GPSGridClient::checkCell( Result* result, QVector< UnsignedCoordinate >* pa
 			double percentage = 0;
 
 			double gd2 = gridDistance2( &nearestPoint, &percentage, sourceCoord, targetCoord, coordinate );
-			if ( gd2 + heading_penalty > result->gridDistance2 )
+
+			// Do 2 independent checks:
+			//  * gd2 with gridRadius
+			//  * gd2 (+ gridHeadingPenalty2) with result->gridDistance2
+			if ( gd2 > gridRadius2 || gd2 > result->gridDistance2 ) {
 				continue;
+			}
 
 			double xDiff = ( double ) targetCoord.x - sourceCoord.x;
 			double yDiff = ( double ) targetCoord.y - sourceCoord.y;
-			double direction = 0;
-			if ( xDiff != 0 || yDiff != 0 )
-				direction = fmod( atan2( yDiff, xDiff ), 2 * M_PI );
-			else
-				headingPenalty = 0;
-			double penalty = fabs( direction - heading );
+			double direction = fmod( atan2( yDiff, xDiff ), 2 * M_PI );
+			double penalty = fmod( fabs( direction - heading ), 2 * M_PI );
 			if ( penalty > M_PI )
 				penalty = 2 * M_PI - penalty;
 			if ( i->bidirectional && penalty > M_PI / 2 )
 				penalty = M_PI - penalty;
-			penalty = penalty / M_PI * headingPenalty;
+			penalty = penalty / M_PI * gridHeadingPenalty2;
 			gd2 += penalty;
 
 			if ( gd2 < result->gridDistance2 ) {
