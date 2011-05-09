@@ -125,7 +125,7 @@ bool GPSGridClient::GetNearestEdge( Result* result, const UnsignedCoordinate& co
 	NodeID yGrid = floor( position.y * width );
 	NodeID xGrid = floor( position.x * width );
 
-	result->distance = gridRadius;
+	result->gridDistance2 = gridRadius;
 	QVector< UnsignedCoordinate > path;
 
 	checkCell( result, &path, xGrid - 1, yGrid - 1, coordinate, heading, headingPenalty );
@@ -171,7 +171,7 @@ bool GPSGridClient::checkCell( Result* result, QVector< UnsignedCoordinate >* pa
 	ProjectedCoordinate maxPos( ( double ) ( gridX + 1 ) / width, ( double ) ( gridY + 1 ) / width );
 	UnsignedCoordinate min( minPos );
 	UnsignedCoordinate max( maxPos );
-	if ( distance( min, max, coordinate ) >= result->distance )
+	if ( gridDistance2( min, max, coordinate ) >= result->gridDistance2 )
 		return false;
 
 	qint64 cellNumber = ( qint64( gridX ) << 32 ) + gridY;
@@ -203,8 +203,8 @@ bool GPSGridClient::checkCell( Result* result, QVector< UnsignedCoordinate >* pa
 			UnsignedCoordinate targetCoord = cell->coordinates[pathID + i->pathID];
 			double percentage = 0;
 
-			double d = distance( &nearestPoint, &percentage, sourceCoord, targetCoord, coordinate );
-			if ( d + headingPenalty > result->distance )
+			double gd2 = gridDistance2( &nearestPoint, &percentage, sourceCoord, targetCoord, coordinate );
+			if ( gd2 + heading_penalty > result->gridDistance2 )
 				continue;
 
 			double xDiff = ( double ) targetCoord.x - sourceCoord.x;
@@ -220,11 +220,11 @@ bool GPSGridClient::checkCell( Result* result, QVector< UnsignedCoordinate >* pa
 			if ( i->bidirectional && penalty > M_PI / 2 )
 				penalty = M_PI - penalty;
 			penalty = penalty / M_PI * headingPenalty;
-			d += penalty;
+			gd2 += penalty;
 
-			if ( d < result->distance ) {
+			if ( gd2 < result->gridDistance2 ) {
 				result->nearestPoint = nearestPoint;
-				result->distance = d;
+				result->gridDistance2 = gd2;
 				result->previousWayCoordinates = pathID;
 				result->percentage = percentage;
 				found = true;
@@ -244,7 +244,7 @@ bool GPSGridClient::checkCell( Result* result, QVector< UnsignedCoordinate >* pa
 	return true;
 }
 
-double GPSGridClient::distance( UnsignedCoordinate* nearestPoint, double* percentage, const UnsignedCoordinate source, const UnsignedCoordinate target, const UnsignedCoordinate& coordinate ) {
+double GPSGridClient::gridDistance2( UnsignedCoordinate* nearestPoint, double* percentage, const UnsignedCoordinate source, const UnsignedCoordinate target, const UnsignedCoordinate& coordinate ) {
 	const double vY = ( double ) target.y - source.y;
 	const double vX = ( double ) target.x - source.x;
 	const double wY = ( double ) coordinate.y - source.y;
@@ -277,7 +277,7 @@ double GPSGridClient::distance( UnsignedCoordinate* nearestPoint, double* percen
 	return dY * dY + dX * dX;
 }
 
-double GPSGridClient::distance( const UnsignedCoordinate& min, const UnsignedCoordinate& max, const UnsignedCoordinate& coordinate ) {
+double GPSGridClient::gridDistance2( const UnsignedCoordinate& min, const UnsignedCoordinate& max, const UnsignedCoordinate& coordinate ) {
 	UnsignedCoordinate nearest = coordinate;
 
 	if ( coordinate.x <= min.x )

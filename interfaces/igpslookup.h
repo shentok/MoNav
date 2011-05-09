@@ -40,8 +40,9 @@ public:
 		unsigned previousWayCoordinates;
 		// the position on the way
 		double percentage;
-		// the distance to the nearest point
-		double distance;
+		// the distance to the nearest point squared
+		// Units: unsigned (from UnsignedCoordinate) squared
+		double gridDistance2;
 
 	};
 
