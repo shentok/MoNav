@@ -222,16 +222,18 @@ bool GPSGridClient::checkCell( Result* result, QVector< UnsignedCoordinate >* pa
 				continue;
 			}
 
-			double xDiff = ( double ) targetCoord.x - sourceCoord.x;
-			double yDiff = ( double ) targetCoord.y - sourceCoord.y;
-			double direction = fmod( atan2( yDiff, xDiff ), 2 * M_PI );
-			double penalty = fmod( fabs( direction - heading ), 2 * M_PI );
-			if ( penalty > M_PI )
-				penalty = 2 * M_PI - penalty;
-			if ( i->bidirectional && penalty > M_PI / 2 )
-				penalty = M_PI - penalty;
-			penalty = penalty / M_PI * gridHeadingPenalty2;
-			gd2 += penalty;
+			if ( gridHeadingPenalty2 > 0 ) {
+				double xDiff = ( double ) targetCoord.x - sourceCoord.x;
+				double yDiff = ( double ) targetCoord.y - sourceCoord.y;
+				double direction = fmod( atan2( yDiff, xDiff ), 2 * M_PI );
+				double penalty = fmod( fabs( direction - heading ), 2 * M_PI );
+				if ( penalty > M_PI )
+					penalty = 2 * M_PI - penalty;
+				if ( i->bidirectional && penalty > M_PI / 2 )
+					penalty = M_PI - penalty;
+				penalty = penalty / M_PI * gridHeadingPenalty2;
+				gd2 += penalty;
+			}
 
 			if ( gd2 < result->gridDistance2 ) {
 				result->nearestPoint = nearestPoint;
