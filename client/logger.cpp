@@ -38,9 +38,12 @@ Logger::Logger( QObject* parent ) :
 
 Logger::~Logger()
 {
-	writeGpxLog();
 }
 
+void Logger::cleanup()
+{
+	writeGpxLog();
+}
 
 void Logger::initialize()
 {
