@@ -101,9 +101,15 @@ RoutingLogic::RoutingLogic() :
 
 RoutingLogic::~RoutingLogic()
 {
+	delete d;
+}
+
+void RoutingLogic::cleanup()
+{
+	disconnect();
 #ifndef NOQTMOBILE
 	if ( d->gpsSource != NULL )
-		delete d->gpsSource;
+		d->gpsSource->deleteLater();
 #endif
 	QSettings settings( "MoNavClient" );
 	settings.beginGroup( "Routing" );
@@ -114,7 +120,6 @@ RoutingLogic::~RoutingLogic()
 		settings.setValue( QString( "routepointx%1" ).arg( i + 1 ), d->waypoints[i].x );
 		settings.setValue( QString( "routepointy%1" ).arg( i + 1 ), d->waypoints[i].y );
 	}
-	delete d;
 }
 
 RoutingLogic* RoutingLogic::instance()
@@ -178,7 +183,7 @@ bool RoutingLogic::gpsLink() const
 	return d->linked;
 }
 
-const RoutingLogic::GPSInfo& RoutingLogic::gpsInfo() const
+const RoutingLogic::GPSInfo RoutingLogic::gpsInfo() const
 {
 	return d->gpsInfo;
 }
