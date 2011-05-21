@@ -372,19 +372,19 @@ class qindex {
 qindex *qindex::load(FILE *fp)
 {
     Log(LOG_DEBUG, "Load index\n");
-    if(!fp) return false;
+    if(!fp) return NULL;
     char tmp[100];
     if(!fgets(tmp, 100, fp)) return false;
     if(strncmp(tmp, DB_VERSION, strlen(DB_VERSION))) {
         Log(LOG_ERROR, "Not a DB file, or wrong version\n");
-        return false;
+        return NULL;
     }
     char *s=strstr(tmp, "depth=");
     int max_safe_zoom;
     if(s) max_safe_zoom = atoi(s+6);
     else {
         Log(LOG_ERROR, "Can't read maximum safe zoom\n");
-        return false;
+        return NULL;
     }
 
     unsigned char buf[8];
@@ -480,7 +480,13 @@ TileWriter::TileWriter( QString dir )
 	 filename[2] = fileInDirectory( dir, "places.pqdb" ).toLocal8Bit().constData();
     for(int i=0;i<3;i++) {
         db[i] = fopen(filename[i].c_str(), "rb");
-        qidx[i] = qindex::load(db[i]);
+		if(db[i]) {
+			qidx[i] = qindex::load(db[i]);
+			if(!qidx[i]) {
+				fclose(db[i]);
+				db[i]=NULL;
+			}
+		}
         printf("Opening %s\n", filename[i].c_str());
     }
 
