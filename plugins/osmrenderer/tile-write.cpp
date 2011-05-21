@@ -466,9 +466,18 @@ long qindex::get_index(quadtile _q, int _level, int *_nways)
         if(result!=-1) return result;
     }
     //If execution reaches here, _q/_level refers to a tile within us
-    //which none of our children claim - ie. an empty section of this tile.
-    *_nways = 0;
-    return 0;
+    //which none of our children claim. This is either because we are
+	//nearly empty (and therefore didn't bother with children), or as
+	//_q/_level refers to an empty corner of a high level tile.
+	for(int i=0;i<4;i++) {
+		if(child[i]) { //We have children. It's an empty corner.
+			*_nways = 0;
+			return 0;
+		}
+	}
+	//We didn't have enough ways to bother with children.
+	*_nways = nways;
+	return offset;
 }
 
 TileWriter::TileWriter( QString dir )
