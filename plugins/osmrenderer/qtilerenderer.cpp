@@ -996,6 +996,9 @@ bool OSMReader::load(const QString &filename)
 		chunk++;
 	}
 	qDebug() << "Qtile: pass " << chunk+1 << " (final pass - reading nodes only)";
+	if(chunk) qDebug() << "Qtile:    loading " << nodes_to_load.size() << \
+			" nodes for the " << ways.size() << \
+			" ways in the previous pass";
 	if(!load_xml(filename, 1)) return false;
 #endif
 
@@ -1372,7 +1375,7 @@ void qtile_writer::write_placenames(vector<placename> &placenames)
 	qindexTree qidx;
 	for(vector<placename>::iterator i = placenames.begin();
 		i!=placenames.end(); i++) {
-		int len = i->name.size();
+		int len = i->name.toUtf8().size();
 		if(len>100) len=100;
 		qidx.addIndex(i->position, file_offset);
 		file_offset += len+10;
@@ -1396,11 +1399,11 @@ void qtile_writer::write_placenames(vector<placename> &placenames)
 	for(vector<placename>::iterator i = placenames.begin();
 		i!=placenames.end(); i++) {
 		memcpy(buf, ll2buf(i->position), 8);
-		int len = i->name.size();
+		int len = i->name.toUtf8().size();
 		if(len>100) len=100;
 		buf[8] = len>100 ? 100 : len;
 		buf[9] = (unsigned char) i->type;
-		strncpy(buf+10, i->name.toAscii(), 100);
+		strncpy(buf+10, i->name.toUtf8().constData(), 100);
 		fwrite(buf, len+10, 1, place_fp);
 	}
 	fclose(place_fp);

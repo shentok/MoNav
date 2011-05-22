@@ -650,7 +650,7 @@ void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
         if(p.type>=2 && actualzoom<12) continue; //and villages
         if(p.type>=1 && actualzoom<9) continue;  //and towns
 
-        p.name = std::string(buf);
+        p.name = QString::fromUtf8(buf);
         result.push_back(p);
     }
 }

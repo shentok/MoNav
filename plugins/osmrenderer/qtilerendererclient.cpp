@@ -245,13 +245,13 @@ bool QtileRendererClient::Paint( QPainter* painter, const PaintRequest& request 
 			painter->setWorldTransform(unrotate);
 
 			painter->setPen(QColor(255, 255, 255));
-			painter->drawText(QPoint(posX+1, posY-1), QString(j->name.c_str()));
-			painter->drawText(QPoint(posX+1, posY+1), QString(j->name.c_str()));
-			painter->drawText(QPoint(posX-1, posY-1), QString(j->name.c_str()));
-			painter->drawText(QPoint(posX-1, posY+1), QString(j->name.c_str()));
+			painter->drawText(QPoint(posX+1, posY-1), j->name);
+			painter->drawText(QPoint(posX+1, posY+1), j->name);
+			painter->drawText(QPoint(posX-1, posY-1), j->name);
+			painter->drawText(QPoint(posX-1, posY+1), j->name);
 			if(j->type==3) painter->setPen(QColor(100, 100, 255));
 			else painter->setPen(QColor(0, 0, 0));
-			painter->drawText(QPoint(posX, posY), QString(j->name.c_str()));
+			painter->drawText(QPoint(posX, posY), j->name);
 			painter->setWorldTransform(old);
 		}
 		i++;

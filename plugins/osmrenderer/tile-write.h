@@ -11,7 +11,7 @@
 struct placename {
     double tilex, tiley; // fractional x/y tile coords.
     char type;
-    std::string name;
+    QString name;
 };
 
 class DrawingRules {
