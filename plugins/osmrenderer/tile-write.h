@@ -10,7 +10,8 @@
 
 struct placename {
     double tilex, tiley; // fractional x/y tile coords.
-    char type;
+    typedef enum {CITY=0, TOWN=1, VILLAGE=2, STATION=3, SUBURB=4, HAMLET=5} types;
+    types type;
     QString name;
 };
 

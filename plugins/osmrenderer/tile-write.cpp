@@ -56,9 +56,6 @@ static void Log(enum logLevel lvl, const char *fmt, ...)
     va_end(argp);
 }
 
-/*Way. FIXME this class has been ported across
-  from another application in which it needed far more functionality.
-  Needs pruning and lots of clean up */
 struct coord {
     unsigned long x, y;
 };
@@ -70,15 +67,15 @@ class Way {
     bool draw(ImgWriter &img, DrawingRules & rules,
               unsigned long tilex, unsigned long tiley,
               int zoom, int magnification, int pass);
-    static bool sort_by_type(Way w1, Way w2) {return w1.type<w2.type;};
+	osm_type_t type() {return _type;};
+    static bool sort_by_type(Way w1, Way w2) {return w1._type<w2._type;};
     static void new_tile() {allcoords.clear();};
-    osm_type_t type;
 
   private:
+    osm_type_t _type;
     int coordi, ncoords;
     static std::vector<coord> allcoords; //Coords for all loaded ways.
 };
-
 std::vector<coord> Way::allcoords;
 
 //Initialise a way from the database. fp has been seeked to the start of the
@@ -91,7 +88,7 @@ bool Way::init(FILE *fp)
             Log(LOG_ERROR, "Failure to read any of the way\n");
             return false;
     }
-    type = (osm_type_t) buf[0];
+    _type = (osm_type_t) buf[0];
     int nqtiles = (((int) buf[1]) << 8) | buf[2];
 
     coord c;
@@ -101,7 +98,6 @@ bool Way::init(FILE *fp)
     ncoords = 1;
     allcoords.push_back(c);
     
-
     //Add the cordinates
     for(int i=1;i<nqtiles;i++) {
         if(fread(buf, 4, 1, fp)!=1) {
@@ -119,19 +115,16 @@ bool Way::init(FILE *fp)
     return true;
 }
 
-static int g_nways=0, g_ndrawnways=0;
 //Draw this way to an img tile.
 bool Way::draw(ImgWriter &img, DrawingRules & rules,
               unsigned long tilex, unsigned long tiley,
               int zoom, int magnification, int pass)
 {
-    g_nways++;
     int r, g, b;
     double width;
     bool polygon;
-    if(!rules.get_rule(type, zoom, pass, &r, &g, &b, &width, &polygon)) return false;
+    if(!rules.get_rule(_type, zoom, pass, &r, &g, &b, &width, &polygon)) return false;
     img.SetPen(r, g, b, width * magnification);
-    g_ndrawnways++;
 
     int oldx=0, oldy=0;
     
@@ -143,6 +136,8 @@ bool Way::draw(ImgWriter &img, DrawingRules & rules,
     for(std::vector<coord>::iterator i=allcoords.begin() + coordi;
         i!=allcoords.begin() + coordi + ncoords; i++){
         int newx, newy;
+
+        //At low level zooms we just draw the start and end of each line.
         if(zoom<10 && i!=allcoords.begin() + coordi)
             i = allcoords.begin() + coordi + ncoords -1;
         //The coords are in the range 0 to 1ULL<<31
@@ -498,7 +493,6 @@ TileWriter::TileWriter( QString dir )
 		}
         printf("Opening %s\n", filename[i].c_str());
     }
-
 }
 
 /*Static function. Way types that are drawn similarly (eg.
@@ -539,8 +533,9 @@ bool TileWriter::query_index(int x, int y, int zoom, int cur_db, int *nways) con
 }
 
 //The main entry point into the class. Draw the map tile described by x, y
-//and zoom, and save it into _imgname if it is not an empty string. The tile
-//is held in memory and the raw image data can be accessed by get_img_data()
+//and zoom. The tile is drawn into memory and the raw image data emitted as
+//a signal once drawn. If _imgname is not empty the image will be saved into
+//a file (used for debugging/developing only).
 bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnification)
 {
     TIMELOGINIT("Draw_image");
@@ -587,14 +582,14 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
     //This is a pain. We have to do both passes of one type before moving on to
     //the next type.
     Log(LOG_VERBOSE, "Drawing ways\n");
-    int current_type = waylist.begin()->type;
+    int current_type = waylist.begin()->type();
     std::vector<Way>::iterator cur_type_start, i, j;
     cur_type_start = waylist.begin();
     for(i=waylist.begin(); i!=waylist.end(); i++) {
-        if(need_next_pass(i->type, current_type)) { //Do the second pass.
+        if(need_next_pass(i->type(), current_type)) { //Do the second pass.
             for(j=cur_type_start; j!=i; j++) 
                 if(!j->draw(*img, dr, itilex, itiley, zoom, magnification, 1)) break;
-            current_type = i->type;
+            current_type = i->type();
             cur_type_start = i;
         }
         i->draw(*img, dr, itilex, itiley, zoom, magnification, 0);
@@ -611,7 +606,6 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
     
     //for(i=waylist.begin();i!=waylist.end();i++) delete *i;
     TIMELOG("Cleanup");
-    Log(LOG_VERBOSE, "Drew %d/%d ways\n", g_ndrawnways, g_nways);
 
 	 emit image_finished( x, y, zoom, magnification, QByteArray( ( const char* ) img->get_img_data(), 256 * magnification * 256 * magnification * 3 ) );
     return true;
@@ -633,7 +627,7 @@ void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
         if(fread(ubuf, 10, 1, db[placenamedb])!=1) return;
 
         struct placename p;
-        p.type = ubuf[9];
+        p.type = (placename::types) ubuf[9];
         int namelen = ubuf[8];
         quadtile q = buf2ll(ubuf);
         quadtile x, y;
@@ -644,11 +638,11 @@ void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
         if(fread(buf, namelen, 1, db[placenamedb])!=1) return;
 
         buf[namelen]=0;
-        if(p.type>=5 && actualzoom<13) continue; //ignore hamlets
-        if(p.type>=4 && actualzoom<12) continue; //and suburbs
-        if(p.type>=3 && actualzoom<13) continue; //and stations
-        if(p.type>=2 && actualzoom<12) continue; //and villages
-        if(p.type>=1 && actualzoom<9) continue;  //and towns
+        if(p.type>=placename::HAMLET && actualzoom<13) continue;
+        if(p.type>=placename::SUBURB && actualzoom<12) continue;
+        if(p.type>=placename::STATION && actualzoom<13) continue;
+        if(p.type>=placename::VILLAGE && actualzoom<12) continue;
+        if(p.type>=placename::TOWN && actualzoom<9) continue;
 
         p.name = QString::fromUtf8(buf);
         result.push_back(p);
