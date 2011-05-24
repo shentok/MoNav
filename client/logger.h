@@ -54,6 +54,9 @@ public slots:
 	void initialize();
 	void clearTracklog();
 
+	// destroys the object
+	void cleanup();
+
 signals:
 	void trackChanged();
 

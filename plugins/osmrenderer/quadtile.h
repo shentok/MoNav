@@ -12,11 +12,11 @@ quadtile buf2ll(const unsigned char *s)
     return result;
 }
 
-// Unserialize an unsigned long from 4 bytes
-unsigned long buf2l(const unsigned char *s)
+// Unserialize an unsigned long from n bytes
+unsigned long buf2l(const unsigned char *s, int n=4)
 {
     unsigned long result=0;
-    for(int i=0; i<4;i++)
+    for(int i=0; i<n;i++)
         result = (result << 8UL) | s[i];
     return result;
 }

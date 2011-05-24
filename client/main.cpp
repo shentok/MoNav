@@ -20,6 +20,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QtGui/QApplication>
 #include "mainwindow.h"
 #include "mapdata.h"
+#include "routinglogic.h"
+#include "logger.h"
 #include <QMessageBox>
 #include <QtPlugin>
 #include <QThread>
@@ -85,6 +87,8 @@ int main(int argc, char *argv[])
 	QApplication a(argc, argv);
 	qInstallMsgHandler( MessageBoxHandler );
 	a.connect( &a, SIGNAL(aboutToQuit()), MapData::instance(), SLOT(cleanup()) );
+	a.connect( &a, SIGNAL(aboutToQuit()), RoutingLogic::instance(), SLOT(cleanup()) );
+	a.connect( &a, SIGNAL(aboutToQuit()), Logger::instance(), SLOT(cleanup()) );
 	MainWindow w;
 	w.show();
 	return a.exec();

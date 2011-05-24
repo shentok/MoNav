@@ -66,7 +66,7 @@ public:
 	// is the source linked to the GPS reciever?
 	bool gpsLink() const;
 	// GPS information
-	const GPSInfo& gpsInfo() const;
+	const GPSInfo gpsInfo() const;
 	// clears the waypoints/ target / route
 	void clear();
 	// driving instruction for the current route
@@ -96,6 +96,9 @@ public slots:
 	void setTarget( UnsignedCoordinate target );
 	// links / unlinks GPS and source coordinate
 	void setGPSLink( bool linked );
+
+	// destroys this object
+	void cleanup();
 
 protected:
 

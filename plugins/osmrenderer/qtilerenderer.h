@@ -74,10 +74,10 @@ public:
 
 protected:
 
-	void write_ways(QString &dir, bool motorway);
 	void write_placenames(QString &dir);
 
 	class OSMReader *m_osr;
+	class qtile_writer *m_qtw;
 	QString m_directory;
 	Settings m_settings;
 };

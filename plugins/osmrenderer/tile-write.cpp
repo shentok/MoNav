@@ -7,6 +7,7 @@ Current issues:
 */
 
 #include "../../utils/qthelpers.h"
+#include <QCache>
 
 #include <string>
 #include <string.h>
@@ -52,13 +53,10 @@ static void Log(enum logLevel lvl, const char *fmt, ...)
     va_list argp;
 
     va_start(argp, fmt);
-    if(lvl>=LOG_VERBOSE) vfprintf(stdout, fmt, argp);
+    vfprintf(stdout, fmt, argp);
     va_end(argp);
 }
 
-/*Way. FIXME this class has been ported across
-  from another application in which it needed far more functionality.
-  Needs pruning and lots of clean up */
 struct coord {
     unsigned long x, y;
 };
@@ -70,15 +68,15 @@ class Way {
     bool draw(ImgWriter &img, DrawingRules & rules,
               unsigned long tilex, unsigned long tiley,
               int zoom, int magnification, int pass);
-    static bool sort_by_type(Way w1, Way w2) {return w1.type<w2.type;};
+	osm_type_t type() {return _type;};
+    static bool sort_by_type(Way w1, Way w2) {return w1._type<w2._type;};
     static void new_tile() {allcoords.clear();};
-    osm_type_t type;
 
   private:
+    osm_type_t _type;
     int coordi, ncoords;
     static std::vector<coord> allcoords; //Coords for all loaded ways.
 };
-
 std::vector<coord> Way::allcoords;
 
 //Initialise a way from the database. fp has been seeked to the start of the
@@ -91,7 +89,7 @@ bool Way::init(FILE *fp)
             Log(LOG_ERROR, "Failure to read any of the way\n");
             return false;
     }
-    type = (osm_type_t) buf[0];
+    _type = (osm_type_t) buf[0];
     int nqtiles = (((int) buf[1]) << 8) | buf[2];
 
     coord c;
@@ -101,7 +99,6 @@ bool Way::init(FILE *fp)
     ncoords = 1;
     allcoords.push_back(c);
     
-
     //Add the cordinates
     for(int i=1;i<nqtiles;i++) {
         if(fread(buf, 4, 1, fp)!=1) {
@@ -119,19 +116,16 @@ bool Way::init(FILE *fp)
     return true;
 }
 
-static int g_nways=0, g_ndrawnways=0;
 //Draw this way to an img tile.
 bool Way::draw(ImgWriter &img, DrawingRules & rules,
               unsigned long tilex, unsigned long tiley,
               int zoom, int magnification, int pass)
 {
-    g_nways++;
     int r, g, b;
     double width;
     bool polygon;
-    if(!rules.get_rule(type, zoom, pass, &r, &g, &b, &width, &polygon)) return false;
+    if(!rules.get_rule(_type, zoom, pass, &r, &g, &b, &width, &polygon)) return false;
     img.SetPen(r, g, b, width * magnification);
-    g_ndrawnways++;
 
     int oldx=0, oldy=0;
     
@@ -143,6 +137,8 @@ bool Way::draw(ImgWriter &img, DrawingRules & rules,
     for(std::vector<coord>::iterator i=allcoords.begin() + coordi;
         i!=allcoords.begin() + coordi + ncoords; i++){
         int newx, newy;
+
+        //At low level zooms we just draw the start and end of each line.
         if(zoom<10 && i!=allcoords.begin() + coordi)
             i = allcoords.begin() + coordi + ncoords -1;
         //The coords are in the range 0 to 1ULL<<31
@@ -353,23 +349,48 @@ void DrawingRules::tokenise(const std::string &input, std::vector<std::string> &
 
 /* A recursive index class into the quadtile way database. */
 class qindex {
+friend class qindex_e;
  public:
-   static qindex *load(FILE *fp);
-   long get_index(quadtile q, int _level, int *_nways=NULL);
-
-   int max_safe_zoom;
+	qindex(FILE *_fp) : fp(_fp) {};
+	bool read_header();
+	long get_index(quadtile q, int _level, int *_nways);
+	bool read_entry(int entry_no, int _level, class qindex_e *result);
  private:
-   qindex(){level = -1;};
-
-   qindex *child[4];
-   long long q, qmask;
-   long offset;
-   int nways;
-   int level;
+	QCache<int, class qindex_e> cache;
+	int nitems;
+	int max_safe_zoom;
+	FILE *fp;
+	long index_start;
 };
 
-//Static function to load the index from the start of the DB
-qindex *qindex::load(FILE *fp)
+/* An entry in the qindex */
+class qindex_e {
+friend class qindex;
+  public:
+	qindex_e(qindex *_qidx) : qidx(_qidx)  {};
+	bool load(int _level);
+	bool get_child_id(int childno, int *id) {
+		if(child[childno] >= 0xFFFFFE) return false;
+		*id = child[childno];
+		return true;
+	};
+	bool is_leaf() {
+		for(int i=0;i<4;i++)
+			if(child[i] < 0xFFFFFE) return false;
+		return true;
+	};
+	static const int qindex_e_size = 28;
+  private:
+	class qindex *qidx;
+	long child[4];
+	//long long q;
+	long offset;
+	int nways;
+	int level;
+};
+const int qindex_e::qindex_e_size;
+
+bool qindex::read_header()
 {
     Log(LOG_DEBUG, "Load index\n");
     if(!fp) return false;
@@ -380,70 +401,70 @@ qindex *qindex::load(FILE *fp)
         return false;
     }
     char *s=strstr(tmp, "depth=");
-    int max_safe_zoom;
     if(s) max_safe_zoom = atoi(s+6);
     else {
         Log(LOG_ERROR, "Can't read maximum safe zoom\n");
         return false;
     }
 
+    index_start = strlen(tmp)+3;
     unsigned char buf[8];
     memset(buf, 0, 8);
     if(fread(buf+5, 3, 1, fp)!=1) {
         Log(LOG_ERROR, "Failed to read index file\n");
-        return NULL;
+        return false;
     }
-    int nidx = (int) buf2ll(buf);
-    Log(LOG_DEBUG, "Load %d index items\n", nidx);
+    nitems = (int) buf2ll(buf);
+    Log(LOG_DEBUG, "Index with %d items\n", nitems);
+    return true;
+}
 
-    qindex *result;
-    result = new qindex[nidx];
-    result->max_safe_zoom = max_safe_zoom;
-    result[0].level = 0;
-    result[0].qmask = 0x3FFFFFFFFFFFFFFFLL;
+//Load the entry_no index entry from the index file into result. We cache this
+//using QCache and entry_no as a key.
+bool qindex::read_entry(int entry_no, int _level, qindex_e *result)
+{
+	if(entry_no >= 0xFFFFFE) {
+		Log(LOG_CRITICAL, "read_entry asked to read a non-existant entry\n");
+		return false;
+	}
+	qindex_e * c = cache[entry_no];
+	if(c) {
+		*result = *c;
+		return true;
+	}
 
-    for(int i=0; i<nidx;i++) {
-        result[i].max_safe_zoom = max_safe_zoom;
-        if(result[i].level==-1) {
-            Log(LOG_ERROR, "Inconsistent index file - orphaned child\n");
-            delete result;
-            return NULL;
-        }
-        unsigned char buf[28];
-        if(fread(buf, 28, 1, fp)!=1) {
-            Log(LOG_ERROR, "Failed read of index file\n");
-            delete result;
-            return NULL;
-        }
-        result[i].q = buf2ll(buf);
-        result[i].offset = (buf[8] << 24) |
-                           (buf[9] << 16) |
-                           (buf[10]<< 8) |
-                            buf[11];
-        result[i].nways  = (buf[12] << 24) |
-                           (buf[13] << 16) |
-                           (buf[14]<< 8) |
-                            buf[15];
+	result->qidx = this;
+	if(fseek(fp, entry_no * qindex_e::qindex_e_size + index_start, SEEK_SET)==-1) {
+		Log(LOG_ERROR, "Failed to seek to index entry\n");
+		return false;
+	}
+	if(result->load(_level)){
+		c = new qindex_e(*result);
+		cache.insert(entry_no, c);
+		return true;
+	}
+	else return false;
+}
 
-        //nways = buf[12];
-        for(int j=0;j<4;j++) {
-            long child_offset = (buf[16+j*3] << 16) |
-                                (buf[17+j*3] << 8) |
-                                 buf[18+j*3];
-            if(child_offset>=0xFFFFFE) result[i].child[j]=NULL;
-            else {
-                result[i].child[j] = result + child_offset;
-                if(child_offset > nidx) {
-                    Log(LOG_ERROR, "Inconsistent index file - child too big %x %d\n", (int)child_offset, i);
-                    delete result;
-                    return NULL;
-                }
-                result[i].child[j]->level = result[i].level+1;
-                result[i].child[j]->qmask = result[i].qmask >> 2;
-            }
-        }
-    }
-    return result;
+/*Load a single index entry from disk*/
+bool qindex_e::load(int _level)
+{
+	level = _level;
+	unsigned char buf[qindex_e_size];
+	if(fread(buf, qindex_e_size, 1, qidx->fp)!=1) {
+		Log(LOG_ERROR, "Failed read of index file\n");
+		return false;
+	}
+	//The first 8 bytes give q. q can be derived from this
+	//entries position in the index structure. The next version of the db
+	//will not use these bytes (and qindex_e_size will be 20 instead of 28).
+	//q = buf2ll(buf);
+	offset = buf2l(buf+8);
+	nways = buf2l(buf+12);
+
+	for(int j=0;j<4;j++)
+		child[j] = buf2l(buf+16+j*3, 3);
+	return true;
 }
 
 //Get the offset into the DB file where we can read the first way from
@@ -451,39 +472,53 @@ qindex *qindex::load(FILE *fp)
 //_level map tile as _q
 long qindex::get_index(quadtile _q, int _level, int *_nways)
 {
-    if(_level > max_safe_zoom) _level = max_safe_zoom;
-    if((_q & (~qmask))!=q) return(-1); //We don't contain _q
-    //We contain _q.
-    if(_level==level) {
-        //If we are the same level as the request, we have the answer.
-        *_nways = nways;
-        return offset;
-    }
-    //See whether our children have the answer
-    long result=-1;
-    for(int i=0;i<4;i++) {
-        if(child[i]) result = child[i]->get_index(_q, _level, _nways);
-        if(result!=-1) return result;
-    }
-    //If execution reaches here, _q/_level refers to a tile within us
-    //which none of our children claim - ie. an empty section of this tile.
-    *_nways = 0;
-    return 0;
+	*_nways = 0;
+	if(_level > max_safe_zoom) _level = max_safe_zoom;
+
+	qindex_e qnode(this), qchild(this);
+	if(!read_entry(0, 0, &qnode)) return -1;
+
+	for(int i = 0; i <= _level; i++) {
+		if(_level == qnode.level || qnode.is_leaf()) { //We have the answer
+			*_nways = qnode.nways;
+			return qnode.offset;
+		}
+		//The next two most significant binary digits of _q which we haven't yet
+		//used tell us which child contains _q.
+		int childno = (_q & (0x3LL << (60-i*2))) >> (60-i*2);
+		int id;
+		if(!qnode.get_child_id(childno, &id)) { //The child is empty
+			*_nways = 0;
+			return 0;
+		}
+		if(!read_entry(id, qnode.level+1, &qchild)) return -1;
+		qnode = qchild;
+	}
+	Log(LOG_CRITICAL, "Ooops. Reached end of qindex::get_index\n");
+	*_nways = 0;
+	return 0;
 }
 
 TileWriter::TileWriter( QString dir )
 	 : dr(fileInDirectory( dir, "rendering.qrr" ).toLocal8Bit().constData() )
 {
-    img = new ImgWriter;
-	 filename[0] = fileInDirectory( dir, "ways.all.pqdb" ).toLocal8Bit().constData();
-	 filename[1] = fileInDirectory( dir, "ways.motorway.pqdb" ).toLocal8Bit().constData();
-	 filename[2] = fileInDirectory( dir, "places.pqdb" ).toLocal8Bit().constData();
-    for(int i=0;i<3;i++) {
-        db[i] = fopen(filename[i].c_str(), "rb");
-        qidx[i] = qindex::load(db[i]);
-        printf("Opening %s\n", filename[i].c_str());
-    }
-
+	img = new ImgWriter;
+	filename[0] = fileInDirectory( dir, "ways.all.pqdb" ).toLocal8Bit().constData();
+	filename[1] = fileInDirectory( dir, "ways.motorway.pqdb" ).toLocal8Bit().constData();
+	filename[2] = fileInDirectory( dir, "places.pqdb" ).toLocal8Bit().constData();
+	for(int i=0;i<3;i++) {
+		db[i] = fopen(filename[i].c_str(), "rb");
+		if(db[i]) {
+			qidx[i] = new qindex(db[i]);
+			if(!qidx[i]->read_header()) {
+				fclose(db[i]);
+				db[i]=NULL;
+				delete qidx[i];
+				qidx[i]=NULL;
+			}
+		}
+	printf("Opening %s\n", filename[i].c_str());
+	}
 }
 
 /*Static function. Way types that are drawn similarly (eg.
@@ -507,14 +542,12 @@ bool TileWriter::query_index(int x, int y, int zoom, int cur_db, int *nways) con
     long z = 1UL << zoom;
     double xf = ((double)x)/z;
     double yf = ((double)y)/z;
-    quadtile qmask, q;
-    qmask = 0x3FFFFFFFFFFFFFFFLL >> ((zoom>qidx[cur_db]->max_safe_zoom ? qidx[cur_db]->max_safe_zoom : zoom)*2);
-    //binary_printf(qmask); binary_printf(q);
+    quadtile q;
     q = xy2q(xf, yf);
 
     Log(LOG_VERBOSE, "Finding seek point\n");
     //Seek to the relevant point in the db.
-    long offset = qidx[cur_db]->get_index(q & ~qmask, zoom, nways);
+    long offset = qidx[cur_db]->get_index(q , zoom, nways);
     if(*nways==0) return true;
     if(offset==-1 || fseek(db[cur_db], offset, SEEK_SET)==-1) {
         Log(LOG_ERROR, "Failed to find index\n");
@@ -524,8 +557,9 @@ bool TileWriter::query_index(int x, int y, int zoom, int cur_db, int *nways) con
 }
 
 //The main entry point into the class. Draw the map tile described by x, y
-//and zoom, and save it into _imgname if it is not an empty string. The tile
-//is held in memory and the raw image data can be accessed by get_img_data()
+//and zoom. The tile is drawn into memory and the raw image data emitted as
+//a signal once drawn. If _imgname is not empty the image will be saved into
+//a file (used for debugging/developing only).
 bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnification)
 {
     TIMELOGINIT("Draw_image");
@@ -535,6 +569,7 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
 
     int nways;
     if(!query_index(x, y, zoom, current_db, &nways)) return false;
+    TIMELOG("Querying index");
 
     //Initialise the image.
     Log(LOG_VERBOSE, "Initialising image with %d ways\n", nways);
@@ -572,14 +607,14 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
     //This is a pain. We have to do both passes of one type before moving on to
     //the next type.
     Log(LOG_VERBOSE, "Drawing ways\n");
-    int current_type = waylist.begin()->type;
+    int current_type = waylist.begin()->type();
     std::vector<Way>::iterator cur_type_start, i, j;
     cur_type_start = waylist.begin();
     for(i=waylist.begin(); i!=waylist.end(); i++) {
-        if(need_next_pass(i->type, current_type)) { //Do the second pass.
+        if(need_next_pass(i->type(), current_type)) { //Do the second pass.
             for(j=cur_type_start; j!=i; j++) 
                 if(!j->draw(*img, dr, itilex, itiley, zoom, magnification, 1)) break;
-            current_type = i->type;
+            current_type = i->type();
             cur_type_start = i;
         }
         i->draw(*img, dr, itilex, itiley, zoom, magnification, 0);
@@ -595,10 +630,9 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
     TIMELOG("Saving");
     
     //for(i=waylist.begin();i!=waylist.end();i++) delete *i;
-    TIMELOG("Cleanup");
-    Log(LOG_VERBOSE, "Drew %d/%d ways\n", g_ndrawnways, g_nways);
 
 	 emit image_finished( x, y, zoom, magnification, QByteArray( ( const char* ) img->get_img_data(), 256 * magnification * 256 * magnification * 3 ) );
+    TIMELOG("Emitting result");
     return true;
 }
 
@@ -618,7 +652,7 @@ void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
         if(fread(ubuf, 10, 1, db[placenamedb])!=1) return;
 
         struct placename p;
-        p.type = ubuf[9];
+        p.type = (placename::types) ubuf[9];
         int namelen = ubuf[8];
         quadtile q = buf2ll(ubuf);
         quadtile x, y;
@@ -629,13 +663,13 @@ void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
         if(fread(buf, namelen, 1, db[placenamedb])!=1) return;
 
         buf[namelen]=0;
-        if(p.type>=5 && actualzoom<13) continue; //ignore hamlets
-        if(p.type>=4 && actualzoom<12) continue; //and suburbs
-        if(p.type>=3 && actualzoom<13) continue; //and stations
-        if(p.type>=2 && actualzoom<12) continue; //and villages
-        if(p.type>=1 && actualzoom<9) continue;  //and towns
+        if(p.type>=placename::HAMLET && actualzoom<13) continue;
+        if(p.type>=placename::SUBURB && actualzoom<12) continue;
+        if(p.type>=placename::STATION && actualzoom<13) continue;
+        if(p.type>=placename::VILLAGE && actualzoom<12) continue;
+        if(p.type>=placename::TOWN && actualzoom<9) continue;
 
-        p.name = std::string(buf);
+        p.name = QString::fromUtf8(buf);
         result.push_back(p);
     }
 }
