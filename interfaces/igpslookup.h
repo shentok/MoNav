@@ -59,6 +59,6 @@ public:
 	virtual bool GetNearestEdge( Result* result, const UnsignedCoordinate& coordinate, double radius, double headingPenalty = 0, double heading = 0 ) = 0;
 };
 
-Q_DECLARE_INTERFACE( IGPSLookup, "monav.IGPSLookup/1.1" )
+Q_DECLARE_INTERFACE( IGPSLookup, "monav.IGPSLookup/1.2" )
 
 #endif // IGPSLOOKUP_H
