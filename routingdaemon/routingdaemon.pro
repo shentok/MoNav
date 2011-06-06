@@ -19,12 +19,13 @@ unix {
 LIBS += -L../bin/plugins_client -lcontractionhierarchiesclient -lgpsgridclient
 
 SOURCES += \
-	 main.cpp \
+	 routingdaemon.cpp \
 	 ../utils/lzma/LzmaDec.c \
 	 ../utils/directoryunpacker.cpp
 
 HEADERS += \
 	 signals.h \
+	 routingcommon.h \
 	 routingdaemon.h \
 	 ../utils/lzma/LzmaDec.h \
 	 ../utils/directoryunpacker.h
