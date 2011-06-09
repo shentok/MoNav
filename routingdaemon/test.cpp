@@ -124,16 +124,16 @@ int main( int argc, char *argv[] ) {
 			QString name = reply.edge_names( edge.name_id() ).c_str();
 			QString type = reply.edge_types( edge.type_id() ).c_str();
 
-			qDebug() << "name:" << name.toUtf8() << "type:" << type << "nodes:" << edge.length() + 1 << "seconds:" << edge.seconds() << "branching possible:" << edge.branching_possible();
+			qDebug() << "name:" << name.toUtf8() << "type:" << type << "nodes:" << edge.n_segments() + 1 << "seconds:" << edge.seconds() << "branching possible:" << edge.branching_possible();
 
-			for ( unsigned j = 0; j <= edge.length(); j++ ) {
+			for ( unsigned j = 0; j <= edge.n_segments(); j++ ) {
 				QString latitude, longitude;
 				Node node = reply.nodes( j + n_nodes );
 				latitude.setNum( node.latitude(), 'g', 10 );
 				longitude.setNum( node.longitude(), 'g', 10 );
 				qDebug() << latitude.toLatin1().data() << longitude.toLatin1().data();
 			}
-			n_nodes += reply.edges(i).length();
+			n_nodes += reply.edges(i).n_segments();
 		}
 	} else {
 		qDebug() << "return value not recognized";

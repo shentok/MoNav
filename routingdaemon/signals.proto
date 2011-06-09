@@ -25,12 +25,12 @@ message CommandType {
     UNPACK_COMMAND = 2;
   }
 
-  optional Type value = 1;
+  required Type value = 1;
 }
 
 message Node {
-  optional double latitude = 1;
-  optional double longitude = 2;
+  required double latitude = 1;
+  required double longitude = 2;
 
   // Penalty in meters for edge with direction opposite of heading.
   optional double heading_penalty = 3 [default = 0];
@@ -40,8 +40,8 @@ message Node {
 }
 
 message Edge {
-  // Length of the edge == number of edges it represents == number of nodes - 1.
-  optional uint32 length = 1;
+  // Number of segments in this edge == number of nodes - 1.
+  required uint32 n_segments = 1;
 
   // Name ID of the edge.
   optional uint32 name_id = 2;
@@ -58,7 +58,7 @@ message Edge {
 }
 
 message RoutingCommand {
-  optional string data_directory = 1;
+  required string data_directory = 1;
 
   optional double lookup_radius = 2 [default = 10000];
   optional bool lookup_edge_names = 3 [default = false];
@@ -75,7 +75,7 @@ message RoutingResult {
     TYPE_LOOKUP_FAILED = 5;
   }
 
-  optional Type type = 1;
+  required Type type = 1;
 
   optional double seconds = 2;
 
@@ -86,7 +86,7 @@ message RoutingResult {
 }
 
 message UnpackCommand {
-  optional string map_module_file = 1;
+  required string map_module_file = 1;
 
   // Delete file after unpacking?
   optional bool delete_file = 2 [default = false];
@@ -98,5 +98,5 @@ message UnpackResult {
     FAIL_UNPACKING = 2;
   }
 
-  optional Type type = 1;
+  required Type type = 1;
 }

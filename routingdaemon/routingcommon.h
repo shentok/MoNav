@@ -152,7 +152,7 @@ protected:
 
 				for ( int j = 0; j < pathEdges.size(); j++ ) {
 					MoNav::Edge* edge = result.add_edges();
-					edge->set_length( pathEdges[j].length );
+					edge->set_n_segments( pathEdges[j].length );
 					edge->set_name_id( pathEdges[j].name );
 					edge->set_type_id( pathEdges[j].type );
 					edge->set_seconds( pathEdges[j].seconds );
