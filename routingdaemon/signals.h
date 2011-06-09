@@ -52,7 +52,7 @@ namespace MoNav {
 			qDebug("Posting message of size: %d",  size);
 
 			// Write message.
-			// c_str() is \0-terminated, data() is not.
+			// For std::string, c_str() is \0-terminated, data() is not.
 			out->write( buffer.c_str(), size );
 		}
 
@@ -81,21 +81,21 @@ namespace MoNav {
 
 			QByteArray buffer = in->read( size );
 
-			/* Parse message, after converting from QByteArray to std::string.
+			/* Parse message.
 			 *
+			 * Note:
 			 * From http://doc.qt.nokia.com/latest/qbytearray.html#data:
 			 * "A QByteArray can store any byte values
 			 * including '\0's, but most functions that take char *
 			 * arguments assume that the data ends at the first
 			 * '\0' they encounter."
+			 *
+			 * So this is wrong:
+			 * http://stackoverflow.com/questions/4252912/qt-protobuf-types
+			 * std::istream stringstream( buffer.data() );
+			 * command.ParseFromIstream( &stringstream );
 			 */
-			// This is wrong:
-			// http://stackoverflow.com/questions/4252912/qt-protobuf-types
-			//std::istream stringstream( buffer.data() );
-			//command.ParseFromIstream( &stringstream );
-
-			std::string string( buffer.data(), size );
-			command.ParseFromString( string );
+			command.ParseFromArray( buffer, size );
 
 			return true;
 		}
