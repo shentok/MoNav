@@ -74,11 +74,11 @@ int main( int argc, char *argv[] ) {
 		return 2;
 	}
 
-	MessageWrapper<CommandType, QLocalSocket>::post( &connection, commandType );
+	MessageWrapper<CommandType, QLocalSocket>::write( &connection, commandType );
 	connection.flush();
 
 	if ( commandType.value() == CommandType::UNPACK_COMMAND ) {
-		MessageWrapper<UnpackCommand, QLocalSocket>::post( &connection, unpackCommand );
+		MessageWrapper<UnpackCommand, QLocalSocket>::write( &connection, unpackCommand );
 		connection.flush();
 
 		UnpackResult reply;
@@ -94,7 +94,7 @@ int main( int argc, char *argv[] ) {
 		return 0;
 	}
 
-	MessageWrapper<RoutingCommand, QLocalSocket>::post( &connection, routingCommand );
+	MessageWrapper<RoutingCommand, QLocalSocket>::write( &connection, routingCommand );
 	connection.flush();
 
 	RoutingResult reply;

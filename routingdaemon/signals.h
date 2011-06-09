@@ -34,13 +34,13 @@ any later version.
 
 namespace MoNav {
 
-	// MessageType should be one of the protocol buffer message types
+	// Message should be one of the protocol buffer message types
 	// defined in signals.proto.
-	template <class MessageType, class SocketType>
+	template <class Message, class Socket>
 	class MessageWrapper {
 
 	public:
-		static void post( QIODevice* out, MessageType& result )
+		static void write( QIODevice* out, Message& result )
 		{
 			std::string buffer;
 			result.SerializeToString( &buffer );
@@ -56,12 +56,12 @@ namespace MoNav {
 			out->write( buffer.c_str(), size );
 		}
 
-		static bool read( SocketType* in, MessageType& command )
+		static bool read( Socket* in, Message& command )
 		{
 			// Read an unsigned integer containing the size of the message.
 			qint32 size;
 			while ( in->bytesAvailable() < ( int ) sizeof( qint32 ) ) {
-				if ( in->state() != SocketType::ConnectedState ) {
+				if ( in->state() != Socket::ConnectedState ) {
 					return false;
 				}
 				in->waitForReadyRead( 100 );
@@ -73,7 +73,7 @@ namespace MoNav {
 
 			// Read message.
 			while ( in->bytesAvailable() < size ) {
-				if ( in->state() != SocketType::ConnectedState ) {
+				if ( in->state() != Socket::ConnectedState ) {
 					return false;
 				}
 				in->waitForReadyRead( 100 );

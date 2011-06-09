@@ -29,8 +29,10 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "interfaces/igpslookup.h"
 #include "utils/directoryunpacker.h"
 
+#include "signals.h"
 #include "signals.pb.h"
 
+template <class Socket>
 class RoutingCommon {
 
 public:
@@ -48,7 +50,53 @@ public:
 
 protected:
 
-	MoNav::UnpackResult unpack( const MoNav::UnpackCommand command )
+	// Handle the connection before the command type is known.
+	void handleConnection( Socket* connection )
+	{
+		MoNav::CommandType type;
+
+		// Read the command type.
+		if ( !MoNav::MessageWrapper<MoNav::CommandType, Socket>::read( connection, type ) ) {
+			qDebug() << "Could not read command type.";
+			return;
+		}
+
+		// Call handleConnection for specific command type.
+		if ( type.value() == MoNav::CommandType::UNPACK_COMMAND ) {
+			handleConnection<MoNav::UnpackCommand, MoNav::UnpackResult>( connection );
+		} else if ( type.value() == MoNav::CommandType::ROUTING_COMMAND ) {
+			handleConnection<MoNav::RoutingCommand, MoNav::RoutingResult>( connection );
+		}
+	}
+
+	// Handle the connection for the given command and result type.
+	template <class Command, class Result>
+	void handleConnection( Socket* connection ) {
+		Command command;
+		Result result;
+
+		// Read the command from the socket.
+		if ( !MoNav::MessageWrapper<Command, Socket>::read( connection, command ) ) {
+			qDebug() << "Could not read command.";
+			return;
+		}
+
+		// Execute the command.
+		result = execute( command );
+
+		if ( connection->state() != Socket::ConnectedState ) {
+			qDebug() << "Client has disconnected unexpectedly.";
+			return;
+		}
+
+		// Write the result to the socket.
+		MoNav::MessageWrapper<Result, Socket>::write( connection, result );
+
+		connection->flush();
+	}
+
+	// Execute unpack command.
+	MoNav::UnpackResult execute( const MoNav::UnpackCommand command )
 	{
 		MoNav::UnpackResult result;
 
@@ -62,7 +110,8 @@ protected:
 		return result;
 	}
 
-	MoNav::RoutingResult route( const MoNav::RoutingCommand command )
+	// Execute routing command.
+	MoNav::RoutingResult execute( const MoNav::RoutingCommand command )
 	{
 		MoNav::RoutingResult result;
 
