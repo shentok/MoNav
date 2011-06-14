@@ -25,6 +25,7 @@ import socket
 import struct
 
 from signals_pb2 import CommandType, RoutingCommand, RoutingResult
+from signals_pb2 import Node as Waypoint
 
 
 class TcpConnection(object):
@@ -81,8 +82,8 @@ class TcpConnection(object):
         self._socket.close()
 
 
-def getRoute(connection, data_directory, latlons):
-    """Get the shortest route between a list of (lat, lon) tuples using MoNav
+def get_route(data_directory, waypoints, lookup_radius=10000, lookup_edge_names=True, connection=None):
+    """Get the shortest route between a list of waypoints using MoNav.
 
     * connection should be a TcpConnection object.
 
@@ -99,44 +100,45 @@ def getRoute(connection, data_directory, latlons):
     * First start the monav-server.
 
     """
+    if not connection:
+        connection = TcpConnection()
+
     # Generate and write the command type.
     connection.write(CommandType(value=CommandType.ROUTING_COMMAND))
 
-    # Generate the routing command.
-    routing_command = RoutingCommand()
-    routing_command.data_directory = data_directory
-    routing_command.lookup_radius = 10000
-    routing_command.lookup_edge_names = True
+    # Generate the command.
+    command = RoutingCommand()
+    command.data_directory = data_directory
+    command.lookup_radius = lookup_radius
+    command.lookup_edge_names = lookup_edge_names
 
-    for latlon in latlons:
-        waypoint = routing_command.waypoints.add(latitude=latlon[0], longitude=latlon[1])
+    if hasattr(waypoints[0], 'latitude'):
+        command.waypoints.extend(waypoints)
+    else:
+        for latlon in waypoints:
+            assert len(latlon) == 2
+            waypoint = command.waypoints.add(latitude=latlon[0], longitude=latlon[1])
 
-        if len(latlon) > 2:
-            waypoint.heading_penalty = latlon[2]
+    # Write the command.
+    connection.write(command)
 
-        if len(latlon) > 3:
-            waypoint.heading = latlon[3]
-
-    # Write the routing command.
-    connection.write(routing_command)
-
-    # Read routing result.
-    routing_result = RoutingResult()
-    connection.read(routing_result)
+    # Read result.
+    result = RoutingResult()
+    connection.read(result)
 
     # Close the connection (just in case)
     connection.close()
 
-    if routing_result.type == RoutingResult.SUCCESS:
-        return routing_result
-    elif routing_result.type == RoutingResult.LOAD_FAILED:
-        raise Exception(str(routing_result.type) + ": failed to load data directory")
-    elif routing_result.type == RoutingResult.ROUTE_FAILED:
-        raise Exception(str(routing_result.type) + ": failed to compute route")
-    elif routing_result.type == RoutingResult.NAME_LOOKUP_FAILED:
-        raise Exception(str(routing_result.type) + ": name lookup failed")
-    elif routing_result.type == RoutingResult.TYPE_LOOKUP_FAILED:
-        raise Exception(str(routing_result.type) + ": type lookup failed")
+    if result.type == RoutingResult.SUCCESS:
+        return result
+    elif result.type == RoutingResult.LOAD_FAILED:
+        raise Exception(str(result.type) + ": failed to load data directory")
+    elif result.type == RoutingResult.ROUTE_FAILED:
+        raise Exception(str(result.type) + ": failed to compute route")
+    elif result.type == RoutingResult.NAME_LOOKUP_FAILED:
+        raise Exception(str(result.type) + ": name lookup failed")
+    elif result.type == RoutingResult.TYPE_LOOKUP_FAILED:
+        raise Exception(str(result.type) + ": type lookup failed")
     else:
-        raise Exception(str(routing_result.type) + ": return value not recognized")
+        raise Exception(str(result.type) + ": return value not recognized")
 
