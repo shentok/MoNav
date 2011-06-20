@@ -61,7 +61,21 @@ class TcpConnection(object):
         size = struct.unpack("I", self._socket.recv(struct.calcsize("I")))[0]
 
         # Read and parse the serialized message.
-        message.ParseFromString(self._socket.recv(size))
+        #
+        # MSG_WAITALL (since Linux 2.2)
+        #
+        # This flag requests that the operation block until the full 
+        # request is satisfied. However, the call may still return less 
+        # data than requested if a signal is caught, an error or  
+        # disconnect occurs, or the next data to be received is of a 
+        # different type than that returned.
+        buf = self._socket.recv(size, socket.MSG_WAITALL)
+
+        if size != len(buf):
+            raise Exception('Not all bytes of message received.')
+
+        message.ParseFromString(buf)
+
 
     def close(self):
         self._socket.close()
