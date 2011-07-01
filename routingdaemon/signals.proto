@@ -70,9 +70,10 @@ message RoutingResult {
   enum Type {
     SUCCESS = 1;
     LOAD_FAILED = 2;
-    ROUTE_FAILED = 3;
-    NAME_LOOKUP_FAILED = 4;
-    TYPE_LOOKUP_FAILED = 5;
+    LOOKUP_FAILED = 3;
+    ROUTE_FAILED = 4;
+    NAME_LOOKUP_FAILED = 5;
+    TYPE_LOOKUP_FAILED = 6;
   }
 
   required Type type = 1;

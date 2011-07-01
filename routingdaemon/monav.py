@@ -133,6 +133,8 @@ def get_route(data_directory, waypoints, lookup_radius=10000, lookup_edge_names=
         return result
     elif result.type == RoutingResult.LOAD_FAILED:
         raise Exception(str(result.type) + ": failed to load data directory")
+    elif result.type == RoutingResult.LOOKUP_FAILED:
+        raise Exception(str(result.type) + ": failed to lookup nearest edge")
     elif result.type == RoutingResult.ROUTE_FAILED:
         raise Exception(str(result.type) + ": failed to compute route")
     elif result.type == RoutingResult.NAME_LOOKUP_FAILED:

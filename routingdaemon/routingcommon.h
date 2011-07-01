@@ -137,7 +137,8 @@ protected:
 				double segmentDistance;
 				pathNodes.clear();
 				pathEdges.clear();
-				if ( !computeRoute( &segmentDistance, &pathNodes, &pathEdges, command.waypoints( i - 1 ), command.waypoints( i ), command.lookup_radius() ) ) {
+				result.set_type( computeRoute( &segmentDistance, &pathNodes, &pathEdges, command.waypoints( i - 1 ), command.waypoints( i ), command.lookup_radius() ) );
+				if ( result.type() != MoNav::RoutingResult::SUCCESS ) {
 					success = false;
 					break;
 				}
@@ -188,8 +189,6 @@ protected:
 						edge->set_type_id( result.edge_types_size() - 1 );
 					}
 				}
-			} else {
-				result.set_type( MoNav::RoutingResult::ROUTE_FAILED );
 			}
 		} else {
 			result.set_type( MoNav::RoutingResult::LOAD_FAILED );
@@ -198,11 +197,11 @@ protected:
 		return result;
 	}
 
-	bool computeRoute( double* resultDistance, QVector< IRouter::Node >* resultNodes, QVector< IRouter::Edge >* resultEdge, MoNav::Node source, MoNav::Node target, double lookupRadius )
+	MoNav::RoutingResult::Type computeRoute( double* resultDistance, QVector< IRouter::Node >* resultNodes, QVector< IRouter::Edge >* resultEdge, MoNav::Node source, MoNav::Node target, double lookupRadius )
 	{
 		if ( m_gpsLookup == NULL || m_router == NULL ) {
 			qCritical() << "tried to query route before setting valid data directory";
-			return false;
+			return MoNav::RoutingResult::LOAD_FAILED;
 		}
 		UnsignedCoordinate sourceCoordinate( GPSCoordinate( source.latitude(), source.longitude() ) );
 		UnsignedCoordinate targetCoordinate( GPSCoordinate( target.latitude(), target.longitude() ) );
@@ -213,18 +212,23 @@ protected:
 		qDebug() << "GPS Lookup:" << time.restart() << "ms";
 		if ( !found ) {
 			qDebug() << "no edge near source found";
-			return false;
+			return MoNav::RoutingResult::LOOKUP_FAILED;
 		}
 		IGPSLookup::Result targetPosition;
 		found = m_gpsLookup->GetNearestEdge( &targetPosition, targetCoordinate, lookupRadius, target.heading_penalty(), target.heading() );
 		qDebug() << "GPS Lookup:" << time.restart() << "ms";
 		if ( !found ) {
 			qDebug() << "no edge near target found";
-			return false;
+			return MoNav::RoutingResult::LOOKUP_FAILED;
 		}
 		found = m_router->GetRoute( resultDistance, resultNodes, resultEdge, sourcePosition, targetPosition );
 		qDebug() << "Routing:" << time.restart() << "ms";
-		return found;
+
+		if ( !found ) {
+			return MoNav::RoutingResult::ROUTE_FAILED;
+		}
+
+		return MoNav::RoutingResult::SUCCESS;
 	}
 
 	bool loadPlugins( QString dataDirectory )

@@ -103,6 +103,9 @@ int main( int argc, char *argv[] ) {
 	if ( reply.type() == RoutingResult::LOAD_FAILED ) {
 		qDebug() << "failed to load data directory";
 		return 3;
+	} else if ( reply.type() == RoutingResult::LOOKUP_FAILED ) {
+		qDebug() << "failed to lookup nearest edge";
+		return 3;
 	} else if ( reply.type() == RoutingResult::ROUTE_FAILED ) {
 		qDebug() << "failed to compute route";
 		return 3;
