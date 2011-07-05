@@ -29,6 +29,8 @@ SOURCES += main.cpp \
     placechooser.cpp \
     globalsettings.cpp \
     streetchooser.cpp \
+	 gpsdpositioninfosource.cpp \
+	 json.cpp \
     worldmapchooser.cpp
 
 HEADERS += \
@@ -59,6 +61,8 @@ HEADERS += \
     placechooser.h \
     globalsettings.h \
     streetchooser.h \
+	 json.h \
+	 gpsdpositioninfosource.h \
     worldmapchooser.h
 
 FORMS += \

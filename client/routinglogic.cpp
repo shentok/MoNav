@@ -22,6 +22,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "mapdata.h"
 #include "utils/qthelpers.h"
 #include "logger.h"
+#ifndef NOQTMOBILE
+#include "gpsdpositioninfosource.h"
+#endif
 
 #include <QtDebug>
 #include <QSettings>
@@ -66,6 +69,8 @@ RoutingLogic::RoutingLogic() :
 
 #ifndef NOQTMOBILE
 	d->gpsSource = QGeoPositionInfoSource::createDefaultSource( this );
+	if ( d->gpsSource == NULL )
+		d->gpsSource = new GpsdPositionInfoSource( this );
 	if ( d->gpsSource == NULL ) {
 		qDebug() << "No GPS Sensor found! GPS Updates are not available";
 	} else {
