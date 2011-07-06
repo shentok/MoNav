@@ -78,12 +78,14 @@ protected slots:
 	void addRoutepoint();
 
 	void bookmarks();
+	void computeRoundTrip();
 
 	void setModeSourceSelection();
 	void setModeTargetSelection();
 	void setModeNoSelection();
 	void toggleLocked();
 
+	void toolsMenu();
 	void gotoMenu();
 	void settingsMenu();
 	void sourceMenu();

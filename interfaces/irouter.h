@@ -66,6 +66,8 @@ public:
 	virtual bool LoadData() = 0;
 	virtual bool UnloadData() = 0;
 	// computes the route between source and target and returns the distance in second
+	// leaving pathNodes and pathEdges to NULL is supported and should result in significantly better performance
+	// this allows for computing shortest path distance only in a short amount of time
 	virtual bool GetRoute( double* distance, QVector< Node>* pathNodes, QVector< Edge >* pathEdges, const IGPSLookup::Result& source, const IGPSLookup::Result& target ) = 0;
 	// translate a name ID into the corresponding string
 	virtual bool GetName( QString* result, unsigned name ) = 0;

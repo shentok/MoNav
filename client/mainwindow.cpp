@@ -60,11 +60,13 @@ struct MainWindow::PrivateImplementation {
 	OverlayWidget* sourceOverlay;
 	OverlayWidget* gotoOverlay;
 	OverlayWidget* settingsOverlay;
+	OverlayWidget* toolsOverlay;
 
 	QMenu* targetMenu;
 	QMenu* sourceMenu;
 	QMenu* gotoMenu;
 	QMenu* settingsMenu;
+	QMenu* toolsMenu;
 
 	QSignalMapper* waypointMapper;
 
@@ -153,7 +155,7 @@ void MainWindow::connectSlots()
 	connect( RoutingLogic::instance(), SIGNAL(waypointsChanged()), this, SLOT(waypointsChanged()) );
 	connect( m_ui->lockButton, SIGNAL(clicked()), this, SLOT(toggleLocked()) );
 
-	connect( m_ui->bookmarks, SIGNAL(clicked()), this, SLOT(bookmarks()) );
+	connect( m_ui->tools, SIGNAL(clicked()), this, SLOT(toolsMenu()) );
 	connect( m_ui->show, SIGNAL(clicked()), this, SLOT(gotoMenu()) );
 	connect( m_ui->settings, SIGNAL(clicked()), this, SLOT(settingsMenu()) );
 
@@ -214,6 +216,13 @@ void MainWindow::setupMenu()
 
 	d->settingsOverlay = new OverlayWidget( this, tr( "Settings" ) );
 	d->settingsOverlay->addActions( d->settingsMenu->actions() );
+
+	d->toolsMenu = new QMenu( tr( "Tools" ), this );
+	d->toolsMenu->addAction( QIcon( ":/images/directions/roundabout.png" ), tr( "Compute Round Trip" ), this, SLOT(computeRoundTrip()) );
+	d->toolsMenu->addAction( QIcon( ":/images/oxygen/bookmarks.png" ), tr( "Bookmarks" ), this, SLOT(bookmarks()) );
+
+	d->toolsOverlay = new OverlayWidget( this, tr( "Tools" ) );
+	d->toolsOverlay->addActions( d->toolsMenu->actions() );
 }
 
 void MainWindow::resizeIcons()
@@ -399,6 +408,16 @@ void MainWindow::settingsGPS()
 }
 
 // MENUES
+
+void MainWindow::toolsMenu()
+{
+	if ( GlobalSettings::menuMode() == GlobalSettings::MenuPopup ) {
+		QPoint position = m_ui->show->mapToGlobal( QPoint( m_ui->show->width() / 2, m_ui->show->height() / 2 ) );
+		d->toolsMenu->exec( position );
+	} else {
+		d->toolsOverlay->show();
+	}
+}
 
 void MainWindow::gotoMenu()
 {
@@ -771,4 +790,15 @@ void MainWindow::waypointsChanged()
 	else
 		d->waypointMapper->setMapping( m_ui->target, 0 );
 	m_ui->scrollAreaWidgetContents->layout()->addWidget( m_ui->source );
+}
+
+void MainWindow::computeRoundTrip()
+{
+	if ( RoutingLogic::instance()->waypoints().size() > 5 )
+	{
+		int choice = QMessageBox::question( this, "Round Trip", "Computing the round trip might take a while if you selected a large amount of waypoints. Compute anyway?", QMessageBox::Yes, QMessageBox::No );
+		if ( choice == 0 )
+			return;
+	}
+	RoutingLogic::instance()->computeRoundtrip();
 }

@@ -97,6 +97,11 @@ public slots:
 	// links / unlinks GPS and source coordinate
 	void setGPSLink( bool linked );
 
+	// computes a roundtrip visiting all waypoints
+	// starting at the first one
+	// and returning to the first one
+	void computeRoundtrip();
+
 	// destroys this object
 	void cleanup();
 

@@ -319,8 +319,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>27</width>
-                   <height>48</height>
+                   <width>34</width>
+                   <height>68</height>
                   </rect>
                  </property>
                  <property name="sizePolicy">
@@ -967,7 +967,7 @@
                 <number>2</number>
                </property>
                <item>
-                <widget class="QToolButton" name="bookmarks">
+                <widget class="QToolButton" name="tools">
                  <property name="focusPolicy">
                   <enum>Qt::NoFocus</enum>
                  </property>
@@ -976,7 +976,7 @@
                  </property>
                  <property name="icon">
                   <iconset resource="images.qrc">
-                   <normaloff>:/images/oxygen/bookmarks.png</normaloff>:/images/oxygen/bookmarks.png</iconset>
+                   <normaloff>:/images/oxygen/start-here.png</normaloff>:/images/oxygen/start-here.png</iconset>
                  </property>
                  <property name="autoRaise">
                   <bool>true</bool>
@@ -1071,7 +1071,7 @@
      <x>0</x>
      <y>0</y>
      <width>536</width>
-     <height>21</height>
+     <height>25</height>
     </rect>
    </property>
   </widget>
