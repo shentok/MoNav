@@ -21,11 +21,20 @@ package MoNav;
 
 message CommandType {
   enum Type {
-    ROUTING_COMMAND = 1;
-    UNPACK_COMMAND = 2;
+    VERSION_COMMAND = 1;
+    ROUTING_COMMAND = 2;
+    UNPACK_COMMAND = 3;
   }
 
   required Type value = 1;
+}
+
+message VersionCommand {
+  // Empty message.
+}
+
+message VersionResult {
+  required string version = 1;
 }
 
 message Node {

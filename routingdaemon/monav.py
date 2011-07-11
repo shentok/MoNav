@@ -24,7 +24,7 @@ any later version.
 import socket
 import struct
 
-from signals_pb2 import CommandType, RoutingCommand, RoutingResult
+from signals_pb2 import CommandType, VersionCommand, VersionResult, RoutingCommand, RoutingResult
 from signals_pb2 import Node as Waypoint
 
 
@@ -80,6 +80,25 @@ class TcpConnection(object):
 
     def close(self):
         self._socket.close()
+
+
+def get_version(connection=None):
+    """Get the version of the monav daemon or server on the other side 
+    of the connection.
+
+    """
+    if not connection:
+        connection = TcpConnection()
+
+    # Generate and write the command type.
+    connection.write(CommandType(value=CommandType.VERSION_COMMAND))
+    connection.write(VersionCommand())
+
+    # Read result.
+    result = VersionResult()
+    connection.read(result)
+
+    return result.version
 
 
 def get_route(data_directory, waypoints, lookup_radius=10000, lookup_edge_names=True, connection=None):

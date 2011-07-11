@@ -62,7 +62,9 @@ protected:
 		}
 
 		// Call handleConnection for specific command type.
-		if ( type.value() == MoNav::CommandType::UNPACK_COMMAND ) {
+		if ( type.value() == MoNav::CommandType::VERSION_COMMAND ) {
+			handleConnection<MoNav::VersionCommand, MoNav::VersionResult>( connection );
+		} else if ( type.value() == MoNav::CommandType::UNPACK_COMMAND ) {
 			handleConnection<MoNav::UnpackCommand, MoNav::UnpackResult>( connection );
 		} else if ( type.value() == MoNav::CommandType::ROUTING_COMMAND ) {
 			handleConnection<MoNav::RoutingCommand, MoNav::RoutingResult>( connection );
@@ -93,6 +95,14 @@ protected:
 		MoNav::MessageWrapper<Result, Socket>::write( connection, result );
 
 		connection->flush();
+	}
+
+	// Execute version command.
+	MoNav::VersionResult execute( const MoNav::VersionCommand command ) {
+		MoNav::VersionResult result = MoNav::VersionResult();
+		result.set_version("0.4");
+
+		return result;
 	}
 
 	// Execute unpack command.
