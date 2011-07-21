@@ -17,7 +17,7 @@ class GpsdPositionInfoSource : public QGeoPositionInfoSource {
     Q_OBJECT
 
  public:
-  GpsdPositionInfoSource(QObject *parent = 0);
+	static GpsdPositionInfoSource* create(QObject* parent = NULL );
   ~GpsdPositionInfoSource();
 
   void setUpdateInterval(int msec);
@@ -36,6 +36,8 @@ class GpsdPositionInfoSource : public QGeoPositionInfoSource {
   void displayError(QAbstractSocket::SocketError);
 
  private:
+  GpsdPositionInfoSource(QObject *parent = 0);
+
   qreal getReal(const QMap<QString, QVariant> &, const QString &);
   void setAttribute(QGeoPositionInfo &, QGeoPositionInfo::Attribute, const QMap<QString, QVariant> &, const QString &);
   void parse(const QString &);

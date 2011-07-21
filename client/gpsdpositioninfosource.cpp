@@ -49,13 +49,13 @@ void GpsdPositionInfoSource::parse(const QString &str) {
   // json is a QString containing the data to convert
   QVariant result = Json::parse(str, ok);
   if(!ok) {
-    qDebug() << __FUNCTION__ << "Json deconding failed.";
+	 qDebug() << "GpsdPositionInfoSource::parse:" << "Json deconding failed.";
     return;
   }
   
   // we expect a qvariantmap
   if(QVariant::Map != result.type()) {
-    qDebug() << __FUNCTION__ << "Unexpected result type:" << result.type();
+	 qDebug() << "GpsdPositionInfoSource::parse:" << "Unexpected result type:" << result.type();
     return;
   } 
   
@@ -116,12 +116,12 @@ void GpsdPositionInfoSource::readData() {
 }
 
 void GpsdPositionInfoSource::displayError(QAbstractSocket::SocketError) {
-  qDebug() << __FUNCTION__ << "Error: " << m_tcpSocket->errorString();
+  qDebug() << "GpsdPositionInfoSource::displayError:" << "Error: " << m_tcpSocket->errorString();
 }
 
 GpsdPositionInfoSource::GpsdPositionInfoSource(QObject *parent)
   : QGeoPositionInfoSource(parent) {
-  qDebug() << __FUNCTION__;
+  qDebug() << "GpsdPositionInfoSource";
 
   // connect to gpsd
   m_tcpSocket = new QTcpSocket(this);
@@ -134,7 +134,7 @@ GpsdPositionInfoSource::GpsdPositionInfoSource(QObject *parent)
 }
 
 GpsdPositionInfoSource::~GpsdPositionInfoSource() {
-  qDebug() << __FUNCTION__;
+  qDebug() << "GpsdPositionInfoSource::~GpsdPositionInfoSource";
 
   m_tcpSocket->close();
 }
@@ -172,5 +172,17 @@ QGeoPositionInfoSource::PositioningMethods GpsdPositionInfoSource::supportedPosi
 }
 
 int GpsdPositionInfoSource::minimumUpdateInterval() const {
-  return 1000;
+	return 1000;
+}
+
+GpsdPositionInfoSource * GpsdPositionInfoSource::create(QObject *parent)
+{
+	GpsdPositionInfoSource* source = new GpsdPositionInfoSource( parent );
+	if ( !source->m_tcpSocket->waitForConnected( 100 ) )
+	{
+		qDebug() << "Could not connect to gpsd after 100ms";
+		source->deleteLater();
+		return NULL;
+	}
+	return source;
 }

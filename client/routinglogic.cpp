@@ -72,7 +72,7 @@ RoutingLogic::RoutingLogic() :
 #ifndef NOQTMOBILE
 	d->gpsSource = QGeoPositionInfoSource::createDefaultSource( this );
 	if ( d->gpsSource == NULL )
-		d->gpsSource = new GpsdPositionInfoSource( this );
+		d->gpsSource = GpsdPositionInfoSource::create( this );
 	if ( d->gpsSource == NULL ) {
 		qDebug() << "No GPS Sensor found! GPS Updates are not available";
 	} else {
