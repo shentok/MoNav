@@ -33,7 +33,8 @@ HEADERS += ../interfaces/iimporter.h \
 	 ../utils/lzma/Types.h \
 	 ../utils/lzma/LzmaEnc.h \
 	 ../utils/lzma/LzFind.h \
-	 ../utils/lzma/LzHash.h
+	 ../utils/lzma/LzHash.h \
+    ../encoding/Encoder.h
 DESTDIR = ../bin
 TARGET = monav-preprocessor
 
