@@ -28,7 +28,7 @@ SOURCES += osmimporter.cpp \
 DESTDIR = ../../bin/plugins_preprocessor
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
-	QMAKE_CXXFLAGS_RELEASE += -O3 -march=native -Wno-unused-function
+	QMAKE_CXXFLAGS_RELEASE += -O3 -Wno-unused-function
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
 

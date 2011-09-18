@@ -4,7 +4,7 @@
 TEMPLATE = app
 CONFIG += link_pkgconfig
 CONFIG += console
-#QT -= gui
+QT -= gui
 
 DEFINES+=_7ZIP_ST
 
@@ -33,14 +33,14 @@ HEADERS += ../interfaces/iimporter.h \
 	 ../utils/lzma/Types.h \
 	 ../utils/lzma/LzmaEnc.h \
 	 ../utils/lzma/LzFind.h \
-	 ../utils/lzma/LzHash.h
+	 ../utils/lzma/LzHash.h \
+    ../encoding/Encoder.h
 DESTDIR = ../bin
 TARGET = monav-preprocessor
 
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
 	QMAKE_CXXFLAGS_RELEASE += -O3 \
-		 -march=native \
 		 -Wno-unused-function \
 		 -fopenmp
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function \

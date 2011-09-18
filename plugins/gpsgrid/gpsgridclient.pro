@@ -13,6 +13,7 @@ DESTDIR = ../../bin/plugins_client
 
 nogui {
 	DEFINES+=NOGUI
+	QT -= gui
 }
 
 HEADERS += \

@@ -40,8 +40,9 @@ public:
 		unsigned previousWayCoordinates;
 		// the position on the way
 		double percentage;
-		// the distance to the nearest point
-		double distance;
+		// the distance to the nearest point squared
+		// Units: unsigned (from UnsignedCoordinate) squared
+		double gridDistance2;
 
 	};
 
@@ -54,9 +55,10 @@ public:
 	virtual bool LoadData() = 0;
 	virtual bool UnloadData() = 0;
 	// gets the nearest routing edge; a heading penalty can be applied if the way's orientation differs greatly from the current heading.
-	virtual bool GetNearestEdge( Result* result, const UnsignedCoordinate& coordinate, double radius, bool headingPenalty = 0, double heading = 0 ) = 0;
+	// heading: degrees from North. headingPenalty: penalty in meters for edge with direction opposite of heading.
+	virtual bool GetNearestEdge( Result* result, const UnsignedCoordinate& coordinate, double radius, double headingPenalty = 0, double heading = 0 ) = 0;
 };
 
-Q_DECLARE_INTERFACE( IGPSLookup, "monav.IGPSLookup/1.1" )
+Q_DECLARE_INTERFACE( IGPSLookup, "monav.IGPSLookup/1.2" )
 
 #endif // IGPSLOOKUP_H

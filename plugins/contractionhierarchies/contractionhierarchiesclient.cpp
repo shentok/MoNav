@@ -9,10 +9,7 @@ the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
 MoNav is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY
-{
-}
- without even the implied warranty of
+but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
@@ -110,6 +107,7 @@ bool ContractionHierarchiesClient::LoadData()
 
 bool ContractionHierarchiesClient::GetRoute( double* distance, QVector< Node>* pathNodes, QVector< Edge >* pathEdges, const IGPSLookup::Result& source, const IGPSLookup::Result& target )
 {
+	assert( distance != NULL );
 	m_heapForward->Clear();
 	m_heapBackward->Clear();
 
@@ -123,27 +121,31 @@ bool ContractionHierarchiesClient::GetRoute( double* distance, QVector< Node>* p
 		double onEdgeDistance = fabs( target.percentage - source.percentage ) * targetEdge.distance();
 		if ( onEdgeDistance < *distance ) {
 			if ( ( targetEdge.forward() && targetEdge.backward() ) || source.percentage < target.percentage ) {
-				pathNodes->clear();
-				pathEdges->clear();
-				pathNodes->push_back( source.nearestPoint );
+				if ( pathNodes != NULL && pathEdges != NULL )
+				{
+					pathNodes->clear();
+					pathEdges->clear();
+					pathNodes->push_back( source.nearestPoint );
 
-				QVector< Node > tempNodes;
-				if ( targetEdge.unpacked() )
-					m_graph.path( targetEdge, &tempNodes, pathEdges, target.target == targetEdge.target() );
-				else
-					pathEdges->push_back( targetEdge.description() );
+					QVector< Node > tempNodes;
+					if ( targetEdge.unpacked() )
+						m_graph.path( targetEdge, &tempNodes, pathEdges, target.target == targetEdge.target() );
+					else
+						pathEdges->push_back( targetEdge.description() );
 
-				if ( target.previousWayCoordinates < source.previousWayCoordinates ) {
-					for ( unsigned pathID = target.previousWayCoordinates; pathID < source.previousWayCoordinates; pathID++ )
-						pathNodes->push_back( tempNodes[pathID - 1] );
-					std::reverse( pathNodes->begin() + 1, pathNodes->end() );
-				} else {
-					for ( unsigned pathID = source.previousWayCoordinates; pathID < target.previousWayCoordinates; pathID++ )
-						pathNodes->push_back( tempNodes[pathID - 1] );
+					if ( target.previousWayCoordinates < source.previousWayCoordinates ) {
+						for ( unsigned pathID = target.previousWayCoordinates; pathID < source.previousWayCoordinates; pathID++ )
+							pathNodes->push_back( tempNodes[pathID - 1] );
+						std::reverse( pathNodes->begin() + 1, pathNodes->end() );
+					} else {
+						for ( unsigned pathID = source.previousWayCoordinates; pathID < target.previousWayCoordinates; pathID++ )
+							pathNodes->push_back( tempNodes[pathID - 1] );
+					}
+
+					pathNodes->push_back( target.nearestPoint );
+					pathEdges->front().length = pathNodes->size() - 1;
 				}
 
-				pathNodes->push_back( target.nearestPoint );
-				pathEdges->front().length = pathNodes->size() - 1;
 				*distance = onEdgeDistance;
 			}
 		}
@@ -303,6 +305,10 @@ int ContractionHierarchiesClient::computeRoute( const IGPSLookup::Result& source
 
 	if ( targetDistance == std::numeric_limits< int >::max() )
 		return std::numeric_limits< int >::max();
+
+	// abort early if the path description is not requested
+	if ( pathNodes == NULL || pathEdges == NULL )
+		return targetDistance;
 
 	std::stack< NodeIterator > stack;
 	NodeIterator pathNode = middle;

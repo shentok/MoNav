@@ -64,6 +64,12 @@ int main( int argc, char** argv )
 		return 1;
 	}
 
+	if ( argc == 2 && ( argv[1] == QString( "-v" ) || argv[1] == QString( "-version" ) ) )
+	{
+		qDebug() << "Monav Routing Daemon";
+		qDebug() << "Version: " << "0.4";
+	}
+
 	RoutingDaemon service( argc, argv );
 	servicePointer = &service;
 

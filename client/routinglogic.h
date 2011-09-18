@@ -30,8 +30,8 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits>
 
 #ifndef NOQTMOBILE
-	#include <QGeoPositionInfoSource>
-	QTM_USE_NAMESPACE
+#include <QGeoPositionInfoSource>
+QTM_USE_NAMESPACE
 #endif
 
 class RoutingLogic : public QObject
@@ -96,6 +96,11 @@ public slots:
 	void setTarget( UnsignedCoordinate target );
 	// links / unlinks GPS and source coordinate
 	void setGPSLink( bool linked );
+
+	// computes a roundtrip visiting all waypoints
+	// starting at the first one
+	// and returning to the first one
+	void computeRoundtrip();
 
 	// destroys this object
 	void cleanup();

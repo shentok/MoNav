@@ -22,7 +22,12 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "mapdata.h"
 #include "utils/qthelpers.h"
 #include "logger.h"
+#ifndef NOQTMOBILE
+#include "gpsdpositioninfosource.h"
+#endif
 
+#include <limits>
+#include <algorithm>
 #include <QtDebug>
 #include <QSettings>
 #include <QDir>
@@ -66,6 +71,8 @@ RoutingLogic::RoutingLogic() :
 
 #ifndef NOQTMOBILE
 	d->gpsSource = QGeoPositionInfoSource::createDefaultSource( this );
+	if ( d->gpsSource == NULL )
+		d->gpsSource = GpsdPositionInfoSource::create( this );
 	if ( d->gpsSource == NULL ) {
 		qDebug() << "No GPS Sensor found! GPS Updates are not available";
 	} else {
@@ -280,7 +287,7 @@ void RoutingLogic::computeRoute()
 	for ( int i = 0; i < d->waypoints.size(); i++ ) {
 		if ( d->waypoints[i].IsValid() )
 			waypoints.push_back( d->waypoints[i] );
-		if ( waypoints[0].ToGPSCoordinate().ApproximateDistance( d->waypoints[i].ToGPSCoordinate() ) < 50 ) {
+		if ( waypoints[0].ToGPSCoordinate().ApproximateDistance( d->waypoints[i].ToGPSCoordinate() ) < 50 && i == 0 ) {
 			waypoints.remove( 1, waypoints.size() - 1 );
 			passedRoutepoint = i + 1;
 		}
@@ -373,6 +380,114 @@ void RoutingLogic::dataLoaded()
 		d->source.y = ( ( double ) package.max.y + package.min.y ) / 2;
 		emit sourceChanged();
 	}
+	computeRoute();
+}
+
+void RoutingLogic::computeRoundtrip()
+{
+	IGPSLookup* gpsLookup = MapData::instance()->gpsLookup();
+	if ( gpsLookup == NULL )
+		return;
+	IRouter* router = MapData::instance()->router();
+	if ( router == NULL )
+		return;
+
+	Timer time;
+	int num = d->waypoints.size() + 1;
+	if ( num < 3 )
+		return;
+
+	QVector< IGPSLookup::Result > gps;
+
+	// look up all GPS positions
+	QVector< UnsignedCoordinate > waypoints;
+	waypoints.push_back( d->source );
+	waypoints += d->waypoints;
+
+	for ( int i = 0; i < waypoints.size(); i++ ) {
+		IGPSLookup::Result result;
+		bool found = gpsLookup->GetNearestEdge( &result, waypoints[i], 1000 );
+
+		if ( !found ) {
+			clearRoute();
+			return;
+		}
+
+		gps.push_back( result );
+	}
+
+	qDebug() << "GPS Mass Lookup:" << time.restart() << "ms";
+
+	// compute all pair shortest paths
+	QVector< int > distMatrix( num * num, 0 );
+	for ( int from = 0; from < num; from++ ) {
+		for ( int to = 0; to < num; to++ ) {
+			// skip source == target
+			if ( from == to )
+				continue;
+
+			double travelTime = 0;
+			// lookup distance only
+			bool found = router->GetRoute( &travelTime, NULL, NULL, gps[from], gps[to] );
+			if ( !found )
+				travelTime = std::numeric_limits< double >::max();
+
+			distMatrix[from * num + to] = travelTime;
+		}
+	}
+
+	qDebug() << "Routing Mass Computation:" << time.restart() << "ms";
+
+	// first point is fixed, try all other permutations
+	QVector< int > permutation;
+	permutation.reserve( num + 1 );
+	for ( int i = 0; i < num; i++ )
+		permutation.push_back( i );
+	permutation.push_back( 0 );
+
+	// go through all permutations
+	double bestDistance = std::numeric_limits< double >::max();
+	QVector< int > bestPermutation;
+	do {
+		double currentDistance = 0;
+		bool impossible = false;
+		for ( int pos = 1; pos < num + 1; pos++ )
+		{
+			// calculate cost
+			double distance = distMatrix[permutation[pos - 1] * num + permutation[pos]];
+			if ( distance == std::numeric_limits< double >::max() )
+			{
+				impossible = true;
+				break;
+			}
+			currentDistance += distance;
+		}
+		// permutation not possible? -> skip
+		if ( impossible )
+			continue;
+
+		// found better permutation?
+		if ( currentDistance < bestDistance )
+		{
+			bestDistance = currentDistance;
+			bestPermutation = permutation;
+		}
+	} while( std::next_permutation( permutation.begin() + 1, permutation.end() - 1 ) ); // keep start and end fixed
+
+	if ( bestPermutation.empty() )
+	{
+		qWarning() << "Failed to find Round Trip";
+		return;
+	}
+
+	QVector< UnsignedCoordinate > newWaypoints;
+	newWaypoints.reserve( num + 1 );
+	for ( int pos = 0; pos < num + 1; pos++ )
+		newWaypoints.push_back( waypoints[bestPermutation[pos]] );
+	d->waypoints = newWaypoints;
+
+	qDebug() << "Traveling Salesman Computation:" << time.restart() << "ms";
+
 	computeRoute();
 }
 

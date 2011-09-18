@@ -1,6 +1,15 @@
 TEMPLATE = app
 DESTDIR = ../bin
 
+CONFIG += link_pkgconfig
+PKGCONFIG += protobuf
+
+PROTOS = signals.proto
+include(../utils/osm/protobuf.pri)
+include(../utils/osm/protobuf_python.pri)
+
+PRE_TARGETDEPS += signals.pb.h signals.pb.cc signals_pb2.py
+
 INCLUDEPATH += ..
 
 DEFINES+=_7ZIP_ST
@@ -12,7 +21,6 @@ QT +=network
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
 	QMAKE_CXXFLAGS_RELEASE += -O3 \
-		 -march=native \
 		 -Wno-unused-function
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
@@ -20,12 +28,13 @@ unix {
 LIBS += -L../bin/plugins_client -lcontractionhierarchiesclient -lgpsgridclient
 
 SOURCES += \
-	 main.cpp \
+	 routingdaemon.cpp \
 	 ../utils/lzma/LzmaDec.c \
 	 ../utils/directoryunpacker.cpp
 
 HEADERS += \
 	 signals.h \
+	 routingcommon.h \
 	 routingdaemon.h \
 	 ../utils/lzma/LzmaDec.h \
 	 ../utils/directoryunpacker.h
