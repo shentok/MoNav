@@ -261,7 +261,7 @@ class qtile_way {
 		: q(_q), m_type(_type){};
 	qtile_way(const osm_way &w);
 	void interpolate_long_ways();
-	bool is_area() {return m_type<100;};
+	bool is_area() {return m_type<HW_PEDESTRIAN;};
 
 //member variables
 	typedef vector<struct projectedxy> nodelist;
@@ -812,7 +812,7 @@ void qtile_writer::init()
 	for(int i=1; i<no_of_tmpfiles; i++) {
 		qtile_tmpfiles.push_back(sample_nodes[sample_nodes.size()*i/no_of_tmpfiles]);
 	}
-	for(unsigned int i=0;i<qtile_tmpfiles.size();i++) printf("Qtile_tmpfiles cutoff @ %llx\n", qtile_tmpfiles[i]);
+	//for(unsigned int i=0;i<qtile_tmpfiles.size();i++) printf("Qtile_tmpfiles cutoff @ %llx\n", qtile_tmpfiles[i]);
 }
 
 //Called once for every node in the osm file on the first pass. We use it to
