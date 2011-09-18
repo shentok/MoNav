@@ -246,7 +246,7 @@ vector<struct projectedxy> osm_way::all_nodes;
 class qtile_way {
   public:
 	qtile_way() : q(0), m_type(0) {};
-	static bool create(const osm_way &w, vector<qtile_way> *result);
+	static bool create(const osm_way &w, class qtile_writer *qtw);
 	bool serialise(FILE *fp);
 	quadtile get_q() const {return q;};
 	int get_nnodes() const {return nodes.size();};
@@ -394,7 +394,7 @@ void qtile_way::interpolate_long_ways()
 
 // Static. Takes a way from the osm file and pre-processes it to one or more
 // qtile ways stored in result.
-bool qtile_way::create(const osm_way &w, vector<qtile_way> *result)
+bool qtile_way::create(const osm_way &w, class qtile_writer *qtw)
 {
 	//Convert osm_way to a single qtile_way with interpolated segs as needed
 	qtile_way qway(w);
@@ -421,12 +421,20 @@ bool qtile_way::create(const osm_way &w, vector<qtile_way> *result)
 
 		quadtile splittilesize = 1<<(31-splitlevel-1);
 		//printf("  %lld %lld %lld\n", maxx-minx, maxy-miny, splittilesize);
+		int xtiles = (maxx-minx)/splittilesize;
+		int ytiles = (maxy-miny)/splittilesize;
+		if(xtiles*ytiles>10000) {
+			qDebug() << "Skipping very large area of type" << ((int) w.type())
+					<< "which would cover" << xtiles*ytiles << "tiles. ("
+					<< xtiles << "x" << ytiles << ")";
+			return false;
+		}
 		for(x=minx; x<=maxx; x+=splittilesize) {
 			for(y=miny; y<=maxy; y+=splittilesize) {
 				quadtile newq = mux(x, y);
 				qtile_way newarea(qway);
 				newarea.q = newq;
-				result->push_back(newarea);
+				qtw->serialise(newarea);
 			}
 		}
 	} else { //It's a way, not an area
@@ -445,14 +453,14 @@ bool qtile_way::create(const osm_way &w, vector<qtile_way> *result)
 				for(nodelist::iterator j=current_qtile_start; j!=i; j++)
 					qway2.nodes.push_back(*j);
 				qway2.nodes.push_back(*i); //Add the overlapping node.
-				result->push_back(qway2);
+				qtw->serialise(qway2);
 				if(iq != current_qtile && i+1==qway.nodes.end()) {
 					//Special case - last node is in a new tile. Need to add another qtile_way
 					qtile_way qway3(iq, qway.m_type);
 					qway3.nodes.push_back(*(i-1));
 					qway3.nodes.push_back(*i);
 					qway3.namep = qway.namep;
-					result->push_back(qway3);
+					qtw->serialise(qway3);
 				}
 				current_qtile_start = i-1; //-1 to overlap previous tile
 				current_qtile = iq;
@@ -1066,12 +1074,7 @@ bool OSMReader::write_ways_to_temp_file()
 	qDebug() << "Qtile:    writing ways to temp file";
 	for(vector<class osm_way>::iterator way = ways.begin(); way!=ways.end();way++){
 		if(way->valid()) {
-			vector<qtile_way> qtile_ways;
-			qtile_way::create(*way, &qtile_ways);
-			for(vector<qtile_way>::iterator qw = qtile_ways.begin();
-					qw!=qtile_ways.end(); qw++) {
-				m_qtw->serialise(*qw);
-			}
+			qtile_way::create(*way, m_qtw);
 		}
 	}
 	//total_nodes += osm_way::all_nodes.size();
