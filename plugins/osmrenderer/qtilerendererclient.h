@@ -25,6 +25,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "brsettingsdialog.h"
 #include "rendererbase.h"
 #include "interfaces/irenderer.h"
+#include "tile-write.h"
 #include <map>
 
 class QtileRendererClient : public RendererBase
@@ -38,6 +39,7 @@ public:
 	virtual bool IsCompatible( int fileFormatVersion );
 	virtual int GetMaxZoom();
 	virtual bool Paint( QPainter* painter, const IRenderer::PaintRequest& request );
+	void DrawRoadsOnTile(Roadnames &roadnames, QPixmap *tile);
 
 signals:
 	void abort();
@@ -45,7 +47,7 @@ signals:
 
 private slots:
 
-	void tileLoaded( int x, int y, int zoom, int magnification, QByteArray data );
+	void tileLoaded( int x, int y, int zoom, int magnification, QByteArray data, Roadnames roadnames );
 
 protected:
 

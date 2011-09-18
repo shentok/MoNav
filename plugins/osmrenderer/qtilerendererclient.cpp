@@ -68,8 +68,8 @@ void QtileRendererClient::unload()
 		return;
 
 	disconnect( this, SIGNAL(drawImage(QString,int,int,int,int)) );
-	disconnect( this, SLOT(tileLoaded(int,int,int,int,QByteArray)) );
-	disconnect( twriter, SIGNAL(image_finished(int,int,int,int,QByteArray)), this, SIGNAL(changed()) );
+	disconnect( this, SLOT(tileLoaded(int,int,int,int,QByteArray,Roadnames)) );
+	disconnect( twriter, SIGNAL(image_finished(int,int,int,int,QByteArray,Roadnames)), this, SIGNAL(changed()) );
 	m_renderThread->quit();
 	m_renderThread->wait();
 	m_renderThread->deleteLater();
@@ -85,7 +85,7 @@ QString QtileRendererClient::GetName()
 
 bool QtileRendererClient::IsCompatible( int fileFormatVersion )
 {
-	if ( fileFormatVersion == 1 )
+	if ( fileFormatVersion == 2 )
 		return true;
 	return false;
 }
@@ -99,8 +99,8 @@ bool QtileRendererClient::load()
 	m_renderThread = new QThread( this );
 	twriter->moveToThread( m_renderThread );
 	connect( this, SIGNAL(drawImage(QString,int,int,int,int)), twriter, SLOT(draw_image(QString,int,int,int,int)) );
-	connect( twriter, SIGNAL(image_finished(int,int,int,int,QByteArray)), this, SLOT(tileLoaded(int,int,int,int,QByteArray)) );
-	connect( twriter, SIGNAL(image_finished(int,int,int,int,QByteArray)), this, SIGNAL(changed()) );
+	connect( twriter, SIGNAL(image_finished(int,int,int,int,QByteArray,Roadnames)), this, SLOT(tileLoaded(int,int,int,int,QByteArray,Roadnames)) );
+	connect( twriter, SIGNAL(image_finished(int,int,int,int,QByteArray,Roadnames)), this, SIGNAL(changed()) );
 	m_renderThread->start();
 	return true;
 }
@@ -116,14 +116,51 @@ bool QtileRendererClient::loadTile( int x, int y, int zoom, int magnification, Q
 	return false;
 }
 
-void QtileRendererClient::tileLoaded( int x, int y, int zoom, int magnification, QByteArray data )
+void QtileRendererClient::tileLoaded( int x, int y, int zoom, int magnification, QByteArray data, Roadnames roadnames )
 {
 	if ( this->m_magnification != magnification )
 		return;
 	QImage img( ( const uchar* ) data.constData(), tileSize * magnification , tileSize * magnification, QImage::Format_RGB888 );
 	QPixmap* tile = new QPixmap( QPixmap::fromImage( img ) );
+	DrawRoadsOnTile(roadnames, tile);
 	long long id = tileID( x, y, zoom );
 	m_cache.insert( id, tile, 256 * 256 * magnification * magnification * tile->depth() / 8 );
+}
+
+void QtileRendererClient::DrawRoadsOnTile(Roadnames &roadnames, QPixmap *tile)
+{
+	QPainter qpt(tile);
+	qpt.setPen(QColor(0, 0, 0));
+	for(Roadnames::iterator r = roadnames.begin(); r!=roadnames.end(); r++) {
+		int name_width = qpt.fontMetrics().width(r->name);
+		int name_height = qpt.fontMetrics().height();
+		double rotation;
+		if(r->coords.size()==0) continue;
+		int x1=0, y1=0, x2=0, y2=0, dx, dy, segment_len=0;
+		for(std::vector<int>::iterator i = r->coords.begin(); i!=r->coords.end(); i+=2) {
+			x2 = x1; y2 = y1;
+			x1 = *i; y1 = *(i+1);
+			if(i!=r->coords.begin()) {
+				dx = x2-x1; dy=y2-y1;
+				segment_len = (int) sqrt(dx*dx+dy*dy);
+				if(segment_len >=  name_width) break;
+			}
+		}
+		if(segment_len < name_width) continue; //Can't fit.
+		if(x1>x2) {
+			int tmp;
+			tmp = x1; x1 = x2; x2 = tmp;
+			tmp = y1; y1 = y2; y2 = tmp;
+		}
+		if(x1==x2) rotation =  90;
+		else rotation = atan((y2-(double)y1)/(x2-(double)x1)) * 180 / M_PI;
+		if(x2 < x1) rotation += 180;
+		qpt.save();
+		qpt.translate(QPoint(x1, y1));
+		qpt.rotate(rotation);
+		qpt.drawText(QPoint((segment_len-name_width)/2, name_height/3), r->name);
+		qpt.restore();
+	}
 }
 
 bool QtileRendererClient::Paint( QPainter* painter, const PaintRequest& request )

@@ -15,6 +15,13 @@ struct placename {
     QString name;
 };
 
+struct roadname {
+	QString name;
+	//In pixels from the top of the tile.
+	std::vector<int> coords;
+};
+typedef std::vector<struct roadname> Roadnames;
+
 class DrawingRules {
   public:
     struct DrawingRule {
@@ -36,6 +43,20 @@ class DrawingRules {
     std::vector<struct DrawingRule> drawing_rules;
 };
 
+class QtileDb {
+public:
+	QtileDb() : qidx(NULL), _fp(NULL) {};
+    bool init(const std::string &_filename);
+	bool query_index(int x, int y, int zoom, int *nways);
+	FILE *open_next_file();
+	FILE *fp() const {return(_fp);};
+
+private:
+	std::string filename;
+	class qindex *qidx;
+	FILE *_fp;
+};
+
 class TileWriter : public QObject {
 	Q_OBJECT
 
@@ -45,20 +66,17 @@ public slots:
 
 signals:
 
-	void image_finished( int x, int y, int zoom, int magnification, QByteArray data );
+	void image_finished( int x, int y, int zoom, int magnification, QByteArray data, Roadnames roadnames);
 
 public:
 	TileWriter( QString dir );
 	virtual ~TileWriter() {}
 
-	void get_placenames(int x, int y, int zoom, int drawzoom, std::vector<struct placename> &result) const;
+	void get_placenames(int x, int y, int zoom, int drawzoom, std::vector<struct placename> &result);
 private:
-	bool query_index(int x, int y, int zoom, int cur_db, int *nways) const;
 	static bool need_next_pass(int type1, int type2);
 	class ImgWriter *img;
-	std::string filename[3];
-	class qindex *qidx[3];
-	FILE *db[3];
+	QtileDb db[3];
 	DrawingRules dr;
 };
 

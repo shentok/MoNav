@@ -28,6 +28,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <QFile>
 #include <QSettings>
 #include <QDebug>
+#include <QCache>
 #include <stdio.h>
 #include <string.h>
 #include <map>
@@ -44,7 +45,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 // Preprocessing will be split into chunks with an aim never to require more
 // than this amount of RAM. This is inexact.
-static unsigned long long g_memory_target = 1300*1024*1024;
+static unsigned long long g_memory_target = 100*1024*1024;
 
 //Index granularity. Index is terminated at max depth, or when a part of the
 //index tree contains max_index_contents ways, whichever is the sooner.
@@ -62,7 +63,7 @@ int g_waysplit_tiledepth=13;
 //will need an interpolated node inserted to split them.
 #define LONGEST_WAY_SEG (1<<19)
 
-#define DB_VERSION "org.hollo.quadtile.pqdb.03"
+#define DB_VERSION "org.hollo.quadtile.pqdb.04"
 
 
 using std::vector;
@@ -233,6 +234,7 @@ class osm_way {
 //All nodes are stored in a global vector to avoid memory fragmentation.
 	static vector<struct projectedxy> all_nodes;
 	int inodes, nnodes;
+	long namep; //Offset to the \n terminated way name in a DB file.
 
 	unsigned char m_type;
 };
@@ -266,6 +268,7 @@ class qtile_way {
 	nodelist nodes;
 	quadtile q;
 	unsigned char m_type;
+	long namep; //Offset to the \n terminated way name in a DB file.
 
 //static variables
 	static int splitlevel;
@@ -293,6 +296,7 @@ class qtile_way_small {
 	quadtile q;
 	unsigned char m_type;
 	int inodes, nnodes;
+	long namep; //Offset to the \n terminated way name in a DB file.
 
 //static variables
 	static vector<struct projectedxy> all_nodes;
@@ -319,11 +323,12 @@ vector<struct projectedxy> qtile_way_small::all_nodes;
 class qtile_writer {
   public:
 	qtile_writer(const QString &_dir)
-		: dir(_dir), inited(false), total_nodes(0) {};
+		: dir(_dir), inited(false), total_nodes(0), names_fp_out(0), namep_cache(1000) {};
 	void serialise(qtile_way &q);
 	void write_placenames(vector<placename> &placenames);
 	bool write();
 	void show_node(quadtile q);
+	long get_namep(const QString &name);
 	static bool concat(const QString &from, const QString &to);
   private:
 	bool write_index(FILE *fp, class qindexTree &qidx);
@@ -335,6 +340,8 @@ class qtile_writer {
 	unsigned long long total_nodes;
 	vector<quadtile> sample_nodes, qtile_tmpfiles;
 	vector<int> tempfile_ways, tempfile_nodes;
+	FILE *names_fp_out;
+	QCache<QString, long> namep_cache;
 };
 
 /* This constructor is intentionally private. A valid qtile_way meets two
@@ -348,6 +355,7 @@ qtile_way::qtile_way(const osm_way &w)
 		nodes.push_back(osm_way::all_nodes[i]);
 	q = mux(nodes[0].x, nodes[0].y);
 	m_type = w.type();
+	namep = w.namep;
 	interpolate_long_ways();
 }
 
@@ -433,6 +441,7 @@ bool qtile_way::create(const osm_way &w, vector<qtile_way> *result)
 					return false;
 				}
 				qtile_way qway2(current_qtile, qway.m_type);
+				qway2.namep = qway.namep;
 				for(nodelist::iterator j=current_qtile_start; j!=i; j++)
 					qway2.nodes.push_back(*j);
 				qway2.nodes.push_back(*i); //Add the overlapping node.
@@ -442,6 +451,7 @@ bool qtile_way::create(const osm_way &w, vector<qtile_way> *result)
 					qtile_way qway3(iq, qway.m_type);
 					qway3.nodes.push_back(*(i-1));
 					qway3.nodes.push_back(*i);
+					qway3.namep = qway.namep;
 					result->push_back(qway3);
 				}
 				current_qtile_start = i-1; //-1 to overlap previous tile
@@ -453,13 +463,15 @@ bool qtile_way::create(const osm_way &w, vector<qtile_way> *result)
 }
 
 // Used to write to temporary file for unserialisation by qtile_way_small
+// Format is q(8bytes) type(1byte) namep(4bytes) no_of_nodes(2bytes) nodes(8bytes each)
 bool qtile_way::serialise(FILE *fp)
 {
 	if(fwrite(ll2buf(q), 8, 1, fp)!=1) return false;
-	char buf[3];
+	char buf[7];
 	buf[0] = m_type;
-	memcpy(buf+1, l2buf(nodes.size())+2, 2);
-	if(fwrite(buf, 3, 1, fp)!=1) return false;
+	memcpy(buf+1, l2buf(namep), 4);
+	memcpy(buf+5, l2buf(nodes.size())+2, 2);
+	if(fwrite(buf, 7, 1, fp)!=1) return false;
 	for(nodelist::iterator i=nodes.begin(); i!=nodes.end(); i++) {
 		if(fwrite(l2buf(i->x), 4, 1, fp)!=1) return false;
 		if(fwrite(l2buf(i->y), 4, 1, fp)!=1) return false;
@@ -467,20 +479,26 @@ bool qtile_way::serialise(FILE *fp)
 	return true;
 }
 
-bool qtile_way_small::unserialise(FILE *fp) {
+bool qtile_way_small::unserialise(FILE *fp)
+{
 	unsigned char buf[8];
 	if(fread(buf, 8, 1, fp)!=1) return false;
 	q = buf2ll(buf);
-	if(fread(buf, 3, 1, fp)!=1) return false;
+	if(fread(buf, 7, 1, fp)!=1) return false;
 	m_type = buf[0];
-	nnodes = (buf[1] << 8) | buf[2];
+	namep = buf2l(buf+1);
+	nnodes = (buf[5] << 8) | buf[6];
 	inodes = all_nodes.size();
 	for(int i=0; i<nnodes; i++) {
 		if(fread(buf, 8, 1, fp)!=1) return false;
 		struct projectedxy xy;
 		xy.x = buf2l(buf);
 		xy.y = buf2l(buf+4);
-		all_nodes.push_back(xy);
+		if(i<=0x1FFF) all_nodes.push_back(xy);
+	}
+	if(nnodes > 0x1FFF) {
+		qCritical() << "Too many nodes. Need to truncate way. nnodes =" << nnodes;
+		nnodes=0x1FFF;
 	}
 	return true;
 }
@@ -489,20 +507,33 @@ int qtile_way_small::buf_len()
 {
 	//buf is made up from:
 		//Type         - 1 byte
-		//No of coords - 2  bytes
+		//No of coords - 2  bytes (low 13 bits).
+		//                  High 3 bits == n == No of name pointer/info bits.
+		//(name pointer/info) n bytes 
 		//First coordinate - 8bytes
 		//Offsets to subsequent nodes - 4 bytes each.
-	return 3 + 8 + 4 * (nnodes-1);
+	int result = 1 + 2 + 8 + 4 * (nnodes-1);
+	if(namep > 0xFFFFFF) result++;
+	if(namep > 0xFFFF) result++;
+	if(namep) result+=2;
+	return result;
 }
 
 bool qtile_way_small::write_buf(FILE *fp)
 {
-	char buf[8];
-
+	unsigned char buf[8];
 	//Serialise type and no. of nodes
 	buf[0] = m_type;
+	if(nnodes > 0x1FFF) {printf("Ooops. Too many nodes %d\n", nnodes); exit(-1);}
 	memcpy(buf+1, l2buf(nnodes)+2, 2);
-	if(fwrite(buf, 3, 1, fp)!=1) return false;
+	unsigned char namepsize;
+	if(!namep) namepsize = 0;
+	else if (namep<=0xFFFF) namepsize = 2;
+	else if (namep<=0xFFFFFF) namepsize = 3;
+	else namepsize = 4;
+	buf[1] |= (namepsize << 5);
+	if(namepsize) memcpy(buf+3, l2buf(namep) + 4 - namepsize, namepsize);
+	if(fwrite(buf, 3 + namepsize, 1, fp)!=1) return false;
 
 	//x/y coords of the first node.
 	quadtile x, y, lastx, lasty;
@@ -570,7 +601,7 @@ class qindexTree {
 		  int deferred_contents;
 		  static int index_entry_size;
 };
-int qindexTree::index_entry_size=28; //No. of bytes each index entry takes up.
+int qindexTree::index_entry_size=24; //No. of bytes each index entry takes up.
 
 /* Default constructor - used for the top node of the tree only. */
 qindexTree::qindexTree()
@@ -705,16 +736,12 @@ void qindexTree::subprint(FILE *fp, int *index)
 		  (*index)++;
 	 }
 	 if(fp) {
-		  unsigned char *s;
-		  s = ll2buf(q);
-		  if(fwrite(s, 8, 1, fp)!=1) throw("Failed write\n");
-		  s = ll2buf(offset);
+		unsigned char *s;
+		s = ll2buf(offset);
 		if(offset<0 && contents) printf("Offset <0 : %lld, %d\n", offset, contents);
-		  if(fwrite(s+4, 4, 1, fp)!=1) throw("Failed write\n");
-		  s = ll2buf(contents);
-		  if(fwrite(s+4, 4, 1, fp)!=1) throw("Failed write\n");
-		  //unsigned char c = (contents > 255) ? 0 : ((unsigned char) contents);
-		  //if(fwrite(&c, 1, 1, fp)!=1) throw("Failed write\n");
+		if(fwrite(s, 8, 1, fp)!=1) throw("Failed write\n");
+		s = ll2buf(contents);
+		if(fwrite(s+4, 4, 1, fp)!=1) throw("Failed write\n");
 	 }
 	 if(parent && parent->contents < MAX_INDEX_CONTENTS) {
 	 //Need to terminate the tree on parents contents not ours. We could
@@ -762,16 +789,16 @@ void qtile_writer::serialise(qtile_way &q)
 }
 
 //no_of_tmpfiles is an empirical guess to end up with all ways.???.tmp files
-//less than g_memory_target in size. The factor of 200 is very conservative
+//less than g_memory_target in size. The factor of 600 is very conservative
 //(50 is probably more accurate), but there is little extra cost here.
 void qtile_writer::init()
 {
 	inited = true;
-	int no_of_tmpfiles = total_nodes * 200ULL / g_memory_target;
+	int no_of_tmpfiles = total_nodes * 600ULL / g_memory_target;
 	if(no_of_tmpfiles<1) no_of_tmpfiles=1;
 	qDebug() << "Qtile: Initialising qtile_writer for input file with" <<
 				total_nodes << "nodes" << "using" << no_of_tmpfiles <<
-				"temporary files";
+				"temporary files with a sample size of" << sample_nodes.size();
 	for(int i=0;i<no_of_tmpfiles;i++) {
 		char buf[50];
 		sprintf(buf, "/ways.%03d.tmp", i);
@@ -782,9 +809,10 @@ void qtile_writer::init()
 		tempfile_nodes.push_back(0);
 	}
 	std::sort(sample_nodes.begin(), sample_nodes.end());
-    for(int i=1; i<no_of_tmpfiles; i++) {
+	for(int i=1; i<no_of_tmpfiles; i++) {
 		qtile_tmpfiles.push_back(sample_nodes[sample_nodes.size()*i/no_of_tmpfiles]);
 	}
+	for(unsigned int i=0;i<qtile_tmpfiles.size();i++) printf("Qtile_tmpfiles cutoff @ %llx\n", qtile_tmpfiles[i]);
 }
 
 //Called once for every node in the osm file on the first pass. We use it to
@@ -795,6 +823,25 @@ void qtile_writer::show_node(quadtile q)
 	if((rand() % 10000)==0) sample_nodes.push_back(q);
 }
 
+//Return a pointer into the name file for this name. We use a cache to
+//try and save memory on common names.
+long qtile_writer::get_namep(const QString &name)
+{
+	if(!name.size()) return 0;
+	if(!names_fp_out) {
+		names_fp_out = fopen((dir + "/ways.names.txt").toAscii(), "w");
+		if(!names_fp_out) return 0;
+		fprintf(names_fp_out, "Qtile renderer names list version 0.1\n");
+	}
+	long result, *lp;
+	lp = namep_cache[name];
+	if(lp) return *lp;
+	result = ftell(names_fp_out);
+	if(result==-1) return 0;
+	fprintf(names_fp_out, "%s\n", name.toUtf8().constData());
+	namep_cache.insert(name, new long(result));
+	return result;
+}
 
 //#define USE_EXISTING_TEMP_FILES 63 //For debugging.
 //Read all nodes from the temp files in turn, sort them, and write them into
@@ -811,7 +858,6 @@ bool qtile_writer::write()
 		tempfile_nodes.push_back(0);
 	}
 #endif
-	qDebug() << "qtile_writer::write()";
 	FILE *fp_out = fopen((dir + "/ways.all.qdb").toAscii(), "w");
 	FILE *mway_fp_out = fopen((dir + "/ways.motorway.qdb").toAscii(), "w");
 	qindexTree qidx, mway_index;
@@ -819,7 +865,7 @@ bool qtile_writer::write()
 
 	int i=0;
 	for(filelist::iterator f = files.begin(); f!=files.end(); f++) {
-		//Open and read into memory and sort each temproary file in turn.
+		//Open and read into memory and sort each temporary file in turn.
 		if(f->second) fclose(f->second);
 		f->second = fopen(f->first.toAscii(), "r");
 		qDebug() << "Qtile: opening file " << ++i << "/" << files.size();
@@ -828,8 +874,12 @@ bool qtile_writer::write()
 		qtile_way_small::clear_all_nodes();
 		vector<qtile_way_small> qways;
 		qtile_way_small qway;
-		while(qway.unserialise(f->second))
-			qways.push_back(qway);
+		try {
+			while(qway.unserialise(f->second))
+				qways.push_back(qway);
+		} catch(std::bad_alloc) {
+			qCritical() << "Bad alloc with " << qways.size() << " ways. Some ways will be missing from db";
+		}
 		qDebug() << "Qtile:   sorting " << i << "/" << files.size();
 		std::sort(qways.begin(), qways.end(), qtile_way_small::sorter);
 		qDebug() << "Qtile:   writing from " << i << "/" << files.size();
@@ -845,13 +895,14 @@ bool qtile_writer::write()
 				}
 			}
 		}
-		qDebug() << "Qtile:   done writing from " <<  i << "/" << files.size() << " file offset = " << file_offset;
+		qDebug() << "Qtile:   done writing from " <<  i << "/" << files.size();
 		fclose(f->second);
 		f->second = 0;
 	}
 
 	fclose(fp_out);
 	fclose(mway_fp_out);
+	if(names_fp_out) fclose(names_fp_out);
 
 	//Delete temporary files.
 	for(filelist::iterator f = files.begin(); f!=files.end(); f++) {
@@ -1025,6 +1076,7 @@ bool OSMReader::write_ways_to_temp_file()
 	}
 	//total_nodes += osm_way::all_nodes.size();
 	//total_ways += ways.size();
+	qDebug() << "Qtile:    clearing memory";
 	ways.clear();
 	nodes_to_load.clear();
 	osm_way::all_nodes.clear();
@@ -1135,22 +1187,21 @@ bool OSMReader::add_way(IEntityReader::Way &way)
 	 std::string stats_key="";
 	 // FIXME earlier code had tags in a map. MoNav's parsing delivers them
 	 // in vector<Tag>. Temporary fix is to recreate the tagMap...
-	 std::map<std::string, std::string> tagMap;
+	 std::map<QString, QString> tagMap;
 	 for(std::vector<IEntityReader::Tag>::iterator i = way.tags.begin();
 				i!=way.tags.end(); i++) {
-		  std::string s(i->value.toAscii());
-		  if(!s.size()) continue;
-		  if(i->key) tagMap[osm_rules[i->key - 1].key] = s;
-		  else tagMap["name"] = s;
+		if(!i->value.size()) continue;
+		 if(i->key) tagMap[osm_rules[i->key - 1].key] = i->value;
+		  else tagMap["name"] = i->value;
 	 }
 	 for(osm_rules_t *rules=osm_rules; rules->subrules && !w.m_type;rules++) {
 		  const char *key = rules->key;
-		  std::string val = tagMap[key];
+		  std::string val(tagMap[key].toAscii());
 		  for(const osm_subrule_t *srules = rules->subrules;
 				srules->val && !w.m_type; srules++) {
 				if(val==srules->val) {
 					 w.m_type = srules->type;
-					 stats_key = std::string(rules->key) + ":" + tagMap[key];
+					 stats_key = std::string(rules->key) + ":" + std::string(tagMap[key].toAscii());
 				}
 		  }
 	 }
@@ -1170,6 +1221,7 @@ bool OSMReader::add_way(IEntityReader::Way &way)
 		osm_way::all_nodes.push_back(xy);
 		w.nnodes++;
 	}
+    w.namep = m_qtw->get_namep(tagMap["name"]);
 	ways.push_back(w);
 	if((ways.size()%1000000)==0)
 		qDebug() << "Qtile:       " << ways.size() << " ways with " << osm_way::all_nodes.size() << "nodes";
@@ -1302,7 +1354,7 @@ QString QtileRenderer::GetName()
 
 int QtileRenderer::GetFileFormatVersion()
 {
-	return 1;
+	return 2;
 }
 
 QtileRenderer::Type QtileRenderer::GetType()
