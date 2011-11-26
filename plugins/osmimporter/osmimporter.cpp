@@ -1301,6 +1301,10 @@ void OSMImporter::readNode( OSMImporter::Node* node, const IEntityReader::Node& 
 				}
 			case NodeTags::Barrier:
 				{
+					if ( value == "toll_booth" ) {
+						node->access = true;
+						break;
+					}
 					if ( node->accessPriority == m_profile.accessList.size() )
 						node->access = false;
 					break;
