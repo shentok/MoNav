@@ -92,7 +92,14 @@ maemo5 {
 }
 
 RESOURCES += images.qrc
-RC_FILE = ../images/WindowsResources.rc
+
+win32 {
+    RC_FILE = ../images/WindowsResources.rc
+}
+
+macx {
+    ICON = ../images/about.png
+}
 
 LIBS += -L../bin/plugins_client -lmapnikrendererclient -lcontractionhierarchiesclient -lgpsgridclient -losmrendererclient -lunicodetournamenttrieclient -lqtilerendererclient
 
