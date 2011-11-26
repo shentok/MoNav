@@ -98,7 +98,7 @@ win32 {
 }
 
 macx {
-    ICON = ../images/about.png
+    ICON = ../images/AppIcons.icns
 }
 
 LIBS += -L../bin/plugins_client -lmapnikrendererclient -lcontractionhierarchiesclient -lgpsgridclient -losmrendererclient -lunicodetournamenttrieclient -lqtilerendererclient
