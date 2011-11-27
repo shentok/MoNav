@@ -9,6 +9,7 @@
 
 #include <QObject>
 #include <QTcpSocket>
+#ifndef NOQTMOBILE
 #include <QGeoPositionInfoSource>
 
 QTM_USE_NAMESPACE
@@ -44,5 +45,5 @@ class GpsdPositionInfoSource : public QGeoPositionInfoSource {
   QTcpSocket *m_tcpSocket;
   QGeoPositionInfo m_lastKnown;
 };
-
+#endif
 #endif

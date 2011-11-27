@@ -19,7 +19,7 @@
 #ifndef NAN
 #define NAN (0.0/0.0)
 #endif
-
+#ifndef NOQTMOBILE
 qreal GpsdPositionInfoSource::getReal(const QMap<QString, QVariant> &map, const QString &name) {
   // make sure that key exists
   if(!map.contains(name)) return NAN;
@@ -186,3 +186,4 @@ GpsdPositionInfoSource * GpsdPositionInfoSource::create(QObject *parent)
 	}
 	return source;
 }
+#endif
