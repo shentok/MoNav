@@ -2,7 +2,7 @@
 Colour: WHITE         0xff 0xff 0xff
 Colour: GRAY_LIGHT       196  196  196
 Colour: BLACK            0    0    0
-Colour: PATH_GREEN     0   153   0
+Colour: PATH_GRAY      220  220  220
 Colour: C_ROAD_YELLOW  253  253  179
 Colour: B_ROAD_ORANGE  253  214  164
 Colour: A_ROAD_RED     236  152  154
@@ -18,8 +18,8 @@ Line: HW_PRIMARY      HW_PRIMARY    6 11 A_ROAD_RED 2
 Line: HW_TRUNK        HW_TRUNK      6 11 A_ROAD_GREEN 3
 Line: HW_MOTORWAY     HW_MOTORWAY   6 11 MOTORWAY_BLUE 4
 #Higher level zooms
-Line: HW_PATH         HW_PRIVATE    14 16 BLACK 2.5       PATH_GREEN 1.5
-Line: HW_PATH         HW_PRIVATE    17 20 BLACK 8         PATH_GREEN 7
+Line: HW_PATH         HW_PRIVATE    14 16 BLACK 2.5       PATH_GRAY 1.5
+Line: HW_PATH         HW_PRIVATE    17 20 BLACK 8         PATH_GRAY 7
 Line: HW_PEDESTRIAN   HW_PEDESTRIAN 13 13 BLACK 2         GRAY_LIGHT 1.5
 Line: HW_PEDESTRIAN   HW_PEDESTRIAN 14 14 BLACK 3.5       GRAY_LIGHT 2.5
 Line: HW_PEDESTRIAN   HW_PEDESTRIAN 15 16 BLACK 5         GRAY_LIGHT 4
@@ -74,3 +74,4 @@ Area: AREA_RETAIL      6 20 0xde 0xd1 0xd5
 Area: AREA_PARKING     6 20 0xf7 0xef 0xb7
 Area: AREA_INDUSTRIAL  6 20 0xdf 0xd1 0xd6
 Area: AREA_BUILDING    16 20 0xbc 0xa9 0xa9
+
