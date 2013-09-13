@@ -47,15 +47,14 @@ signals:
 	void image_finished( int x, int y, int zoom, int magnification, QByteArray data );
 
 public:
-	TileWriter( QString dir );
+    TileWriter( const QString &dir );
 	virtual ~TileWriter() {}
 
 	void get_placenames(int x, int y, int zoom, int drawzoom, std::vector<struct placename> &result) const;
 private:
 	bool query_index(int x, int y, int zoom, int cur_db, int *nways) const;
 	static bool need_next_pass(int type1, int type2);
-	class ImgWriter *img;
-	std::string filename[3];
+    class ImgWriter *const img;
 	class qindex *qidx[3];
 	FILE *db[3];
 	DrawingRules dr;

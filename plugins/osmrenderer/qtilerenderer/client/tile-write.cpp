@@ -480,13 +480,14 @@ long qindex::get_index(quadtile _q, int _level, int *_nways)
 	return offset;
 }
 
-TileWriter::TileWriter( QString dir )
-	 : dr(fileInDirectory( dir, "rendering.qrr" ).toLocal8Bit().constData() )
+TileWriter::TileWriter( const QString &dir ) :
+    img(new ImgWriter),
+    dr(fileInDirectory( dir, "rendering.qrr" ).toLocal8Bit().constData() )
 {
-    img = new ImgWriter;
-	 filename[0] = fileInDirectory( dir, "ways.all.pqdb" ).toLocal8Bit().constData();
-	 filename[1] = fileInDirectory( dir, "ways.motorway.pqdb" ).toLocal8Bit().constData();
-	 filename[2] = fileInDirectory( dir, "places.pqdb" ).toLocal8Bit().constData();
+    std::string filename[3];
+    filename[0] = fileInDirectory( dir, "ways.all.pqdb" ).toLocal8Bit().constData();
+    filename[1] = fileInDirectory( dir, "ways.motorway.pqdb" ).toLocal8Bit().constData();
+    filename[2] = fileInDirectory( dir, "places.pqdb" ).toLocal8Bit().constData();
     for(int i=0;i<3;i++) {
         db[i] = fopen(filename[i].c_str(), "rb");
         qidx[i] = qindex::load(db[i]);
