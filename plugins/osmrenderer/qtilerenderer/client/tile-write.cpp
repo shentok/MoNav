@@ -481,7 +481,6 @@ long qindex::get_index(quadtile _q, int _level, int *_nways)
 }
 
 TileWriter::TileWriter( const QString &dir ) :
-    img(new ImgWriter),
     dr(fileInDirectory( dir, "rendering.qrr" ).toLocal8Bit().constData() )
 {
     std::string filename[3];
@@ -548,8 +547,8 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
 
     //Initialise the image.
     Log(LOG_VERBOSE, "Initialising image with %d ways\n", nways);
-	 img->NewImage(256 * magnification, 256 * magnification, _imgname.toLocal8Bit().constData() );
-    img->SetBG(242, 238, 232);
+    ImgWriter img(256 * magnification, 256 * magnification, _imgname.toLocal8Bit().constData() );
+    img.SetBG(242, 238, 232);
     TIMELOG("Image initialisation");
 
     //load the ways.
@@ -567,7 +566,8 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
 
     if(waylist.size()==0) { //We de-reference waylist.begin() later.
         Log(LOG_VERBOSE, "Empty tile\n");
-        if(_imgname.size()) img->Save();
+        if(_imgname.size())
+            img.Save();
         return true;
     }
 
@@ -587,19 +587,20 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
     for(i=waylist.begin(); i!=waylist.end(); i++) {
         if(need_next_pass(i->type, current_type)) { //Do the second pass.
             for(j=cur_type_start; j!=i; j++) 
-                if(!j->draw(*img, dr, itilex, itiley, zoom, magnification, 1, allcoords)) break;
+                if(!j->draw(img, dr, itilex, itiley, zoom, magnification, 1, allcoords)) break;
             current_type = i->type;
             cur_type_start = i;
         }
-        i->draw(*img, dr, itilex, itiley, zoom, magnification, 0, allcoords);
+        i->draw(img, dr, itilex, itiley, zoom, magnification, 0, allcoords);
     }
     //Do second pass for the last type.
     for(j=cur_type_start; j!=waylist.end(); j++)
-        if(!j->draw(*img, dr, itilex, itiley, zoom, magnification, 1, allcoords)) break;
+        if(!j->draw(img, dr, itilex, itiley, zoom, magnification, 1, allcoords)) break;
     TIMELOG("Drawing");
     
     Log(LOG_VERBOSE, "Saving img\n");
-    if(_imgname.size()) img->Save();
+    if(_imgname.size())
+        img.Save();
     Log(LOG_VERBOSE, "Done\n");
     TIMELOG("Saving");
     
@@ -607,7 +608,7 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
     TIMELOG("Cleanup");
     Log(LOG_VERBOSE, "Drew %d/%d ways\n", g_ndrawnways, g_nways);
 
-	 emit image_finished( x, y, zoom, magnification, QByteArray( ( const char* ) img->get_img_data(), 256 * magnification * 256 * magnification * 3 ) );
+    emit image_finished( x, y, zoom, magnification, QByteArray( ( const char* ) img.get_img_data(), 256 * magnification * 256 * magnification * 3 ) );
     return true;
 }
 

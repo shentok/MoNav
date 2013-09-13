@@ -54,7 +54,6 @@ public:
 private:
 	bool query_index(int x, int y, int zoom, int cur_db, int *nways) const;
 	static bool need_next_pass(int type1, int type2);
-    class ImgWriter *const img;
 	class qindex *qidx[3];
 	FILE *db[3];
 	DrawingRules dr;

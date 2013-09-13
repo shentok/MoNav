@@ -27,42 +27,27 @@ class ImgWriter {
 
     struct coord {int x; int y;};
 
-    ImgWriter() {
-        buf=NULL;
-        rbuf=NULL;
-        pixf=NULL;
-        rbase=NULL;
-        renderer=NULL;
-        drawing = NOTHING;
-        _r = _g = _b = -1;
-    };
+    ImgWriter(int x, int y, const std::string &_name) :
+        name(_name),
+        frame_width(x),
+        frame_height(y),
+        buf(new unsigned char[x * y * 3]),
+        rbuf(buf, x, y, x * 3),
+        pixf(rbuf),
+        rbase(pixf),
+        renderer(rbase),
+        drawing(NOTHING),
+        _r(-1),
+        _g(-1),
+        _b(-1)
+    {
+        rasterizer.clip_box(0, 0, x, y);
+    }
     ~ImgWriter() {
-        if(buf) delete [] buf;
-        if(rbuf) delete rbuf;
-        if(pixf) delete pixf;
-        if(rbase) delete rbase;
-        if(renderer) delete renderer;
-    };
-    void NewImage(int x, int y, std::string _name) {
-        frame_width = x; frame_height = y;
-        rasterizer.clip_box(0, 0, frame_width, frame_height);
-        name = _name;
-        if(buf) delete [] buf;
-        if(rbuf) delete rbuf;
-        if(pixf) delete pixf;
-        if(rbase) delete rbase;
-        if(renderer) delete renderer;
-
-        buf = new unsigned char[x * y * 3];
-
-        rbuf = new renbuf_type(buf, frame_width, frame_height, frame_width * 3);
-        pixf = new pixfmt_type(*rbuf);
-        rbase = new renbase_type(*pixf);
-        renderer = new renderer_type(*rbase);
-        drawing = NOTHING;
-    };
+        delete [] buf;
+    }
     void SetBG(int r, int g, int b) {
-        rbase->clear(agg::rgba8(r, g, b));
+        rbase.clear(agg::rgba8(r, g, b));
         //prim->fill_color(agg::rgba8(r, g, b));
         //prim->solid_rectangle(0, 0, frame_width, frame_height);
     };
@@ -181,9 +166,9 @@ class ImgWriter {
         //stroke_type stroke(trans);
         agg::conv_close_polygon<trans_path_type> poly(trans);
 
-        renderer->color(line_color);
+        renderer.color(line_color);
         rasterizer.add_path(poly);
-        agg::render_scanlines(rasterizer, scanline, *renderer);
+        agg::render_scanlines(rasterizer, scanline, renderer);
         rasterizer.reset();
         path.free_all();
     };
@@ -196,9 +181,9 @@ class ImgWriter {
 
         stroke.width(pen_width);
         stroke.line_cap(agg::round_cap);
-        renderer->color(line_color);
+        renderer.color(line_color);
         rasterizer.add_path(stroke);
-        agg::render_scanlines(rasterizer, scanline, *renderer);
+        agg::render_scanlines(rasterizer, scanline, renderer);
         rasterizer.reset();
         path.free_all();
     };
@@ -234,13 +219,13 @@ class ImgWriter {
   private:
     agg::scanline_u8 scanline;
     agg::rasterizer_scanline_aa<> rasterizer;
-    std::string name;
-    int frame_width, frame_height;
-    unsigned char *buf;
-    agg::rendering_buffer *rbuf;
-    pixfmt_type *pixf;
-    renbase_type *rbase;
-    renderer_type *renderer;
+    const std::string name;
+    const int frame_width, frame_height;
+    unsigned char *const buf;
+    agg::rendering_buffer rbuf;
+    pixfmt_type pixf;
+    renbase_type rbase;
+    renderer_type renderer;
     color_type line_color;
     path_type path;
     double pen_width;
