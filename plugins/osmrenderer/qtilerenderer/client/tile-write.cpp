@@ -371,19 +371,24 @@ class qindex {
 qindex *qindex::load(FILE *fp)
 {
     Log(LOG_DEBUG, "Load index\n");
-    if(!fp) return false;
+    if(!fp)
+        return NULL;
+
     char tmp[100];
-    if(!fgets(tmp, 100, fp)) return false;
+    if(!fgets(tmp, 100, fp))
+        return NULL;
+
     if(strncmp(tmp, DB_VERSION, strlen(DB_VERSION))) {
         Log(LOG_ERROR, "Not a DB file, or wrong version\n");
-        return false;
+        return NULL;
     }
+
     char *s=strstr(tmp, "depth=");
     int max_safe_zoom;
     if(s) max_safe_zoom = atoi(s+6);
     else {
         Log(LOG_ERROR, "Can't read maximum safe zoom\n");
-        return false;
+        return NULL;
     }
 
     unsigned char buf[8];
