@@ -64,25 +64,21 @@ struct coord {
 class Way {
   public:
     Way() {ncoords=0;};
-    bool init(FILE *fp);
+	bool init(FILE *fp, std::vector<coord> &allcoords);
     void print();
     bool draw(ImgWriter &img, DrawingRules & rules,
               unsigned long tilex, unsigned long tiley,
-              int zoom, int magnification, int pass);
+              int zoom, int magnification, int pass, std::vector<coord> &allcoords);
     static bool sort_by_type(Way w1, Way w2) {return w1.type<w2.type;};
-    static void new_tile() {allcoords.clear();};
     osm_type_t type;
 
   private:
     int coordi, ncoords;
-    static std::vector<coord> allcoords; //Coords for all loaded ways.
 };
-
-std::vector<coord> Way::allcoords;
 
 //Initialise a way from the database. fp has been seeked to the start of the
 //way we wish to read.
-bool Way::init(FILE *fp)
+bool Way::init(FILE *fp, std::vector<coord> &allcoords)
 {
     unsigned char buf[18];
 
@@ -122,7 +118,7 @@ static int g_nways=0, g_ndrawnways=0;
 //Draw this way to an img tile.
 bool Way::draw(ImgWriter &img, DrawingRules & rules,
               unsigned long tilex, unsigned long tiley,
-              int zoom, int magnification, int pass)
+              int zoom, int magnification, int pass, std::vector<coord> &allcoords)
 {
     g_nways++;
     int r, g, b;
@@ -556,15 +552,14 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
     TIMELOG("Image initialisation");
 
     //load the ways.
-    Way::new_tile();
+    std::vector<coord> allcoords; //Coords for all loaded ways.
     Log(LOG_VERBOSE, "Loading ways\n");
-    Way s;
     typedef std::vector<Way> WayList;
     WayList waylist;
 
     for(int i=0; i<nways;i++) {
         Way s;
-        if(!s.init(db[current_db])) continue;
+        if(!s.init(db[current_db], allcoords)) continue;
         waylist.push_back(s);
     }
     TIMELOG("Loading ways");
@@ -591,15 +586,15 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
     for(i=waylist.begin(); i!=waylist.end(); i++) {
         if(need_next_pass(i->type, current_type)) { //Do the second pass.
             for(j=cur_type_start; j!=i; j++) 
-                if(!j->draw(*img, dr, itilex, itiley, zoom, magnification, 1)) break;
+                if(!j->draw(*img, dr, itilex, itiley, zoom, magnification, 1, allcoords)) break;
             current_type = i->type;
             cur_type_start = i;
         }
-        i->draw(*img, dr, itilex, itiley, zoom, magnification, 0);
+        i->draw(*img, dr, itilex, itiley, zoom, magnification, 0, allcoords);
     }
     //Do second pass for the last type.
     for(j=cur_type_start; j!=waylist.end(); j++)
-        if(!j->draw(*img, dr, itilex, itiley, zoom, magnification, 1)) break;
+        if(!j->draw(*img, dr, itilex, itiley, zoom, magnification, 1, allcoords)) break;
     TIMELOG("Drawing");
     
     Log(LOG_VERBOSE, "Saving img\n");
