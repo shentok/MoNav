@@ -8,6 +8,8 @@
 #include <QString>
 #include "types.h"
 
+class QIODevice;
+
 struct placename {
     double tilex, tiley; // fractional x/y tile coords.
     char type;
@@ -48,14 +50,14 @@ signals:
 
 public:
     TileWriter( const QString &dir );
-	virtual ~TileWriter() {}
+    ~TileWriter();
 
 	void get_placenames(int x, int y, int zoom, int drawzoom, std::vector<struct placename> &result) const;
 private:
 	bool query_index(int x, int y, int zoom, int cur_db, int *nways) const;
 	static bool need_next_pass(int type1, int type2);
 	class qindex *qidx[3];
-	FILE *db[3];
+    QIODevice *db[3];
 	DrawingRules dr;
 };
 

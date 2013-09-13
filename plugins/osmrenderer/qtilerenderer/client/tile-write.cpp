@@ -64,7 +64,7 @@ struct coord {
 class Way {
   public:
     Way() {ncoords=0;};
-	bool init(FILE *fp, std::vector<coord> &allcoords);
+	bool init(QIODevice *fp, std::vector<coord> &allcoords);
     void print();
     bool draw(ImgWriter &img, DrawingRules & rules,
               unsigned long tilex, unsigned long tiley,
@@ -78,11 +78,11 @@ class Way {
 
 //Initialise a way from the database. fp has been seeked to the start of the
 //way we wish to read.
-bool Way::init(FILE *fp, std::vector<coord> &allcoords)
+bool Way::init(QIODevice *fp, std::vector<coord> &allcoords)
 {
     unsigned char buf[18];
 
-    if(fread(buf, 11, 1, fp)!=1) {
+    if(fp->read(reinterpret_cast<char *>(buf), 11)!=11) {
             Log(LOG_ERROR, "Failure to read any of the way\n");
             return false;
     }
@@ -99,7 +99,7 @@ bool Way::init(FILE *fp, std::vector<coord> &allcoords)
 
     //Add the cordinates
     for(int i=1;i<nqtiles;i++) {
-        if(fread(buf, 4, 1, fp)!=1) {
+        if(fp->read(reinterpret_cast<char *>(buf), 4)!=4) {
             Log(LOG_ERROR, "Failed to read remainder of route\n");
             return false;
         }
@@ -349,7 +349,7 @@ void DrawingRules::tokenise(const std::string &input, std::vector<std::string> &
 /* A recursive index class into the quadtile way database. */
 class qindex {
  public:
-   static qindex *load(FILE *fp);
+   static qindex *load(QIODevice &fp);
    long get_index(quadtile q, int _level, int *_nways=NULL);
 
    int max_safe_zoom;
@@ -364,14 +364,14 @@ class qindex {
 };
 
 //Static function to load the index from the start of the DB
-qindex *qindex::load(FILE *fp)
+qindex *qindex::load(QIODevice &fp)
 {
     Log(LOG_DEBUG, "Load index\n");
-    if(!fp)
+    if(!fp.open(QFile::ReadOnly))
         return NULL;
 
     char tmp[100];
-    if(!fgets(tmp, 100, fp))
+    if(fp.readLine(tmp,100)==-1)
         return NULL;
 
     if(strncmp(tmp, DB_VERSION, strlen(DB_VERSION))) {
@@ -389,7 +389,7 @@ qindex *qindex::load(FILE *fp)
 
     unsigned char buf[8];
     memset(buf, 0, 8);
-    if(fread(buf+5, 3, 1, fp)!=1) {
+    if(fp.read(reinterpret_cast<char*>(buf+5), 3)!=3) {
         Log(LOG_ERROR, "Failed to read index file\n");
         return NULL;
     }
@@ -410,7 +410,7 @@ qindex *qindex::load(FILE *fp)
             return NULL;
         }
         unsigned char buf[28];
-        if(fread(buf, 28, 1, fp)!=1) {
+        if(fp.read(reinterpret_cast<char *>(buf), 28)!=28) {
             Log(LOG_ERROR, "Failed read of index file\n");
             delete result;
             return NULL;
@@ -488,11 +488,19 @@ TileWriter::TileWriter( const QString &dir ) :
     filename[1] = fileInDirectory( dir, "ways.motorway.pqdb" ).toLocal8Bit().constData();
     filename[2] = fileInDirectory( dir, "places.pqdb" ).toLocal8Bit().constData();
     for(int i=0;i<3;i++) {
-        db[i] = fopen(filename[i].c_str(), "rb");
-        qidx[i] = qindex::load(db[i]);
+        db[i] = new QFile(filename[i].c_str());
+        qidx[i] = qindex::load(*db[i]);
         printf("Opening %s\n", filename[i].c_str());
     }
 
+}
+
+TileWriter::~TileWriter()
+{
+    for(int i=0;i<3;i++) {
+        delete db[i];
+        db[i] = 0;
+    }
 }
 
 /*Static function. Way types that are drawn similarly (eg.
@@ -525,7 +533,7 @@ bool TileWriter::query_index(int x, int y, int zoom, int cur_db, int *nways) con
     //Seek to the relevant point in the db.
     long offset = qidx[cur_db]->get_index(q & ~qmask, zoom, nways);
     if(*nways==0) return true;
-    if(offset==-1 || fseek(db[cur_db], offset, SEEK_SET)==-1) {
+    if(offset==-1 || !db[cur_db]->seek(offset)) {
         Log(LOG_ERROR, "Failed to find index\n");
         return false;
     }
@@ -625,7 +633,8 @@ void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
     char buf[256];
     unsigned char ubuf[10];
     for(int i=0; i<nways;i++) {
-        if(fread(ubuf, 10, 1, db[placenamedb])!=1) return;
+        if(db[placenamedb]->read(reinterpret_cast<char *>(ubuf), 10)!=10)
+            return;
 
         struct placename p;
         p.type = ubuf[9];
@@ -636,7 +645,8 @@ void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
         p.tilex = (double) x / (double) (1ULL<<(31-actualzoom));
         p.tiley = (double) y / (double) (1ULL<<(31-actualzoom));
 
-        if(fread(buf, namelen, 1, db[placenamedb])!=1) return;
+        if(db[placenamedb]->read(buf, namelen)!=namelen)
+            return;
 
         buf[namelen]=0;
         if(p.type>=5 && actualzoom<13) continue; //ignore hamlets
