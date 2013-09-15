@@ -51,10 +51,12 @@ struct place_cache_e {
 	std::vector<struct placename> placenames;
 };
 
-QtileRendererClient::QtileRendererClient()
+QtileRendererClient::QtileRendererClient() :
+    twriter( NULL ),
+    placeDatabase( 0 ),
+    place_cache_zoom( 0 ),
+    m_renderThread( NULL )
 {
-	twriter = NULL;
-	place_cache_zoom = 0;
 }
 
 QtileRendererClient::~QtileRendererClient()
@@ -64,17 +66,23 @@ QtileRendererClient::~QtileRendererClient()
 
 void QtileRendererClient::unload()
 {
-	if ( twriter == NULL )
-		return;
-
 	disconnect( this, SIGNAL(drawImage(QString,int,int,int,int)) );
 	disconnect( this, SLOT(tileLoaded(int,int,int,int,QByteArray)) );
-	disconnect( twriter, SIGNAL(image_finished(int,int,int,int,QByteArray)), this, SIGNAL(changed()) );
-	m_renderThread->quit();
-	m_renderThread->wait();
-	m_renderThread->deleteLater();
-	twriter->deleteLater();
-	twriter = NULL;
+    if ( placeDatabase != NULL ) {
+        delete placeDatabase;
+        placeDatabase = 0;
+    }
+    if ( twriter != NULL ) {
+        disconnect( twriter, SIGNAL(image_finished(int,int,int,int,QByteArray)), this, SIGNAL(changed()) );
+        twriter->deleteLater();
+        twriter = NULL;
+    }
+    if ( m_renderThread != NULL ) {
+        m_renderThread->quit();
+        m_renderThread->wait();
+        m_renderThread->deleteLater();
+        m_renderThread = NULL;
+    }
 	place_cache_zoom = 0;
 }
 
@@ -95,6 +103,7 @@ bool QtileRendererClient::load()
 	tileSize = 256;
 	for(int i=0;i<=18;i++) m_zoomLevels.push_back(i);
 
+    placeDatabase = new PlaceDatabase(fileInDirectory( m_directory, "places.pqdb" ));
 	twriter = new TileWriter(m_directory);
 	m_renderThread = new QThread( this );
 	twriter->moveToThread( m_renderThread );
@@ -215,8 +224,7 @@ bool QtileRendererClient::Paint( QPainter* painter, const PaintRequest& request 
 			place_cache_e *pce = new place_cache_e;
 			pce->id = tileID(i->x, i->y, i->z);
 			pce->used = true;
-			twriter->get_placenames(i->x, i->y, i->z, zoom,
-											pce->placenames);
+            placeDatabase->get_placenames(i->x, i->y, i->z, zoom, pce->placenames);
 			place_cache[used_tile_id] = pce;
 		}
 	}

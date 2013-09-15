@@ -55,6 +55,7 @@ protected:
 
 	int tileSize;
 	class TileWriter *twriter;
+    class PlaceDatabase *placeDatabase;
 	typedef std::map<long long, struct place_cache_e*> place_cache_t;
 	place_cache_t place_cache;
 	int place_cache_zoom;

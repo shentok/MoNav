@@ -50,13 +50,6 @@ void demux(quadtile tile, quadtile *x, quadtile *y)
     //binary_printf(tile); binary_printf(*x); binary_printf(*y);printf("\n");
 }
 
-/* Store a pair of doubles in the range (0.0->1.0) as integers with alternating
-   binary bits */
-quadtile xy2q(double fx, double fy)
-{
-    return mux((long long) (fx * (1ULL<<31)), (long long) (fy * (1ULL<<31)));
-}
-
 #ifdef NEED_QTILE_WRITE
 // Below here is only needed in the preprocessor.
 #include <math.h>

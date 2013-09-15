@@ -63,8 +63,17 @@ struct coord {
 };
 class Way {
   public:
-    Way() {ncoords=0;};
-	bool init(QIODevice *fp, std::vector<coord> &allcoords);
+    Way() :
+        type(),
+        coordi(),
+        ncoords(0)
+    {}
+    Way(osm_type_t type, int coordi, int ncoords) :
+        type(type),
+        coordi(coordi),
+        ncoords(ncoords)
+    {}
+    bool isEmpty() const { return ncoords == 0; }
     void print();
     bool draw(ImgWriter &img, DrawingRules & rules,
               unsigned long tilex, unsigned long tiley,
@@ -75,44 +84,6 @@ class Way {
   private:
     int coordi, ncoords;
 };
-
-//Initialise a way from the database. fp has been seeked to the start of the
-//way we wish to read.
-bool Way::init(QIODevice *fp, std::vector<coord> &allcoords)
-{
-    unsigned char buf[18];
-
-    if(fp->read(reinterpret_cast<char *>(buf), 11)!=11) {
-            Log(LOG_ERROR, "Failure to read any of the way\n");
-            return false;
-    }
-    type = (osm_type_t) buf[0];
-    int nqtiles = (((int) buf[1]) << 8) | buf[2];
-
-    coord c;
-    c.x = buf2l(buf+3);
-    c.y = buf2l(buf+7);
-    coordi = allcoords.size();
-    ncoords = 1;
-    allcoords.push_back(c);
-    
-
-    //Add the cordinates
-    for(int i=1;i<nqtiles;i++) {
-        if(fp->read(reinterpret_cast<char *>(buf), 4)!=4) {
-            Log(LOG_ERROR, "Failed to read remainder of route\n");
-            return false;
-        }
-        long dx = ((buf[0]<<8)  | buf[1]) << 4;
-        long dy = ((buf[2]<<8)  | buf[3]) << 4;
-        dx -= 1<<19; dy -= 1<<19;
-        c.x += (dx);
-        c.y += (dy);
-        allcoords.push_back(c);
-        ncoords++;
-    }
-    return true;
-}
 
 static int g_nways=0, g_ndrawnways=0;
 //Draw this way to an img tile.
@@ -166,10 +137,8 @@ bool Way::draw(ImgWriter &img, DrawingRules & rules,
 }
 
 /* DrawingRules - load from rendering.qrr */
-DrawingRules::DrawingRules(const std::string &filename) :
-	filename( filename )
+DrawingRules::DrawingRules()
 {
-    load_rules();
 }
 
 bool DrawingRules::get_rule(osm_type_t type, int zoom, int pass,
@@ -194,9 +163,9 @@ bool DrawingRules::get_rule(osm_type_t type, int zoom, int pass,
     return false;
 }
 
-bool DrawingRules::load_rules()
+bool DrawingRules::load_rules(const std::string &filename)
 {
-    static std::map<std::string, osm_type_t> type_table;
+    std::map<std::string, osm_type_t> type_table;
     type_table["AREA_PARK"] = AREA_PARK;
     type_table["AREA_CAMPSITE"] = AREA_CAMPSITE;
     type_table["AREA_NATURE"] = AREA_NATURE;
@@ -347,24 +316,40 @@ void DrawingRules::tokenise(const std::string &input, std::vector<std::string> &
 }
 
 /* A recursive index class into the quadtile way database. */
-class qindex {
+class Database::QuadIndex
+{
  public:
-   static qindex *load(QIODevice &fp);
-   long get_index(quadtile q, int _level, int *_nways=NULL);
+    static QuadIndex *load(QIODevice &fp);
+    long toOffset(int x, int y, int _level, int *_nways=NULL) const;
 
-   int max_safe_zoom;
  private:
-   qindex(){level = -1;};
+    QuadIndex(){level = -1;}
+    long get_index(quadtile q, int _level, int *_nways=NULL) const;
 
-   qindex *child[4];
-   long long q, qmask;
-   long offset;
-   int nways;
-   int level;
+    int max_safe_zoom;
+    QuadIndex *child[4];
+    quadtile q;
+    quadtile qmask;
+    long offset;
+    int nways;
+    int level;
 };
 
+Database::Database( const QString &fileName ) :
+    db(new QFile( fileName )),
+    qidx(QuadIndex::load(*db)),
+    m_count(0)
+{
+}
+
+Database::~Database()
+{
+    delete [] qidx;
+    delete db;
+}
+
 //Static function to load the index from the start of the DB
-qindex *qindex::load(QIODevice &fp)
+Database::QuadIndex *Database::QuadIndex::load(QIODevice &fp)
 {
     Log(LOG_DEBUG, "Load index\n");
     if(!fp.open(QFile::ReadOnly))
@@ -396,9 +381,7 @@ qindex *qindex::load(QIODevice &fp)
     int nidx = (int) buf2ll(buf);
     Log(LOG_DEBUG, "Load %d index items\n", nidx);
 
-    qindex *result;
-    result = new qindex[nidx];
-    result->max_safe_zoom = max_safe_zoom;
+    QuadIndex *result = new QuadIndex[nidx];
     result[0].level = 0;
     result[0].qmask = 0x3FFFFFFFFFFFFFFFLL;
 
@@ -406,13 +389,13 @@ qindex *qindex::load(QIODevice &fp)
         result[i].max_safe_zoom = max_safe_zoom;
         if(result[i].level==-1) {
             Log(LOG_ERROR, "Inconsistent index file - orphaned child\n");
-            delete result;
+            delete [] result;
             return NULL;
         }
         unsigned char buf[28];
         if(fp.read(reinterpret_cast<char *>(buf), 28)!=28) {
             Log(LOG_ERROR, "Failed read of index file\n");
-            delete result;
+            delete [] result;
             return NULL;
         }
         result[i].q = buf2ll(buf);
@@ -430,26 +413,44 @@ qindex *qindex::load(QIODevice &fp)
             long child_offset = (buf[16+j*3] << 16) |
                                 (buf[17+j*3] << 8) |
                                  buf[18+j*3];
-            if(child_offset>=0xFFFFFE) result[i].child[j]=NULL;
+            if(child_offset>=0xFFFFFE) {
+                result[i].child[j]=NULL;
+            }
+            else if(child_offset >= nidx) {
+                Log(LOG_ERROR, "Inconsistent index file - child too big %x %d\n", (int)child_offset, i);
+                delete [] result;
+                return NULL;
+            }
             else {
-                result[i].child[j] = result + child_offset;
-                if(child_offset > nidx) {
-                    Log(LOG_ERROR, "Inconsistent index file - child too big %x %d\n", (int)child_offset, i);
-                    delete result;
-                    return NULL;
-                }
-                result[i].child[j]->level = result[i].level+1;
-                result[i].child[j]->qmask = result[i].qmask >> 2;
+                result[child_offset].level = result[i].level + 1;
+                result[child_offset].qmask = result[i].qmask >> 2;
+                result[i].child[j] = &result[child_offset];
             }
         }
     }
     return result;
 }
 
+long Database::QuadIndex::toOffset(int x, int y, int _level, int *_nways) const
+{
+    //Work out which quadtile to load.
+    const long z = 1UL << _level;
+    const double xf = ((double)x)/z;
+    const double yf = ((double)y)/z;
+    const quadtile qmask = 0x3FFFFFFFFFFFFFFFLL >> ((_level>max_safe_zoom ? max_safe_zoom : _level)*2);
+    //binary_printf(qmask); binary_printf(q);
+
+    /* Store a pair of doubles in the range (0.0->1.0) as integers with alternating
+       binary bits */
+    const quadtile q = mux((long long) (xf * (1ULL<<31)), (long long) (yf * (1ULL<<31)));
+
+    return get_index(q & ~qmask, _level, _nways);
+}
+
 //Get the offset into the DB file where we can read the first way from
 //quadtile _q (masked with level - ie. the first way in the same level
 //_level map tile as _q
-long qindex::get_index(quadtile _q, int _level, int *_nways)
+long Database::QuadIndex::get_index(quadtile _q, int _level, int *_nways) const
 {
     if(_level > max_safe_zoom) _level = max_safe_zoom;
     if((_q & (~qmask))!=q) return(-1); //We don't contain _q
@@ -480,27 +481,68 @@ long qindex::get_index(quadtile _q, int _level, int *_nways)
 	return offset;
 }
 
-TileWriter::TileWriter( const QString &dir ) :
-    dr(fileInDirectory( dir, "rendering.qrr" ).toLocal8Bit().constData() )
+class TileWriter::WayDatabase : public Database
 {
-    std::string filename[3];
-    filename[0] = fileInDirectory( dir, "ways.all.pqdb" ).toLocal8Bit().constData();
-    filename[1] = fileInDirectory( dir, "ways.motorway.pqdb" ).toLocal8Bit().constData();
-    filename[2] = fileInDirectory( dir, "places.pqdb" ).toLocal8Bit().constData();
-    for(int i=0;i<3;i++) {
-        db[i] = new QFile(filename[i].c_str());
-        qidx[i] = qindex::load(*db[i]);
-        printf("Opening %s\n", filename[i].c_str());
+public:
+    WayDatabase( const QString &fileName );
+    Way readWay(std::vector<coord> &allcoords);
+};
+
+TileWriter::WayDatabase::WayDatabase( const QString &fileName ) :
+    Database( fileName )
+{
+}
+
+//Initialise a way from the database. fp has been seeked to the start of the
+//way we wish to read.
+Way TileWriter::WayDatabase::readWay(std::vector<coord> &allcoords)
+{
+    const int coordi = allcoords.size();
+
+    unsigned char buf[18];
+
+    if(db->read(reinterpret_cast<char *>(buf), 11)!=11) {
+            Log(LOG_ERROR, "Failure to read any of the way\n");
+            return Way();
+    }
+    const osm_type_t type = (osm_type_t) buf[0];
+    const int ncoords = (((int) buf[1]) << 8) | buf[2];
+
+    coord c;
+    c.x = buf2l(buf+3);
+    c.y = buf2l(buf+7);
+    allcoords.push_back(c);
+
+    //Add the cordinates
+    for(int i=1;i<ncoords;i++) {
+        if(db->read(reinterpret_cast<char *>(buf), 4)!=4) {
+            Log(LOG_ERROR, "Failed to read remainder of route\n");
+            return Way();
+        }
+        const long dx = ((buf[0]<<8) | buf[1]) << 4;
+        const long dy = ((buf[2]<<8) | buf[3]) << 4;
+        c.x += dx - (1<<19);
+        c.y += dy - (1<<19);
+        allcoords.push_back(c);
     }
 
+    Q_ASSERT( size_t(coordi + ncoords) == allcoords.size() );
+
+    return Way(type, coordi, ncoords);
+}
+
+TileWriter::TileWriter( const QString &dir ) :
+    allWays(new WayDatabase(fileInDirectory( dir, "ways.all.pqdb" ))),
+    motorWays(new WayDatabase(fileInDirectory( dir, "ways.motorway.pqdb" ))),
+    dr()
+{
+    dr.load_rules(fileInDirectory( dir, "rendering.qrr" ).toLocal8Bit().constData());
 }
 
 TileWriter::~TileWriter()
 {
-    for(int i=0;i<3;i++) {
-        delete db[i];
-        db[i] = 0;
-    }
+    delete motorWays;
+    delete allWays;
 }
 
 /*Static function. Way types that are drawn similarly (eg.
@@ -517,27 +559,26 @@ bool TileWriter::need_next_pass(int type1, int type2)
 //For tile x/y/zoom use the index to seek to the relavent part of the db file,
 //and return in nways the number of ways needed to load. Factored out from
 //draw_image() as it's also needed for place names.
-bool TileWriter::query_index(int x, int y, int zoom, int cur_db, int *nways) const
+bool Database::query_index(int x, int y, int zoom)
 {
-    if(!db[cur_db]) return false;
-    //Work out which quadtile to load.
-    long z = 1UL << zoom;
-    double xf = ((double)x)/z;
-    double yf = ((double)y)/z;
-    quadtile qmask, q;
-    qmask = 0x3FFFFFFFFFFFFFFFLL >> ((zoom>qidx[cur_db]->max_safe_zoom ? qidx[cur_db]->max_safe_zoom : zoom)*2);
-    //binary_printf(qmask); binary_printf(q);
-    q = xy2q(xf, yf);
+    if(!db)
+        return false;
 
     Log(LOG_VERBOSE, "Finding seek point\n");
     //Seek to the relevant point in the db.
-    long offset = qidx[cur_db]->get_index(q & ~qmask, zoom, nways);
-    if(*nways==0) return true;
-    if(offset==-1 || !db[cur_db]->seek(offset)) {
+    const long offset = qidx->toOffset(x, y, zoom, &m_count);
+    if(m_count==0)
+        return true;
+    if(offset==-1 || !db->seek(offset)) {
         Log(LOG_ERROR, "Failed to find index\n");
         return false;
     }
     return true;
+}
+
+int Database::count() const
+{
+    return m_count;
 }
 
 //The main entry point into the class. Draw the map tile described by x, y
@@ -547,14 +588,14 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
 {
     TIMELOGINIT("Draw_image");
     //FILE *fp = fopen(filename.c_str(), "rb");
-    int current_db = zoom>12 ? 0 : 1;
+    WayDatabase *const current_db = zoom>12 ? allWays : motorWays;
 	 Log(LOG_DEBUG, "Write %s, %d, %d, %d\n", _imgname.toUtf8().constData(), x, y, zoom);
 
-    int nways;
-    if(!query_index(x, y, zoom, current_db, &nways)) return false;
+    if(!current_db->query_index(x, y, zoom))
+        return false;
 
     //Initialise the image.
-    Log(LOG_VERBOSE, "Initialising image with %d ways\n", nways);
+    Log(LOG_VERBOSE, "Initialising image with %d ways\n", current_db->count());
     ImgWriter img(256 * magnification, 256 * magnification, _imgname.toLocal8Bit().constData() );
     img.SetBG(242, 238, 232);
     TIMELOG("Image initialisation");
@@ -565,9 +606,10 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
     typedef std::vector<Way> WayList;
     WayList waylist;
 
-    for(int i=0; i<nways;i++) {
-        Way s;
-        if(!s.init(db[current_db], allcoords)) continue;
+    for(int i=0; i<current_db->count();i++) {
+        const Way s = current_db->readWay(allcoords);
+        if (s.isEmpty())
+            continue;
         waylist.push_back(s);
     }
     TIMELOG("Loading ways");
@@ -620,20 +662,23 @@ bool TileWriter::draw_image(QString _imgname, int x, int y, int zoom, int magnif
     return true;
 }
 
+PlaceDatabase::PlaceDatabase( const QString &fileName ) :
+    Database( fileName )
+{
+}
+
 //x,y,zoom refer to an osm map tile. Return all placenames within this
 //tile. The data will be drawn at actualzoom, so adjust tilex/tiley and
 //select which places to draw based on this.
-void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
-			std::vector<struct placename> &result) const
+void PlaceDatabase::get_placenames(int x, int y, int zoom, int actualzoom,
+            std::vector<struct placename> &result)
 {
+    if(!query_index(x, y, zoom))
+        return;
 
-    int placenamedb = 2;
-    int nways;
-    if(!query_index(x, y, zoom, placenamedb, &nways)) return;
-    char buf[256];
-    unsigned char ubuf[10];
-    for(int i=0; i<nways;i++) {
-        if(db[placenamedb]->read(reinterpret_cast<char *>(ubuf), 10)!=10)
+    for(int i=0; i<count();i++) {
+        unsigned char ubuf[10];
+        if(db->read(reinterpret_cast<char *>(ubuf), 10)!=10)
             return;
 
         struct placename p;
@@ -645,7 +690,8 @@ void TileWriter::get_placenames(int x, int y, int zoom, int actualzoom,
         p.tilex = (double) x / (double) (1ULL<<(31-actualzoom));
         p.tiley = (double) y / (double) (1ULL<<(31-actualzoom));
 
-        if(db[placenamedb]->read(buf, namelen)!=namelen)
+        char buf[256];
+        if(db->read(buf, namelen)!=namelen)
             return;
 
         buf[namelen]=0;

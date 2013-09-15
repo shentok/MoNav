@@ -10,10 +10,34 @@
 
 class QIODevice;
 
+class Database
+{
+public:
+    Database( const QString &fileName );
+    ~Database();
+    bool query_index(int x, int y, int zoom);
+    int count() const;
+
+protected:
+    QIODevice *const db;
+
+private:
+    class QuadIndex;
+    const QuadIndex *const qidx;
+    int m_count;
+};
+
 struct placename {
     double tilex, tiley; // fractional x/y tile coords.
     char type;
     std::string name;
+};
+
+class PlaceDatabase : public Database
+{
+public:
+    PlaceDatabase( const QString &fileName );
+    void get_placenames(int x, int y, int zoom, int drawzoom, std::vector<struct placename> &result);
 };
 
 class DrawingRules {
@@ -26,14 +50,13 @@ class DrawingRules {
         int red[2], green[2], blue[2];
         double width[2];
     };
-	 DrawingRules(const std::string &filename);
+    DrawingRules();
+    bool load_rules(const std::string &filename);
     bool get_rule(osm_type_t type, int zoom, int pass,
                   int *r, int *g, int *b, double *width, bool *polygon);
   private:
     static void tokenise(const std::string &input, std::vector<std::string> &output);
-    bool load_rules();
 
-	 std::string filename;
     std::vector<struct DrawingRule> drawing_rules;
 };
 
@@ -52,12 +75,11 @@ public:
     TileWriter( const QString &dir );
     ~TileWriter();
 
-	void get_placenames(int x, int y, int zoom, int drawzoom, std::vector<struct placename> &result) const;
 private:
-	bool query_index(int x, int y, int zoom, int cur_db, int *nways) const;
 	static bool need_next_pass(int type1, int type2);
-	class qindex *qidx[3];
-    QIODevice *db[3];
+    class WayDatabase;
+    WayDatabase *const allWays;
+    WayDatabase *const motorWays;
 	DrawingRules dr;
 };
 
