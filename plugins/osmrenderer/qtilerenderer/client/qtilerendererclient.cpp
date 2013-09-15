@@ -110,10 +110,10 @@ int QtileRendererClient::GetMaxZoom()
 	return 18;
 }
 
-bool QtileRendererClient::loadTile( int x, int y, int zoom, int magnification, QPixmap** /*tile*/ )
+QPixmap* QtileRendererClient::loadTile( int x, int y, int zoom, int magnification )
 {
 	emit drawImage( "", x, y, zoom, magnification );
-	return false;
+	return 0;
 }
 
 void QtileRendererClient::tileLoaded( int x, int y, int zoom, int magnification, QByteArray data )

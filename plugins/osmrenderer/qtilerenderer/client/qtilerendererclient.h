@@ -49,7 +49,7 @@ private slots:
 
 protected:
 
-	virtual bool loadTile( int x, int y, int zoom, int magnification, QPixmap** tile );
+	virtual QPixmap* loadTile( int x, int y, int zoom, int magnification );
 	virtual bool load();
 	virtual void unload();
 
