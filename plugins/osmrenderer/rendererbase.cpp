@@ -208,10 +208,10 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 		int posY = ( minY - request.center.y * tileFactor ) * m_tileSize;
 		for ( int y = minY; y < maxY; ++y ) {
 
-			QPixmap* tile = NULL;
 			if ( x >= 0 && x < xWidth && y >= 0 && y < yWidth ) {
 				long long id = tileID( x, y, zoom );
-				if ( !m_cache.contains( id ) ) {
+				QPixmap* tile = m_cache.object( id );
+				if ( tile == NULL ) {
 					if ( !loadTile( x, y, zoom, request.virtualZoom, &tile ) ) {
 						tile = new QPixmap( scaledTileSize, scaledTileSize );
 						tile->fill( QColor( 241, 238 , 232, 255 ) );
@@ -225,12 +225,7 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 
 					m_cache.insert( id, tile, scaledTileSize * scaledTileSize * tile->depth() / 8 );
 				}
-				else {
-					tile = m_cache.object( id );
-				}
-			}
 
-			if ( tile != NULL ) {
 				if ( tile->width() != scaledTileSize || tile->height() != scaledTileSize )
 					*tile = tile->scaled( scaledTileSize, scaledTileSize, Qt::IgnoreAspectRatio, m_settings.filter ? Qt::SmoothTransformation : Qt::FastTransformation );
 				painter->drawPixmap( posX * request.virtualZoom, posY * request.virtualZoom, *tile );
