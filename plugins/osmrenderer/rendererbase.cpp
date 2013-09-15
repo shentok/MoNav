@@ -212,7 +212,8 @@ bool RendererBase::Paint( QPainter* painter, const PaintRequest& request )
 				long long id = tileID( x, y, zoom );
 				QPixmap* tile = m_cache.object( id );
 				if ( tile == NULL ) {
-					if ( !loadTile( x, y, zoom, request.virtualZoom, &tile ) ) {
+					tile = loadTile( x, y, zoom, request.virtualZoom );
+					if ( tile == NULL ) {
 						tile = new QPixmap( scaledTileSize, scaledTileSize );
 						tile->fill( QColor( 241, 238 , 232, 255 ) );
 					}

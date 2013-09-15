@@ -60,7 +60,7 @@ protected:
 	// has to load / draw tile with coordinates (x,y)
 	// magnification is passed as a hint. If the derived class can draw higher resolution tiles,
 	// it may increase the tile size by this factor to match screen resolution
-	virtual bool loadTile( int x, int y, int zoom, int magnification, QPixmap** tile ) = 0;
+    virtual QPixmap* loadTile( int x, int y, int zoom, int magnification ) = 0;
 	// gets called when loading the map data
 	virtual bool load() = 0;
 	// gets called to unload the map data

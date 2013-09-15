@@ -126,7 +126,7 @@ void OSMRendererClient::finished( QNetworkReply* reply ) {
 	emit changed();
 }
 
-bool OSMRendererClient::loadTile( int x, int y, int zoom, int /*magnification*/, QPixmap** tile )
+QPixmap* OSMRendererClient::loadTile( int x, int y, int zoom, int /*magnification*/ )
 {
 	long long id = tileID( x, y, zoom );
 
@@ -139,12 +139,12 @@ bool OSMRendererClient::loadTile( int x, int y, int zoom, int /*magnification*/,
 		if ( !image.load( cacheItem, 0 ) ) {
 			m_cache.remove( id );
 			qDebug() << "failed to load image from cache: " << id;
-			return false;
+			return 0;
 		}
 
-		*tile = new QPixmap( QPixmap::fromImage( image ) );
+		QPixmap *tile = new QPixmap( QPixmap::fromImage( image ) );
 		delete cacheItem;
-		return true;
+		return tile;
 	}
 
 	QNetworkRequest request;
@@ -155,7 +155,7 @@ bool OSMRendererClient::loadTile( int x, int y, int zoom, int /*magnification*/,
 	request.setAttribute( QNetworkRequest::HttpPipeliningAllowedAttribute, true );
 	network->get( request );
 
-	return false;
+	return 0;
 }
 
 Q_EXPORT_PLUGIN2( osmrendererclient, OSMRendererClient )
