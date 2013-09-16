@@ -30,6 +30,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include <mapnik/agg_renderer.hpp>
 #include <mapnik/image_util.hpp>
 #include <mapnik/load_map.hpp>
+#include <mapnik/graphics.hpp>
+#include <mapnik/image_view.hpp>
+#include <mapnik/config_error.hpp>
 #include <omp.h>
 #include <QFile>
 #include <QTemporaryFile>
@@ -147,10 +150,9 @@ bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
 
 		Timer time;
 
-		mapnik::datasource_cache::instance()->register_datasources( m_settings.plugins.toAscii().constData() );
+		mapnik::datasource_cache::instance().register_datasources( m_settings.plugins.toAscii().constData() );
 		QDir fonts( m_settings.fonts );
-		mapnik::projection projection;
-		projection = mapnik::projection( "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over" );
+		mapnik::projection projection = mapnik::projection( "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over" );
 		mapnik::freetype_engine::register_font( fonts.filePath( "DejaVuSans.ttf" ).toAscii().constData() );
 		mapnik::freetype_engine::register_font( fonts.filePath( "DejaVuSans-Bold.ttf" ).toAscii().constData() );
 		mapnik::freetype_engine::register_font( fonts.filePath( "DejaVuSans-Oblique.ttf" ).toAscii().constData() );
@@ -264,7 +266,7 @@ bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
 			const int metaTileSize = m_settings.metaTileSize * m_settings.tileSize + 2 * m_settings.margin;
 
 			mapnik::Map map;
-			mapnik::Image32 image( metaTileSize, metaTileSize );
+			mapnik::image_32 image( metaTileSize, metaTileSize );
 			QTemporaryFile tempOut;
 			QTemporaryFile tempIn;
 			mapnik::load_map( map, m_settings.theme.toLocal8Bit().constData() );
@@ -288,9 +290,9 @@ bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
 				GPSCoordinate drawBottomRightGPS = drawBottomRight.ToGPSCoordinate();
 				projection.forward( drawTopLeftGPS.longitude, drawBottomRightGPS.latitude );
 				projection.forward( drawBottomRightGPS.longitude, drawTopLeftGPS.latitude );
-				mapnik::Envelope<double> boundingBox( drawTopLeftGPS.longitude, drawTopLeftGPS.latitude, drawBottomRightGPS.longitude, drawBottomRightGPS.latitude );
-				map.zoomToBox( boundingBox );
-				mapnik::agg_renderer<mapnik::Image32> renderer( map, image );
+				mapnik::box2d<double> boundingBox( drawTopLeftGPS.longitude, drawTopLeftGPS.latitude, drawBottomRightGPS.longitude, drawBottomRightGPS.latitude );
+				map.zoom_to_box( boundingBox );
+				mapnik::agg_renderer<mapnik::image_32> renderer( map, image );
 				renderer.apply();
 
 				std::string data;
@@ -299,7 +301,7 @@ bool MapnikRenderer::Preprocess( IImporter* importer, QString dir )
 				for ( int subX = 0; subX < metaTileSizeX; ++subX ) {
 					for ( int subY = 0; subY < metaTileSizeY; ++subY ) {
 						int indexNumber = ( y + subY - info.minY ) * ( info.maxX - info.minX ) + x + subX - info.minX;
-						mapnik::image_view<mapnik::ImageData32> view = image.get_view( subX * m_settings.tileSize + m_settings.margin, subY * m_settings.tileSize + m_settings.margin, m_settings.tileSize, m_settings.tileSize );
+						mapnik::image_view<mapnik::image_data_32> view = image.get_view( subX * m_settings.tileSize + m_settings.margin, subY * m_settings.tileSize + m_settings.margin, m_settings.tileSize, m_settings.tileSize );
 						std::string result;
 						if ( !m_settings.deleteTiles || info.index[( x + subX - info.minX ) + ( y + subY - info.minY ) * ( info.maxX - info.minX )].size == 1 ) {
 							if ( m_settings.reduceColors )
