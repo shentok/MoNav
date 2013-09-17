@@ -213,19 +213,16 @@ class osm_way {
 	quadtile _q; //The point that will be used to insert this way in the index.
 
 	int store(vector<class osm_way> &wlist, int splitlevel,
-					std::string &stats_key);
-	void interpolate_long_ways();
+					std::string &stats_key, vector<struct projectedxy> &all_nodes);
+	void interpolate_long_ways(vector<struct projectedxy> &all_nodes);
 	bool is_worth_saving(bool motorway=false);
 	int buf_len();
 	quadtile q() const {return _q;};
 	bool is_oneway();
-	void get_buf(unsigned char *buf);//Call buf_len first. buf must be this big.
+	void get_buf(unsigned char *buf, const vector<struct projectedxy> &all_nodes);//Call buf_len first. buf must be this big.
 	unsigned char type();
-//All nodes are stored in a global vector to avoid memory fragmentation.
-	static vector<struct projectedxy> all_nodes;
 	int inodes, nnodes;
 };
-vector<struct projectedxy> osm_way::all_nodes;
 
 class qindexTree {
 	 public:
@@ -455,7 +452,7 @@ unsigned char osm_way::type()
 	 return m_type;
 }
 
-void osm_way::get_buf(unsigned char *buf)
+void osm_way::get_buf(unsigned char *buf, const vector<struct projectedxy> &all_nodes)
 {
 	 int i = buf_len();
 	 if(i==0) return;
@@ -496,7 +493,7 @@ void osm_way::get_buf(unsigned char *buf)
    invalidate all pointers into all_nodes from subsequent ways, so only ever
    call on the most recently added way. This restriction means performance
    isn't an issue.*/
-void osm_way::interpolate_long_ways()
+void osm_way::interpolate_long_ways(vector<struct projectedxy> &all_nodes)
 {
 	quadtile x, y, oldx, oldy, newx, newy;
 	for(int i=inodes; i<inodes+nnodes; i++) {
@@ -532,12 +529,12 @@ void osm_way::interpolate_long_ways()
 	supported quadtiles. We guarantee that no way crosses from one of
 	these quadtiles to another. Return the total number of qt ways stored */
 int osm_way::store(vector<class osm_way> &wlist, int splitlevel,
-						 std::string &stats_key)
+						 std::string &stats_key, vector<struct projectedxy> &all_nodes)
 {
 	int result = 1;
 	quadtile qmask = 0x3FFFFFFFFFFFFFFFLL >> (splitlevel*2);
 	quadtile qm = q() & (~qmask);
-	interpolate_long_ways();
+	interpolate_long_ways(all_nodes);
 	if(m_type<100) { //Areas need splitting differently.
 		  //We don't do this very cleverly - area may end up being stored in
 		  //places it isn't needed.
@@ -583,7 +580,7 @@ int osm_way::store(vector<class osm_way> &wlist, int splitlevel,
 			w2.nnodes = nnodes - (i-inodes-1);
 			nnodes = i-inodes+1;
 			wlist.push_back(w2);
-			w2.store(wlist, splitlevel, stats_key);
+			w2.store(wlist, splitlevel, stats_key, all_nodes);
 		}
 	}
 	g_stats.bytes_used[stats_key] += buf_len();
@@ -617,8 +614,9 @@ class OSMReader {
   public:
 	 OSMReader() {};
 	 bool load(const QString &filename);
-	 vector<class osm_way> &get_ways() {return ways;};
-	 vector<placename> &get_places() {return placenames;};
+	 vector<struct projectedxy> &get_all_nodes() {return all_nodes;}
+	 vector<class osm_way> &get_ways() {return ways;}
+	 vector<placename> &get_places() {return placenames;}
 	 void delete_ways();
 
   private:
@@ -629,6 +627,7 @@ class OSMReader {
 
 	 static bool nodesorter(const struct node &n1, const struct node &n2);
 
+	 vector<struct projectedxy> all_nodes;
 	 vector<struct node> nodes;
 	 vector<class osm_way> ways;
      vector<placename> placenames;
@@ -751,21 +750,22 @@ void OSMReader::add_way(IEntityReader::Way &way)
 
 	 if(!w.is_worth_saving()) return;
 
-	 unsigned long x, y;
-	 if(!get_node(*way.nodes.begin(), &x, &y))  return;
-	 w._q = mux(x, y);
-         w.inodes = osm_way::all_nodes.size();
+	unsigned long x, y;
+	if(!get_node(*way.nodes.begin(), &x, &y))
+		return;
+	w._q = mux(x, y);
+	w.inodes = all_nodes.size();
 	for(std::vector<unsigned int>::iterator i = way.nodes.begin();
 			i != way.nodes.end(); i++) {
 		//quadtile nq = get_node(*i);
 		projectedxy xy;
 		if(!get_node(*i, &xy.x, &xy.y)) return;
-		osm_way::all_nodes.push_back(xy);
+		all_nodes.push_back(xy);
 		w.nnodes++;
 	}
 	if((ways.size()%100000)==0)
-		qDebug() << ways.size() << " ways with " << osm_way::all_nodes.size() << "nodes";
-	w.store(ways, g_waysplit_tiledepth, stats_key);
+		qDebug() << ways.size() << " ways with " << all_nodes.size() << "nodes";
+	w.store(ways, g_waysplit_tiledepth, stats_key, all_nodes);
 }
 
 void OSMReader::add_node(IEntityReader::Node &node)
@@ -852,9 +852,9 @@ bool OSMReader::get_node(int id, unsigned long *x, unsigned long *y)
 void OSMReader::delete_ways()
 {
 	ways.clear();
-	osm_way::all_nodes.clear();
+	all_nodes.clear();
 	std::vector<class osm_way>().swap( ways );
-	std::vector<struct projectedxy>().swap( osm_way::all_nodes);
+	std::vector<struct projectedxy>().swap( all_nodes);
 }
 
 QtileRenderer::QtileRenderer()
@@ -983,7 +983,7 @@ void QtileRenderer::write_ways(QString &dir, bool motorway)
 			  bufferLength = length;
 			  buf = (unsigned char *) realloc(buf, length);
 		  }
-		  w->get_buf(buf);
+		  w->get_buf(buf, m_osr->get_all_nodes());
 		  if(fwrite(buf, length, 1, way_fp)!=1)
 				throw("Failed write\n");
 	 }
