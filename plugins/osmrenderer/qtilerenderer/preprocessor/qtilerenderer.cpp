@@ -149,6 +149,7 @@ struct osm_subrule_t natural_rules[] = {
 };
 struct osm_subrule_t building_rules[] = {
  {"yes",              AREA_BUILDING},
+ {"residential",      AREA_BUILDING},
  {0, DONE}
 };
 struct osm_subrule_t highway_rules[] = {
