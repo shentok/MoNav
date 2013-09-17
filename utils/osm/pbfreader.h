@@ -99,7 +99,7 @@ public:
 			m_relationTags.insert( tags[i], i );
 	}
 
-	virtual EntityType getEntitiy( Node* node, Way* way, Relation* relation )
+	virtual EntityType getNextEntitiy( Node* node, Way* way, Relation* relation )
 	{
 		if ( m_loadBlock ) {
 			if ( !readNextBlock() )
@@ -108,19 +108,39 @@ public:
 			loadGroup();
 		}
 
+		EntityType entityType = EntityNone;
+		int size = 0;
 		switch ( m_mode ) {
 		case ModeNode:
-			parseNode( node );
-			return EntityNode;
+			size = parseNode( node );
+			entityType = EntityNode;
+			break;
 		case ModeWay:
-			parseWay( way );
-			return EntityWay;
+			size = parseWay( way );
+			entityType = EntityWay;
+			break;
 		case ModeRelation:
-			parseRelation( relation );
-			return EntityRelation;
+			size = parseRelation( relation );
+			entityType = EntityRelation;
+			break;
 		case ModeDense:
-			parseDense( node );
-			return EntityNode;
+			size = parseDense( node );
+			entityType = EntityNode;
+			break;
+		}
+
+		if ( entityType != EntityNone ) {
+			m_currentEntity++;
+			if ( m_currentEntity >= size ) {
+				m_currentEntity = 0;
+				m_currentGroup++;
+				if ( m_currentGroup >= m_primitiveBlock.primitivegroup_size() )
+					m_loadBlock = true;
+				else
+					loadGroup();
+			}
+
+			return entityType;
 		}
 
 		return EntityNone;
@@ -160,7 +180,7 @@ protected:
 		return true;
 	}
 
-	void parseNode( IEntityReader::Node* node )
+	int parseNode( IEntityReader::Node* node ) const
 	{
 		node->tags.clear();
 
@@ -178,18 +198,10 @@ protected:
 			node->tags.push_back( newTag );
 		}
 
-		m_currentEntity++;
-		if ( m_currentEntity >= m_primitiveBlock.primitivegroup( m_currentGroup ).nodes_size() ) {
-			m_currentEntity = 0;
-			m_currentGroup++;
-			if ( m_currentGroup >= m_primitiveBlock.primitivegroup_size() )
-				m_loadBlock = true;
-			else
-				loadGroup();
-		}
+		return m_primitiveBlock.primitivegroup( m_currentGroup ).nodes_size();
 	}
 
-	void parseWay( IEntityReader::Way* way )
+	int parseWay( IEntityReader::Way* way ) const
 	{
 		way->tags.clear();
 		way->nodes.clear();
@@ -212,18 +224,10 @@ protected:
 			way->nodes.push_back( lastRef );
 		}
 
-		m_currentEntity++;
-		if ( m_currentEntity >= m_primitiveBlock.primitivegroup( m_currentGroup ).ways_size() ) {
-			m_currentEntity = 0;
-			m_currentGroup++;
-			if ( m_currentGroup >= m_primitiveBlock.primitivegroup_size() )
-				m_loadBlock = true;
-			else
-				loadGroup();
-		}
+		return m_primitiveBlock.primitivegroup( m_currentGroup ).ways_size();
 	}
 
-	void parseRelation( IEntityReader::Relation* relation )
+	int parseRelation( IEntityReader::Relation* relation ) const
 	{
 		relation->tags.clear();
 		relation->members.clear();
@@ -259,18 +263,10 @@ protected:
 			relation->members.push_back( member );
 		}
 
-		m_currentEntity++;
-		if ( m_currentEntity >= m_primitiveBlock.primitivegroup( m_currentGroup ).relations_size() ) {
-			m_currentEntity = 0;
-			m_currentGroup++;
-			if ( m_currentGroup >= m_primitiveBlock.primitivegroup_size() )
-				m_loadBlock = true;
-			else
-				loadGroup();
-		}
+		return m_primitiveBlock.primitivegroup( m_currentGroup ).relations_size();
 	}
 
-	void parseDense( IEntityReader::Node* node )
+	int parseDense( IEntityReader::Node* node )
 	{
 		node->tags.clear();
 
@@ -306,15 +302,7 @@ protected:
 			m_lastDenseTag += 2;
 		}
 
-		m_currentEntity++;
-		if ( m_currentEntity >= dense.id_size() ) {
-			m_currentEntity = 0;
-			m_currentGroup++;
-			if ( m_currentGroup >= m_primitiveBlock.primitivegroup_size() )
-				m_loadBlock = true;
-			else
-				loadGroup();
-		}
+		return dense.id_size();
 	}
 
 	void loadGroup()

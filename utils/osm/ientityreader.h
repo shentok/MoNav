@@ -67,7 +67,7 @@ public:
 	virtual void setNodeTags( QStringList tags ) = 0; // sets the set of tags to extract
 	virtual void setWayTags( QStringList tags ) = 0; // sets the set of tags to extract
 	virtual void setRelationTags( QStringList tags ) = 0; // sets the set of tags to extract
-	virtual EntityType getEntitiy( Node* node, Way* way, Relation* relation ) = 0; // get the next entity. EntityNone signifies the end of the data stream
+	virtual EntityType getNextEntitiy( Node* node, Way* way, Relation* relation ) = 0; // get the next entity. EntityNone signifies the end of the data stream
 	virtual ~IEntityReader(){}
 };
 

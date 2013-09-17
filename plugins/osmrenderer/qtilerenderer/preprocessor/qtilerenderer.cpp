@@ -691,7 +691,7 @@ bool OSMReader::load_xml(const QString &filename)
 	 IEntityReader::Node n; IEntityReader::Way w; IEntityReader::Relation r;
 	bool firstWay = true;
 	 do {
-		  etype = reader->getEntitiy(&n, &w, &r);
+		  etype = reader->getNextEntitiy(&n, &w, &r);
 		  switch(etype) {
 		  case IEntityReader::EntityNode:
 				add_node(n);

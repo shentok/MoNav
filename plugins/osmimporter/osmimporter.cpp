@@ -307,7 +307,7 @@ bool OSMImporter::read( const QString& inputFilename, const QString& filename ) 
 		Way way;
 		Relation relation;
 		while ( true ) {
-			IEntityReader::EntityType type = reader->getEntitiy( &inputNode, &inputWay, &inputRelation );
+			IEntityReader::EntityType type = reader->getNextEntitiy( &inputNode, &inputWay, &inputRelation );
 
 			if ( type == IEntityReader::EntityNone )
 				break;

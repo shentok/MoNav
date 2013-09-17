@@ -76,7 +76,7 @@ public:
 			m_relationTags.insert( tags[i], i );
 	}
 
-	virtual EntityType getEntitiy( Node* node, Way* way, Relation* relation )
+	virtual EntityType getNextEntitiy( Node* node, Way* way, Relation* relation )
 	{
 		assert( node != NULL );
 		assert( way != NULL );
