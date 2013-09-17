@@ -207,7 +207,6 @@ class osm_way {
 	osm_way() { m_type=0; nnodes=0;};
 	static bool sorter(const osm_way &w1, const osm_way &w2);
 
-	unsigned long offset;
 	unsigned char m_type;
 	//std::string name;
 	quadtile _q; //The point that will be used to insert this way in the index.
@@ -215,12 +214,12 @@ class osm_way {
 	int store(vector<class osm_way> &wlist, int splitlevel,
 					std::string &stats_key, vector<struct projectedxy> &all_nodes);
 	void interpolate_long_ways(vector<struct projectedxy> &all_nodes);
-	bool is_worth_saving(bool motorway=false);
-	int buf_len();
+	bool is_worth_saving(bool motorway=false) const;
+	int buf_len() const;
 	quadtile q() const {return _q;};
 	bool is_oneway();
-	void get_buf(unsigned char *buf, const vector<struct projectedxy> &all_nodes);//Call buf_len first. buf must be this big.
-	unsigned char type();
+	void get_buf(unsigned char *buf, const vector<struct projectedxy> &all_nodes) const;//Call buf_len first. buf must be this big.
+	unsigned char type() const;
 	int inodes, nnodes;
 };
 
@@ -424,7 +423,7 @@ void qindexTree::subprint(FILE *fp, int *index)
 	 for(int i=0;i<4; i++) if(child[i]) child[i]->subprint(fp, index);
 }
 
-bool osm_way::is_worth_saving(bool motorway)
+bool osm_way::is_worth_saving(bool motorway) const
 {
 	 if(m_type==0) return false;
 	 if(motorway && m_type<=HW_SECONDARY && m_type>=HW_PEDESTRIAN) return false;
@@ -433,7 +432,7 @@ bool osm_way::is_worth_saving(bool motorway)
 	 return true;
 }
 
-int osm_way::buf_len()
+int osm_way::buf_len() const
 {
 	if(!is_worth_saving()) {
 		printf("Trying to write an inappropriate way\n");
@@ -447,12 +446,12 @@ int osm_way::buf_len()
 	return 3 + 8 + 4 * (nnodes-1);
 }
 
-unsigned char osm_way::type()
+unsigned char osm_way::type() const
 {
 	 return m_type;
 }
 
-void osm_way::get_buf(unsigned char *buf, const vector<struct projectedxy> &all_nodes)
+void osm_way::get_buf(unsigned char *buf, const vector<struct projectedxy> &all_nodes) const
 {
 	 int i = buf_len();
 	 if(i==0) return;
@@ -614,9 +613,9 @@ class OSMReader {
   public:
 	 OSMReader() {};
 	 bool load(const QString &filename);
-	 vector<struct projectedxy> &get_all_nodes() {return all_nodes;}
-	 vector<class osm_way> &get_ways() {return ways;}
-	 vector<placename> &get_places() {return placenames;}
+	const vector<struct projectedxy> &get_all_nodes() const {return all_nodes;}
+	const vector<class osm_way> &get_ways() const {return ways;}
+	const vector<placename> &get_places() const {return placenames;}
 	 void delete_ways();
 
   private:
@@ -912,7 +911,7 @@ bool QtileRenderer::SaveSettings( QSettings* settings )
 
 bool QtileRenderer::Preprocess( IImporter*, QString dir )
 {
-	m_osr = new OSMReader;
+	OSMReader *m_osr = new OSMReader;
 
 		  qDebug() << "Qtile renderer preprocessing";
                   QString ofile_name = dir + "/rendering.qrr";
@@ -928,9 +927,9 @@ bool QtileRenderer::Preprocess( IImporter*, QString dir )
                   while(!infile.atEnd()) outfile.write(infile.readLine());
                   infile.close(); outfile.close();
 		  m_osr->load(m_settings.inputFile);
-		  write_ways(dir, false);
-		write_ways(dir, true);
-		write_placenames(dir);
+		write_ways(m_osr, dir, false);
+		write_ways(m_osr, dir, true);
+		write_placenames(m_osr, dir);
 		m_osr->delete_ways();
 		qDebug() << "Qtile: preprocessing finished";
 
@@ -939,7 +938,7 @@ bool QtileRenderer::Preprocess( IImporter*, QString dir )
 	return true;
 }
 
-void QtileRenderer::write_ways(QString &dir, bool motorway)
+void QtileRenderer::write_ways(const OSMReader* m_osr, QString &dir, bool motorway)
 {
 	 //Calculate Offsets and index
 	 //fprintf(stderr, "Calculating way file offsets\n");
@@ -947,10 +946,10 @@ void QtileRenderer::write_ways(QString &dir, bool motorway)
 	qDebug() << "Qtile: Calculating index";
 	 long file_offset = 0;
 	 qindexTree qidx;
-	 for(vector<class osm_way>::iterator w = m_osr->get_ways().begin();
+	 for(vector<class osm_way>::const_iterator w = m_osr->get_ways().begin();
 									w!=m_osr->get_ways().end(); w++) {
 		  if(!w->is_worth_saving(motorway)) continue;
-		  w->offset = file_offset;
+//		  w->offset = file_offset;
 		  file_offset += w->buf_len();
 		  qidx.addIndex(w->q(), file_offset);
 	 }
@@ -975,7 +974,7 @@ void QtileRenderer::write_ways(QString &dir, bool motorway)
 
 	unsigned char *buf=(unsigned char *) malloc( 1024 );
 	unsigned bufferLength = 1024;
-	for(vector<class osm_way>::iterator w = m_osr->get_ways().begin();
+	for(vector<class osm_way>::const_iterator w = m_osr->get_ways().begin();
 									w!=m_osr->get_ways().end(); w++) {
 		  if(!w->is_worth_saving(motorway)) continue;
 		  unsigned length = w->buf_len();
@@ -992,13 +991,13 @@ void QtileRenderer::write_ways(QString &dir, bool motorway)
 	qDebug() << "Qtile: written: " << timer.restart() << "ms";
 }
 
-void QtileRenderer::write_placenames(QString &dir)
+void QtileRenderer::write_placenames(const OSMReader* m_osr, QString &dir)
 {
 	Timer timer;
 	qDebug() << "Qtile: Writing place names:";
 	long file_offset = 0;
 	qindexTree qidx;
-	for(vector<placename>::iterator i = m_osr->get_places().begin();
+	for(vector<placename>::const_iterator i = m_osr->get_places().begin();
 		i!=m_osr->get_places().end(); i++) {
 		int len = i->name.size();
 		if(len>100) len=100;
@@ -1021,7 +1020,7 @@ void QtileRenderer::write_placenames(QString &dir)
 	qidx.print(place_fp);
 	qidx.deleteRecursive();
 
-	for(vector<placename>::iterator i = m_osr->get_places().begin();
+	for(vector<placename>::const_iterator i = m_osr->get_places().begin();
 		i!=m_osr->get_places().end(); i++) {
 		memcpy(buf, ll2buf(i->position), 8);
 		int len = i->name.size();

@@ -74,10 +74,9 @@ public:
 
 protected:
 
-	void write_ways(QString &dir, bool motorway);
-	void write_placenames(QString &dir);
+	void write_ways(const class OSMReader* m_osr, QString &dir, bool motorway);
+	void write_placenames(const class OSMReader* m_osr, QString &dir);
 
-	class OSMReader *m_osr;
 	QString m_directory;
 	Settings m_settings;
 };
