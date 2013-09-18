@@ -89,7 +89,7 @@ maemo5 {
 RESOURCES += images.qrc
 RC_FILE = ../images/WindowsResources.rc
 
-LIBS += -L../bin/plugins_client -lmapnikrendererclient -lcontractionhierarchiesclient -lgpsgridclient -losmrendererclient -lunicodetournamenttrieclient -lqtilerendererclient
+LIBS += -L../bin/plugins_client -lmapnikrendererclient -lmapsforgerendererclient -lcontractionhierarchiesclient -lgpsgridclient -losmrendererclient -lunicodetournamenttrieclient -lqtilerendererclient -L../lib/mapsforgerenderer -lmapsforgerenderer -L../lib/mapsforgereader -lmapsforgereader
 
 # Required by osmrendererclient
 QT += network
