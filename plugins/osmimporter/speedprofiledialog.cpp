@@ -22,7 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "waymodificatorwidget.h"
 #include "nodemodificatorwidget.h"
 #include "highwaytypewidget.h"
-#include "types.h"
+#include "osmtypes.h"
 #include <QFileDialog>
 #include <QSettings>
 #include <QtDebug>

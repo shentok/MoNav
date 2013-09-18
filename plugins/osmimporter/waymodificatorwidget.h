@@ -20,7 +20,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef WAYMODIFICATORWIDGET_H
 #define WAYMODIFICATORWIDGET_H
 
-#include "types.h"
+#include "osmtypes.h"
 
 #include <QFrame>
 

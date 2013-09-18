@@ -7,18 +7,20 @@ include(../../utils/osm/protobuf.pri)
 PRE_TARGETDEPS += osmformat.pb.h fileformat.pb.h osmformat.pb.cc fileformat.pb.cc
 
 CONFIG += link_pkgconfig
-INCLUDEPATH += ../.. ../osmimporter/
+INCLUDEPATH += ../.. ../osmimporter/ qtilerenderer
 PKGCONFIG += libxml-2.0
 
-HEADERS += qtilerenderer.h \
+HEADERS += \
 	 ../../interfaces/ipreprocessor.h \
 	 ../../interfaces/iimporter.h \
 	 ../../utils/coordinates.h \
 	 ../../utils/config.h \
 	 ../../utils/osm/xmlreader.h \
 	 ../../utils/osm/ientityreader.h \
-	 ../../utils/osm/pbfreader.h
-SOURCES += qtilerenderer.cpp
+	 ../../utils/osm/pbfreader.h \
+	qtilerenderer/preprocessor/qtilerenderer.h
+SOURCES += \
+	qtilerenderer/preprocessor/qtilerenderer.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -28,12 +30,12 @@ unix {
 }
 
 RESOURCES += \
-	 rendering_rules.qrc
+	qtilerenderer/preprocessor/rendering_rules.qrc
 
 !nogui {
-	SOURCES += qrsettingsdialog.cpp
-	HEADERS += qrsettingsdialog.h
-	FORMS += qrsettingsdialog.ui
+	SOURCES += qtilerenderer/preprocessor/qrsettingsdialog.cpp
+	HEADERS += qtilerenderer/preprocessor/qrsettingsdialog.h
+	FORMS += qtilerenderer/preprocessor/qrsettingsdialog.ui
 }
 nogui {
 	DEFINES += NOGUI

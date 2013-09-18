@@ -22,9 +22,9 @@ HEADERS += osmimporter.h \
 	 ../../utils/osm/xmlreader.h \
 	 ../../utils/osm/ientityreader.h \
 	 ../../utils/osm/pbfreader.h \
-	 ../../utils/osm/types.h
+	 ../../utils/osm/osmtypes.h
 SOURCES += osmimporter.cpp \
-	 types.cpp
+	 osmtypes.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2

@@ -20,7 +20,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef NODEMODIFICATORWIDGET_H
 #define NODEMODIFICATORWIDGET_H
 
-#include "types.h"
+#include "osmtypes.h"
 
 #include <QFrame>
 

@@ -25,7 +25,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "interfaces/iconsolesettings.h"
 #include "../../utils/osm/ientityreader.h"
 #include "statickdtree.h"
-#include "types.h"
+#include "osmtypes.h"
 #include "utils/intersection.h"
 
 #include <QObject>

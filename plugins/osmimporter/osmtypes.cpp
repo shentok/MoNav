@@ -1,4 +1,4 @@
-#include "types.h"
+#include "osmtypes.h"
 #include "utils/qthelpers.h"
 #include <QTextStream>
 #include <QFile>

@@ -22,7 +22,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QWidget>
 
-#include "types.h"
+#include "osmtypes.h"
 
 namespace Ui {
 	class HighwayTypeWidget;

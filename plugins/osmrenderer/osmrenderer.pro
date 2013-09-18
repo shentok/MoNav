@@ -3,12 +3,14 @@ CONFIG += plugin static
 
 INCLUDEPATH += ../..
 
-HEADERS += osmrenderer.h \
+HEADERS += \
 	 ../../interfaces/ipreprocessor.h \
 	 ../../interfaces/iimporter.h \
 	 ../../utils/coordinates.h \
-	 ../../utils/config.h
-SOURCES += osmrenderer.cpp
+	 ../../utils/config.h \
+	osmrenderer/preprocessor/osmrenderer.h
+SOURCES += \
+	osmrenderer/preprocessor/osmrenderer.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -18,9 +20,9 @@ unix {
 }
 
 !nogui {
-	SOURCES += orsettingsdialog.cpp
-	HEADERS += orsettingsdialog.h
-	FORMS += orsettingsdialog.ui
+	SOURCES += osmrenderer/preprocessor/orsettingsdialog.cpp
+	HEADERS += osmrenderer/preprocessor/orsettingsdialog.h
+	FORMS += osmrenderer/preprocessor/orsettingsdialog.ui
 }
 nogui {
 	DEFINES += NOGUI

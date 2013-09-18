@@ -10,20 +10,23 @@ unix {
 		 -Wno-unused-function
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
-HEADERS += osmrendererclient.h \
+HEADERS += \
 	 ../../interfaces/irenderer.h \
 	 ../../utils/coordinates.h \
 	 ../../utils/config.h \
-	 rendererbase.h \
-	 brsettingsdialog.h \
 	 ../../utils/intersection.h \
-    osmrsettingsdialog.h
-SOURCES += osmrendererclient.cpp \
-	 rendererbase.cpp \
-	 brsettingsdialog.cpp \
-    osmrsettingsdialog.cpp
+	rendererbase.h \
+	brsettingsdialog.h \
+	osmrenderer/client/osmrsettingsdialog.h \
+	osmrenderer/client/osmrendererclient.h
+SOURCES += \
+	rendererbase.cpp \
+	brsettingsdialog.cpp \
+	osmrenderer/client/osmrsettingsdialog.cpp \
+	osmrenderer/client/osmrendererclient.cpp
+
 QT += network
 
 FORMS += \
-	 brsettingsdialog.ui \
-    osmrsettingsdialog.ui
+	brsettingsdialog.ui \
+	osmrenderer/client/osmrsettingsdialog.ui

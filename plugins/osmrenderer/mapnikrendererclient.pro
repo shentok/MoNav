@@ -10,17 +10,20 @@ unix {
 		 -Wno-unused-function
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
-HEADERS += mapnikrendererclient.h \
-	 ../../interfaces/irenderer.h \
-	 ../../utils/coordinates.h \
-	 ../../utils/config.h \
-	 rendererbase.h \
-	 brsettingsdialog.h \
-	 ../../utils/intersection.h \
-	 ../../utils/qthelpers.h
-SOURCES += mapnikrendererclient.cpp \
-	 rendererbase.cpp \
-	 brsettingsdialog.cpp
+HEADERS += \
+	../../interfaces/irenderer.h \
+	../../utils/coordinates.h \
+	../../utils/config.h \
+	../../utils/intersection.h \
+	../../utils/qthelpers.h \
+	rendererbase.h \
+	brsettingsdialog.h \
+	mapnikrenderer/client/mapnikrendererclient.h
+
+SOURCES += \
+	rendererbase.cpp \
+	brsettingsdialog.cpp \
+	mapnikrenderer/client/mapnikrendererclient.cpp
 
 FORMS += \
-	 brsettingsdialog.ui
+	brsettingsdialog.ui

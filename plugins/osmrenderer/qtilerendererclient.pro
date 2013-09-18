@@ -1,7 +1,7 @@
 TEMPLATE = lib
 CONFIG += plugin static
 
-INCLUDEPATH += ../..
+INCLUDEPATH += ../.. qtilerenderer
 
 DESTDIR = ../../bin/plugins_client
 unix {
@@ -10,23 +10,23 @@ unix {
 		 -Wno-unused-function
 	QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
 }
-HEADERS += qtilerendererclient.h \
-    tile-write.h \
-    types.h \
-    img_writer.h \
-	 ../../interfaces/irenderer.h \
-	 ../../utils/coordinates.h \
-	 ../../utils/config.h \
-    rendererbase.h \
-    brsettingsdialog.h \
-    ../../utils/qthelpers.h
-SOURCES += qtilerendererclient.cpp \
-    rendererbase.cpp \
-    brsettingsdialog.cpp \
-    tile-write.cpp \
-    agg2/agg_vcgen_stroke.cpp
-QT += network
-
+HEADERS += \
+	../../interfaces/irenderer.h \
+	../../utils/coordinates.h \
+	../../utils/config.h \
+	../../utils/qthelpers.h \
+	rendererbase.h \
+	brsettingsdialog.h \
+	qtilerenderer/types.h \
+	qtilerenderer/client/qtilerendererclient.h \
+	qtilerenderer/client/tile-write.h \
+	qtilerenderer/client/img_writer.h
+SOURCES += \
+	brsettingsdialog.cpp \
+	rendererbase.cpp \
+	qtilerenderer/client/qtilerendererclient.cpp \
+	qtilerenderer/client/tile-write.cpp \
+	qtilerenderer/client/agg2/agg_vcgen_stroke.cpp
 
 FORMS += \
-    brsettingsdialog.ui
+	brsettingsdialog.ui

@@ -5,13 +5,15 @@ INCLUDEPATH += ../..
 
 CONFIG += link_pkgconfig
 PKGCONFIG += freetype2
-HEADERS += mapnikrenderer.h \
+HEADERS += \
 	 ../../interfaces/ipreprocessor.h \
 	 ../../interfaces/iimporter.h \
 	 ../../utils/coordinates.h \
 	 ../../utils/config.h \
-	 ../../utils/qthelpers.h
-SOURCES += mapnikrenderer.cpp
+	 ../../utils/qthelpers.h \
+	mapnikrenderer/preprocessor/mapnikrenderer.h
+SOURCES += \
+	mapnikrenderer/preprocessor/mapnikrenderer.cpp
 DESTDIR = ../../bin/plugins_preprocessor
 unix {
 	QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -25,9 +27,9 @@ LIBS += -fopenmp \
 	 -lmapnik
 
 !nogui {
-	FORMS += mrsettingsdialog.ui
-	SOURCES += mrsettingsdialog.cpp
-	HEADERS += mrsettingsdialog.h
+	FORMS += mapnikrenderer/preprocessor/mrsettingsdialog.ui
+	SOURCES += mapnikrenderer/preprocessor/mrsettingsdialog.cpp
+	HEADERS += mapnikrenderer/preprocessor/mrsettingsdialog.h
 }
 nogui {
 	DEFINES += NOGUI

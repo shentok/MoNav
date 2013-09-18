@@ -13,20 +13,22 @@ unix {
 		 -fopenmp
 }
 LIBS += -fopenmp
-HEADERS += contractionhierarchies.h \
-	 dynamicgraph.h \
-	 contractioncleanup.h \
-	 blockcache.h \
-	 binaryheap.h \
-	 contractor.h \
-	 ../../interfaces/ipreprocessor.h \
-	 ../../utils/coordinates.h \
-	 ../../utils/config.h \
-	 compressedgraph.h \
-	 compressedgraphbuilder.h \
-	 ../../utils/bithelpers.h \
-	 ../../utils/qthelpers.h \
-	 ../../interfaces/irouter.h
+HEADERS += \
+	../../interfaces/ipreprocessor.h \
+	../../interfaces/irouter.h \
+	../../utils/coordinates.h \
+	../../utils/config.h \
+	../../utils/bithelpers.h \
+	../../utils/qthelpers.h \
+	contractionhierarchies.h \
+	dynamicgraph.h \
+	contractioncleanup.h \
+	blockcache.h \
+	binaryheap.h \
+	contractor.h \
+	compressedgraph.h \
+	compressedgraphbuilder.h
+
 SOURCES += contractionhierarchies.cpp
 
 !nogui {

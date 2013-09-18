@@ -23,7 +23,6 @@ Current issues:
 #include <QDebug>
 #endif
 
-#include "types.h"
 #include "tile-write.h"
 
 #include "img_writer.h"
