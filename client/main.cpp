@@ -33,6 +33,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 Q_IMPORT_PLUGIN( mapnikrendererclient );
+Q_IMPORT_PLUGIN( mapnikofflinerendererclient );
 Q_IMPORT_PLUGIN( contractionhierarchiesclient );
 Q_IMPORT_PLUGIN( gpsgridclient );
 Q_IMPORT_PLUGIN( unicodetournamenttrieclient );
