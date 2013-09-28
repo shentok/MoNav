@@ -595,21 +595,6 @@ QVector<MapDatabase::Foo> MapDatabase::readZoomTable(const SubFileParameter &sub
 		cumulatedNumberOfPois += m_readBuffer.readUnsignedInt();
 		cumulatedNumberOfWays += m_readBuffer.readUnsignedInt();
 
-		if (cumulatedNumberOfPois > MAXIMUM_ZOOM_TABLE_OBJECTS) {
-			qWarning() << "invalid cumulated number of POIs in row" << row << cumulatedNumberOfPois;
-			if (m_mapFileHeader.getMapFileInfo().debugFile()) {
-				qWarning() << DEBUG_SIGNATURE_BLOCK << m_signatureBlock;
-			}
-			return QVector<Foo>();
-		}
-		else if (cumulatedNumberOfWays > MAXIMUM_ZOOM_TABLE_OBJECTS) {
-			qWarning() << "invalid cumulated number of ways in row" << row << cumulatedNumberOfWays;
-			if (m_mapFileHeader.getMapFileInfo().debugFile()) {
-				qWarning() << DEBUG_SIGNATURE_BLOCK << m_signatureBlock;
-			}
-			return QVector<Foo>();
-		}
-
 		zoomTable[row].numberOfPois = cumulatedNumberOfPois;
 		zoomTable[row].numberOfWays = cumulatedNumberOfWays;
 	}

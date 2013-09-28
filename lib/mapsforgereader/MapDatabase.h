@@ -133,11 +133,6 @@ private:
 	static const int MAXIMUM_WAY_NODES_SEQUENCE_LENGTH = 8192;
 
 	/**
-	 * Maximum number of map objects in the zoom table which is considered as valid.
-	 */
-	static const int MAXIMUM_ZOOM_TABLE_OBJECTS = 65536;
-
-	/**
 	 * Bitmask for the optional POI feature "elevation".
 	 */
 	static const int POI_FEATURE_ELEVATION = 0x20;
