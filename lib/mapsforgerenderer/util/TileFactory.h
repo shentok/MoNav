@@ -24,6 +24,12 @@ public:
 private:
 	MapDatabase m_mapDatabase;
 	RenderTheme *const m_renderTheme;
+
+	int m_previousMagnification;
+	byte m_previousZoomLevel;
+
+	static const double STROKE_INCREASE;
+	static const byte STROKE_MIN_ZOOM_LEVEL;
 };
 
 } // namespace Mapsforge

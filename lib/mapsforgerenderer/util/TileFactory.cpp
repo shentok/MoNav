@@ -10,17 +10,23 @@ Current issues:
 
 #include "osmarender/RenderTheme.h"
 #include "mapsforgereader/TileId.h"
+#include "DatabaseRenderer.h"
+#include "TileRasterer.h"
 
-#include <QDebug>
+#include <qmath.h>
 #include <QImage>
 #include <QPainter>
-#include <QPolygon>
 
 namespace Mapsforge {
 
+const double TileFactory::STROKE_INCREASE = 1.5;
+const byte TileFactory::STROKE_MIN_ZOOM_LEVEL = 12;
+
 TileFactory::TileFactory(QIODevice *device, RenderTheme *renderTheme) :
 	m_mapDatabase(device),
-	m_renderTheme(renderTheme)
+	m_renderTheme(renderTheme),
+	m_previousMagnification(1),
+	m_previousZoomLevel(std::numeric_limits<byte>::min())
 {
 }
 
@@ -33,27 +39,46 @@ QImage TileFactory::createTile(int x, int y, int zoom, int magnification)
 {
 	const TileId tileId(x, y, zoom);
 	const unsigned int tileSize = m_mapDatabase.getMapFileInfo().tilePixelSize() * magnification;
-	const VectorTile vectorTile = m_mapDatabase.readMapData(tileId);
 
-	QImage image(tileSize, tileSize, QImage::Format_ARGB32_Premultiplied);
-	image.fill(QColor(241, 238 , 232, 255).rgba());
-	QPainter painter(&image);
-	painter.translate(-QPoint(tileId.pixelX(tileSize), tileId.pixelY(tileSize)));
+	if (zoom != m_previousZoomLevel || magnification != m_previousMagnification) {
+		const int zoomLevelDiff = qMax(zoom - STROKE_MIN_ZOOM_LEVEL, 0);
+		const float strokeWidth = (float) qPow(STROKE_INCREASE, zoomLevelDiff) * magnification;
+		m_renderTheme->scaleStrokeWidth(strokeWidth);
+		m_previousZoomLevel = zoom;
+	}
+
+	if (magnification != m_previousMagnification) {
+		m_renderTheme->scaleTextSize(magnification);
+		m_previousMagnification = magnification;
+	}
+
+	DatabaseRenderer databaseRenderer(m_renderTheme);
+	const VectorTile vectorTile = m_mapDatabase.readMapData(tileId);
+	foreach (const PointOfInterest &pointOfInterest, vectorTile.pointsOfInterest()) {
+		databaseRenderer.matchPointOfInterest(pointOfInterest, tileId, tileSize);
+	}
 
 	foreach (const Way &way, vectorTile.ways()) {
-		foreach (const QVector<LatLong> &points, way.geoPoints()) {
-			QPolygonF polygon;
-			foreach (const LatLong &point, points) {
-				const double pointX = MercatorProjection::longitudeToPixelX(point.lon(), zoom, tileSize);
-				const double pointY = MercatorProjection::latitudeToPixelY(point.lat(), zoom, tileSize);
-				polygon << QPointF(pointX, pointY);
-			}
-
-			if (polygon.size() >= 2) {
-				painter.drawPolyline(polygon);
-			}
-		}
+		databaseRenderer.matchWay(way, tileId, tileSize);
 	}
+
+	if (vectorTile.isWater()) {
+		databaseRenderer.matchWater(tileId, tileSize);
+	}
+
+	QImage image = QImage(tileSize, tileSize, QImage::Format_ARGB32_Premultiplied);
+	image.fill(m_renderTheme->getMapBackground().rgba());
+	QPainter painter(&image);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::HighQualityAntialiasing, true);
+	painter.setPen(Qt::NoPen);
+	TileRasterer rasterer(&painter);
+	rasterer.drawWays(databaseRenderer.ways());
+	rasterer.drawSymbols(databaseRenderer.waySymbols());
+	rasterer.drawSymbols(databaseRenderer.pointSymbols());
+	rasterer.drawWayNames(databaseRenderer.wayNames());
+	rasterer.drawNodes(databaseRenderer.nodes());
+	rasterer.drawNodes(databaseRenderer.areaLabels());
 
 	return image;
 }
