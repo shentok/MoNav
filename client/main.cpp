@@ -85,7 +85,7 @@ void MessageBoxHandler(QtMsgType type, const char *msg)
 int main(int argc, char *argv[])
 {
 	QApplication a(argc, argv);
-	qInstallMsgHandler( MessageBoxHandler );
+//	qInstallMsgHandler( MessageBoxHandler );
 	a.connect( &a, SIGNAL(aboutToQuit()), MapData::instance(), SLOT(cleanup()) );
 	a.connect( &a, SIGNAL(aboutToQuit()), RoutingLogic::instance(), SLOT(cleanup()) );
 	a.connect( &a, SIGNAL(aboutToQuit()), Logger::instance(), SLOT(cleanup()) );
