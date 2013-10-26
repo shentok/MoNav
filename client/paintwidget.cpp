@@ -318,9 +318,7 @@ void PaintWidget::paintEvent( QPaintEvent* )
 		m_request.center = m_request.position.ToProjectedCoordinate();
 
 	QPainter painter( this );
-	Timer time;
 	renderer->Paint( &painter, m_request );
-	qDebug() << "Rendering:" << time.elapsed() << "ms";
 }
 
 void PaintWidget::contextMenuEvent(QContextMenuEvent *event )
