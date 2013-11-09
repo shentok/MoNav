@@ -10,9 +10,9 @@ Current issues:
 
 #include <QImage>
 
-MapsforgeTileWriter::MapsforgeTileWriter(const QString &fileName) :
-	m_file(fileName, this),
-	m_tileFactory(&m_file)
+MapsforgeTileWriter::MapsforgeTileWriter(const QString &fileName, RenderTheme *renderTheme) :
+	m_databaseFile(fileName, this),
+	m_tileFactory(&m_databaseFile, renderTheme)
 {
 }
 

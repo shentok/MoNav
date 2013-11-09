@@ -19,10 +19,13 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "mapsforgerendererclient.h"
 #include "mapsforgetilewriter.h"
+
+#include "osmarender/RenderThemeHandler.h"
 #include "utils/qthelpers.h"
 
 #include <QImage>
 #include <QThread>
+#include <QtXml/QXmlSimpleReader>
 
 MapsforgeRendererClient::MapsforgeRendererClient() :
 	twriter( NULL ),
@@ -64,11 +67,37 @@ bool MapsforgeRendererClient::IsCompatible( int fileFormatVersion )
 
 bool MapsforgeRendererClient::load()
 {
+	const QStringList styles = QStringList() << fileInDirectory(m_directory, "style.xml") << ":/osmarender/style.xml";
+
+	RenderTheme *renderTheme = 0;
+	foreach (const QString &style, styles) {
+		QFile styleFile(style);
+		if (!styleFile.open(QFile::ReadOnly)) {
+			qWarning() << "could not open style file" << styleFile.fileName();
+			continue;
+		}
+
+		RenderThemeHandler renderThemeHandler(m_directory);
+		QXmlInputSource source(&styleFile);
+		QXmlSimpleReader xmlReader;
+		xmlReader.setContentHandler(&renderThemeHandler);
+		xmlReader.setErrorHandler(&renderThemeHandler);
+		xmlReader.parse(&source);
+		renderTheme = renderThemeHandler.releaseRenderTheme();
+
+		if (renderTheme != 0)
+			break;
+	}
+
+	if (renderTheme == 0) {
+		return false;
+	}
+
 	for(int i=0;i<=GetMaxZoom();i++)
 		m_zoomLevels.push_back(i);
 
 	const QString filename = fileInDirectory( m_directory, "map.map" );
-	twriter = new MapsforgeTileWriter( filename );
+	twriter = new MapsforgeTileWriter(filename, renderTheme);
 	m_renderThread = new QThread( this );
 	twriter->moveToThread( m_renderThread );
 	connect( this, SIGNAL(drawImage(int,int,int,int)), twriter, SLOT(draw_image(int,int,int,int)) );
@@ -80,7 +109,7 @@ bool MapsforgeRendererClient::load()
 
 int MapsforgeRendererClient::GetMaxZoom()
 {
-	return 18;
+	return 22;
 }
 
 QPixmap* MapsforgeRendererClient::loadTile( int x, int y, int zoom, int magnification )

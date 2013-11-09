@@ -85,6 +85,8 @@ void MessageBoxHandler(QtMsgType type, const char *msg)
 
 int main(int argc, char *argv[])
 {
+	Q_INIT_RESOURCE(osmarender);
+
 	QApplication a(argc, argv);
 //	qInstallMsgHandler( MessageBoxHandler );
 	a.connect( &a, SIGNAL(aboutToQuit()), MapData::instance(), SLOT(cleanup()) );

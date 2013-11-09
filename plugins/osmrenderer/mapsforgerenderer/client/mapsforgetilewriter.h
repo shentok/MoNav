@@ -8,13 +8,14 @@
 #include <QFile>
 
 class QImage;
+class RenderTheme;
 
 class MapsforgeTileWriter : public QObject
 {
 	Q_OBJECT
 
 public:
-	MapsforgeTileWriter(const QString &fileName);
+	MapsforgeTileWriter(const QString &fileName, RenderTheme *renderTheme);
 	~MapsforgeTileWriter();
 
 public slots:
@@ -24,7 +25,7 @@ signals:
 	void image_finished(int x, int y, int zoom, int magnification, const QImage &data);
 
 private:
-	QFile m_file;
+	QFile m_databaseFile;
 	Mapsforge::TileFactory m_tileFactory;
 };
 

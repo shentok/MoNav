@@ -8,6 +8,7 @@ Current issues:
 
 #include "TileFactory.h"
 
+#include "osmarender/RenderTheme.h"
 #include "mapsforgereader/TileId.h"
 
 #include <QDebug>
@@ -17,13 +18,15 @@ Current issues:
 
 namespace Mapsforge {
 
-TileFactory::TileFactory(QIODevice *device) :
-	m_mapDatabase(device)
+TileFactory::TileFactory(QIODevice *device, RenderTheme *renderTheme) :
+	m_mapDatabase(device),
+	m_renderTheme(renderTheme)
 {
 }
 
 TileFactory::~TileFactory()
 {
+	delete m_renderTheme;
 }
 
 QImage TileFactory::createTile(int x, int y, int zoom, int magnification)

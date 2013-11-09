@@ -89,10 +89,10 @@ maemo5 {
 RESOURCES += images.qrc
 RC_FILE = ../images/WindowsResources.rc
 
-LIBS += -L../bin/plugins_client -lmapnikrendererclient -lmapsforgerendererclient -lcontractionhierarchiesclient -lgpsgridclient -losmrendererclient -lunicodetournamenttrieclient -lqtilerendererclient -L../lib/mapsforgerenderer -lmapsforgerenderer -L../lib/mapsforgereader -lmapsforgereader
+LIBS += -L../bin/plugins_client -lmapnikrendererclient -lmapsforgerendererclient -lcontractionhierarchiesclient -lgpsgridclient -losmrendererclient -lunicodetournamenttrieclient -lqtilerendererclient -L../lib/mapsforgerenderer -lmapsforgerenderer -L../lib/mapsforgereader -lmapsforgereader -L../lib/osmarender -losmarender
 
 # Required by osmrendererclient
-QT += network
+QT += network xml
 CONFIG += mobility
 MOBILITY += location
 # Required to get a non-debug build (at least on Windows)
