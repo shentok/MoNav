@@ -10,6 +10,8 @@ Current issues:
 
 #include "osmarender/RenderTheme.h"
 #include "mapsforgereader/TileId.h"
+#include "renderer/DependencyCache.h"
+#include "renderer/LabelPlacement.h"
 #include "DatabaseRenderer.h"
 #include "TileRasterer.h"
 
@@ -25,6 +27,7 @@ const byte TileFactory::STROKE_MIN_ZOOM_LEVEL = 12;
 TileFactory::TileFactory(QIODevice *device, RenderTheme *renderTheme) :
 	m_mapDatabase(device),
 	m_renderTheme(renderTheme),
+	m_dependencyCache(new DependencyCache),
 	m_previousMagnification(1),
 	m_previousZoomLevel(std::numeric_limits<byte>::min())
 {
@@ -32,6 +35,7 @@ TileFactory::TileFactory(QIODevice *device, RenderTheme *renderTheme) :
 
 TileFactory::~TileFactory()
 {
+	delete m_dependencyCache;
 	delete m_renderTheme;
 }
 
@@ -66,6 +70,18 @@ QImage TileFactory::createTile(int x, int y, int zoom, int magnification)
 		databaseRenderer.matchWater(tileId, tileSize);
 	}
 
+	QList<PointTextContainer> nodes = databaseRenderer.nodes();
+	QList<SymbolContainer> pointSymbols = databaseRenderer.pointSymbols();
+	QList<PointTextContainer> areaLabels = databaseRenderer.areaLabels();
+
+	m_dependencyCache->setCurrentTile(tileId, tileSize);
+
+	LabelPlacement labelPlacemant(m_dependencyCache, tileId);
+	labelPlacemant.placeLabels(nodes, pointSymbols, areaLabels);
+
+	m_dependencyCache->fillDependencyOnTile2(nodes, pointSymbols, areaLabels);
+	m_dependencyCache->fillDependencyOnTile(nodes, pointSymbols);
+
 	QImage image = QImage(tileSize, tileSize, QImage::Format_ARGB32_Premultiplied);
 	image.fill(m_renderTheme->getMapBackground().rgba());
 	QPainter painter(&image);
@@ -75,10 +91,10 @@ QImage TileFactory::createTile(int x, int y, int zoom, int magnification)
 	TileRasterer rasterer(&painter);
 	rasterer.drawWays(databaseRenderer.ways());
 	rasterer.drawSymbols(databaseRenderer.waySymbols());
-	rasterer.drawSymbols(databaseRenderer.pointSymbols());
+	rasterer.drawSymbols(pointSymbols);
 	rasterer.drawWayNames(databaseRenderer.wayNames());
-	rasterer.drawNodes(databaseRenderer.nodes());
-	rasterer.drawNodes(databaseRenderer.areaLabels());
+	rasterer.drawNodes(nodes);
+	rasterer.drawNodes(areaLabels);
 
 	return image;
 }

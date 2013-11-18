@@ -18,6 +18,8 @@ HEADERS += \
 	renderer/WayTextContainer.h \
 	renderer/PolylineContainer.h \
 	renderer/CircleContainer.h \
+	renderer/DependencyCache.h \
+	renderer/LabelPlacement.h \
 	util/TileFactory.h \
 	DatabaseRenderer.h \
 	TileRasterer.h
@@ -29,6 +31,8 @@ SOURCES += \
 	renderer/WayTextContainer.cpp \
 	renderer/PolylineContainer.cpp \
 	renderer/CircleContainer.cpp \
+	renderer/DependencyCache.cpp \
+	renderer/LabelPlacement.cpp \
 	util/TileFactory.cpp \
 	DatabaseRenderer.cpp \
 	TileRasterer.cpp

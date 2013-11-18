@@ -6,6 +6,8 @@
 #include <QImage>
 
 class QIODevice;
+
+class DependencyCache;
 class RenderTheme;
 
 namespace Mapsforge {
@@ -24,6 +26,7 @@ public:
 private:
 	MapDatabase m_mapDatabase;
 	RenderTheme *const m_renderTheme;
+	DependencyCache *const m_dependencyCache;
 
 	int m_previousMagnification;
 	byte m_previousZoomLevel;
