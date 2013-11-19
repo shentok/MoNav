@@ -171,9 +171,7 @@ QList<PointTextContainer> LabelPlacement::processFourPointGreedy(const QList<Poi
 		}
 		// brute Force collision test (faster then sweep line for a small amount of objects)
 		foreach (const ReferencePosition &pos, removed) {
-			if ((pos.x() <= referencePosition.x() + referencePosition.width())
-					&& (pos.y() >= referencePosition.y() - pos.height())
-					&& (pos.y() <= referencePosition.y() + pos.height())) {
+			if (referencePosition.intersects(pos)) {
 				continue;
 			}
 			else {
