@@ -9,6 +9,7 @@ Current issues:
 #include "mapsforgetilewriter.h"
 
 #include <QImage>
+#include <QPainter>
 
 MapsforgeTileWriter::MapsforgeTileWriter(const QString &fileName, RenderTheme *renderTheme) :
 	m_databaseFile(fileName, this),
@@ -25,7 +26,15 @@ MapsforgeTileWriter::~MapsforgeTileWriter()
 //is held in memory and the raw image data can be accessed by get_img_data()
 void MapsforgeTileWriter::draw_image(int x, int y, int zoom, int magnification)
 {
-	const QImage image = m_tileFactory.createTile(x, y, zoom, magnification);
+	QImage image = m_tileFactory.createTile(x, y, zoom, magnification);
+	const int width = image.width();
+	const int height = image.height();
+
+	QPainter painter(&image);
+
+	painter.setPen(Qt::black);
+	painter.drawLine(0, 0, 0, height);
+	painter.drawLine(0, 0, width, 0);
 
 	emit image_finished(x, y, zoom, magnification, image);
 }
