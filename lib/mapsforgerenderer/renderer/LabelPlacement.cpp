@@ -12,7 +12,7 @@ class LabelPlacement::ReferencePosition : public QRectF
 public:
 	ReferencePosition() :
 		QRectF(),
-		m_nodeNumber()
+		m_nodeNumber(-1)
 	{
 	}
 
@@ -20,7 +20,10 @@ public:
 		QRectF(x, y, width, height),
 		m_nodeNumber(nodeNumber)
 	{
+		Q_ASSERT(nodeNumber >= 0);
 	}
+
+	bool isValid() const { return m_nodeNumber >= 0; }
 
 	int nodeNumber() const { return m_nodeNumber; }
 
@@ -40,7 +43,7 @@ struct LabelPlacement::ReferencePositionBottomComparator
 {
 	bool operator()(const ReferencePosition &x, const ReferencePosition &y) const
 	{
-		return (x.y() - x.height()) > (y.y() - y.height());
+		return (x.y() + x.height()) > (y.y() + y.height());
 	}
 };
 
@@ -136,9 +139,12 @@ QList<PointTextContainer> LabelPlacement::processFourPointGreedy(const QList<Poi
 		const ReferencePosition referencePosition = refPos[i];
 		if (referencePosition.isValid()) {
 			priorTop.push(referencePosition);
+			const PointTextContainer label = labels.at(referencePosition.nodeNumber());
+			result.append(PointTextContainer(label.text(), referencePosition.topLeft().toPoint(), label.font(), label.paintFront(), label.paintBack(), label.symbol()));
 		}
 	}
 
+#if 0
 	while (!priorTop.empty()) {
 		const ReferencePosition referencePosition = priorTop.top();
 		priorTop.pop();
@@ -186,6 +192,7 @@ QList<PointTextContainer> LabelPlacement::processFourPointGreedy(const QList<Poi
 			priorBottom.pop();
 		}
 	}
+#endif
 
 	return result;
 }
@@ -257,7 +264,7 @@ void LabelPlacement::removeOutOfTileReferencePoints(QVector<ReferencePosition> &
 			continue;
 		}
 
-		if (m_dependencyCache->hasUp() && ref.y() - ref.height() < 0) {
+		if (m_dependencyCache->hasUp() && ref.y() + ref.height() < 0) {
 			refPos[i] = ReferencePosition();
 			continue;
 		}
@@ -267,12 +274,12 @@ void LabelPlacement::removeOutOfTileReferencePoints(QVector<ReferencePosition> &
 			continue;
 		}
 
-		if (m_dependencyCache->hasLeft() && ref.x() < 0) {
+		if (m_dependencyCache->hasLeft() && ref.x() + ref.width() < 0) {
 			refPos[i] = ReferencePosition();
 			continue;
 		}
 
-		if (m_dependencyCache->hasRight() && ref.x() + ref.width() > m_dependencyCache->tileSize()) {
+		if (m_dependencyCache->hasRight() && ref.x() > m_dependencyCache->tileSize()) {
 			refPos[i] = ReferencePosition();
 		}
 	}
