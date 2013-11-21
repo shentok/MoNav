@@ -8,8 +8,7 @@ PointTextContainer::PointTextContainer(const QString &text, const Point &point, 
 	m_paintBack(Qt::NoPen),
 	m_font(font),
 	m_symbol(0),
-	m_point(point),
-	m_boundary(Point(0, 0), QSize(QFontMetrics(font).width(text), QFontMetrics(font).height()))
+	m_boundary(point, QSize(QFontMetrics(font).width(text), QFontMetrics(font).height()))
 {
 	m_paintBack.setColor(Qt::transparent);
 }
@@ -20,8 +19,7 @@ PointTextContainer::PointTextContainer(const QString &text, const Point &point, 
 	m_paintBack(paintBack),
 	m_font(font),
 	m_symbol(0),
-	m_point(point),
-	m_boundary(Point(0, 0), QSize(QFontMetrics(font).width(text), QFontMetrics(font).height()))
+	m_boundary(point, QSize(QFontMetrics(font).width(text), QFontMetrics(font).height()))
 {
 }
 
@@ -31,7 +29,6 @@ PointTextContainer::PointTextContainer(const QString &text, const Point &point, 
 	m_paintBack(paintBack),
 	m_font(font),
 	m_symbol(symbol),
-	m_point(point),
-	m_boundary(Point(0, 0), QSize(QFontMetrics(font).width(text), QFontMetrics(font).height()))
+	m_boundary(point, QSize(QFontMetrics(font).width(text), QFontMetrics(font).height()))
 {
 }

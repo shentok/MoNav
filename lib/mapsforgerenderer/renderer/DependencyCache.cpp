@@ -24,27 +24,29 @@ public:
 	 * @param toAdd
 	 *            a dependency Symbol
 	 */
-	void addSymbol(const Dependency<QImage> &toAdd)
+	void addSymbol(const SymbolContainer &orig, const Point &point)
 	{
-		m_symbols.append(toAdd);
+		const SymbolContainer symbol(orig.symbol(), point, orig.alignCenter(), orig.theta());
+		m_symbols.append(symbol);
 	}
 
 	/**
 	 * @param toAdd
 	 *            a Dependency Text
 	 */
-	void addText(const Dependency<PointTextContainer> &toAdd)
+	void addText(const PointTextContainer &orig, const Point &point)
 	{
-		m_labels.append(toAdd);
+		const PointTextContainer label(orig.text(), point, orig.font(), orig.paintFront(), orig.paintBack(), orig.symbol());
+		m_labels.append(label);
 	}
 
-	QList<Dependency<PointTextContainer> > labels() const { return m_labels; }
-	QList<Dependency<QImage> > symbols() const { return m_symbols; }
+	QList<PointTextContainer> labels() const { return m_labels; }
+	QList<SymbolContainer> symbols() const { return m_symbols; }
 
 private:
 	bool m_isDrawn;
-	QList<Dependency<PointTextContainer> > m_labels;
-	QList<Dependency<QImage> > m_symbols;
+	QList<PointTextContainer> m_labels;
+	QList<SymbolContainer> m_symbols;
 };
 
 DependencyCache::DependencyCache() :
@@ -62,17 +64,8 @@ DependencyCache::~DependencyCache()
 
 void DependencyCache::fillDependencyOnTile(QList<PointTextContainer> &labels, QList<SymbolContainer> &symbols) const
 {
-	foreach (const Dependency<PointTextContainer> &depLabel, m_currentDependencyOnTile->labels()) {
-		if (depLabel.value.paintBack().style() != Qt::NoPen) {
-			labels << PointTextContainer(depLabel.value.text(), depLabel.point, depLabel.value.font(), depLabel.value.paintFront(), depLabel.value.paintBack());
-		} else {
-			labels << PointTextContainer(depLabel.value.text(), depLabel.point, depLabel.value.font(), depLabel.value.paintFront());
-		}
-	}
-
-	foreach (const Dependency<QImage> &depSmb, m_currentDependencyOnTile->symbols()) {
-		symbols << SymbolContainer(depSmb.value, depSmb.point);
-	}
+	labels << m_currentDependencyOnTile->labels();
+	symbols << m_currentDependencyOnTile->symbols();
 }
 
 void DependencyCache::setCurrentTile(const TileId &tile, unsigned short tileSize)
@@ -122,9 +115,6 @@ void DependencyCache::setCurrentTile(const TileId &tile, unsigned short tileSize
 
 void DependencyCache::removeAreaLabelsInAlreadyDrawnAreas(QList<PointTextContainer> &areaLabels) const
 {
-	if (areaLabels.isEmpty())
-		return;
-
 	for (int i = 0; i < areaLabels.size(); i++) {
 		const PointTextContainer container = areaLabels.at(i);
 
@@ -185,14 +175,14 @@ unsigned short DependencyCache::tileSize() const
 	return m_tileSize;
 }
 
-QList<DependencyCache::Dependency<QImage> > DependencyCache::symbols() const
+QList<SymbolContainer> DependencyCache::symbols() const
 {
 	Q_ASSERT(m_currentDependencyOnTile != 0);
 
 	return m_currentDependencyOnTile->symbols();
 }
 
-QList<DependencyCache::Dependency<PointTextContainer> > DependencyCache::labels() const
+QList<PointTextContainer> DependencyCache::labels() const
 {
 	Q_ASSERT(m_currentDependencyOnTile != 0);
 
@@ -238,22 +228,22 @@ void DependencyCache::fillDependencyLabels(const QList<PointTextContainer> &pTC)
 		if ((label.point().y() - label.boundary().height() < 0.0f) && (!m_dependencyTable.value(up)->isDrawn())) {
 			alreadyAdded = true;
 
-			m_currentDependencyOnTile->addText(Dependency<PointTextContainer>(label, Point(label.point().x(), label.point().y())));
+			m_currentDependencyOnTile->addText(label, label.point());
 
 			{
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(up);
-				linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x(), label.point().y() + m_tileSize)));
+				linkedDep->addText(label, label.point() + Point(0, m_tileSize));
 			}
 
 			if ((label.point().x() < 0.0f) && (!m_dependencyTable.value(leftup)->isDrawn())) {
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(leftup);
-				linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x() + m_tileSize, label.point().y() + m_tileSize)));
+				linkedDep->addText(label, label.point() + Point(m_tileSize, m_tileSize));
 			}
 
 			if ((label.point().x() + label.boundary().width() > m_tileSize)
 					&& (!m_dependencyTable.value(rightup)->isDrawn())) {
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(rightup);
-				linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x() - m_tileSize, label.point().y() + m_tileSize)));
+				linkedDep->addText(label, label.point() + Point(-m_tileSize, m_tileSize));
 			}
 		}
 
@@ -262,23 +252,23 @@ void DependencyCache::fillDependencyLabels(const QList<PointTextContainer> &pTC)
 			if (!alreadyAdded) {
 				alreadyAdded = true;
 
-				m_currentDependencyOnTile->addText(Dependency<PointTextContainer>(label, Point(label.point().x(), label.point().y())));
+				m_currentDependencyOnTile->addText(label, label.point());
 			}
 
 			{
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(down);
-				linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x(), label.point().y() - m_tileSize)));
+				linkedDep->addText(label, label.point() - Point(0, m_tileSize));
 			}
 
 			if ((label.point().x() < 0.0f) && (!m_dependencyTable.value(leftdown)->isDrawn())) {
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(leftdown);
-				linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x() + m_tileSize, label.point().y() - m_tileSize)));
+				linkedDep->addText(label, label.point() + Point(m_tileSize, -m_tileSize));
 			}
 
 			if ((label.point().x() + label.boundary().width() > m_tileSize)
 					&& (!m_dependencyTable.value(rightdown)->isDrawn())) {
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(rightdown);
-				linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x() - m_tileSize, label.point().y() - m_tileSize)));
+				linkedDep->addText(label, label.point() - Point(m_tileSize, m_tileSize));
 			}
 		}
 
@@ -287,12 +277,12 @@ void DependencyCache::fillDependencyLabels(const QList<PointTextContainer> &pTC)
 			if (!alreadyAdded) {
 				alreadyAdded = true;
 
-				m_currentDependencyOnTile->addText(Dependency<PointTextContainer>(label, Point(label.point().x(), label.point().y())));
+				m_currentDependencyOnTile->addText(label, label.point());
 			}
 
 			{
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(left);
-				linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x() + m_tileSize, label.point().y())));
+				linkedDep->addText(label, label.point() + Point(m_tileSize, 0));
 			}
 		}
 
@@ -301,12 +291,12 @@ void DependencyCache::fillDependencyLabels(const QList<PointTextContainer> &pTC)
 			if (!alreadyAdded) {
 				alreadyAdded = true;
 
-				m_currentDependencyOnTile->addText(Dependency<PointTextContainer>(label, Point(label.point().x(), label.point().y())));
+				m_currentDependencyOnTile->addText(label, label.point());
 			}
 
 			{
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(right);
-				linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x() - m_tileSize, label.point().y())));
+				linkedDep->addText(label, label.point() - Point(m_tileSize, 0));
 			}
 		}
 
@@ -315,24 +305,22 @@ void DependencyCache::fillDependencyLabels(const QList<PointTextContainer> &pTC)
 		if ((label.symbol() != 0) && (!alreadyAdded)) {
 			if ((label.symbol()->point().y() <= 0.0f) && (!m_dependencyTable.value(up)->isDrawn())) {
 				alreadyAdded = true;
-				m_currentDependencyOnTile->addText(Dependency<PointTextContainer>(label, Point(label.point().x(), label.point().y())));
+				m_currentDependencyOnTile->addText(label, label.point());
 
 				{
 					DependencyOnTile *const linkedDep = m_dependencyTable.value(up);
-					linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x(), label.point().y() + m_tileSize)));
+					linkedDep->addText(label, label.point() + Point(0, m_tileSize));
 				}
 
 				if ((label.symbol()->point().x() < 0.0f) && (!m_dependencyTable.value(leftup)->isDrawn())) {
 					DependencyOnTile *const linkedDep = m_dependencyTable.value(leftup);
-					linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x() + m_tileSize,
-							label.point().y() + m_tileSize)));
+					linkedDep->addText(label, label.point() + Point(m_tileSize, m_tileSize));
 				}
 
 				if ((label.symbol()->point().x() + label.symbol()->symbol().width() > m_tileSize)
 						&& (!m_dependencyTable.value(rightup)->isDrawn())) {
 					DependencyOnTile *const linkedDep = m_dependencyTable.value(rightup);
-					linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x() - m_tileSize,
-							label.point().y() + m_tileSize)));
+					linkedDep->addText(label, label.point() + Point(-m_tileSize, m_tileSize));
 				}
 			}
 
@@ -341,26 +329,23 @@ void DependencyCache::fillDependencyLabels(const QList<PointTextContainer> &pTC)
 				if (!alreadyAdded) {
 					alreadyAdded = true;
 
-					m_currentDependencyOnTile->addText(Dependency<PointTextContainer>(label, Point(label.point().x(),
-							label.point().y())));
+					m_currentDependencyOnTile->addText(label, label.point());
 				}
 
 				{
 					DependencyOnTile *const linkedDep = m_dependencyTable.value(down);
-					linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x(), label.point().y() + m_tileSize)));
+					linkedDep->addText(label, label.point() + Point(0, m_tileSize));
 				}
 
 				if ((label.symbol()->point().x() < 0.0f) && (!m_dependencyTable.value(leftdown)->isDrawn())) {
 					DependencyOnTile *const linkedDep = m_dependencyTable.value(leftdown);
-					linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x() + m_tileSize,
-							label.point().y() - m_tileSize)));
+					linkedDep->addText(label, label.point() + Point(m_tileSize, -m_tileSize));
 				}
 
 				if ((label.symbol()->point().x() + label.symbol()->symbol().width() > m_tileSize)
 						&& (!m_dependencyTable.value(rightdown)->isDrawn())) {
 					DependencyOnTile *const linkedDep = m_dependencyTable.value(rightdown);
-					linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x() - m_tileSize,
-							label.point().y() - m_tileSize)));
+					linkedDep->addText(label, label.point() - Point(m_tileSize, m_tileSize));
 				}
 			}
 
@@ -368,12 +353,11 @@ void DependencyCache::fillDependencyLabels(const QList<PointTextContainer> &pTC)
 				if (!alreadyAdded) {
 					alreadyAdded = true;
 
-					m_currentDependencyOnTile->addText(Dependency<PointTextContainer>(label, Point(label.point().x(),
-							label.point().y())));
+					m_currentDependencyOnTile->addText(label, label.point());
 				}
 
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(left);
-				linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x() - m_tileSize, label.point().y())));
+				linkedDep->addText(label, label.point() - Point(m_tileSize, 0));
 			}
 
 			if ((label.symbol()->point().x() + label.symbol()->symbol().width() >= m_tileSize)
@@ -381,11 +365,11 @@ void DependencyCache::fillDependencyLabels(const QList<PointTextContainer> &pTC)
 				if (!alreadyAdded) {
 					alreadyAdded = true;
 
-					m_currentDependencyOnTile->addText(Dependency<PointTextContainer>(label, Point(label.point().x(), label.point().y())));
+					m_currentDependencyOnTile->addText(label, label.point());
 				}
 
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(right);
-				linkedDep->addText(Dependency<PointTextContainer>(label, Point(label.point().x() + m_tileSize, label.point().y())));
+				linkedDep->addText(label, label.point() + Point(m_tileSize, 0));
 			}
 		}
 	}
@@ -454,22 +438,22 @@ void DependencyCache::fillDependencySymbols(const QList<SymbolContainer> &symbol
 		if ((container.point().y() < 0.0f) && (!m_dependencyTable.value(up)->isDrawn())) {
 			if (!alreadyAdded) {
 				alreadyAdded = true;
-				m_currentDependencyOnTile->addSymbol(Dependency<QImage>(container.symbol(), Point(container.point().x(), container.point().y())));
+				m_currentDependencyOnTile->addSymbol(container, container.point());
 			}
 
 			{
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(up);
-				linkedDep->addSymbol(Dependency<QImage>(container.symbol(), Point(container.point().x(), container.point().y() + m_tileSize)));
+				linkedDep->addSymbol(container, container.point() + Point(0, m_tileSize));
 			}
 
 			if ((container.point().x() < 0.0f) && (!m_dependencyTable.value(leftup)->isDrawn())) {
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(leftup);
-				linkedDep->addSymbol(Dependency<QImage>(container.symbol(), Point(container.point().x() + m_tileSize, container.point().y() + m_tileSize)));
+				linkedDep->addSymbol(container, container.point() + Point(m_tileSize, m_tileSize));
 			}
 
 			if ((container.point().x() + container.symbol().width() > m_tileSize) && (!m_dependencyTable.value(rightup)->isDrawn())) {
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(rightup);
-				linkedDep->addSymbol(Dependency<QImage>(container.symbol(), Point(container.point().x() - m_tileSize, container.point().y() + m_tileSize)));
+				linkedDep->addSymbol(container, container.point() + Point(-m_tileSize, m_tileSize));
 			}
 		}
 
@@ -477,22 +461,22 @@ void DependencyCache::fillDependencySymbols(const QList<SymbolContainer> &symbol
 		if ((container.point().y() + container.symbol().height() > m_tileSize) && (!m_dependencyTable.value(down)->isDrawn())) {
 			if (!alreadyAdded) {
 				alreadyAdded = true;
-				m_currentDependencyOnTile->addSymbol(Dependency<QImage>(container.symbol(), Point(container.point().x(), container.point().y())));
+				m_currentDependencyOnTile->addSymbol(container, container.point());
 			}
 
 			{
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(down);
-				linkedDep->addSymbol(Dependency<QImage>(container.symbol(), Point(container.point().x(), container.point().y() - m_tileSize)));
+				linkedDep->addSymbol(container, container.point() - Point(0, m_tileSize));
 			}
 
 			if ((container.point().x() < 0.0f) && (!m_dependencyTable.value(leftdown)->isDrawn())) {
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(leftdown);
-				linkedDep->addSymbol(Dependency<QImage>(container.symbol(), Point(container.point().x() + m_tileSize, container.point().y() - m_tileSize)));
+				linkedDep->addSymbol(container, container.point() + Point(m_tileSize, -m_tileSize));
 			}
 
 			if ((container.point().x() + container.symbol().width() > m_tileSize) && (!m_dependencyTable.value(rightdown)->isDrawn())) {
 				DependencyOnTile *const linkedDep = m_dependencyTable.value(rightdown);
-				linkedDep->addSymbol(Dependency<QImage>(container.symbol(), Point(container.point().x() - m_tileSize, container.point().y() - m_tileSize)));
+				linkedDep->addSymbol(container, container.point() - Point(m_tileSize, m_tileSize));
 			}
 		}
 
@@ -500,22 +484,22 @@ void DependencyCache::fillDependencySymbols(const QList<SymbolContainer> &symbol
 		if ((container.point().x() < 0.0f) && (!m_dependencyTable.value(left)->isDrawn())) {
 			if (!alreadyAdded) {
 				alreadyAdded = true;
-				m_currentDependencyOnTile->addSymbol(Dependency<QImage>(container.symbol(), Point(container.point().x(), container.point().y())));
+				m_currentDependencyOnTile->addSymbol(container, container.point());
 			}
 
 			DependencyOnTile *const linkedDep = m_dependencyTable.value(left);
-			linkedDep->addSymbol(Dependency<QImage>(container.symbol(), Point(container.point().x() + m_tileSize, container.point().y())));
+			linkedDep->addSymbol(container, container.point() + Point(m_tileSize, 0));
 		}
 
 		// right
 		if ((container.point().x() + container.symbol().width() > m_tileSize) && (!m_dependencyTable.value(right)->isDrawn())) {
 			if (!alreadyAdded) {
 				alreadyAdded = true;
-				m_currentDependencyOnTile->addSymbol(Dependency<QImage>(container.symbol(), Point(container.point().x(), container.point().y())));
+				m_currentDependencyOnTile->addSymbol(container, container.point());
 			}
 
 			DependencyOnTile *const linkedDep = m_dependencyTable.value(right);
-			linkedDep->addSymbol(Dependency<QImage>(container.symbol(), Point(container.point().x() - m_tileSize, container.point().y())));
+			linkedDep->addSymbol(container, container.point() - Point(m_tileSize, 0));
 		}
 	}
 }
@@ -525,11 +509,11 @@ void DependencyCache::removeOverlappingAreaLabelsWithDependencyLabels(QList<Poin
 	if (m_currentDependencyOnTile->labels().isEmpty())
 		return;
 
-	foreach (const Dependency<PointTextContainer> &depLabel, m_currentDependencyOnTile->labels()) {
-		const Rectangle rect1 = Rectangle((int) (depLabel.point.x()),
-				(int) (depLabel.point.y() - depLabel.value.boundary().height()),
-				(int) (depLabel.point.x() + depLabel.value.boundary().width()),
-				(int) (depLabel.point.y()));
+	foreach (const PointTextContainer &label1, m_currentDependencyOnTile->labels()) {
+		const Rectangle rect1 = Rectangle((int) (label1.point().x()),
+				(int) (label1.point().y() - label1.boundary().height()),
+				(int) (label1.point().x() + label1.boundary().width()),
+				(int) (label1.point().y()));
 
 		for (int i = 0; i < areaLabels.size(); i++) {
 			const PointTextContainer pTC = areaLabels.at(i);
@@ -547,9 +531,9 @@ void DependencyCache::removeOverlappingAreaLabelsWithDependencyLabels(QList<Poin
 
 void DependencyCache::removeOverlappingAreaLabelsWithDependencySymbols(QList<PointTextContainer> &areaLabels) const
 {
-	foreach (const Dependency<QImage> &depSmb, m_currentDependencyOnTile->symbols()) {
-		const Rectangle rect1 = Rectangle((int) depSmb.point.x(), (int) depSmb.point.y(), (int) depSmb.point.x()
-				+ depSmb.value.width(), (int) depSmb.point.y() + depSmb.value.height());
+	foreach (const SymbolContainer &symbol, m_currentDependencyOnTile->symbols()) {
+		const Rectangle rect1 = Rectangle((int) symbol.point().x(), (int) symbol.point().y(), (int) symbol.point().x()
+				+ symbol.width(), (int) symbol.point().y() + symbol.height());
 
 		for (int i = 0; i < areaLabels.size(); i++) {
 			const PointTextContainer label = areaLabels.at(i);
@@ -567,11 +551,11 @@ void DependencyCache::removeOverlappingAreaLabelsWithDependencySymbols(QList<Poi
 
 void DependencyCache::removeOverlappingLabelsWithDependencyLabels(QList<PointTextContainer> &labels) const
 {
-	foreach (const Dependency<PointTextContainer> &dep, m_currentDependencyOnTile->labels()) {
+	foreach (const PointTextContainer &dep, m_currentDependencyOnTile->labels()) {
 		for (int j = 0; j < labels.size(); j++) {
-			if ((labels.at(j).text() == dep.value.text())
-					&& (labels.at(j).paintFront() == dep.value.paintFront())
-					&& (labels.at(j).paintBack() == dep.value.paintBack())) {
+			if ((labels.at(j).text() == dep.text())
+					&& (labels.at(j).paintFront() == dep.paintFront())
+					&& (labels.at(j).paintBack() == dep.paintBack())) {
 				labels.removeAt(j);
 				j--;
 			}
@@ -581,15 +565,15 @@ void DependencyCache::removeOverlappingLabelsWithDependencyLabels(QList<PointTex
 
 void DependencyCache::removeOverlappingSymbolsWithDepencySymbols(QList<SymbolContainer> &symbols, int dis) const
 {
-	foreach (const Dependency<QImage> &sym2, m_currentDependencyOnTile->symbols()) {
-		const Rectangle rect1 = Rectangle((int) sym2.point.x() - dis, (int) sym2.point.y() - dis, (int) sym2.point.x()
-				+ sym2.value.width() + dis, (int) sym2.point.y() + sym2.value.height() + dis);
+	foreach (const SymbolContainer &symbol1, m_currentDependencyOnTile->symbols()) {
+		const Rectangle rect1 = Rectangle((int) symbol1.point().x() - dis, (int) symbol1.point().y() - dis, (int) symbol1.point().x()
+				+ symbol1.width() + dis, (int) symbol1.point().y() + symbol1.height() + dis);
 
 		for (int j = 0; j < symbols.size(); j++) {
-			const SymbolContainer symbolContainer = symbols.at(j);
-			const Rectangle rect2 = Rectangle((int) symbolContainer.point().x(), (int) symbolContainer.point().y(),
-					(int) symbolContainer.point().x() + symbolContainer.symbol().width(),
-					(int) symbolContainer.point().y() + symbolContainer.symbol().height());
+			const SymbolContainer symbol2 = symbols.at(j);
+			const Rectangle rect2 = Rectangle((int) symbol2.point().x(), (int) symbol2.point().y(),
+					(int) symbol2.point().x() + symbol2.symbol().width(),
+					(int) symbol2.point().y() + symbol2.symbol().height());
 
 			if (rect2.intersects(rect1)) {
 				symbols.removeAt(j);
@@ -601,11 +585,11 @@ void DependencyCache::removeOverlappingSymbolsWithDepencySymbols(QList<SymbolCon
 
 void DependencyCache::removeOverlappingSymbolsWithDependencyLabels(QList<SymbolContainer> &symbols) const
 {
-	foreach (const Dependency<PointTextContainer> &depLabel, m_currentDependencyOnTile->labels()) {
-		const Rectangle rect1 = Rectangle((int) (depLabel.point.x()),
-				(int) (depLabel.point.y() - depLabel.value.boundary().height()),
-				(int) (depLabel.point.x() + depLabel.value.boundary().width()),
-				(int) (depLabel.point.y()));
+	foreach (const PointTextContainer &label1, m_currentDependencyOnTile->labels()) {
+		const Rectangle rect1 = Rectangle((int) (label1.point().x()),
+				(int) (label1.point().y() - label1.boundary().height()),
+				(int) (label1.point().x() + label1.boundary().width()),
+				(int) (label1.point().y()));
 
 		for (int i = 0; i < symbols.size(); i++) {
 			const SymbolContainer smb = symbols.at(i);

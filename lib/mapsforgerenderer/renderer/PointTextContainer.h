@@ -81,13 +81,13 @@ public:
 
 	QString text() const { return m_text; }
 
-	Point point() const { return m_point; }
+	Point point() const { return m_boundary.topLeft(); }
 
 	const Paint &paintFront() const { return m_paintFront; }
 	const Paint &paintBack() const { return m_paintBack; }
 
 	Rectangle boundary() const { return m_boundary; }
-	int &rx() { return m_point.rx(); }
+	Rectangle &rboundary() { return m_boundary; }
 	const QFont &font() const { return m_font; }
 	const SymbolContainer *symbol() const { return m_symbol; }
 
@@ -97,7 +97,6 @@ private:
 	Paint m_paintBack;
 	QFont m_font;
 	const SymbolContainer *m_symbol;
-	Point m_point;
 	Rectangle m_boundary;
 };
 

@@ -30,6 +30,8 @@ public:
 
 	QImage symbol() const { return m_symbol; }
 	Point point() const { return m_point; }
+	int width() const { return m_symbol.width(); }
+	int height() const { return m_symbol.height(); }
 	bool alignCenter() const { return m_alignCenter; }
 	float theta() const { return m_theta; }
 

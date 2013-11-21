@@ -80,7 +80,7 @@ void LabelPlacement::placeLabels(QList<PointTextContainer> &labels, QList<Symbol
 void LabelPlacement::centerLabels(QList<PointTextContainer> &labels)
 {
 	for (QList<PointTextContainer>::Iterator it = labels.begin(); it != labels.end(); ++it) {
-		it->rx() = it->point().x() - it->boundary().width() / 2;
+		it->rboundary().translate(-it->boundary().width() / 2, 0);
 	}
 }
 
@@ -283,11 +283,11 @@ void LabelPlacement::removeOutOfTileReferencePoints(QVector<ReferencePosition> &
 void LabelPlacement::removeOverlappingLabels(QVector<LabelPlacement::ReferencePosition> &refPos) const
 {
 	const int dis = 2;
-	foreach (const DependencyCache::Dependency<PointTextContainer> &depLabel, m_dependencyCache->labels()) {
-		const Rectangle rect1 = Rectangle((int) depLabel.point.x() - dis,
-				(int) (depLabel.point.y() - depLabel.value.boundary().height()) - dis,
-				(int) (depLabel.point.x() + depLabel.value.boundary().width() + dis),
-				(int) (depLabel.point.y() + dis));
+	foreach (const PointTextContainer &label1, m_dependencyCache->labels()) {
+		const Rectangle rect1 = Rectangle((int) label1.point().x() - dis,
+				(int) (label1.point().y() - label1.boundary().height()) - dis,
+				(int) (label1.point().x() + label1.boundary().width() + dis),
+				(int) (label1.point().y() + dis));
 
 		for (int y = 0; y < refPos.size(); y++) {
 			if (refPos[y].isValid()) {
@@ -304,10 +304,10 @@ void LabelPlacement::removeOverlappingLabels(QVector<LabelPlacement::ReferencePo
 
 void LabelPlacement::removeOverlappingSymbols(QVector<LabelPlacement::ReferencePosition> &refPos) const
 {
-	foreach (const DependencyCache::Dependency<QImage> &symbols2, m_dependencyCache->symbols()) {
-		const Rectangle rect1 = Rectangle((int) symbols2.point.x(), (int) (symbols2.point.y()),
-				(int) (symbols2.point.x() + symbols2.value.width()),
-				(int) (symbols2.point.y() + symbols2.value.height()));
+	foreach (const SymbolContainer &symbol2, m_dependencyCache->symbols()) {
+		const Rectangle rect1 = Rectangle((int) symbol2.point().x(), (int) (symbol2.point().y()),
+				(int) (symbol2.point().x() + symbol2.width()),
+				(int) (symbol2.point().y() + symbol2.height()));
 
 		for (int y = 0; y < refPos.size(); y++) {
 			if (refPos[y].isValid()) {

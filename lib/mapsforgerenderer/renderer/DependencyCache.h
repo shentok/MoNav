@@ -35,26 +35,6 @@ class DependencyCache
 {
 public:
 	/**
-	 * The class holds the data for a symbol with dependencies on other tiles.
-	 *
-	 * @param <T>
-	 *            only two types are reasonable. The DependencySymbol or DependencyText class.
-	 */
-	template<typename T>
-	class Dependency
-	{
-	public:
-		Dependency(const T &value, const Point &point) :
-			value(value),
-			point(point)
-		{
-		}
-
-		T value;
-		Point point;
-	};
-
-	/**
 	 * Constructor for this class, that creates a hashtable for the dependencies.
 	 */
 	DependencyCache();
@@ -104,9 +84,9 @@ public:
 
 	unsigned short tileSize() const;
 
-	QList<Dependency<QImage> > symbols() const;
+	QList<SymbolContainer> symbols() const;
 
-	QList<Dependency<PointTextContainer> > labels() const;
+	QList<PointTextContainer> labels() const;
 
 	bool hasLeft() const;
 	bool hasRight() const;
