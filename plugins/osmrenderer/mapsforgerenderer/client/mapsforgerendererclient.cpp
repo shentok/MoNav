@@ -96,8 +96,16 @@ bool MapsforgeRendererClient::load()
 	for(int i=0;i<=GetMaxZoom();i++)
 		m_zoomLevels.push_back(i);
 
-	const QString filename = fileInDirectory( m_directory, "map.map" );
-	twriter = new MapsforgeTileWriter(filename, renderTheme);
+	const QString fileName = fileInDirectory(m_directory, "map.map");
+	QFile *mapDatabase = new QFile(fileName);
+	if (!mapDatabase->open(QFile::ReadOnly)) {
+		qWarning() << "Unable to open " << fileName << " for reading.";
+		delete mapDatabase;
+		return false;
+	}
+
+	twriter = new MapsforgeTileWriter(mapDatabase, renderTheme);
+	mapDatabase->setParent(twriter);
 	m_renderThread = new QThread( this );
 	twriter->moveToThread( m_renderThread );
 	connect( this, SIGNAL(drawImage(int,int,int,int)), twriter, SLOT(draw_image(int,int,int,int)) );

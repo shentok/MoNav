@@ -24,8 +24,8 @@ namespace Mapsforge {
 const double TileFactory::STROKE_INCREASE = 1.5;
 const byte TileFactory::STROKE_MIN_ZOOM_LEVEL = 12;
 
-TileFactory::TileFactory(QIODevice *device, RenderTheme *renderTheme) :
-	m_mapDatabase(device),
+TileFactory::TileFactory(QIODevice *mapDatabase, RenderTheme *renderTheme) :
+	m_mapDatabase(mapDatabase),
 	m_renderTheme(renderTheme),
 	m_dependencyCache(new DependencyCache),
 	m_previousMagnification(1),

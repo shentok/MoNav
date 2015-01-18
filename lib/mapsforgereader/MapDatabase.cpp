@@ -36,8 +36,6 @@ MapDatabase::MapDatabase(QIODevice *inputFile) :
 {
     Q_ASSERT(inputFile != 0);
 
-    inputFile->open(QIODevice::ReadOnly);
-
     if (!inputFile->isOpen())
         return;
 
@@ -46,7 +44,6 @@ MapDatabase::MapDatabase(QIODevice *inputFile) :
 
 MapDatabase::~MapDatabase()
 {
-	m_inputFile->close();
 }
 
 MapFileInfo MapDatabase::getMapFileInfo() const

@@ -11,9 +11,8 @@ Current issues:
 #include <QImage>
 #include <QPainter>
 
-MapsforgeTileWriter::MapsforgeTileWriter(const QString &fileName, RenderTheme *renderTheme) :
-	m_databaseFile(fileName, this),
-	m_tileFactory(&m_databaseFile, renderTheme)
+MapsforgeTileWriter::MapsforgeTileWriter(QIODevice *mapDatabase, RenderTheme *renderTheme) :
+    m_tileFactory(mapDatabase, renderTheme)
 {
 }
 

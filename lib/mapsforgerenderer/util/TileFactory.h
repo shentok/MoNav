@@ -15,7 +15,7 @@ namespace Mapsforge {
 class TileFactory
 {
 public:
-	TileFactory(QIODevice *device, RenderTheme *renderTheme);
+	TileFactory(QIODevice *mapDatabase, RenderTheme *renderTheme);
 	~TileFactory();
 
 	/**
