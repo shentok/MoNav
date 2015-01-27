@@ -43,6 +43,27 @@ public:
 		unsigned int numberOfWays;
 	};
 
+	class TileIdRange {
+	public:
+		TileIdRange(qint64 left, qint64 top, qint64 right, qint64 bottom, int zoomLevel);
+
+		qint64 left() const;
+		qint64 top() const;
+		qint64 right() const;
+		qint64 bottom() const;
+		int zoomLevel() const;
+
+		qint64 width() const;
+		qint64 height() const;
+
+	private:
+		qint64 m_left;
+		qint64 m_top;
+		qint64 m_right;
+		qint64 m_bottom;
+		int m_zoomLevel;
+	};
+
 	/**
 	 * Opens the given map file, reads its header data and validates them.
 	 *
@@ -76,7 +97,7 @@ public:
 	VectorTile readMapData(const TileId &tile);
 
 private:
-	static QRect physical2VirtualRect(const TileId &tile, const QRect &physicalRect, int physicalZoomLevel);
+	static TileIdRange physicalMapRect2TileRect(const TileId &tile, const TileIdRange &mapRect);
 	static QueryParameters calculateBlocks(const TileId &tile, int zoomLevel, int physicalZoomLevel);
 
 	void decodeWayNodesDoubleDelta(QVector<GeoPoint> &waySegment, const LatLong &tileCoordinates);
