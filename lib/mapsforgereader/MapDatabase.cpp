@@ -19,6 +19,7 @@
 
 #include <QDebug>
 #include <QIODevice>
+#include <QRect>
 
 const QString MapDatabase::DEBUG_SIGNATURE_BLOCK = "block signature:";
 const QString MapDatabase::DEBUG_SIGNATURE_POI = "POI signature:";
@@ -66,8 +67,12 @@ VectorTile MapDatabase::readMapData(const TileId &tile)
 		return VectorTile();
 	}
 
-	const quint64 numberOfBlocks = MercatorProjection::blocksWidth(bbox, subFileParameter.physicalZoomLevel()) * MercatorProjection::blocksHeight(bbox, subFileParameter.physicalZoomLevel());
-	const QueryParameters queryParameters = calculateBlocks(tile, bbox, zoomLevel, subFileParameter.physicalZoomLevel());
+	const QRect physicalRect(QPoint(MercatorProjection::boundaryTileLeft(bbox, subFileParameter.physicalZoomLevel()),
+									MercatorProjection::boundaryTileTop(bbox, subFileParameter.physicalZoomLevel())),
+							 QPoint(MercatorProjection::boundaryTileRight(bbox, subFileParameter.physicalZoomLevel()),
+									MercatorProjection::boundaryTileBottom(bbox, subFileParameter.physicalZoomLevel())));
+	const quint64 numberOfBlocks = physicalRect.width() * physicalRect.height();
+	const QueryParameters queryParameters = calculateBlocks(tile, physicalRect, zoomLevel, subFileParameter.physicalZoomLevel());
 
 	QList<PointOfInterest> pointsOfInterest;
 	QList<Way> ways;
@@ -78,7 +83,7 @@ VectorTile MapDatabase::readMapData(const TileId &tile)
 	for (qint64 row = queryParameters.fromBlockY; row < queryParameters.toBlockY; ++row) {
 		for (qint64 column = queryParameters.fromBlockX; column < queryParameters.toBlockX; ++column) {
 			// calculate the actual block number of the needed block in the file
-			const quint64 blockNumber = row * MercatorProjection::blocksWidth(bbox, subFileParameter.physicalZoomLevel()) + column;
+			const quint64 blockNumber = row * physicalRect.width() + column;
 
 			// get the current index entry
 			const quint64 currentBlockIndexEntry = m_databaseIndexCache.getIndexEntry(subFileParameter, blockNumber, numberOfBlocks);
@@ -141,8 +146,8 @@ VectorTile MapDatabase::readMapData(const TileId &tile)
 			}
 
 			// calculate the top-left coordinates of the underlying tile
-			const TileId subTile = TileId(MercatorProjection::boundaryTileLeft(bbox, subFileParameter.physicalZoomLevel()) + column,
-									  MercatorProjection::boundaryTileTop(bbox, subFileParameter.physicalZoomLevel()) + row,
+			const TileId subTile = TileId(physicalRect.left() + column,
+									  physicalRect.top() + row,
 									  subFileParameter.physicalZoomLevel());
 			const LatLong tileCoordinates = MercatorProjection::tileToCoordinates(subTile);
 
@@ -158,7 +163,7 @@ VectorTile MapDatabase::readMapData(const TileId &tile)
 	return VectorTile(pointsOfInterest, ways, isWater);
 }
 
-QueryParameters MapDatabase::calculateBlocks(const TileId &tile, const BoundingBox &bbox, int zoomLevel, int physicalZoomLevel)
+QueryParameters MapDatabase::calculateBlocks(const TileId &tile, const QRect &physicalRect, int zoomLevel, int physicalZoomLevel)
 {
 	qint64 fromPhysicalTileX;
 	qint64 fromPhysicalTileY;
@@ -184,10 +189,10 @@ QueryParameters MapDatabase::calculateBlocks(const TileId &tile, const BoundingB
 	}
 
 	// calculate the blocks in the file which need to be read
-	const qint64 fromBlockX = qMax<qint64>(fromPhysicalTileX - MercatorProjection::boundaryTileLeft(bbox, physicalZoomLevel), 0L);
-	const qint64 fromBlockY = qMax<qint64>(fromPhysicalTileY - MercatorProjection::boundaryTileTop(bbox, physicalZoomLevel), 0L);
-	const qint64 toBlockX = qMin<qint64>(toPhysicalTileX, MercatorProjection::boundaryTileRight(bbox, physicalZoomLevel)) - MercatorProjection::boundaryTileLeft(bbox, physicalZoomLevel) + 1;
-	const qint64 toBlockY = qMin<qint64>(toPhysicalTileY, MercatorProjection::boundaryTileBottom(bbox, physicalZoomLevel)) - MercatorProjection::boundaryTileTop(bbox, physicalZoomLevel) + 1;
+	const qint64 fromBlockX = qMax<qint64>(fromPhysicalTileX - physicalRect.left(), 0L);
+	const qint64 fromBlockY = qMax<qint64>(fromPhysicalTileY - physicalRect.top(), 0L);
+	const qint64 toBlockX = qMin<qint64>(toPhysicalTileX, physicalRect.right()) - physicalRect.left() + 1;
+	const qint64 toBlockY = qMin<qint64>(toPhysicalTileY, physicalRect.bottom()) - physicalRect.top() + 1;
 
 	if (useTileBitmask) {
 		return QueryParameters(zoomLevel, fromBlockX, fromBlockY, toBlockX, toBlockY, tile, tile.zoomLevel - physicalZoomLevel);
