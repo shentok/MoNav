@@ -166,14 +166,14 @@ QueryParameters MapDatabase::calculateBlocks(const TileId &tile, const BoundingB
 	qint64 toPhysicalTileY;
 	bool useTileBitmask = false;
 
-	if (tile.zoomLevel < physicalZoomLevel) {
+	if (tile.zoomLevel <= physicalZoomLevel) {
 		// calculate the XY numbers of the upper left and lower right sub-tiles
 		const int zoomLevelDifference = physicalZoomLevel - tile.zoomLevel;
 		fromPhysicalTileX = tile.tileX << zoomLevelDifference;
 		fromPhysicalTileY = tile.tileY << zoomLevelDifference;
 		toPhysicalTileX = fromPhysicalTileX + (1 << zoomLevelDifference) - 1;
 		toPhysicalTileY = fromPhysicalTileY + (1 << zoomLevelDifference) - 1;
-	} else if (tile.zoomLevel > physicalZoomLevel) {
+	} else {
 		// calculate the XY numbers of the parent base tile
 		const int zoomLevelDifference = tile.zoomLevel - physicalZoomLevel;
 		fromPhysicalTileX = tile.tileX >> zoomLevelDifference;
@@ -181,12 +181,6 @@ QueryParameters MapDatabase::calculateBlocks(const TileId &tile, const BoundingB
 		toPhysicalTileX = fromPhysicalTileX;
 		toPhysicalTileY = fromPhysicalTileY;
 		useTileBitmask = true;
-	} else {
-		// use the tile XY numbers of the requested tile
-		fromPhysicalTileX = tile.tileX;
-		fromPhysicalTileY = tile.tileY;
-		toPhysicalTileX = fromPhysicalTileX;
-		toPhysicalTileY = fromPhysicalTileY;
 	}
 
 	// calculate the blocks in the file which need to be read
