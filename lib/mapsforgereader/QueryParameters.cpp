@@ -17,29 +17,17 @@
 
 #include "TileId.h"
 
-QueryParameters::QueryParameters(int queryZoomLevel, qint64 fromBlockX, qint64 fromBlockY, qint64 toBlockX, qint64 toBlockY) :
-	fromBlockX(fromBlockX),
-	fromBlockY(fromBlockY),
-	toBlockX(toBlockX),
-	toBlockY(toBlockY),
+QueryParameters::QueryParameters(int queryZoomLevel) :
 	queryZoomLevel(queryZoomLevel),
 	useTileBitmask(false)
 {
-	Q_ASSERT(fromBlockX >= 0);
-	Q_ASSERT(fromBlockY >= 0);
 }
 
-QueryParameters::QueryParameters(int queryZoomLevel, qint64 fromBlockX, qint64 fromBlockY, qint64 toBlockX, qint64 toBlockY, const TileId &tile, int zoomLevelDifference) :
-	fromBlockX(fromBlockX),
-	fromBlockY(fromBlockY),
-	toBlockX(toBlockX),
-	toBlockY(toBlockY),
+QueryParameters::QueryParameters(int queryZoomLevel, const TileId &tile, int zoomLevelDifference) :
 	queryZoomLevel(queryZoomLevel),
 	queryTileBitmask(calculateTileBitmask(tile, zoomLevelDifference)),
 	useTileBitmask(true)
 {
-	Q_ASSERT(fromBlockX >= 0);
-	Q_ASSERT(fromBlockY >= 0);
 }
 
 int QueryParameters::getFirstLevelTileBitmask(const TileId &tile)

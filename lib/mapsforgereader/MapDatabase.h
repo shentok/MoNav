@@ -76,7 +76,8 @@ public:
 	VectorTile readMapData(const TileId &tile);
 
 private:
-	static QueryParameters calculateBlocks(const TileId &tile, const QRect &physicalRect, int zoomLevel, int physicalZoomLevel);
+	static QRect physical2VirtualRect(const TileId &tile, const QRect &physicalRect, int physicalZoomLevel);
+	static QueryParameters calculateBlocks(const TileId &tile, int zoomLevel, int physicalZoomLevel);
 
 	void decodeWayNodesDoubleDelta(QVector<GeoPoint> &waySegment, const LatLong &tileCoordinates);
 

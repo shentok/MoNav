@@ -23,14 +23,10 @@ class TileId;
 struct QueryParameters
 {
 public:
-	QueryParameters(int queryZoomLevel, qint64 fromBlockX, qint64 fromBlockY, qint64 toBlockX, qint64 toBlockY);
+	QueryParameters(int queryZoomLevel);
 
-	QueryParameters(int queryZoomLevel, qint64 fromBlockX, qint64 fromBlockY, qint64 toBlockX, qint64 toBlockY, const TileId &tile, int zoomLevelDifference);
+	QueryParameters(int queryZoomLevel, const TileId &tile, int zoomLevelDifference);
 
-	qint64 fromBlockX;
-	qint64 fromBlockY;
-	qint64 toBlockX;
-	qint64 toBlockY;
 	int queryZoomLevel;
 	int queryTileBitmask;
 	bool useTileBitmask;

@@ -72,7 +72,8 @@ VectorTile MapDatabase::readMapData(const TileId &tile)
 							 QPoint(MercatorProjection::boundaryTileRight(bbox, subFileParameter.physicalZoomLevel()),
 									MercatorProjection::boundaryTileBottom(bbox, subFileParameter.physicalZoomLevel())));
 	const quint64 numberOfBlocks = physicalRect.width() * physicalRect.height();
-	const QueryParameters queryParameters = calculateBlocks(tile, physicalRect, zoomLevel, subFileParameter.physicalZoomLevel());
+	const QRect rect = physical2VirtualRect(tile, physicalRect, subFileParameter.physicalZoomLevel());
+	const QueryParameters queryParameters = calculateBlocks(tile, zoomLevel, subFileParameter.physicalZoomLevel());
 
 	QList<PointOfInterest> pointsOfInterest;
 	QList<Way> ways;
@@ -80,8 +81,8 @@ VectorTile MapDatabase::readMapData(const TileId &tile)
 	bool queryReadWaterInfo = false;
 
 	// read and process all blocks from top to bottom and from left to right
-	for (qint64 row = queryParameters.fromBlockY; row < queryParameters.toBlockY; ++row) {
-		for (qint64 column = queryParameters.fromBlockX; column < queryParameters.toBlockX; ++column) {
+	for (qint64 row = rect.top(); row < rect.bottom(); ++row) {
+		for (qint64 column = rect.left(); column < rect.right(); ++column) {
 			// calculate the actual block number of the needed block in the file
 			const quint64 blockNumber = row * physicalRect.width() + column;
 
@@ -163,13 +164,12 @@ VectorTile MapDatabase::readMapData(const TileId &tile)
 	return VectorTile(pointsOfInterest, ways, isWater);
 }
 
-QueryParameters MapDatabase::calculateBlocks(const TileId &tile, const QRect &physicalRect, int zoomLevel, int physicalZoomLevel)
+QRect MapDatabase::physical2VirtualRect(const TileId &tile, const QRect &physicalRect, int physicalZoomLevel)
 {
 	qint64 fromPhysicalTileX;
 	qint64 fromPhysicalTileY;
 	qint64 toPhysicalTileX;
 	qint64 toPhysicalTileY;
-	bool useTileBitmask = false;
 
 	if (tile.zoomLevel <= physicalZoomLevel) {
 		// calculate the XY numbers of the upper left and lower right sub-tiles
@@ -185,7 +185,6 @@ QueryParameters MapDatabase::calculateBlocks(const TileId &tile, const QRect &ph
 		fromPhysicalTileY = tile.tileY >> zoomLevelDifference;
 		toPhysicalTileX = fromPhysicalTileX;
 		toPhysicalTileY = fromPhysicalTileY;
-		useTileBitmask = true;
 	}
 
 	// calculate the blocks in the file which need to be read
@@ -194,11 +193,20 @@ QueryParameters MapDatabase::calculateBlocks(const TileId &tile, const QRect &ph
 	const qint64 toBlockX = qMin<qint64>(toPhysicalTileX, physicalRect.right()) - physicalRect.left() + 1;
 	const qint64 toBlockY = qMin<qint64>(toPhysicalTileY, physicalRect.bottom()) - physicalRect.top() + 1;
 
+	const QRect result(QPoint(fromBlockX, fromBlockY), QPoint(toBlockX, toBlockY));
+
+	return result;
+}
+
+QueryParameters MapDatabase::calculateBlocks(const TileId &tile, int zoomLevel, int physicalZoomLevel)
+{
+	const bool useTileBitmask = tile.zoomLevel > physicalZoomLevel;
+
 	if (useTileBitmask) {
-		return QueryParameters(zoomLevel, fromBlockX, fromBlockY, toBlockX, toBlockY, tile, tile.zoomLevel - physicalZoomLevel);
+		return QueryParameters(zoomLevel, tile, tile.zoomLevel - physicalZoomLevel);
 	}
 
-	return QueryParameters(zoomLevel, fromBlockX, fromBlockY, toBlockX, toBlockY);
+	return QueryParameters(zoomLevel);
 }
 
 void MapDatabase::decodeWayNodesDoubleDelta(QVector<GeoPoint> &waySegment, const LatLong &tileCoordinates)
