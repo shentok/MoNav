@@ -85,6 +85,9 @@ unix {
 maemo5 {
 	QT += maemo5
 }
+greaterThan(QT_MAJOR_VERSION, 4) {
+	QT += widgets concurrent positioning
+}
 
 RESOURCES += images.qrc
 RC_FILE = ../images/WindowsResources.rc

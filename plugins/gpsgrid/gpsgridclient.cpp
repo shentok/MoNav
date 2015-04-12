@@ -296,4 +296,6 @@ double GPSGridClient::distance( const UnsignedCoordinate& min, const UnsignedCoo
 	return xDiff * xDiff + yDiff * yDiff;
 }
 
+#if QT_VERSION < 0x050000
 Q_EXPORT_PLUGIN2(gpsgridclient, GPSGridClient)
+#endif

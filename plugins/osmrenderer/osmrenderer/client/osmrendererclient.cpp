@@ -20,7 +20,11 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 #include "utils/qthelpers.h"
 #include <QNetworkReply>
 #include <QtDebug>
-#include <QDesktopServices>
+#if QT_VERSION < 0x050000
+	#include <QDesktopServices>
+#else
+	#include <QStandardPaths>
+#endif
 #include <QFile>
 
 #include "osmrendererclient.h"
@@ -78,9 +82,17 @@ bool OSMRendererClient::load()
 	advancedSettingsChanged();
 	network = new QNetworkAccessManager( this );
 	diskCache = new QNetworkDiskCache( this );
+#if QT_VERSION < 0x050000
 	QString cacheDir = QDesktopServices::storageLocation( QDesktopServices::CacheLocation );
+#else
+	QString cacheDir = QStandardPaths::writableLocation( QStandardPaths::CacheLocation );
+#endif
 	if ( cacheDir == "" ) {
+#if QT_VERSION < 0x050000
 		cacheDir = QDesktopServices::storageLocation( QDesktopServices::TempLocation );
+#else
+		cacheDir = QStandardPaths::writableLocation( QStandardPaths::TempLocation );
+#endif
 		QDir dir( cacheDir );
 		dir.mkdir( "osmrenderer" );
 		dir.cd( "osmrenderer" );
@@ -158,4 +170,6 @@ QPixmap* OSMRendererClient::loadTile( int x, int y, int zoom, int /*magnificatio
 	return 0;
 }
 
+#if QT_VERSION < 0x050000
 Q_EXPORT_PLUGIN2( osmrendererclient, OSMRendererClient )
+#endif

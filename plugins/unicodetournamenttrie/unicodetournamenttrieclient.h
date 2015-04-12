@@ -30,6 +30,9 @@ class UnicodeTournamentTrieClient : public QObject, public IAddressLookup
 {
 	Q_OBJECT
 	Q_INTERFACES( IAddressLookup )
+#if QT_VERSION >= 0x050000
+	Q_PLUGIN_METADATA(IID "monav.IAddressLookup/1.2")
+#endif
 public:
 
 	 explicit UnicodeTournamentTrieClient();

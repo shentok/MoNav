@@ -57,7 +57,7 @@ qint64 TileId::getMapSize(byte zoomLevel, unsigned short tileSize)
 
 quint64 TileId::getMaxTileNumber(byte zoomLevel)
 {
-	Q_ASSERT(zoomLevel >= 0 && QString("zoomLevel must not be negative: %1").arg(zoomLevel).toAscii().constData());
+	Q_ASSERT(zoomLevel >= 0 && QString("zoomLevel must not be negative: %1").arg(zoomLevel).toLatin1().constData());
 
 	return (2 << (zoomLevel - 1)) - 1;
 }

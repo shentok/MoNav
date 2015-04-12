@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <QtGui/QApplication>
+#include <QApplication>
 #include "mainwindow.h"
 #include "mapdata.h"
 #include "routinglogic.h"
@@ -32,6 +32,7 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 	#include <QMaemo5InformationBox>
 #endif
 
+#if QT_VERSION < 0x050000
 Q_IMPORT_PLUGIN( mapnikrendererclient );
 Q_IMPORT_PLUGIN( mapsforgerendererclient )
 Q_IMPORT_PLUGIN( contractionhierarchiesclient );
@@ -39,6 +40,15 @@ Q_IMPORT_PLUGIN( gpsgridclient );
 Q_IMPORT_PLUGIN( unicodetournamenttrieclient );
 Q_IMPORT_PLUGIN( osmrendererclient );
 Q_IMPORT_PLUGIN( qtilerendererclient );
+#else
+Q_IMPORT_PLUGIN( MapnikRendererClient );
+Q_IMPORT_PLUGIN( MapsforgeRendererClient )
+Q_IMPORT_PLUGIN( ContractionHierarchiesClient );
+Q_IMPORT_PLUGIN( GPSGridClient );
+Q_IMPORT_PLUGIN( UnicodeTournamentTrieClient );
+Q_IMPORT_PLUGIN( OSMRendererClient );
+Q_IMPORT_PLUGIN( QtileRendererClient );
+#endif
 
 
 void MessageBoxHandler(QtMsgType type, const char *msg)

@@ -30,6 +30,9 @@ LIBS += -fopenmp \
 	FORMS += mapnikrenderer/preprocessor/mrsettingsdialog.ui
 	SOURCES += mapnikrenderer/preprocessor/mrsettingsdialog.cpp
 	HEADERS += mapnikrenderer/preprocessor/mrsettingsdialog.h
+    greaterThan(QT_MAJOR_VERSION, 4) {
+        QT += widgets
+    }
 }
 nogui {
 	DEFINES += NOGUI

@@ -27,7 +27,9 @@ along with MoNav.  If not, see <http://www.gnu.org/licenses/>.
 class MapnikRendererClient : public RendererBase
 {
 	Q_OBJECT
-
+#if QT_VERSION >= 0x050000
+	Q_PLUGIN_METADATA(IID "monav.IRenderer/1.2")
+#endif
 public:
 
 	MapnikRendererClient();

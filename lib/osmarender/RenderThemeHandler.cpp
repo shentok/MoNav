@@ -48,7 +48,7 @@ RenderThemeHandler::~RenderThemeHandler()
 RenderTheme *RenderThemeHandler::releaseRenderTheme()
 {
 	if (!m_errorMessage.isEmpty()) {
-		qWarning() << m_errorMessage.toAscii().constData();
+		qWarning() << m_errorMessage.toLatin1().constData();
 		delete m_renderTheme;
 		m_renderTheme = 0;
 	}

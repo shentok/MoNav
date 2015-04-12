@@ -31,6 +31,9 @@ class GPSGridClient : public QObject, public IGPSLookup
 {
 	Q_OBJECT
 	Q_INTERFACES( IGPSLookup )
+#if QT_VERSION >= 0x050000
+	Q_PLUGIN_METADATA(IID "monav.IGPSLookup/1.2")
+#endif
 public:
 	GPSGridClient();
 	virtual ~GPSGridClient();

@@ -137,4 +137,6 @@ void MapsforgeRendererClient::tileLoaded( int x, int y, int zoom, int magnificat
 	m_cache.insert( id, tile, 256 * 256 * magnification * magnification * tile->depth() / 8 );
 }
 
+#if QT_VERSION < 0x050000
 Q_EXPORT_PLUGIN2( mapsforgerendererclient, MapsforgeRendererClient )
+#endif

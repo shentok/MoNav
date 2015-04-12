@@ -34,7 +34,7 @@ IndexCache::~IndexCache()
 quint64 IndexCache::getIndexEntry(const SubFileParameter &subFileParameter, quint64 blockNumber, quint64 numberOfBlocks)
 {
 	// check if the block number is out of bounds
-	Q_ASSERT(blockNumber < numberOfBlocks && QString("invalid block number: %1").arg(blockNumber).toAscii().constData());
+	Q_ASSERT(blockNumber < numberOfBlocks && QString("invalid block number: %1").arg(blockNumber).toLatin1().constData());
 #if 0
 	if (blockNumber >= numberOfBlocks) {
 		throw new IOException("invalid block number: " + blockNumber);

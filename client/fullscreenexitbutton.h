@@ -42,8 +42,8 @@
  #ifndef FULLSCREENEXITBUTTON_H
  #define FULLSCREENEXITBUTTON_H
 
- #include <QtGui/qtoolbutton.h>
- #include <QtGui/qevent.h>
+ #include <QToolButton>
+ #include <QEvent>
 
  class FullScreenExitButton : public QToolButton
  {

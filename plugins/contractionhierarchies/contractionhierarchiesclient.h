@@ -31,6 +31,9 @@ class ContractionHierarchiesClient : public QObject, public IRouter
 {
 	Q_OBJECT
 	Q_INTERFACES( IRouter )
+#if QT_VERSION >= 0x050000
+	Q_PLUGIN_METADATA(IID "monav.IRouter/1.1")
+#endif
 public:
 	ContractionHierarchiesClient();
 	virtual ~ContractionHierarchiesClient();
