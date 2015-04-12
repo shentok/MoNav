@@ -109,3 +109,8 @@ unix:!symbian {
     }
     INSTALLS += target
 }
+
+DISTFILES += \
+	../platform/android/AndroidManifest.xml
+
+ANDROID_PACKAGE_SOURCE_DIR = $$PWD/../platform/android
